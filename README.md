@@ -35,6 +35,16 @@ export default defineNuxtConfig({
 
 내부적으로 [nuxt-vuefire](https://vuefire.vuejs.org/nuxt/)를 설치해서 Firebase Auth/Firestore/Storage에 연동한다. Admin SDK는 사용하지 않는다.
 
+> ⚠️ **설치는 여기서 끝이 아니다.** 이 모듈은 서버가 없어서 Firestore/Storage Security Rules를 직접 배포해야 글쓰기·댓글이 동작한다 — 아래 [Security Model](#security-model--반드시-읽어야-하는-부분) 섹션을 반드시 따라 한다. 건너뛰면 글쓰기 버튼을 눌렀을 때 `permission-denied`가 난다.
+
+### 이미 `nuxt-vuefire`를 쓰는 프로젝트에 붙이는 경우
+
+호스트 프로젝트가 (자체 서버 기능 등으로) 이미 `nuxt-vuefire`를 설치해 뒀다면, 이 모듈은 그걸 다시 설치하지 않고 그대로 재사용한다 — `nuxt-vuefire` 자체엔 중복 설치를 막는 장치가 없어서, 안 그러면 플러그인·서버 라우트가 두 번 등록돼 문제가 생길 수 있다. 이 경우:
+
+- 호스트 쪽 `nuxt-vuefire` 설정에 `auth: { enabled: true }`가 켜져 있어야 이 모듈의 로그인·역할 기능이 동작한다.
+- `memiBoard.firebaseConfig`는 그대로 적어도 되지만(옵션 스키마 유지 목적), 실제로는 호스트가 이미 초기화한 Firebase 앱을 그대로 쓴다.
+- `memiBoard.appCheck`/`emulators` 옵션은 이 경우 무시된다 — 호스트 쪽 `nuxt-vuefire` 설정을 따른다.
+
 ## 사용법
 
 ### `pages: true` — 가장 빠른 시작
@@ -75,10 +85,15 @@ export default defineNuxtConfig({
 
 ## Security Model — 반드시 읽어야 하는 부분
 
-이 모듈은 서버가 없다. **모든 권한 검증은 Firestore/Storage Security Rules가 전부다.** 아래 두 파일을 프로젝트에 배포해야 게시판이 실제로 안전해진다.
+이 모듈은 서버가 없다. **모든 권한 검증은 Firestore/Storage Security Rules가 전부다.** 아래 두 파일을 프로젝트에 병합하는 것만으로는 부족하다 — **실제로 Firebase에 배포해야** 글쓰기·댓글·첨부파일이 동작한다. 로컬 `.rules` 파일만 고쳐두고 배포를 잊으면 글쓰기 버튼을 눌렀을 때 `permission-denied`가 난다(가장 흔한 설치 실수).
 
-- [`docs/firestore.rules.example`](docs/firestore.rules.example) — 호스트 프로젝트의 `firestore.rules`에 병합
-- [`docs/storage.rules.example`](docs/storage.rules.example) — 호스트 프로젝트의 `storage.rules`에 병합
+1. [`docs/firestore.rules.example`](docs/firestore.rules.example) — 호스트 프로젝트의 `firestore.rules`에 병합
+2. [`docs/storage.rules.example`](docs/storage.rules.example) — 호스트 프로젝트의 `storage.rules`에 병합
+3. **배포까지 실행**:
+   ```bash
+   firebase deploy --only firestore:rules,storage
+   ```
+   (호스트 프로젝트에 이미 `firestore.rules`/`storage.rules`가 배포 파이프라인에 연결돼 있다면, 평소 쓰던 배포 명령에 이 파일들이 포함돼 있는지 확인한다.)
 
 권한 모델:
 - 글/댓글 작성 → 로그인 필요

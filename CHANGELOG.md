@@ -2,6 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.2.1] - 2026-07-31
+
+### Fixed
+
+- 호스트 프로젝트가 이미 `nuxt-vuefire`를 쓰고 있으면(자체 Admin SDK 서버 기능이 있는 앱 등) 모듈이 `installModule('nuxt-vuefire', ...)`을 또 호출해 setup()이 두 번 실행되던 문제 — `nuxt-vuefire`엔 중복 설치 가드가 없어 플러그인·서버 라우트(`/api/__session` 등)가 중복 등록될 수 있었음. `hasNuxtModule()`로 이미 등록돼 있는지 확인해 있으면 재사용, 없으면 기존처럼 설치
+
+### Changed
+
+- README에 "이미 nuxt-vuefire를 쓰는 프로젝트에 붙이는 경우" 섹션 추가 — 호스트 쪽 설정에 `auth.enabled: true`가 필요하다는 점 명시
+- README에 Security Rules를 **배포까지 해야 함**을 명확히 함 — 예시 규칙을 프로젝트 파일에 병합만 하고 `firebase deploy --only firestore:rules,storage`를 안 돌리면 글쓰기 시 `permission-denied`가 나는 실수가 실제로 재현돼서, 설치 섹션 상단에 경고를 추가하고 배포 명령을 명시함
+
 ## [0.2.0] - 2026-07-31
 
 ### Added
