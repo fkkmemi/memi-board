@@ -4,6 +4,15 @@
   "type": "module",
   "description": "Firebase 기반 게시판을 Nuxt 4 프로젝트에 바로 붙이는 모듈 (posts CRUD, 첨부파일, 댓글, 권한, AI 검열)",
   "license": "MIT",
+  "author": "fkkmemi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fkkmemi/memi-board.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fkkmemi/memi-board/issues"
+  },
+  "homepage": "https://github.com/fkkmemi/memi-board#readme",
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",
