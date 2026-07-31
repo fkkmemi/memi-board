@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     },
     // 이 옵션들이 기본값이며, 필요에 따라 덮어쓸 수 있다
     collectionPrefix: 'memiBoard',
-    auth: { providers: ['google', 'emailPassword'] },
+    auth: { providers: ['google', 'apple'] }, // 'emailPassword'도 선택 가능
     moderation: { enabled: true, onError: 'allow' },
     pages: false, // true로 하면 /board 하위 라우트를 자동 등록한다
   },
@@ -61,6 +61,13 @@ export default defineNuxtConfig({
 
 제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardVersionHistory`.
 제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`.
+
+### 로그인 공급자
+
+기본값은 `['google', 'apple']`이고, `'emailPassword'`도 배열에 추가할 수 있다.
+
+- **Google**: Firebase 콘솔 → Authentication → Sign-in method에서 Google 활성화만 하면 된다.
+- **Apple**: Firebase 콘솔에서 Apple 활성화 외에, Apple Developer 계정에서 **Services ID**를 만들고 콜백 도메인(`{authDomain}`, `https://{authDomain}/__/auth/handler`)을 등록해야 한다. Team ID / Key ID / 개인 키(.p8)까지 Firebase 콘솔에 입력해야 실제로 동작한다 — [Firebase 공식 가이드](https://firebase.google.com/docs/auth/web/apple) 참고. 이 설정 없이 Apple 로그인 버튼을 누르면 에러가 난다.
 
 ### 버전 히스토리 페이지
 

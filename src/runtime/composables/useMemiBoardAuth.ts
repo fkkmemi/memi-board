@@ -1,6 +1,7 @@
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import {
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -81,6 +82,13 @@ export function useMemiBoardAuth() {
     return signInWithPopup(requireAuth(), new GoogleAuthProvider())
   }
 
+  async function signInWithApple() {
+    const provider = new OAuthProvider('apple.com')
+    provider.addScope('email')
+    provider.addScope('name')
+    return signInWithPopup(requireAuth(), provider)
+  }
+
   async function signInWithEmail(email: string, password: string) {
     return signInWithEmailAndPassword(requireAuth(), email, password)
   }
@@ -109,6 +117,7 @@ export function useMemiBoardAuth() {
     isAdmin,
     rolePending,
     signInWithGoogle,
+    signInWithApple,
     signInWithEmail,
     signUpWithEmail,
     signOut,

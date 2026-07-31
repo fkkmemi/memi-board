@@ -1,8 +1,9 @@
 <script setup lang="ts">
-const config = useRuntimeConfig().public.memiBoard as { auth: { providers?: Array<'google' | 'emailPassword'> } }
-const providers = computed(() => config.auth?.providers ?? ['google', 'emailPassword'])
+const config = useRuntimeConfig().public.memiBoard as { auth: { providers?: Array<'google' | 'apple' | 'emailPassword'> } }
+const providers = computed(() => config.auth?.providers ?? ['google', 'apple'])
+const hasOAuthProvider = computed(() => providers.value.includes('google') || providers.value.includes('apple'))
 
-const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useMemiBoardAuth()
+const { signInWithGoogle, signInWithApple, signInWithEmail, signUpWithEmail } = useMemiBoardAuth()
 
 const mode = ref<'signin' | 'signup'>('signin')
 const email = ref('')
@@ -16,6 +17,20 @@ async function handleGoogle() {
   error.value = ''
   try {
     await signInWithGoogle()
+  }
+  catch (e) {
+    error.value = (e as Error).message
+  }
+  finally {
+    loading.value = false
+  }
+}
+
+async function handleApple() {
+  loading.value = true
+  error.value = ''
+  try {
+    await signInWithApple()
   }
   catch (e) {
     error.value = (e as Error).message
@@ -58,9 +73,20 @@ async function handleEmailSubmit() {
       @click="handleGoogle"
     />
 
+    <UButton
+      v-if="providers.includes('apple')"
+      icon="i-simple-icons-apple"
+      color="neutral"
+      variant="outline"
+      label="Apple로 로그인"
+      block
+      :loading="loading"
+      @click="handleApple"
+    />
+
     <template v-if="providers.includes('emailPassword')">
       <div
-        v-if="providers.includes('google')"
+        v-if="hasOAuthProvider"
         class="flex items-center gap-2 text-xs text-muted"
       >
         <div class="flex-1 border-t border-default" />

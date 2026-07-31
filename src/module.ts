@@ -18,7 +18,7 @@ export interface MemiBoardAppCheckOptions {
 }
 
 export interface MemiBoardAuthOptions {
-  providers?: Array<'google' | 'emailPassword'>
+  providers?: Array<'google' | 'apple' | 'emailPassword'>
   provideSignInUI?: boolean
 }
 
@@ -48,7 +48,7 @@ export default defineNuxtModule<MemiBoardModuleOptions>({
   },
   defaults: {
     collectionPrefix: 'memiBoard',
-    auth: { providers: ['google', 'emailPassword'], provideSignInUI: true },
+    auth: { providers: ['google', 'apple'], provideSignInUI: true },
     moderation: { enabled: true, model: 'gemini-2.5-flash', onError: 'allow', moderateImages: false, localBlocklist: [] },
     pages: false,
   },
