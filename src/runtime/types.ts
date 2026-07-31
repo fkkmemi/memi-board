@@ -1,0 +1,56 @@
+import type { Timestamp } from 'firebase/firestore'
+
+export interface Attachment {
+  name: string
+  url: string
+  path: string
+  size: number
+  type: string
+}
+
+/** MVP: 차단된 글은 쓰기 자체가 일어나지 않으므로 항상 'approved'만 저장된다. */
+export type ModerationStatus = 'approved'
+
+export interface PostModel {
+  id?: string
+  title: string
+  summary?: string
+  tags?: string[]
+  attachments?: Attachment[]
+  /** 클라이언트 batch로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. */
+  commentCount: number
+  authorUid: string
+  authorName: string | null
+  authorPhoto: string | null
+  moderationStatus: ModerationStatus
+  moderationModel?: string
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+export interface PostDetail extends PostModel {
+  content: string
+}
+
+export interface CommentModel {
+  id?: string
+  postId: string
+  body: string
+  authorUid: string
+  authorName: string | null
+  authorPhoto: string | null
+  moderationStatus: ModerationStatus
+  createdAt: Timestamp
+}
+
+export interface BoardUserRole {
+  role: 'user' | 'admin'
+}
+
+export interface ModerationResult {
+  flagged: boolean
+  category: 'none' | 'abuse' | 'spam' | 'adult' | 'violence' | 'other'
+  reason: string
+  /** true면 API/파싱 실패로 판단이 불확실함을 뜻한다 (onError 옵션에 따라 처리). */
+  error?: boolean
+}

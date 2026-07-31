@@ -1,0 +1,37 @@
+// memi-board Storage Security Rules 예시
+//
+// 호스트 프로젝트의 storage.rules에 아래 match 블록을 병합해서 배포해야 한다
+// (Storage rules는 프로젝트당 파일 하나이므로, 이 블록만 통째로 복사해서 기존 규칙 안에 끼워 넣으면 된다).
+//
+// collectionPrefix를 바꿨다면 memiBoard(경로)와 memiBoardPosts(Firestore 컬렉션명)를 함께 바꿔야 한다.
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() &&
+        firestore.get(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid)).data.role == 'admin';
+    }
+    function postExists(postId) {
+      return firestore.exists(/databases/(default)/documents/memiBoardPosts/$(postId));
+    }
+    function isPostOwner(postId) {
+      return isSignedIn() &&
+        firestore.get(/databases/(default)/documents/memiBoardPosts/$(postId)).data.authorUid == request.auth.uid;
+    }
+
+    match /memiBoard/posts/{postId}/attachments/{fileName} {
+      allow read: if true;
+
+      // 새 글 작성 중에는 아직 postId 문서가 없으므로(임시 네임스페이스) 소유권을 확인할 수 없다 —
+      // 로그인 여부만 확인한다. 저장된 글의 첨부파일 교체/삭제는 아래 delete 규칙으로 보호된다.
+      allow create: if isSignedIn();
+
+      allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
+    }
+  }
+}

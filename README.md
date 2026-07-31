@@ -1,0 +1,107 @@
+# memi-board
+
+Nuxt 4 + Nuxt UI 프로젝트에 Firebase 기반 게시판을 바로 붙이는 모듈. 게시글 CRUD, 첨부파일(Storage), 댓글, 권한(작성자 본인/관리자), Firebase AI Logic(Gemini) 기반 AI 검열을 제공한다.
+
+클라이언트 전용이다 — 서버나 Firebase Admin SDK가 필요 없다. 소비 프로젝트가 자신의 Firebase 프로젝트 설정만 넘기면 동작한다.
+
+## 설치
+
+```bash
+pnpm add memi-board @nuxt/ui
+```
+
+`nuxt.config.ts`:
+
+```ts
+export default defineNuxtConfig({
+  modules: ['@nuxt/ui', 'memi-board'],
+  memiBoard: {
+    firebaseConfig: {
+      apiKey: '...',
+      authDomain: '...',
+      projectId: '...',
+      storageBucket: '...',
+      messagingSenderId: '...',
+      appId: '...',
+    },
+    // 이 옵션들이 기본값이며, 필요에 따라 덮어쓸 수 있다
+    collectionPrefix: 'memiBoard',
+    auth: { providers: ['google', 'emailPassword'] },
+    moderation: { enabled: true, onError: 'allow' },
+    pages: false, // true로 하면 /board 하위 라우트를 자동 등록한다
+  },
+})
+```
+
+내부적으로 [nuxt-vuefire](https://vuefire.vuejs.org/nuxt/)를 설치해서 Firebase Auth/Firestore/Storage에 연동한다. Admin SDK는 사용하지 않는다.
+
+## 사용법
+
+### `pages: true` — 가장 빠른 시작
+
+옵션만 켜면 `/board` (목록/상세/글쓰기/수정) 라우트가 자동으로 생긴다. 경로를 바꾸려면 `pages: { base: '/community' }`.
+
+### 컴포넌트 직접 배치
+
+라우팅을 직접 관리하고 싶다면 `pages: false`(기본값)로 두고 컴포넌트를 원하는 페이지에 배치한다:
+
+```vue
+<!-- pages/community/index.vue -->
+<template>
+  <MemiBoardList link-base="/community" />
+</template>
+```
+
+```vue
+<!-- pages/community/[id].vue -->
+<template>
+  <MemiBoardDetail :post-id="$route.params.id" @edit="..." @deleted="..." />
+</template>
+```
+
+제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`.
+제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`.
+
+## Security Model — 반드시 읽어야 하는 부분
+
+이 모듈은 서버가 없다. **모든 권한 검증은 Firestore/Storage Security Rules가 전부다.** 아래 두 파일을 프로젝트에 배포해야 게시판이 실제로 안전해진다.
+
+- [`docs/firestore.rules.example`](docs/firestore.rules.example) — 호스트 프로젝트의 `firestore.rules`에 병합
+- [`docs/storage.rules.example`](docs/storage.rules.example) — 호스트 프로젝트의 `storage.rules`에 병합
+
+권한 모델:
+- 글/댓글 작성 → 로그인 필요
+- 수정/삭제 → 작성자 본인 또는 `role: 'admin'`
+- 관리자 승격은 이 모듈이 절대 하지 않는다. Firebase 콘솔에서 `{collectionPrefix}Users/{uid}` 문서의 `role` 필드를 직접 `'admin'`으로 바꿔야 한다.
+
+**알려진 한계**: AI 검열은 클라이언트에서만 실행된다. 악의적 사용자가 Firestore SDK로 직접 우회 쓰기하면 검열을 피할 수 있다 — 서버가 없는 아키텍처의 근본적인 한계이며, 이 모듈은 이를 해결하려 하지 않는다. 악용 위험이 큰 프로젝트라면 별도로 Cloud Functions 검증 트리거를 추가하는 것을 권장한다(이 모듈의 범위 밖).
+
+## Firebase AI Logic (AI 검열)
+
+`moderation.enabled`가 true(기본값)면 글/댓글 제출 전에 로컬 비속어 필터 → Gemini 검열을 순서대로 실행하고, 걸리면 제출 자체를 막는다(`moderation.onError`로 검열 서비스 장애 시 허용/차단 정책을 정한다, 기본은 `'allow'`).
+
+Firebase AI Logic을 쓰려면 Firebase 콘솔에서 AI Logic(Gemini Developer API)을 활성화하고, 남용 방지를 위해 App Check도 함께 설정하는 것을 권장한다(`appCheck` 옵션).
+
+## 로컬 개발 (이 리포 자체를 수정할 때)
+
+```bash
+pnpm install
+pnpm dev:prepare
+pnpm dev   # playground 실행, http://localhost:3000
+```
+
+Firebase 없이 빠르게 테스트하려면 [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite)를 쓴다:
+
+```bash
+firebase emulators:start --project demo-memi-board
+NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
+```
+
+## 버전 정보
+
+- [RELEASE_NOTES.md](RELEASE_NOTES.md) — 버전별로 뭐가 달라졌는지 쉽게 보는 문서
+- [CHANGELOG.md](CHANGELOG.md) — 코드 수준의 자세한 변경 내역
+
+## 라이선스
+
+MIT

@@ -1,0 +1,64 @@
+// memi-board Firestore Security Rules 예시
+//
+// 이 모듈은 서버가 없는 클라이언트 전용 아키텍처이므로, 모든 권한 검증은 여기 규칙이 전부다.
+// 호스트 프로젝트의 firestore.rules에 아래 내용을 병합해서 배포해야 게시판이 실제로 안전해진다.
+//
+// collectionPrefix 모듈 옵션을 'memiBoard'가 아닌 다른 값으로 바꿨다면,
+// 아래 memiBoardPosts / memiBoardUsers를 그 값으로 전부 바꿔야 한다.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role == 'admin';
+    }
+    function isOwner(resource) {
+      return isSignedIn() && request.auth.uid == resource.data.authorUid;
+    }
+
+    match /memiBoardPosts/{postId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.authorUid == request.auth.uid
+        && request.resource.data.moderationStatus == 'approved';
+
+      // 작성자 본인 또는 관리자만 수정/삭제 가능
+      allow update, delete: if isOwner(resource) || isAdmin();
+
+      match /body/{docId} {
+        allow read: if true;
+        allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isAdmin();
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+
+        allow create: if isSignedIn()
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.moderationStatus == 'approved';
+
+        allow delete: if isOwner(resource) || isAdmin();
+
+        // 댓글 수정은 지원하지 않는다 (삭제 후 재작성만 가능) — Editor에서 UI 자체도 제공하지 않음
+        allow update: if false;
+      }
+    }
+
+    // 게시판 역할 문서.
+    // 본인은 role:'user'로만 생성/유지할 수 있고, 자기 role을 'admin'으로 바꿀 수 없다.
+    // 관리자 승격은 Firebase 콘솔에서 해당 uid 문서의 role 필드를 직접 'admin'으로 바꿔야 한다
+    // (이 모듈은 관리자 승격 UI를 제공하지 않는다).
+    match /memiBoardUsers/{uid} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == uid && request.resource.data.role == 'user';
+      allow update: if isAdmin()
+        || (isSignedIn() && request.auth.uid == uid && request.resource.data.role == resource.data.role);
+    }
+  }
+}
