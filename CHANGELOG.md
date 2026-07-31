@@ -30,6 +30,7 @@
 - `pages: true` 옵션 — `extendPages`로 `/board`, `/board/new`, `/board/:id`, `/board/:id/edit` 자동 등록, 글쓰기/수정 라우트에 `memi-board-auth` 미들웨어 적용
 - Security Rules 예시 — `docs/firestore.rules.example`, `docs/storage.rules.example`
 - Firebase Local Emulator Suite 연동 — `emulators: true` 옵션, `firebase.json`
+- 버전 히스토리 — `MemiBoardVersionHistory` 컴포넌트(`src/runtime/data/versionHistory.ts`가 단일 소스), `pages: true`일 때 `${base}/version-history`에 자동 등록. 게시판을 설치한 사이트에서도 비개발자가 markdown 없이 바로 볼 수 있게 하기 위함
 
 ### Fixed
 

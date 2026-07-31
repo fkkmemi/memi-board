@@ -97,6 +97,7 @@ export default defineNuxtModule<MemiBoardModuleOptions>({
       extendPages((pages) => {
         pages.unshift(
           { name: 'memi-board-index', path: base, file: resolve('./runtime/pages/index.vue'), meta: { memiBoardBase: base } },
+          { name: 'memi-board-version-history', path: `${base}/version-history`, file: resolve('./runtime/pages/version-history.vue') },
           { name: 'memi-board-new', path: `${base}/new`, file: resolve('./runtime/pages/new.vue'), meta: { middleware: 'memi-board-auth', memiBoardBase: base } },
           { name: 'memi-board-detail', path: `${base}/:id()`, file: resolve('./runtime/pages/[id].vue'), meta: { memiBoardBase: base } },
           { name: 'memi-board-edit', path: `${base}/:id()/edit`, file: resolve('./runtime/pages/[id]/edit.vue'), meta: { middleware: 'memi-board-auth', memiBoardBase: base } },

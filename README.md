@@ -59,8 +59,12 @@ export default defineNuxtConfig({
 </template>
 ```
 
-제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`.
+제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardVersionHistory`.
 제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`.
+
+### 버전 히스토리 페이지
+
+`pages: true`면 `${base}/version-history`(기본 `/board/version-history`)에 이 모듈의 버전 히스토리 페이지가 자동으로 생긴다 — 게시판을 설치한 사이트의 방문자도 "이 게시판에 어떤 기능이 있는지/뭐가 달라졌는지" 바로 볼 수 있다. `pages: false`로 직접 배치하는 경우엔 `<MemiBoardVersionHistory />` 컴포넌트만 원하는 곳에 넣으면 된다.
 
 ## Security Model — 반드시 읽어야 하는 부분
 
@@ -99,8 +103,8 @@ NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
 
 ## 버전 정보
 
-- [RELEASE_NOTES.md](RELEASE_NOTES.md) — 버전별로 뭐가 달라졌는지 쉽게 보는 문서
-- [CHANGELOG.md](CHANGELOG.md) — 코드 수준의 자세한 변경 내역
+- 사이트에 설치된 상태에서 보기: `<MemiBoardVersionHistory />` 컴포넌트, 또는 `pages: true`일 때 `/board/version-history`
+- 코드 수준의 자세한 변경 내역: [CHANGELOG.md](CHANGELOG.md)
 
 ## 라이선스
 
