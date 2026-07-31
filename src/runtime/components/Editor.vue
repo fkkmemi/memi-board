@@ -11,11 +11,15 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 const { user } = useMemiBoardAuth()
 const { getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
+const { categories } = useMemiBoardSettings()
 
 const title = ref('')
 const content = ref('')
 const tagsInput = ref('')
+const category = ref<string | undefined>(undefined)
 const attachments = ref<Attachment[]>([])
+
+const categoryItems = computed(() => categories.value.map(c => ({ label: c.label, value: c.id })))
 
 const loading = ref(!!props.postId)
 const saving = ref(false)
@@ -35,6 +39,7 @@ onMounted(async () => {
     title.value = post.title
     content.value = post.content
     tagsInput.value = (post.tags ?? []).join(', ')
+    category.value = post.category
     attachments.value = post.attachments ?? []
   }
   finally {
@@ -64,7 +69,7 @@ async function handleSubmit() {
     const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
 
     if (props.postId) {
-      await updatePost(props.postId, { title: title.value, content: content.value, tags, attachments: attachments.value })
+      await updatePost(props.postId, { title: title.value, content: content.value, tags, category: category.value, attachments: attachments.value })
       emit('saved', props.postId)
     }
     else {
@@ -72,6 +77,7 @@ async function handleSubmit() {
         title: title.value,
         content: content.value,
         tags,
+        category: category.value,
         attachments: attachments.value,
         authorUid: user.value.uid,
         authorName: user.value.displayName,
@@ -103,6 +109,12 @@ async function handleSubmit() {
     class="flex flex-col gap-4"
     @submit.prevent="handleSubmit"
   >
+    <USelect
+      v-model="category"
+      :items="categoryItems"
+      placeholder="카테고리 선택"
+      class="w-40"
+    />
     <UInput
       v-model="title"
       placeholder="제목"

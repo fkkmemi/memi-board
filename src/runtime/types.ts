@@ -16,6 +16,8 @@ export interface PostModel {
   title: string
   summary?: string
   tags?: string[]
+  /** BoardCategory.id 참조. 미지정이면 '전체'로 취급. */
+  category?: string
   attachments?: Attachment[]
   /** 클라이언트 batch로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. */
   commentCount: number
@@ -45,6 +47,19 @@ export interface CommentModel {
 
 export interface BoardUserRole {
   role: 'user' | 'admin'
+}
+
+export interface BoardCategory {
+  /** 글의 category 필드가 참조하는 키 (예: 'notice', 'free') */
+  id: string
+  /** 화면에 보이는 이름 */
+  label: string
+}
+
+/** {prefix}Settings/config 문서. 관리자(role:'admin')만 생성/수정, 읽기는 전체 공개. */
+export interface BoardSettingsModel {
+  categories: BoardCategory[]
+  updatedAt?: Timestamp
 }
 
 export interface ModerationResult {

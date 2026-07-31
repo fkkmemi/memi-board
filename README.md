@@ -70,7 +70,13 @@ export default defineNuxtConfig({
 ```
 
 제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardVersionHistory`.
-제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`.
+제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`.
+
+### 카테고리
+
+`useMemiBoardSettings()`가 `{prefix}Settings/config` 문서에서 카테고리 목록(`categories: { id, label }[]`)을 읽어온다. `MemiBoardEditor`는 이 목록으로 카테고리 선택 UI를 보여주고, `MemiBoardList`/`MemiBoardDetail`은 글의 `category` 필드를 뱃지로 표시한다.
+
+설정 문서가 아직 없으면 기본 카테고리(자유/공지/질문)로 계속 동작한다 — 관리자(`{prefix}Users/{uid}.role == 'admin'`)가 게시판에 처음 들어오는 순간 그 기본값으로 문서가 자동 생성되고, 이후엔 Firebase 콘솔에서 `{prefix}Settings/config.categories` 배열을 직접 수정하면 된다(카테고리 관리 UI는 아직 없음).
 
 ### 로그인 공급자
 

@@ -32,6 +32,7 @@ export interface CreatePostInput {
   title: string
   content: string
   tags?: string[]
+  category?: string
   attachments?: Attachment[]
   authorUid: string
   authorName: string | null
@@ -43,6 +44,7 @@ export interface UpdatePostInput {
   title: string
   content: string
   tags?: string[]
+  category?: string
   attachments?: Attachment[]
 }
 
@@ -95,6 +97,7 @@ export function useMemiBoardPosts() {
       setDoc(postDoc(slug), {
         title: input.title,
         tags: input.tags ?? [],
+        ...(input.category ? { category: input.category } : {}),
         attachments: input.attachments ?? [],
         commentCount: 0,
         authorUid: input.authorUid,
@@ -116,6 +119,7 @@ export function useMemiBoardPosts() {
       updateDoc(postDoc(id), {
         title: input.title,
         tags: input.tags ?? [],
+        ...(input.category ? { category: input.category } : {}),
         attachments: input.attachments ?? [],
         updatedAt: serverTimestamp(),
       }),

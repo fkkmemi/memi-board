@@ -2,6 +2,14 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.2.2] - 2026-07-31
+
+### Added
+
+- 게시글 카테고리 — `{prefix}Settings/config` 문서에 카테고리 목록을 두고, 글쓰기/목록/상세에서 선택·표시(`useMemiBoardSettings`, `BoardCategory`/`BoardSettingsModel` 타입, `PostModel.category`)
+- 설정 문서가 없으면 코드 내장 기본 카테고리(자유/공지/질문)로 계속 동작하다가, 관리자(`role: 'admin'`)가 게시판에 처음 들어오는 순간 그 기본값으로 문서를 자동 생성 — 일반 사용자는 이 문서를 절대 쓰지 않음
+- `docs/firestore.rules.example`에 `{prefix}Settings` 규칙 추가 (읽기 전체 공개, 쓰기는 관리자만)
+
 ## [0.2.1] - 2026-07-31
 
 ### Fixed

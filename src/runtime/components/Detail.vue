@@ -8,6 +8,7 @@ const emit = defineEmits<{ deleted: [], edit: [postId: string] }>()
 
 const { getPost, deletePost } = useMemiBoardPosts()
 const { canEdit, canDelete } = useMemiBoardAuth()
+const { categoryLabel } = useMemiBoardSettings()
 // post.commentCount는 상세 진입 시점의 스냅샷이라 새 댓글이 즉시 반영되지 않는다 — 실시간 댓글 목록 길이로 표시한다.
 const { comments } = useMemiBoardComments(props.postId)
 
@@ -66,9 +67,16 @@ async function handleDelete() {
   >
     <header class="flex flex-col gap-2">
       <div class="flex items-start justify-between gap-4">
-        <h1 class="text-2xl font-semibold">
-          {{ post.title }}
-        </h1>
+        <div class="flex items-center gap-2 min-w-0">
+          <UBadge
+            v-if="post.category"
+            :label="categoryLabel(post.category)"
+            variant="subtle"
+          />
+          <h1 class="text-2xl font-semibold">
+            {{ post.title }}
+          </h1>
+        </div>
         <div
           v-if="canEdit(post) || canDelete(post)"
           class="flex gap-2 shrink-0"

@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ select: [post: PostModel] }>()
 
 const { getPosts } = useMemiBoardPosts()
+const { categoryLabel } = useMemiBoardSettings()
 
 const posts = ref<PostModel[]>([])
 const cursor = ref<QueryDocumentSnapshot<DocumentData> | undefined>(undefined)
@@ -70,9 +71,17 @@ function handleClick(post: PostModel) {
     >
       <UCard class="hover:bg-elevated/50 transition-colors">
         <div class="flex items-center justify-between gap-4">
-          <h3 class="font-medium truncate">
-            {{ post.title }}
-          </h3>
+          <div class="flex items-center gap-2 min-w-0">
+            <UBadge
+              v-if="post.category"
+              :label="categoryLabel(post.category)"
+              variant="subtle"
+              size="sm"
+            />
+            <h3 class="font-medium truncate">
+              {{ post.title }}
+            </h3>
+          </div>
           <span class="text-xs text-muted shrink-0">{{ formatDate(post.createdAt) }}</span>
         </div>
         <div class="flex items-center gap-3 text-xs text-muted mt-2">

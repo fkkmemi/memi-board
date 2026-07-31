@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.2.2',
+    date: '2026-07-31',
+    highlights: [
+      '카테고리 — 글을 주제별로 분류해서 올릴 수 있어요',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-07-31',
     highlights: [
