@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { formatDate } from '../utils/formatDate'
+import { useMemiBoardComments } from '../composables/useMemiBoardComments'
+import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
 
 const props = defineProps<{ postId: string }>()
 

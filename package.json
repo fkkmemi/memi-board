@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "description": "Firebase 기반 게시판을 Nuxt 4 프로젝트에 바로 붙이는 모듈 (posts CRUD, 첨부파일, 댓글, 권한, AI 검열)",
   "license": "MIT",
@@ -15,42 +15,43 @@
   "homepage": "https://github.com/fkkmemi/memi-board#readme",
   "exports": {
     ".": {
-      "types": "./dist/types.d.mts",
-      "import": "./dist/module.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
-  "main": "./dist/module.mjs",
-  "types": "./dist/types.d.mts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "prepack": "nuxt-module-build build",
-    "build": "nuxt-module-build build",
+    "prepack": "pnpm build",
+    "build": "vite build",
+    "build:watch": "vite build --watch",
     "dev": "nuxi dev playground",
     "dev:build": "nuxi build playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxi prepare playground",
+    "dev:prepare": "nuxi prepare playground",
     "typecheck": "vue-tsc --noEmit"
-  },
-  "dependencies": {
-    "@nuxt/kit": "^4.5.1",
-    "defu": "^6.1.4",
-    "firebase": "^12.15.0",
-    "nuxt-vuefire": "^1.1.2",
-    "vuefire": "^3.2.3"
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
-    "nuxt": "^4.0.0"
+    "firebase": "^12.0.0",
+    "nuxt": "^4.0.0",
+    "nuxt-vuefire": "^1.1.2",
+    "vuefire": "^3.2.3"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^1.0.3",
-    "@nuxt/schema": "^4.5.1",
     "@nuxt/ui": "^4.9.0",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "firebase": "^12.15.0",
     "nuxt": "^4.5.1",
+    "nuxt-vuefire": "^1.1.2",
     "typescript": "^5.6.3",
+    "vite": "^8.2.0",
+    "vite-plugin-dts": "^5.0.3",
     "vue": "^3.5.40",
-    "vue-tsc": "^2.1.10"
+    "vue-tsc": "^2.1.10",
+    "vuefire": "^3.2.3"
   },
   "packageManager": "pnpm@10.0.0",
   "pnpm": {

@@ -2,10 +2,11 @@ import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, de
 import type { UploadTask } from 'firebase/storage'
 import { useFirebaseApp } from 'vuefire'
 import { safeFileName } from '../utils/slugify'
+import { useMemiBoardConfig } from '../config'
 import type { Attachment } from '../types'
 
 export function useMemiBoardStorage() {
-  const config = useRuntimeConfig().public.memiBoard as { collectionPrefix: string }
+  const config = useMemiBoardConfig()
   const app = useFirebaseApp()
   const prefix = config.collectionPrefix
 

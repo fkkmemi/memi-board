@@ -1,16 +1,17 @@
 <script setup lang="ts">
+import { MemiBoardDetail } from 'memi-board'
+
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
-const base = route.meta.memiBoardBase as string
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto p-6">
-    <MemiBoardEditor
+    <MemiBoardDetail
       :post-id="id"
-      @saved="(savedId) => router.push(`${base}/${savedId}`)"
-      @cancel="router.push(`${base}/${id}`)"
+      @deleted="router.push('/board')"
+      @edit="router.push(`/board/${id}/edit`)"
     />
   </div>
 </template>

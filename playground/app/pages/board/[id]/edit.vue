@@ -1,16 +1,19 @@
 <script setup lang="ts">
+import { MemiBoardEditor } from 'memi-board'
+
+definePageMeta({ middleware: 'board-auth' })
+
 const route = useRoute()
 const router = useRouter()
 const id = route.params.id as string
-const base = route.meta.memiBoardBase as string
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto p-6">
-    <MemiBoardDetail
+    <MemiBoardEditor
       :post-id="id"
-      @deleted="router.push(base)"
-      @edit="router.push(`${base}/${id}/edit`)"
+      @saved="(savedId) => router.push(`/board/${savedId}`)"
+      @cancel="router.push(`/board/${id}`)"
     />
   </div>
 </template>

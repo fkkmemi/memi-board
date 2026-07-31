@@ -2,6 +2,31 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.3.0] - 2026-07-31
+
+### Changed (Breaking)
+
+- **Nuxt 모듈 구조를 전부 제거하고 순수 Vue 3 컴포넌트/composable 패키지로 전환**. `src/module.ts`(`defineNuxtModule`), `installModule('nuxt-vuefire', ...)`, `nuxt.config`의 `memiBoard` 커스텀 키, `pages: true` 자동 라우트 등록, `memi-board-auth` 라우트 미들웨어를 모두 삭제
+- 목적: 같은 플랫폼(Nuxt+Firebase)을 쓰는 여러 프로젝트에서 게시판을 재사용할 때, 호스트가 이미 갖추고 있는 nuxt-vuefire 설정과 memi-board의 설정이 서로 다른 지점(모듈 설치 vs nuxt.config 키)에서 충돌할 여지를 없앤다 — 이제 Firebase/nuxt-vuefire 설정은 항상 호스트 프로젝트 하나에만 있다
+- 설정 방식 변경: `nuxt.config.ts`의 `memiBoard: {...}` 대신 `configureMemiBoard({ collectionPrefix, auth, moderation })`를 호스트가 직접 만든 Nuxt 플러그인에서 앱 부팅 시 한 번 호출
+- 라우팅 변경: 자동 페이지 등록(`pages: true`) 제거 — 컴포넌트를 호스트가 자신의 `pages/`에 직접 배치하는 방식만 남음(기존에도 지원하던 방식). 글쓰기/수정 라우트 가드도 호스트가 직접 작성(README에 `vuefire`의 `getCurrentUser()`를 쓰는 예시 미들웨어 수록)
+- 빌드 도구 교체: `@nuxt/module-builder`(`nuxt-module-build`) → 플레인 Vite 라이브러리 빌드(`@vitejs/plugin-vue` + `vite-plugin-dts`). `dist/module.mjs` → `dist/index.js`
+- `src/runtime/*` 디렉터리 구조를 `src/*`로 평탄화(Nuxt 모듈 관례였던 `runtime/` 접두사 제거)
+- 모든 컴포넌트/composable이 Nuxt 자동 임포트(`useRuntimeConfig`, `ref`/`computed`/`watch`, `useFirestore` 등)에 의존하지 않도록 명시적 `import`로 전환 — 플레인 Vite로 라이브러리를 빌드할 수 있게 됐고, 어떤 Nuxt 프로젝트 설정에서도 동일하게 동작함이 보장됨
+
+## [0.2.4] - 2026-07-31
+
+### Fixed
+
+- `firebase`/`vuefire`/`nuxt-vuefire`를 `dependencies`에서 `peerDependencies`로 이동 — memi-board가 이 패키지들을 자체 번들하고 있으면, 호스트 프로젝트가 설치한 버전과 서로 다른 모듈 인스턴스가 생겨 `useCurrentUser()`가 항상 `undefined`를 반환하거나 `useCurrentUser() called before the VueFireAuth module was added` 에러가 나는 문제가 실제로 재현됨(vuefire의 인증 상태가 모듈 인스턴스별 WeakMap으로 관리되기 때문). 설치 안내와 README에 문제 해결 섹션 추가
+
+## [0.2.3] - 2026-07-31
+
+### Changed
+
+- 신규 설치 시나리오를 처음부터 검토해 README의 설치 안내 공백 6가지를 보완: Firebase CLI/`.firebaserc`/`firebase.json` 사전 준비, 신규 프로젝트에서 Firestore/Storage/Auth 활성화, `firebaseConfig` 값 위치, AI Logic의 Blaze 요금제 필요 가능성, App Check는 옵션을 켜는 것만으론 강제되지 않고 콘솔에서 Enforce를 따로 켜야 한다는 점, Node/Nuxt 버전 요구사항
+- 위 내용 중 상세 설명(Firebase 콘솔 클릭 경로, Apple 로그인 발급 절차 등)은 README를 간결하게 유지하기 위해 새 문서 [`docs/firebase-setup.md`](docs/firebase-setup.md)로 분리하고 README에서는 짧은 요약 + 링크만 남김
+
 ## [0.2.2] - 2026-07-31
 
 ### Added

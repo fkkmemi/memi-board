@@ -16,8 +16,9 @@ import {
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/storage'
 import type { StorageReference } from 'firebase/storage'
-import { useFirebaseApp } from 'vuefire'
+import { useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
+import { useMemiBoardConfig } from '../config'
 import type { Attachment, PostDetail, PostModel } from '../types'
 
 async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
@@ -50,7 +51,7 @@ export interface UpdatePostInput {
 
 /** 목록 조회는 posts/{id} 메타만 읽고, 본문(body/main)은 상세 조회 시에만 읽는다. */
 export function useMemiBoardPosts() {
-  const config = useRuntimeConfig().public.memiBoard as { collectionPrefix: string }
+  const config = useMemiBoardConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
   const prefix = config.collectionPrefix

@@ -1,6 +1,14 @@
 <script setup lang="ts">
+import { ref, onMounted, watch } from 'vue'
 import type { PostDetail } from '../types'
 import { formatDate } from '../utils/formatDate'
+import { useMemiBoardPosts } from '../composables/useMemiBoardPosts'
+import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
+import { useMemiBoardSettings } from '../composables/useMemiBoardSettings'
+import { useMemiBoardComments } from '../composables/useMemiBoardComments'
+import MemiBoardAttachments from './Attachments.vue'
+import MemiBoardCommentForm from './CommentForm.vue'
+import MemiBoardCommentList from './CommentList.vue'
 
 const props = defineProps<{ postId: string }>()
 

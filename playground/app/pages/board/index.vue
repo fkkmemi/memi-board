@@ -1,6 +1,6 @@
 <script setup lang="ts">
-const route = useRoute()
-const base = route.meta.memiBoardBase as string
+import { MemiBoardList, MemiBoardSignIn, useMemiBoardAuth } from 'memi-board'
+
 const { isSignedIn } = useMemiBoardAuth()
 </script>
 
@@ -12,12 +12,12 @@ const { isSignedIn } = useMemiBoardAuth()
       </h1>
       <UButton
         v-if="isSignedIn"
-        :to="`${base}/new`"
+        to="/board/new"
         label="새 글쓰기"
         icon="i-lucide-pencil"
       />
     </div>
-    <MemiBoardList :link-base="base" />
+    <MemiBoardList link-base="/board" />
     <MemiBoardSignIn v-if="!isSignedIn" />
   </div>
 </template>

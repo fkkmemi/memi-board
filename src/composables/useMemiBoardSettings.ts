@@ -1,4 +1,8 @@
+import { computed, watch } from 'vue'
+import { useFirestore, useDocument } from 'vuefire'
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { useMemiBoardConfig } from '../config'
+import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { BoardCategory, BoardSettingsModel } from '../types'
 
 /** 카테고리가 아직 설정되지 않았을 때(설정 문서가 없을 때) 쓰는 기본값. */
@@ -15,7 +19,7 @@ const DEFAULT_CATEGORIES: BoardCategory[] = [
  * 일반 사용자는 절대 이 문서를 쓰지 않는다(생성 실패해도 조용히 무시 — 기본값으로 계속 동작).
  */
 export function useMemiBoardSettings() {
-  const config = useRuntimeConfig().public.memiBoard as { collectionPrefix: string }
+  const config = useMemiBoardConfig()
   const db = useFirestore()
   const { isAdmin } = useMemiBoardAuth()
   const prefix = config.collectionPrefix
