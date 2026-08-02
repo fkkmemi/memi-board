@@ -1,5 +1,9 @@
 <script setup lang="ts">
-const config = useRuntimeConfig().public.memiBoard as { auth: { providers?: Array<'google' | 'apple' | 'emailPassword'> } }
+import { computed, ref } from 'vue'
+import { useMemiBoardConfig } from '../../config'
+import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
+
+const config = useMemiBoardConfig()
 const providers = computed(() => config.auth?.providers ?? ['google', 'apple'])
 const hasOAuthProvider = computed(() => providers.value.includes('google') || providers.value.includes('apple'))
 

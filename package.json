@@ -1,55 +1,55 @@
 {
   "name": "memi-board",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
-  "description": "Firebase 기반 게시판을 Nuxt 4 프로젝트에 바로 붙이는 모듈 (posts CRUD, 첨부파일, 댓글, 권한, AI 검열)",
+  "description": "호스트 Firebase를 재사용하는 Vue 게시판 컴포넌트 패키지",
   "license": "MIT",
+  "keywords": ["vue", "firebase", "firestore", "board", "community"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fkkmemi/memi-board.git"
+  },
+  "homepage": "https://github.com/fkkmemi/memi-board#readme",
+  "bugs": {
+    "url": "https://github.com/fkkmemi/memi-board/issues"
+  },
+  "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/types.d.mts",
-      "import": "./dist/module.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/memi-board.js"
     }
   },
-  "main": "./dist/module.mjs",
-  "types": "./dist/types.d.mts",
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "prepack": "nuxt-module-build build",
-    "build": "nuxt-module-build build",
-    "dev": "nuxi dev playground",
-    "dev:build": "nuxi build playground",
-    "dev:prepare": "nuxt-module-build build --stub && nuxi prepare playground",
-    "typecheck": "vue-tsc --noEmit"
+  "main": "./dist/memi-board.js",
+  "module": "./dist/memi-board.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
   },
-  "dependencies": {
-    "@nuxt/kit": "^4.5.1",
-    "defu": "^6.1.4",
-    "firebase": "^12.15.0",
-    "nuxt-vuefire": "^1.1.2",
-    "vuefire": "^3.2.3"
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit",
+    "prepack": "pnpm run typecheck && pnpm run build"
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
-    "nuxt": "^4.0.0"
+    "firebase": "^12.0.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0",
+    "vuefire": "^3.2.0"
   },
   "devDependencies": {
-    "@nuxt/module-builder": "^1.0.3",
-    "@nuxt/schema": "^4.5.1",
+    "@vitejs/plugin-vue": "^6.0.0",
     "@nuxt/ui": "^4.9.0",
-    "nuxt": "^4.5.1",
+    "firebase": "^12.15.0",
     "typescript": "^5.6.3",
+    "vite": "^7.0.0",
+    "vite-plugin-dts": "^4.5.0",
     "vue": "^3.5.40",
-    "vue-tsc": "^2.1.10"
+    "vue-router": "^4.5.0",
+    "vue-tsc": "^3.0.0",
+    "vuefire": "^3.2.3"
   },
-  "packageManager": "pnpm@10.0.0",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@firebase/util",
-      "esbuild",
-      "protobufjs",
-      "vue-demi"
-    ]
-  }
+  "packageManager": "pnpm@11.8.0"
 }

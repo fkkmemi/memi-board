@@ -2,6 +2,20 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.3.0] - 2026-08-01
+
+### Changed
+
+- Nuxt 모듈과 자동 라우트 생성을 제거하고 호스트 Firebase/VueFire를 재사용하는 Vue 컴포넌트 패키지로 전환
+- `configureMemiBoard()`와 컴포넌트·composable을 ESM 공개 API로 제공
+- Vite 라이브러리 빌드와 이식 가능한 TypeScript 선언 생성, npm 패키지 메타데이터 및 MIT 라이선스 추가
+- 게시물 삭제를 댓글 450개 단위 배치 → 본문 → 첨부파일 → 부모 문서 순서로 변경
+- 게시물 작성자가 부모 글 삭제 시 다른 사용자가 작성한 댓글도 정리할 수 있도록 Security Rules 예제 수정
+
+### Removed
+
+- `defineNuxtModule`, `pages: true`, 자동 미들웨어와 패키지 내부 Nuxt 페이지
+
 ## [0.2.0] - 2026-07-31
 
 ### Added

@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { Attachment } from '../types'
+import { useMemiBoardStorage } from '../composables/useMemiBoardStorage'
 
 const props = withDefaults(defineProps<{
   modelValue: Attachment[]

@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import type { Attachment } from '../types'
+import MemiBoardAttachments from './Attachments.vue'
+import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
+import { useMemiBoardModeration } from '../composables/useMemiBoardModeration'
+import { useMemiBoardPosts } from '../composables/useMemiBoardPosts'
 
 const props = defineProps<{
   /** 지정하면 수정 모드, 지정하지 않으면 새 글 작성 모드. */

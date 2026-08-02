@@ -1,6 +1,7 @@
 import { collection, doc, orderBy, query, serverTimestamp, writeBatch, increment } from 'firebase/firestore'
-import { useCollection } from 'vuefire'
-import type { Ref } from 'vue'
+import { computed, type Ref } from 'vue'
+import { useCollection, useFirestore } from 'vuefire'
+import { useMemiBoardConfig } from '../../config'
 import type { CommentModel } from '../types'
 
 export interface AddCommentInput {
@@ -10,9 +11,15 @@ export interface AddCommentInput {
   authorPhoto: string | null
 }
 
+export interface MemiBoardComments {
+  comments: Ref<CommentModel[]>
+  addComment: (input: AddCommentInput) => Promise<void>
+  deleteComment: (commentId: string) => Promise<void>
+}
+
 /** postId 서브컬렉션 댓글을 실시간(onSnapshot)으로 구독하고, 작성/삭제 시 부모 글의 commentCount를 같은 batch로 증감한다. */
-export function useMemiBoardComments(postId: string | Ref<string>) {
-  const config = useRuntimeConfig().public.memiBoard as { collectionPrefix: string }
+export function useMemiBoardComments(postId: string | Ref<string>): MemiBoardComments {
+  const config = useMemiBoardConfig()
   const db = useFirestore()
   const prefix = config.collectionPrefix
 

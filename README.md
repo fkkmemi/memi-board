@@ -1,118 +1,175 @@
 # memi-board
 
-Nuxt 4 + Nuxt UI 프로젝트에 Firebase 기반 게시판을 바로 붙이는 모듈. 게시글 CRUD, 첨부파일(Storage), 댓글, 권한(작성자 본인/관리자), Firebase AI Logic(Gemini) 기반 AI 검열을 제공한다.
+Firebase 기반 게시판을 호스트 앱에 붙이는 Vue 컴포넌트 패키지입니다. 게시글 CRUD, 첨부파일, 실시간 댓글, 작성자·관리자 권한, Firebase AI Logic 기반 콘텐츠 검열을 제공합니다.
 
-클라이언트 전용이다 — 서버나 Firebase Admin SDK가 필요 없다. 소비 프로젝트가 자신의 Firebase 프로젝트 설정만 넘기면 동작한다.
+`memi-board`는 Nuxt 모듈이 아닙니다. Firebase와 VueFire 초기화, 페이지 라우팅은 호스트가 담당하고 패키지는 컴포넌트와 composable만 제공합니다. 현재 UI는 `@nuxt/ui` v4 컴포넌트를 사용하므로 Nuxt UI가 구성된 Vue/Nuxt 앱을 대상으로 합니다.
+
+## 요구 사항
+
+- Vue 3.5+
+- Vue Router 4.5+
+- Firebase Web SDK 12+
+- VueFire 3.2+
+- Nuxt UI 4+
 
 ## 설치
 
 ```bash
-pnpm add memi-board @nuxt/ui
+pnpm add memi-board firebase vuefire
 ```
 
-`nuxt.config.ts`:
+Nuxt에서는 호스트 앱이 `@nuxt/ui`와 `nuxt-vuefire`를 설정해야 합니다.
 
 ```ts
+// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui', 'memi-board'],
-  memiBoard: {
-    firebaseConfig: {
+  modules: ['@nuxt/ui', 'nuxt-vuefire'],
+  vuefire: {
+    config: {
       apiKey: '...',
       authDomain: '...',
       projectId: '...',
       storageBucket: '...',
       messagingSenderId: '...',
-      appId: '...',
+      appId: '...'
     },
-    // 이 옵션들이 기본값이며, 필요에 따라 덮어쓸 수 있다
-    collectionPrefix: 'memiBoard',
-    auth: { providers: ['google', 'apple'] }, // 'emailPassword'도 선택 가능
-    moderation: { enabled: true, onError: 'allow' },
-    pages: false, // true로 하면 /board 하위 라우트를 자동 등록한다
+    auth: { enabled: true }
   },
+  routeRules: {
+    '/board/**': { ssr: false }
+  }
 })
 ```
 
-내부적으로 [nuxt-vuefire](https://vuefire.vuejs.org/nuxt/)를 설치해서 Firebase Auth/Firestore/Storage에 연동한다. Admin SDK는 사용하지 않는다.
+호스트 플러그인에서 게시판을 한 번 설정합니다. Firebase 앱을 다시 초기화하지 않습니다.
 
-## 사용법
+```ts
+// app/plugins/memi-board.ts
+import { configureMemiBoard } from 'memi-board'
 
-### `pages: true` — 가장 빠른 시작
+export default defineNuxtPlugin(() => {
+  configureMemiBoard({
+    collectionPrefix: 'board',
+    auth: { providers: ['google', 'apple'] },
+    moderation: { enabled: true, onError: 'allow' }
+  })
+})
+```
 
-옵션만 켜면 `/board` (목록/상세/글쓰기/수정) 라우트가 자동으로 생긴다. 경로를 바꾸려면 `pages: { base: '/community' }`.
+Nuxt UI의 Tailwind 스캐너가 npm 패키지의 레이아웃 클래스를 포함하도록 앱의 기본 CSS에 source를 추가합니다.
 
-### 컴포넌트 직접 배치
+```css
+/* app/assets/css/main.css */
+@import "tailwindcss";
+@import "@nuxt/ui";
+@source "../../../node_modules/memi-board/dist";
+```
 
-라우팅을 직접 관리하고 싶다면 `pages: false`(기본값)로 두고 컴포넌트를 원하는 페이지에 배치한다:
+프로젝트 구조에 따라 `node_modules`까지의 상대 경로는 조정하세요.
+
+## 페이지 연결
+
+패키지가 라우트를 자동 생성하지 않으므로 호스트에서 페이지를 직접 만듭니다.
 
 ```vue
-<!-- pages/community/index.vue -->
+<!-- app/pages/board/index.vue -->
+<script setup lang="ts">
+import { MemiBoardList, MemiBoardSignIn, useMemiBoardAuth } from 'memi-board'
+
+const { isSignedIn } = useMemiBoardAuth()
+</script>
+
 <template>
-  <MemiBoardList link-base="/community" />
+  <MemiBoardList link-base="/board" />
+  <MemiBoardSignIn v-if="!isSignedIn" />
 </template>
 ```
 
 ```vue
-<!-- pages/community/[id].vue -->
+<!-- app/pages/board/[id].vue -->
+<script setup lang="ts">
+import { MemiBoardDetail } from 'memi-board'
+
+const route = useRoute()
+const router = useRouter()
+</script>
+
 <template>
-  <MemiBoardDetail :post-id="$route.params.id" @edit="..." @deleted="..." />
+  <MemiBoardDetail
+    :post-id="String(route.params.id)"
+    @edit="id => router.push(`/board/${id}/edit`)"
+    @deleted="router.push('/board')"
+  />
 </template>
 ```
 
-제공하는 컴포넌트: `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardVersionHistory`.
-제공하는 composable: `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`.
+글쓰기와 수정 페이지에는 호스트 앱의 로그인 미들웨어를 적용하고 `MemiBoardEditor`를 배치합니다.
 
-### 로그인 공급자
+## 공개 API
 
-기본값은 `['google', 'apple']`이고, `'emailPassword'`도 배열에 추가할 수 있다.
+컴포넌트:
 
-- **Google**: Firebase 콘솔 → Authentication → Sign-in method에서 Google 활성화만 하면 된다.
-- **Apple**: Firebase 콘솔에서 Apple 활성화 외에, Apple Developer 계정에서 **Services ID**를 만들고 콜백 도메인(`{authDomain}`, `https://{authDomain}/__/auth/handler`)을 등록해야 한다. Team ID / Key ID / 개인 키(.p8)까지 Firebase 콘솔에 입력해야 실제로 동작한다 — [Firebase 공식 가이드](https://firebase.google.com/docs/auth/web/apple) 참고. 이 설정 없이 Apple 로그인 버튼을 누르면 에러가 난다.
+- `MemiBoardList`
+- `MemiBoardDetail`
+- `MemiBoardEditor`
+- `MemiBoardCommentList`
+- `MemiBoardCommentForm`
+- `MemiBoardAttachments`
+- `MemiBoardSignIn`
+- `MemiBoardVersionHistory`
 
-### 버전 히스토리 페이지
+Composable과 설정:
 
-`pages: true`면 `${base}/version-history`(기본 `/board/version-history`)에 이 모듈의 버전 히스토리 페이지가 자동으로 생긴다 — 게시판을 설치한 사이트의 방문자도 "이 게시판에 어떤 기능이 있는지/뭐가 달라졌는지" 바로 볼 수 있다. `pages: false`로 직접 배치하는 경우엔 `<MemiBoardVersionHistory />` 컴포넌트만 원하는 곳에 넣으면 된다.
+- `configureMemiBoard`
+- `useMemiBoardAuth`
+- `useMemiBoardPosts`
+- `useMemiBoardComments`
+- `useMemiBoardStorage`
+- `useMemiBoardModeration`
 
-## Security Model — 반드시 읽어야 하는 부분
+## 로그인 공급자
 
-이 모듈은 서버가 없다. **모든 권한 검증은 Firestore/Storage Security Rules가 전부다.** 아래 두 파일을 프로젝트에 배포해야 게시판이 실제로 안전해진다.
+기본값은 Google과 Apple입니다. 이메일 로그인을 함께 제공하려면 `emailPassword`를 추가합니다.
 
-- [`docs/firestore.rules.example`](docs/firestore.rules.example) — 호스트 프로젝트의 `firestore.rules`에 병합
-- [`docs/storage.rules.example`](docs/storage.rules.example) — 호스트 프로젝트의 `storage.rules`에 병합
+```ts
+configureMemiBoard({
+  auth: { providers: ['google', 'apple', 'emailPassword'] }
+})
+```
+
+각 공급자는 Firebase Console의 Authentication에서 활성화해야 합니다. Apple 로그인은 Apple Developer의 Services ID와 Firebase callback URL 설정도 필요합니다.
+
+## Security Rules
+
+이 패키지는 클라이언트 전용이므로 실제 권한 검증은 Firestore와 Storage Security Rules가 담당합니다.
+
+- [`docs/firestore.rules.example`](docs/firestore.rules.example)
+- [`docs/storage.rules.example`](docs/storage.rules.example)
+
+예제의 `memiBoard` prefix는 `configureMemiBoard()`의 `collectionPrefix`와 동일하게 변경해 호스트 규칙에 병합해야 합니다.
 
 권한 모델:
-- 글/댓글 작성 → 로그인 필요
-- 수정/삭제 → 작성자 본인 또는 `role: 'admin'`
-- 관리자 승격은 이 모듈이 절대 하지 않는다. Firebase 콘솔에서 `{collectionPrefix}Users/{uid}` 문서의 `role` 필드를 직접 `'admin'`으로 바꿔야 한다.
 
-**알려진 한계**: AI 검열은 클라이언트에서만 실행된다. 악의적 사용자가 Firestore SDK로 직접 우회 쓰기하면 검열을 피할 수 있다 — 서버가 없는 아키텍처의 근본적인 한계이며, 이 모듈은 이를 해결하려 하지 않는다. 악용 위험이 큰 프로젝트라면 별도로 Cloud Functions 검증 트리거를 추가하는 것을 권장한다(이 모듈의 범위 밖).
+- 글·댓글 작성: 로그인 필요
+- 글 수정·삭제: 작성자 또는 게시판 관리자
+- 댓글 삭제: 댓글 작성자, 부모 게시글 작성자 또는 게시판 관리자
+- 관리자 역할: `{prefix}Users/{uid}.role = 'admin'`을 Firebase Console 등 신뢰할 수 있는 관리 경로에서 설정
 
-## Firebase AI Logic (AI 검열)
+## AI 검열
 
-`moderation.enabled`가 true(기본값)면 글/댓글 제출 전에 로컬 비속어 필터 → Gemini 검열을 순서대로 실행하고, 걸리면 제출 자체를 막는다(`moderation.onError`로 검열 서비스 장애 시 허용/차단 정책을 정한다, 기본은 `'allow'`).
+검열을 활성화하면 로컬 차단어 검사 후 Firebase AI Logic을 사용합니다. AI 요청은 클라이언트에서 실행되므로 Firestore 직접 쓰기를 통한 우회를 완전히 막지는 못합니다. 악용 위험이 큰 서비스는 서버 검증을 추가해야 합니다.
 
-Firebase AI Logic을 쓰려면 Firebase 콘솔에서 AI Logic(Gemini Developer API)을 활성화하고, 남용 방지를 위해 App Check도 함께 설정하는 것을 권장한다(`appCheck` 옵션).
+Firebase AI Logic과 App Check 초기화는 호스트 앱이 담당합니다.
 
-## 로컬 개발 (이 리포 자체를 수정할 때)
+## 패키지 개발 및 배포 검사
 
 ```bash
 pnpm install
-pnpm dev:prepare
-pnpm dev   # playground 실행, http://localhost:3000
+pnpm run typecheck
+pnpm run build
+pnpm pack --dry-run
 ```
-
-Firebase 없이 빠르게 테스트하려면 [Firebase Local Emulator Suite](https://firebase.google.com/docs/emulator-suite)를 쓴다:
-
-```bash
-firebase emulators:start --project demo-memi-board
-NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
-```
-
-## 버전 정보
-
-- 사이트에 설치된 상태에서 보기: `<MemiBoardVersionHistory />` 컴포넌트, 또는 `pages: true`일 때 `/board/version-history`
-- 코드 수준의 자세한 변경 내역: [CHANGELOG.md](CHANGELOG.md)
 
 ## 라이선스
 
-MIT
+[MIT](LICENSE)

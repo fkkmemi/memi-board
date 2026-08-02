@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.3.0',
+    date: '2026-08-01',
+    highlights: [
+      '호스트 앱의 Firebase 설정을 그대로 재사용하는 Vue 컴포넌트 패키지로 전환',
+      '필요한 화면만 골라 원하는 라우트에 직접 배치할 수 있도록 공개 API 정리',
+      '게시물 삭제 시 댓글·본문·첨부파일을 안전한 순서로 함께 정리',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-07-31',
     highlights: [
@@ -19,7 +28,7 @@ export const versionHistory: VersionHistoryEntry[] = [
       '댓글 — 실시간으로 댓글을 달고 지울 수 있음',
       '로그인 / 권한 — 로그인해야 글을 쓸 수 있고, 본인 글만 수정·삭제 가능(관리자는 전체 관리)',
       'AI 자동 검열 — 욕설·부적절한 내용이 담긴 글/댓글은 AI가 자동으로 걸러 게시를 막음',
-      '한 줄 설정으로 바로 시작 — pages: true 옵션 하나로 게시판 화면이 바로 만들어짐',
+      '목록·상세·편집 컴포넌트를 조합해 게시판 화면 구성',
     ],
     note: '서버 없이 동작하는 모듈이라, 실제 보안은 Firebase 프로젝트에 규칙 파일을 등록해야 완성됩니다. README의 Security Model 안내를 꼭 따라주세요.',
   },

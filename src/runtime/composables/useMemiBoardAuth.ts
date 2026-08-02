@@ -9,15 +9,34 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
+import type { UserCredential } from 'firebase/auth'
+import { computed, ref, watch, type ComputedRef, type Ref } from 'vue'
+import { useCurrentUser, useFirebaseAuth, useFirestore } from 'vuefire'
+import { useMemiBoardConfig } from '../../config'
 import type { PostModel, CommentModel } from '../types'
+
+export interface MemiBoardAuth {
+  user: Ref<User | null | undefined>
+  isSignedIn: ComputedRef<boolean>
+  isAdmin: ComputedRef<boolean>
+  rolePending: Ref<boolean>
+  signInWithGoogle: () => Promise<UserCredential>
+  signInWithApple: () => Promise<UserCredential>
+  signInWithEmail: (email: string, password: string) => Promise<UserCredential>
+  signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<UserCredential>
+  signOut: () => Promise<void>
+  canEdit: (post: Pick<PostModel, 'authorUid'>) => boolean
+  canDelete: (post: Pick<PostModel, 'authorUid'>) => boolean
+  canDeleteComment: (comment: Pick<CommentModel, 'authorUid'>) => boolean
+}
 
 /**
  * 인증 상태 + 게시판 역할(role) 관리.
  * role은 {prefix}Users/{uid} 문서에서만 읽고, 모듈은 절대 'admin'을 쓰지 않는다
  * (관리자 승격은 호스트 프로젝트 소유자가 Firebase 콘솔에서 직접 설정).
  */
-export function useMemiBoardAuth() {
-  const config = useRuntimeConfig().public.memiBoard as { collectionPrefix: string }
+export function useMemiBoardAuth(): MemiBoardAuth {
+  const config = useMemiBoardConfig()
   const db = useFirestore()
   const auth = useFirebaseAuth()
   const user = useCurrentUser()

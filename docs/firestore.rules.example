@@ -1,10 +1,10 @@
 // memi-board Firestore Security Rules 예시
 //
-// 이 모듈은 서버가 없는 클라이언트 전용 아키텍처이므로, 모든 권한 검증은 여기 규칙이 전부다.
+// 이 패키지는 서버가 없는 클라이언트 전용 아키텍처이므로, 모든 권한 검증은 여기 규칙이 전부다.
 // 호스트 프로젝트의 firestore.rules에 아래 내용을 병합해서 배포해야 게시판이 실제로 안전해진다.
 //
-// collectionPrefix 모듈 옵션을 'memiBoard'가 아닌 다른 값으로 바꿨다면,
-// 아래 memiBoardPosts / memiBoardUsers를 그 값으로 전부 바꿔야 한다.
+// configureMemiBoard의 collectionPrefix를 'memiBoard'가 아닌 다른 값으로 바꿨다면,
+// 아래 memiBoardPosts / memiBoardUsers를 그 prefix에 맞춰 전부 바꿔야 한다.
 
 rules_version = '2';
 service cloud.firestore {
@@ -43,7 +43,11 @@ service cloud.firestore {
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.moderationStatus == 'approved';
 
-        allow delete: if isOwner(resource) || isAdmin();
+        // 댓글 작성자·부모 게시글 작성자·게시판 관리자 모두 삭제 가능.
+        // 부모 글 삭제 시 작성자가 다른 사용자의 댓글도 함께 정리할 수 있어야 한다.
+        allow delete: if isOwner(resource)
+          || isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId)))
+          || isAdmin();
 
         // 댓글 수정은 지원하지 않는다 (삭제 후 재작성만 가능) — Editor에서 UI 자체도 제공하지 않음
         allow update: if false;

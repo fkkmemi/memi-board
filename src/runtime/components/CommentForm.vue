@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
+import { useMemiBoardComments } from '../composables/useMemiBoardComments'
+import { useMemiBoardModeration } from '../composables/useMemiBoardModeration'
 const props = defineProps<{ postId: string }>()
 
 const { user, isSignedIn } = useMemiBoardAuth()

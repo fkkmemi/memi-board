@@ -1,5 +1,6 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
 import { useFirebaseApp } from 'vuefire'
+import { useMemiBoardConfig } from '../../config'
 import { buildLocalBlockRegex, DEFAULT_LOCAL_BLOCKLIST, MODERATION_SYSTEM, parseModerationJson } from '../utils/moderation-prompt'
 import type { ModerationResult } from '../types'
 
@@ -21,7 +22,7 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
  * (서버가 없는 아키텍처의 근본적 한계 — README의 Security Model 참고)
  */
 export function useMemiBoardModeration() {
-  const config = useRuntimeConfig().public.memiBoard as { moderation: MemiBoardModerationConfig }
+  const config = useMemiBoardConfig() as { moderation?: MemiBoardModerationConfig }
   const moderation = config.moderation ?? {}
   const app = useFirebaseApp()
 

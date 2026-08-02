@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
-import { NuxtLink } from '#components'
+import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { PostModel } from '../types'
 import { formatDate } from '../utils/formatDate'
+import { useMemiBoardPosts } from '../composables/useMemiBoardPosts'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
@@ -61,7 +63,7 @@ function handleClick(post: PostModel) {
     </p>
 
     <component
-      :is="linkBase ? NuxtLink : 'button'"
+      :is="linkBase ? RouterLink : 'button'"
       v-for="post in posts"
       :key="post.id"
       :to="linkBase ? `${linkBase}/${post.id}` : undefined"
