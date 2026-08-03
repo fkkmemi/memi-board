@@ -1,3 +1,4 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
-@source "../../../../node_modules/memi-board/dist";
+/* 소스 SFC 유틸 클래스 스캔 (publish 후에는 node_modules/memi-board/dist/runtime/components) */
+@source "../../../../src/components";

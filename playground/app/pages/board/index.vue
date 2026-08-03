@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MemiBoardList, MemiBoardSignIn, useMemiBoardAuth } from 'memi-board'
+import { useMemiBoardAuth } from 'memi-board'
 
 const { isSignedIn } = useMemiBoardAuth()
 </script>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MemiBoardDetail } from 'memi-board'
+
 
 const route = useRoute()
 const router = useRouter()

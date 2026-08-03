@@ -2,10 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
-import { useMemiBoardPosts } from '../composables/useMemiBoardPosts'
-import { useMemiBoardSettings } from '../composables/useMemiBoardSettings'
-import type { PostModel } from '../types'
-import { formatDate } from '../utils/formatDate'
+import { useMemiBoardPosts } from 'memi-board'
+import { useMemiBoardSettings } from 'memi-board'
+import type { PostModel } from 'memi-board'
+import { formatDate } from 'memi-board'
 
 const props = withDefaults(defineProps<{
   pageSize?: number

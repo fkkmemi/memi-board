@@ -2,27 +2,40 @@
 
 Nuxt 4 + Nuxt UI 프로젝트에 Firebase 기반 게시판을 바로 붙이는 패키지. 게시글 CRUD, 첨부파일(Storage), 댓글, 권한(작성자 본인/관리자), Firebase AI Logic(Gemini) 기반 AI 검열을 제공한다.
 
-클라이언트 전용이다 — 서버나 Firebase Admin SDK가 필요 없다. 소비 프로젝트가 자신의 Firebase 프로젝트 설정만 넘기면 동작한다.
+클라이언트 전용이다 — 서버나 Firebase Admin SDK가 필요 없다.
 
-**Nuxt 모듈이 아니라 순수 Vue 3 컴포넌트/composable 패키지다.** `nuxt.config`를 건드리거나 `nuxt-vuefire`를 대신 설치해주지 않는다 — 호스트 프로젝트가 이미 자기 앱을 위해 갖추고 있을 Firebase/nuxt-vuefire 설정을 그대로 재사용하고, memi-board는 그 위에 컴포넌트와 composable만 얹는다. 여러 프로젝트에서 같은 게시판을 재사용하는 게 1차 목적이라, "설정 지점 하나(호스트 프로젝트)"를 유지하는 쪽을 우선했다.
+## 구조 (0.4+)
+
+| 엔트리 | 역할 |
+|--------|------|
+| `memi-board` | **core** — `configureMemiBoard`, composables, types |
+| `memi-board/nuxt` | **thin Nuxt 모듈** — UI SFC 를 호스트 파이프라인에 등록만 함 |
+
+**의도적으로 하지 않는 일:** `nuxt-vuefire` 설치, Firebase config, 자동 라우트/미들웨어.  
+Firebase·인증 설정 지점은 항상 **호스트 하나**. UI 는 호스트가 SFC 를 컴파일해야 Nuxt UI auto-import(`UButton` 등)가 동작한다 — 그래서 prebundle 하지 않고 thin 모듈로 올린다.
+
+런타임 설정(`collectionPrefix` 등)은 모듈 options 가 아니라 호스트 플러그인의 `configureMemiBoard()` 한곳.
 
 ## 설치
 
-**사전 준비물**: Node.js + pnpm, Nuxt 4+ / `@nuxt/ui` 4+, Firestore·Storage·Authentication을 켜둔 Firebase 프로젝트, Firebase CLI(`firebase login` 완료, `firebase.json`/`.firebaserc` 연결). 아직 하나라도 없다면 → [docs/firebase-setup.md](docs/firebase-setup.md)에서 처음부터 순서대로 설명한다.
+**사전 준비물**: Node.js + pnpm, Nuxt 4+ / `@nuxt/ui` 4+, Firestore·Storage·Authentication을 켜둔 Firebase 프로젝트. 아직 없다면 → [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ```bash
 pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase
 ```
 
-`vuefire`/`firebase`/`vue-router`는 `peerDependencies`다 — 반드시 프로젝트에 직접 설치해야 한다(`vue-router`는 Nuxt가 내부적으로 이미 갖고 있어 보통 별도 설치가 필요 없다). memi-board가 자체적으로 이 패키지들을 번들하지 않는 이유는, 그러면 호스트 프로젝트가 설치한 버전과 memi-board 내부 버전이 **서로 다른 모듈 인스턴스**가 돼서 `useCurrentUser()`가 항상 `undefined`를 반환하거나 "VueFireAuth module was added" 에러가 나기 때문이다(vuefire의 인증 상태는 모듈 인스턴스별 내부 상태로 관리됨). 직접 설치하면 하나로 합쳐진다. `nuxt-vuefire`는 memi-board의 peer는 아니지만(memi-board는 vuefire만 직접 쓴다), Nuxt에서 Firebase를 연동하려면 결국 필요하다.
+`vuefire`/`firebase` 는 peer — 호스트에 직접 설치해야 모듈 인스턴스가 하나다.
 
-### 1. 호스트가 nuxt-vuefire를 직접 설정한다
-
-`nuxt.config.ts`:
+### 1. modules + vuefire (호스트)
 
 ```ts
+// nuxt.config.ts
 export default defineNuxtConfig({
-  modules: ['@nuxt/ui', 'nuxt-vuefire'],
+  modules: [
+    '@nuxt/ui',
+    'nuxt-vuefire',
+    'memi-board/nuxt', // UI SFC 등록 (vuefire/라우트 안 건드림)
+  ],
   vuefire: {
     config: {
       apiKey: '...',
@@ -37,49 +50,40 @@ export default defineNuxtConfig({
 })
 ```
 
-`firebaseConfig` 값은 Firebase 콘솔 → 프로젝트 설정 → 일반 → "내 앱"에서 복사한다 (자세한 위치는 [docs/firebase-setup.md](docs/firebase-setup.md#3-firebaseconfig-값-가져오기) 참고). 이미 다른 기능(예: 매장 운영자 로그인 등) 때문에 nuxt-vuefire를 쓰고 있는 프로젝트라면 이 단계는 그대로 건너뛴다 — memi-board는 그 설정을 그대로 재사용한다.
-
-### 2. memi-board를 설정한다
-
-플러그인 파일 하나(예: `app/plugins/memi-board.ts`)에서 앱 부팅 시 한 번 호출한다:
+### 2. configureMemiBoard (플러그인)
 
 ```ts
+// app/plugins/memi-board.ts
 import { configureMemiBoard } from 'memi-board'
 
 export default defineNuxtPlugin(() => {
   configureMemiBoard({
-    collectionPrefix: 'board', // Firestore 컬렉션 접두사 (boardPosts, boardUsers, boardSettings)
-    auth: { providers: ['google', 'apple'] }, // 'emailPassword'도 선택 가능
+    collectionPrefix: 'board', // boardPosts, boardUsers, boardSettings
+    auth: { providers: ['google', 'apple'] },
     moderation: { enabled: true, onError: 'allow' },
   })
 })
 ```
 
-값을 넘기지 않으면 `collectionPrefix: 'memiBoard'`, `auth.providers: ['google', 'apple']`, `moderation.enabled: true`가 기본값이다.
-
-### 3. Tailwind가 memi-board 컴포넌트를 스캔하게 한다
-
-Tailwind v4는 기본적으로 `node_modules`를 스캔 대상에서 제외한다 — memi-board의 컴포넌트가 쓰는 유틸리티 클래스(`flex`, `gap-2` 등)가 호스트의 최종 CSS에 아예 생성되지 않아 **레이아웃이 깨진 채로(스타일 없이) 렌더링**된다. 호스트의 CSS 진입점에 `@source`로 memi-board의 빌드 결과물을 명시적으로 추가해야 한다:
+### 3. Tailwind `@source`
 
 ```css
 /* app/assets/css/main.css */
 @import "tailwindcss";
 @import "@nuxt/ui";
-@source "../../../node_modules/memi-board/dist";
+@source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-프로젝트 구조에 따라 `node_modules`까지의 상대 경로는 조정한다(CSS 파일 기준 상대 경로).
-
-> ⚠️ **설치는 여기서 끝이 아니다.** 이 패키지는 서버가 없어서 Firestore/Storage Security Rules를 직접 배포해야 글쓰기·댓글이 동작한다 — 아래 [Security Model](#security-model--반드시-읽어야-하는-부분) 섹션을 반드시 따라 한다. 건너뛰면 글쓰기 버튼을 눌렀을 때 `permission-denied`가 난다.
+> ⚠️ Firestore/Storage Security Rules 도 배포해야 글쓰기가 된다 — [Security Model](#security-model--반드시-읽어야-하는-부분).
 
 ## 사용법
 
-컴포넌트를 원하는 페이지에 직접 배치한다 — 라우팅은 항상 호스트 프로젝트가 소유한다.
+라우팅은 호스트 소유. 컴포넌트는 모듈 auto-import (`MemiBoardList` …).
 
 ```vue
 <!-- app/pages/board/index.vue -->
 <script setup lang="ts">
-import { MemiBoardList, MemiBoardSignIn, useMemiBoardAuth } from 'memi-board'
+import { useMemiBoardAuth } from 'memi-board'
 const { isSignedIn } = useMemiBoardAuth()
 </script>
 
@@ -95,7 +99,6 @@ const { isSignedIn } = useMemiBoardAuth()
 ```vue
 <!-- app/pages/board/[id].vue -->
 <script setup lang="ts">
-import { MemiBoardDetail } from 'memi-board'
 const route = useRoute()
 const router = useRouter()
 </script>
@@ -109,7 +112,7 @@ const router = useRouter()
 </template>
 ```
 
-글쓰기(`/board/new`)·수정(`/board/[id]/edit`) 라우트는 로그인 여부를 호스트가 직접 가드한다 — memi-board는 라우트 미들웨어를 제공하지 않는다(라우팅은 호스트 관심사):
+글쓰기(`/board/new`)·수정 라우트 가드도 호스트가 직접 (`vuefire` `getCurrentUser`):
 
 ```ts
 // app/middleware/board-auth.ts

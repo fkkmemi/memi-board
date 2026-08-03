@@ -2,6 +2,38 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.0] - 2026-08-03
+
+### Changed (Breaking)
+
+- **UI 전달 방식 재설계**: Vite 로 Vue SFC 를 한 파일에 prebundle 하던 방식을 폐기. prebundle 결과의 `resolveComponent('UButton')` 은 Nuxt UI 자동 import 와 맞지 않아 호스트에서 빈 화면이 났음
+- **thin Nuxt 모듈 추가** (`memi-board/nuxt`): `addComponentsDir` 로 소스 SFC 만 호스트 파이프라인에 올림 → 호스트가 컴파일하므로 `<UButton>` 등 auto-import 정상. **vuefire / 라우트 / 미들웨어 / Firebase config 는 건드리지 않음**
+- 메인 엔트리(`memi-board`)는 **core 전용** (configure / composables / types). 컴포넌트 named export 제거 — Nuxt 모듈 auto-import 사용 (`MemiBoardList` 등)
+- 런타임 설정은 기존과 동일하게 호스트 플러그인의 `configureMemiBoard()` 만 사용 (모듈 options 로 흡수하지 않음)
+- Tailwind `@source` 대상: `node_modules/memi-board/dist/runtime/components`
+
+### Migration
+
+```ts
+// nuxt.config.ts
+modules: ['@nuxt/ui', 'nuxt-vuefire', 'memi-board/nuxt']
+// U* global hooks / transpile 핵 불필요
+```
+
+```css
+@source "../../../node_modules/memi-board/dist/runtime/components";
+```
+
+```vue
+<script setup>
+// 컴포넌트는 모듈 auto-import — from 'memi-board' 로 가져오지 않음
+import { useMemiBoardAuth } from 'memi-board'
+</script>
+<template>
+  <MemiBoardList link-base="/board" />
+</template>
+```
+
 ## [0.3.1] - 2026-08-03
 
 같은 목표(Nuxt 모듈 제거)로 독립적으로 작업된 다른 세션의 커밋(`abd8ef0`)과 히스토리가 갈라져 병합하며 발견한 것들. 두 구현을 비교해 실제 버그 2개를 찾아 고치고, 설계상 더 나은 선택 몇 가지를 반영했다.

@@ -1,8 +1,8 @@
 {
   "name": "memi-board",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
-  "description": "Firebase 기반 게시판 Vue 컴포넌트/composable 패키지 — Nuxt 4 + Nuxt UI 프로젝트에 posts CRUD, 첨부파일, 댓글, 권한, AI 검열을 바로 붙임",
+  "description": "Firebase 게시판 — core composable + thin Nuxt module(UI SFC). Nuxt 4 + Nuxt UI 호스트에 붙임",
   "license": "MIT",
   "author": "fkkmemi",
   "repository": {
@@ -13,8 +13,19 @@
     "url": "https://github.com/fkkmemi/memi-board/issues"
   },
   "homepage": "https://github.com/fkkmemi/memi-board#readme",
-  "keywords": ["vue", "nuxt", "firebase", "firestore", "board", "community", "nuxt-ui"],
-  "sideEffects": false,
+  "keywords": [
+    "vue",
+    "nuxt",
+    "firebase",
+    "firestore",
+    "board",
+    "community",
+    "nuxt-ui"
+  ],
+  "sideEffects": [
+    "**/*.vue",
+    "**/*.css"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -22,6 +33,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./nuxt": {
+      "types": "./dist/module.d.ts",
+      "import": "./dist/module.mjs"
     }
   },
   "main": "./dist/index.js",
@@ -31,23 +46,31 @@
   ],
   "scripts": {
     "prepack": "pnpm build",
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
     "build:watch": "vite build --watch",
-    "dev": "nuxi dev playground",
-    "dev:build": "nuxi build playground",
-    "dev:prepare": "nuxi prepare playground",
+    "dev": "pnpm build && nuxi dev playground",
+    "dev:build": "pnpm build && nuxi build playground",
+    "dev:prepare": "pnpm build && nuxi prepare playground",
     "typecheck": "vue-tsc --noEmit"
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
     "firebase": "^12.0.0",
+    "nuxt": ">=3.0.0 || >=4.0.0",
     "vue": "^3.5.0",
     "vue-router": "^4.0.0 || ^5.0.0",
     "vuefire": "^3.2.3"
   },
+  "peerDependenciesMeta": {
+    "nuxt": {
+      "optional": true
+    },
+    "@nuxt/ui": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@nuxt/ui": "^4.9.0",
-    "@vitejs/plugin-vue": "^6.0.8",
     "firebase": "^12.15.0",
     "nuxt": "^4.5.1",
     "nuxt-vuefire": "^1.1.2",
@@ -67,5 +90,8 @@
       "protobufjs",
       "vue-demi"
     ]
+  },
+  "dependencies": {
+    "@nuxt/kit": "^4.5.1"
   }
 }

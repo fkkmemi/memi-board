@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MemiBoardVersionHistory } from 'memi-board'
+
 </script>
 
 <template>

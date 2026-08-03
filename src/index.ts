@@ -1,3 +1,5 @@
+/** Core API — composables / config / types only. UI SFC 는 memi-board/nuxt 모듈이 등록. */
+
 export { configureMemiBoard, useMemiBoardConfig } from './config'
 export type { MemiBoardConfig, MemiBoardAuthOptions, MemiBoardModerationOptions } from './config'
 
@@ -10,17 +12,10 @@ export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
 export { useMemiBoardSettings } from './composables/useMemiBoardSettings'
 
-export { default as MemiBoardList } from './components/List.vue'
-export { default as MemiBoardDetail } from './components/Detail.vue'
-export { default as MemiBoardEditor } from './components/Editor.vue'
-export { default as MemiBoardCommentList } from './components/CommentList.vue'
-export { default as MemiBoardCommentForm } from './components/CommentForm.vue'
-export { default as MemiBoardAttachments } from './components/Attachments.vue'
-export { default as MemiBoardSignIn } from './components/SignIn.vue'
-export { default as MemiBoardVersionHistory } from './components/VersionHistory.vue'
-
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
+
+export { formatDate } from './utils/formatDate'
 
 export type {
   Attachment,

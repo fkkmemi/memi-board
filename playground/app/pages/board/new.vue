@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MemiBoardEditor } from 'memi-board'
+
 
 definePageMeta({ middleware: 'board-auth' })
 

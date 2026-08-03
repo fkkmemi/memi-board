@@ -1,15 +1,31 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
+
+const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  // memi-board는 클라이언트 전용(Firebase Web SDK)으로 동작한다 — SSR 비활성화
+  // memi-board는 클라이언트 전용(Firebase Web SDK) — SSR 비활성화
   ssr: false,
-  // memi-board는 순수 Vue 컴포넌트/composable 패키지다 — nuxt-vuefire는 호스트(이 플레이그라운드)가 직접 설정한다.
-  modules: ['@nuxt/ui', 'nuxt-vuefire'],
+
+  // 호스트가 vuefire 설정. memi-board/nuxt 는 UI SFC 등록만.
+  modules: [
+    '@nuxt/ui',
+    'nuxt-vuefire',
+    resolve(root, 'src/module.ts'),
+  ],
+
+  // playground 가 패키지 루트를 memi-board 로 resolve
+  alias: {
+    'memi-board': resolve(root, 'src/index.ts'),
+  },
+
   css: ['~/assets/css/main.css'],
+
   vuefire: {
     config: {
-      // emulators 모드에서는 'demo-' 프리픽스 projectId면 실제 키가 없어도 오프라인으로 동작한다.
       apiKey: process.env.NUXT_PUBLIC_FIREBASE_API_KEY ?? 'demo-api-key',
       authDomain: process.env.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? 'demo-memi-board.firebaseapp.com',
       projectId: process.env.NUXT_PUBLIC_FIREBASE_PROJECT_ID ?? 'demo-memi-board',

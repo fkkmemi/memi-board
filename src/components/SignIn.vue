@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useMemiBoardConfig } from '../config'
-import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
+import { useMemiBoardConfig } from 'memi-board'
+import { useMemiBoardAuth } from 'memi-board'
 
 const config = useMemiBoardConfig()
 const providers = computed(() => config.auth?.providers ?? ['google', 'apple'])
