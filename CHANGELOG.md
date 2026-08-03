@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.4] - 2026-08-03
+
+### Added
+- 검열 디버그: `via`(local/ai/ai-error-allow 등), 콘솔 `[memi-board:moderation]` 단계 로그, 에디터 화면에 검열 결과 요약
+
+### Fixed
+- 댓글 삭제 전 confirm
+- 카테고리 추가 시에도 AI Logic 검열
+
 ## [0.4.3] - 2026-08-03
 
 ### Added

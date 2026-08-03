@@ -2,16 +2,21 @@ import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
 import { useFirebaseApp } from 'vuefire'
 import { buildLocalBlockRegex, DEFAULT_LOCAL_BLOCKLIST, MODERATION_SYSTEM, parseModerationJson } from '../utils/moderation-prompt'
 import { useMemiBoardConfig } from '../config'
-import type { ModerationResult } from '../types'
+import type { ModerationResult, ModerationVia } from '../types'
 
-const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '' }
+const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '', via: 'empty' }
+
+function logModeration(
+  phase: string,
+  detail: Record<string, unknown>,
+) {
+  // 개발·테스트에서 항상 보이게 (프로덕션도 한 줄 info — 필요 시 나중에 dev only)
+  console.info(`[memi-board:moderation] ${phase}`, detail)
+}
 
 /**
- * 글쓰기 전 블로킹 검열. 로컬 비속어 필터를 먼저 돌리고, 통과하면 Firebase AI Logic(Gemini)으로 재검사한다.
- * 검열 API 장애 시 동작은 moderation.onError 옵션을 따른다 (기본 'allow' — 검열 장애로 정상 글쓰기가 막히지 않도록).
- *
- * 알려진 한계: 이 검열은 클라이언트에서만 실행되므로, Firestore에 직접 쓰기하면 우회할 수 있다.
- * (서버가 없는 아키텍처의 근본적 한계 — README의 Security Model 참고)
+ * 글쓰기 전 블로킹 검열. 로컬 비속어 필터 → Firebase AI Logic(Gemini).
+ * App Check limited-use 토큰 사용.
  */
 export function useMemiBoardModeration() {
   const config = useMemiBoardConfig()
@@ -21,30 +26,40 @@ export function useMemiBoardModeration() {
   const localBlockRe = buildLocalBlockRegex([...DEFAULT_LOCAL_BLOCKLIST, ...(moderation.localBlocklist ?? [])])
 
   function localCheck(text: string): ModerationResult | null {
-    if (localBlockRe.test(text)) {
-      return { flagged: true, category: 'abuse', reason: '욕설·비속어가 포함되어 게시할 수 없습니다. 표현을 바꿔 주세요.' }
+    const match = text.match(localBlockRe)
+    if (match) {
+      return {
+        flagged: true,
+        category: 'abuse',
+        reason: '욕설·비속어가 포함되어 게시할 수 없습니다. 표현을 바꿔 주세요.',
+        via: 'local',
+      }
     }
     return null
   }
 
   function getModerationModel() {
+    const modelName = moderation.model ?? 'gemini-2.5-flash'
     const ai = getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: true })
-    return getGenerativeModel(ai, {
-      model: moderation.model ?? 'gemini-2.5-flash',
-      systemInstruction: MODERATION_SYSTEM,
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 256,
-        responseMimeType: 'application/json',
-        responseSchema: Schema.object({
-          properties: {
-            flagged: Schema.boolean(),
-            category: Schema.string(),
-            reason: Schema.string(),
-          },
-        }),
-      },
-    })
+    return {
+      modelName,
+      model: getGenerativeModel(ai, {
+        model: modelName,
+        systemInstruction: MODERATION_SYSTEM,
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 256,
+          responseMimeType: 'application/json',
+          responseSchema: Schema.object({
+            properties: {
+              flagged: Schema.boolean(),
+              category: Schema.string(),
+              reason: Schema.string(),
+            },
+          }),
+        },
+      }),
+    }
   }
 
   function errorResult(): ModerationResult {
@@ -54,38 +69,93 @@ export function useMemiBoardModeration() {
         category: 'other',
         reason: '검열 서비스에 일시적으로 연결할 수 없어 제출이 보류되었습니다. 잠시 후 다시 시도해 주세요.',
         error: true,
+        via: 'ai-error-block',
       }
     }
-    return { ...APPROVED, error: true }
+    return {
+      flagged: false,
+      category: 'none',
+      reason: '',
+      error: true,
+      via: 'ai-error-allow',
+    }
   }
 
   async function checkText(text: string): Promise<ModerationResult> {
     const trimmed = text.trim()
-    if (!trimmed) return APPROVED
+    const preview = trimmed.slice(0, 80)
+
+    logModeration('start', {
+      preview,
+      length: trimmed.length,
+      enabled: moderation.enabled !== false,
+      model: moderation.model ?? 'gemini-2.5-flash',
+      onError: moderation.onError ?? 'allow',
+    })
+
+    if (!trimmed) {
+      const r = { ...APPROVED, via: 'empty' as ModerationVia }
+      logModeration('result', r)
+      return r
+    }
 
     const local = localCheck(trimmed)
-    if (local) return local
+    if (local) {
+      const hit = trimmed.match(localBlockRe)?.[0]
+      logModeration('local-block', { hit, ...local })
+      logModeration('result', local)
+      return local
+    }
+    logModeration('local-pass', { message: '로컬 금칙어 미매칭 → AI Logic 호출' })
 
-    if (moderation.enabled === false) return APPROVED
+    if (moderation.enabled === false) {
+      const r: ModerationResult = { ...APPROVED, via: 'disabled' }
+      logModeration('result', r)
+      return r
+    }
 
     try {
-      const model = getModerationModel()
+      const { model, modelName } = getModerationModel()
+      logModeration('ai-call', { modelName, useLimitedUseAppCheckTokens: true })
+      const t0 = performance.now()
       const result = await model.generateContent(`심사할 텍스트:\n"""${trimmed.slice(0, 4000)}"""`)
-      const parsed = parseModerationJson(result.response.text())
+      const ms = Math.round(performance.now() - t0)
+      const raw = result.response.text()
+      logModeration('ai-raw', { ms, raw: raw.slice(0, 500) })
+
+      const parsed = parseModerationJson(raw)
       if (!parsed) {
-        console.warn('[memi-board] 검열 응답 파싱 실패 → onError 정책 적용')
-        return errorResult()
+        logModeration('ai-parse-fail', { raw: raw.slice(0, 300) })
+        const r = errorResult()
+        logModeration('result', r)
+        return r
       }
-      return { flagged: parsed.flagged, category: parsed.category as ModerationResult['category'], reason: parsed.reason }
+      const out: ModerationResult = {
+        flagged: parsed.flagged,
+        category: parsed.category as ModerationResult['category'],
+        reason: parsed.reason,
+        via: 'ai',
+      }
+      logModeration('result', { ...out, ms })
+      return out
     }
     catch (e) {
-      console.warn('[memi-board] AI 검열 호출 실패 → onError 정책 적용', e)
-      return errorResult()
+      logModeration('ai-error', {
+        message: e instanceof Error ? e.message : String(e),
+        name: e instanceof Error ? e.name : undefined,
+        // FirebaseError code 등
+        code: (e as { code?: string })?.code,
+      })
+      const r = errorResult()
+      logModeration('result', r)
+      return r
     }
   }
 
   async function checkImage(file: File): Promise<ModerationResult> {
-    if (moderation.enabled === false || !moderation.moderateImages) return APPROVED
+    if (moderation.enabled === false || !moderation.moderateImages) {
+      return { ...APPROVED, via: 'disabled' }
+    }
 
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -95,17 +165,29 @@ export function useMemiBoardModeration() {
         reader.readAsDataURL(file)
       })
 
-      const model = getModerationModel()
+      const { model, modelName } = getModerationModel()
+      logModeration('ai-image-call', { modelName, type: file.type, size: file.size })
       const result = await model.generateContent([
         { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
         '이 이미지를 심사해 주세요.',
       ])
-      const parsed = parseModerationJson(result.response.text())
-      if (!parsed) return errorResult()
-      return { flagged: parsed.flagged, category: parsed.category as ModerationResult['category'], reason: parsed.reason }
+      const raw = result.response.text()
+      const parsed = parseModerationJson(raw)
+      if (!parsed) {
+        logModeration('ai-image-parse-fail', { raw: raw.slice(0, 300) })
+        return errorResult()
+      }
+      const out: ModerationResult = {
+        flagged: parsed.flagged,
+        category: parsed.category as ModerationResult['category'],
+        reason: parsed.reason,
+        via: 'ai',
+      }
+      logModeration('ai-image-result', out)
+      return out
     }
     catch (e) {
-      console.warn('[memi-board] 이미지 검열 호출 실패 → onError 정책 적용', e)
+      logModeration('ai-image-error', { message: e instanceof Error ? e.message : String(e) })
       return errorResult()
     }
   }
