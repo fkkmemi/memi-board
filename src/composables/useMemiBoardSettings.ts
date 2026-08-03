@@ -22,9 +22,9 @@ export function useMemiBoardSettings() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
   const { isAdmin } = useMemiBoardAuth()
-  const prefix = config.collectionPrefix
 
-  const settingsRef = doc(db, `${prefix}Settings`, 'config')
+  // useDocument 는 ref 를 받으므로 computed 로 prefix 반영
+  const settingsRef = computed(() => doc(db, `${config.collectionPrefix}Settings`, 'config'))
   const { data: settingsDoc, pending: settingsPending } = useDocument<BoardSettingsModel>(settingsRef)
 
   const categories = computed<BoardCategory[]>(() => {
@@ -42,9 +42,10 @@ export function useMemiBoardSettings() {
     [isAdmin, settingsPending],
     async ([admin, pending]) => {
       if (!admin || pending || settingsDoc.value) return
-      const snap = await getDoc(settingsRef).catch(() => null)
+      const ref = settingsRef.value
+      const snap = await getDoc(ref).catch(() => null)
       if (!snap || snap.exists()) return
-      await setDoc(settingsRef, {
+      await setDoc(ref, {
         categories: DEFAULT_CATEGORIES,
         updatedAt: serverTimestamp(),
       }).catch(() => {

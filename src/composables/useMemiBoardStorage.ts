@@ -8,7 +8,7 @@ import type { Attachment } from '../types'
 export function useMemiBoardStorage() {
   const config = useMemiBoardConfig()
   const app = useFirebaseApp()
-  const prefix = config.collectionPrefix
+  const prefix = () => config.collectionPrefix
 
   /** postId는 아직 저장되지 않은 새 글이면 임시 id(예: 'new-<timestamp>')를 넘겨도 된다 — 경로 네임스페이스일 뿐이다. */
   function uploadAttachment(
@@ -17,7 +17,7 @@ export function useMemiBoardStorage() {
     onProgress?: (ratio: number) => void,
   ): { promise: Promise<Attachment>, cancel: () => void } {
     const storage = getStorage(app)
-    const path = `${prefix}/posts/${postId}/attachments/${Date.now()}-${safeFileName(file.name)}`
+    const path = `${prefix()}/posts/${postId}/attachments/${Date.now()}-${safeFileName(file.name)}`
     const fileRef = storageRef(storage, path)
     const task: UploadTask = uploadBytesResumable(fileRef, file, {
       contentType: file.type || 'application/octet-stream',

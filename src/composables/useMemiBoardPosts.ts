@@ -55,12 +55,13 @@ export function useMemiBoardPosts() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
-  const prefix = config.collectionPrefix
+  // prefix 는 setup 시점에 고정하지 않는다 (configure 이전 호출·이중 인스턴스 대비)
+  const prefix = () => config.collectionPrefix
 
-  const postsCol = () => collection(db, `${prefix}Posts`)
-  const postDoc = (id: string) => doc(db, `${prefix}Posts`, id)
-  const bodyDoc = (id: string) => doc(db, `${prefix}Posts`, id, 'body', 'main')
-  const commentsCol = (id: string) => collection(db, `${prefix}Posts`, id, 'comments')
+  const postsCol = () => collection(db, `${prefix()}Posts`)
+  const postDoc = (id: string) => doc(db, `${prefix()}Posts`, id)
+  const bodyDoc = (id: string) => doc(db, `${prefix()}Posts`, id, 'body', 'main')
+  const commentsCol = (id: string) => collection(db, `${prefix()}Posts`, id, 'comments')
 
   async function getPosts(opts: { pageSize?: number, cursor?: QueryDocumentSnapshot<DocumentData> } = {}) {
     const pageSize = opts.pageSize ?? 20
@@ -143,7 +144,7 @@ export function useMemiBoardPosts() {
     const storage = getStorage(app)
     // Firestore/Storage 규칙이 부모 게시글의 소유권을 조회하므로 부모 문서는 마지막에 삭제한다.
     await deleteDoc(bodyDoc(id))
-    await deleteStorageFolder(storageRef(storage, `${prefix}/posts/${id}`))
+    await deleteStorageFolder(storageRef(storage, `${prefix()}/posts/${id}`))
     await deleteDoc(postDoc(id))
   }
 

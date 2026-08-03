@@ -25,14 +25,20 @@ const cursor = ref<QueryDocumentSnapshot<DocumentData> | undefined>(undefined)
 const hasMore = ref(false)
 const loading = ref(false)
 const initialLoading = ref(true)
+const loadError = ref('')
 
 async function loadMore() {
   loading.value = true
+  loadError.value = ''
   try {
     const result = await getPosts({ pageSize: props.pageSize, cursor: cursor.value })
     posts.value.push(...result.posts)
     cursor.value = result.cursor
     hasMore.value = result.hasMore
+  }
+  catch (e) {
+    loadError.value = (e as Error).message || String(e)
+    console.error('[memi-board] getPosts failed', e)
   }
   finally {
     loading.value = false
@@ -56,6 +62,13 @@ function handleClick(post: PostModel) {
         class="h-20 w-full"
       />
     </template>
+
+    <p
+      v-else-if="loadError"
+      class="text-sm text-error text-center py-8"
+    >
+      목록을 불러오지 못했습니다: {{ loadError }}
+    </p>
 
     <p
       v-else-if="!posts.length"

@@ -28,17 +28,34 @@ export default defineNuxtModule({
   setup(_options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
 
-    // dist/module.mjs → dist/runtime/components
-    // src/module.ts (dev) → src/components
-    const runtimeComponents = resolve('./runtime/components')
-    const srcComponents = resolve('./components')
-    const componentsDir = existsSync(runtimeComponents)
-      ? runtimeComponents
-      : srcComponents
-
+    // 우선순위:
+    // 1) monorepo link 시 dist/module.mjs → ../src/components (소스 직접, 재빌드 없이 UI 수정)
+    // 2) publish 패키지 dist/runtime/components
+    // 3) src/module.ts 로 직접 로드할 때 ./components
+    const candidates = [
+      resolve('../src/components'),
+      resolve('./runtime/components'),
+      resolve('./components'),
+    ]
+    const componentsDir = candidates.find(p => existsSync(p))
+    if (!componentsDir) {
+      throw new Error('[memi-board] components directory not found')
+    }
     nuxt.options.build.transpile.push('memi-board')
 
     nuxt.options.vite ||= {}
+    nuxt.options.vite.resolve ||= {}
+    // link:/file: 로 설치 시 패키지 쪽 node_modules 의 vuefire·firebase 가
+    // 호스트와 이중으로 잡히면 useFirestore 가 깨져 permission-denied 가 난다.
+    const dedupe = new Set([
+      ...(nuxt.options.vite.resolve.dedupe || []),
+      'vue',
+      'vue-router',
+      'vuefire',
+      'firebase',
+    ])
+    nuxt.options.vite.resolve.dedupe = [...dedupe]
+
     nuxt.options.vite.optimizeDeps ||= {}
     const exclude = new Set(nuxt.options.vite.optimizeDeps.exclude || [])
     exclude.add('memi-board')

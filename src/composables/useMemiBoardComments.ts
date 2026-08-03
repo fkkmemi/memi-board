@@ -16,19 +16,20 @@ export interface AddCommentInput {
 export function useMemiBoardComments(postId: string | Ref<string>) {
   const config = useMemiBoardConfig()
   const db = useFirestore()
-  const prefix = config.collectionPrefix
+  const prefix = () => config.collectionPrefix
 
   const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
 
   const commentsQuery = computed(() =>
-    query(collection(db, `${prefix}Posts`, id.value, 'comments'), orderBy('createdAt', 'asc')),
+    query(collection(db, `${prefix()}Posts`, id.value, 'comments'), orderBy('createdAt', 'asc')),
   )
 
   const comments = useCollection<CommentModel>(commentsQuery)
 
   async function addComment(input: AddCommentInput): Promise<void> {
     const batch = writeBatch(db)
-    const commentRef = doc(collection(db, `${prefix}Posts`, id.value, 'comments'))
+    const p = prefix()
+    const commentRef = doc(collection(db, `${p}Posts`, id.value, 'comments'))
     batch.set(commentRef, {
       postId: id.value,
       body: input.body,
@@ -38,14 +39,15 @@ export function useMemiBoardComments(postId: string | Ref<string>) {
       moderationStatus: 'approved',
       createdAt: serverTimestamp(),
     })
-    batch.update(doc(db, `${prefix}Posts`, id.value), { commentCount: increment(1) })
+    batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
   async function deleteComment(commentId: string): Promise<void> {
     const batch = writeBatch(db)
-    batch.delete(doc(db, `${prefix}Posts`, id.value, 'comments', commentId))
-    batch.update(doc(db, `${prefix}Posts`, id.value), { commentCount: increment(-1) })
+    const p = prefix()
+    batch.delete(doc(db, `${p}Posts`, id.value, 'comments', commentId))
+    batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(-1) })
     await batch.commit()
   }
 
