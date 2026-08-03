@@ -2,6 +2,16 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.5] - 2026-08-03
+
+### Changed
+- 기본 AI 검열 모델: `gemini-2.5-flash` → `gemini-3.5-flash-lite` (신규 프로젝트에서 2.5 Flash 미제공)
+- `moderation.useLimitedUseAppCheckTokens` — App Check limited-use 토큰 on/off (기본 true)
+
+### Fixed
+- 검열 실패 로그에 원인 메시지 보강
+- 로컬 금칙어 목록 보강 (`시이발` 등)
+
 ## [0.4.4] - 2026-08-03
 
 ### Added

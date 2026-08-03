@@ -8,7 +8,7 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
 
 function logModeration(
   phase: string,
-  detail: Record<string, unknown>,
+  detail: Record<string, unknown> | object,
 ) {
   // 개발·테스트에서 항상 보이게 (프로덕션도 한 줄 info — 필요 시 나중에 dev only)
   console.info(`[memi-board:moderation] ${phase}`, detail)
@@ -39,10 +39,17 @@ export function useMemiBoardModeration() {
   }
 
   function getModerationModel() {
-    const modelName = moderation.model ?? 'gemini-2.5-flash'
-    const ai = getAI(app, { backend: new GoogleAIBackend(), useLimitedUseAppCheckTokens: true })
+    const modelName = moderation.model ?? 'gemini-3.5-flash-lite'
+    // limited-use 는 재생 보호용. 기본 App Check 세션 토큰으로도 AI Logic 호출 가능.
+    // (App Check 미통과 시 limited-use 도 동일하게 실패 — 디버그 토큰/reCAPTCHA 가 우선)
+    const useLimited = moderation.useLimitedUseAppCheckTokens !== false
+    const ai = getAI(app, {
+      backend: new GoogleAIBackend(),
+      useLimitedUseAppCheckTokens: useLimited,
+    })
     return {
       modelName,
+      useLimited,
       model: getGenerativeModel(ai, {
         model: modelName,
         systemInstruction: MODERATION_SYSTEM,
@@ -67,7 +74,8 @@ export function useMemiBoardModeration() {
       return {
         flagged: true,
         category: 'other',
-        reason: '검열 서비스에 일시적으로 연결할 수 없어 제출이 보류되었습니다. 잠시 후 다시 시도해 주세요.',
+        reason:
+          'AI 검열에 실패해 글을 등록할 수 없습니다. (App Check/네트워크 확인) 잠시 후 다시 시도해 주세요.',
         error: true,
         via: 'ai-error-block',
       }
@@ -89,7 +97,7 @@ export function useMemiBoardModeration() {
       preview,
       length: trimmed.length,
       enabled: moderation.enabled !== false,
-      model: moderation.model ?? 'gemini-2.5-flash',
+      model: moderation.model ?? 'gemini-3.5-flash-lite',
       onError: moderation.onError ?? 'allow',
     })
 
@@ -115,8 +123,8 @@ export function useMemiBoardModeration() {
     }
 
     try {
-      const { model, modelName } = getModerationModel()
-      logModeration('ai-call', { modelName, useLimitedUseAppCheckTokens: true })
+      const { model, modelName, useLimited } = getModerationModel()
+      logModeration('ai-call', { modelName, useLimitedUseAppCheckTokens: useLimited })
       const t0 = performance.now()
       const result = await model.generateContent(`심사할 텍스트:\n"""${trimmed.slice(0, 4000)}"""`)
       const ms = Math.round(performance.now() - t0)
@@ -140,11 +148,13 @@ export function useMemiBoardModeration() {
       return out
     }
     catch (e) {
+      const err = e as { code?: string, customData?: unknown, cause?: unknown }
       logModeration('ai-error', {
         message: e instanceof Error ? e.message : String(e),
         name: e instanceof Error ? e.name : undefined,
-        // FirebaseError code 등
-        code: (e as { code?: string })?.code,
+        code: err?.code,
+        // 모델 폐기/App Check 등 원인 파악용 (전체 메시지에 이미 포함되는 경우 많음)
+        cause: err?.cause instanceof Error ? err.cause.message : err?.cause,
       })
       const r = errorResult()
       logModeration('result', r)

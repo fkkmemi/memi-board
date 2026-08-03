@@ -10,6 +10,8 @@ export interface MemiBoardModerationOptions {
   localBlocklist?: string[]
   onError?: 'allow' | 'block'
   moderateImages?: boolean
+  /** AI Logic App Check limited-use 토큰 (재생 보호). 기본 true */
+  useLimitedUseAppCheckTokens?: boolean
 }
 
 export interface MemiBoardConfig {
@@ -35,7 +37,7 @@ function getSharedConfig(): MemiBoardConfig {
       auth: { providers: ['google', 'apple'] },
       moderation: {
         enabled: true,
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash-lite',
         onError: 'allow',
         moderateImages: false,
         localBlocklist: [],
