@@ -110,7 +110,13 @@ async function handleAddCategory() {
   }
   addingCategory.value = true
   try {
-    const id = await addCategory(newCategoryLabel.value)
+    const label = newCategoryLabel.value.trim()
+    const moderation = await checkText(label)
+    if (moderation.flagged) {
+      error.value = moderation.reason || '사용할 수 없는 카테고리 이름입니다.'
+      return
+    }
+    const id = await addCategory(label)
     category.value = id
     newCategoryLabel.value = ''
     showAddCategory.value = false
