@@ -5,11 +5,12 @@
 ## [0.4.3] - 2026-08-03
 
 ### Added
-- `getPosts({ category })` — 카테고리 필터 목록 조회 (`where category ==` + `orderBy createdAt`)
-- `MemiBoardList` props: `category`, `postLinkBase` (예: `/board/post` → `/board/post/{id}`)
+- `getPosts({ category })` — 카테고리 필터 목록 조회
+- `MemiBoardList`: `category`, `postLinkBase`, `getPostLink(post)` (호스트가 `/board/:cat/:id` 등 자유 구성)
+- `MemiBoardEditor` `fixedCategory` — path 로 카테고리 고정 시 선택 UI 숨김·그 값으로 저장
 
 ### Deprecated
-- `MemiBoardList` 의 `linkBase` — `postLinkBase` 사용 권장
+- `MemiBoardList` 의 `linkBase` — `getPostLink` / `postLinkBase` 사용 권장
 
 ## [0.4.2] - 2026-08-03
 

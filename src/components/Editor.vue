@@ -8,8 +8,13 @@ import { useMemiBoardSettings } from 'memi-board'
 import MemiBoardAttachments from './Attachments.vue'
 
 const props = defineProps<{
-  /** 지정하면 수정 모드, 지정하지 않으면 새 글 작성 모드. */
+  /** 지정하면 수정 모드 */
   postId?: string
+  /**
+   * path 등으로 카테고리가 이미 정해진 경우 (예: /board/:category/new).
+   * 설정되면 선택 UI 없이 이 값으로 저장한다.
+   */
+  fixedCategory?: string
 }>()
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
@@ -17,12 +22,12 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 const { user, isSignedIn } = useMemiBoardAuth()
 const { getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
-const { categories, ensureSettings, addCategory } = useMemiBoardSettings()
+const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardSettings()
 
 const title = ref('')
 const content = ref('')
 const tagsInput = ref('')
-/** boardSettings.categories 의 id */
+/** boardSettings.categories 의 id (fixedCategory 없을 때만 선택) */
 const category = ref<string | undefined>(undefined)
 const attachments = ref<Attachment[]>([])
 
@@ -30,7 +35,11 @@ const categoryItems = computed(() =>
   categories.value.map(c => ({ label: c.label, value: c.id })),
 )
 
+/** 실제 저장에 쓰는 카테고리 id */
+const effectiveCategory = computed(() => props.fixedCategory || category.value)
+
 const isEdit = computed(() => Boolean(props.postId))
+const categoryLocked = computed(() => Boolean(props.fixedCategory))
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
@@ -39,7 +48,6 @@ const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
 const addingCategory = ref(false)
 
-/** 새 글은 아직 slug가 없으므로 첨부파일 Storage 경로용 임시 네임스페이스를 쓴다. */
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
 
 async function loadPost(id: string) {
@@ -57,7 +65,6 @@ async function loadPost(id: string) {
     title.value = post.title
     content.value = post.content
     tagsInput.value = (post.tags ?? []).join(', ')
-    // 설정에 없는 예전 카테고리 id 여도 선택값은 유지 (목록에 없으면 USelect 가 비울 수 있음)
     category.value = post.category
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
@@ -80,8 +87,17 @@ watch(
     else {
       loading.value = false
       attachmentNamespace.value = `new-${Date.now()}`
+      if (props.fixedCategory) category.value = props.fixedCategory
       void ensureSettings().catch(() => {})
     }
+  },
+  { immediate: true },
+)
+
+watch(
+  () => props.fixedCategory,
+  (c) => {
+    if (c && !props.postId) category.value = c
   },
   { immediate: true },
 )
@@ -125,13 +141,13 @@ async function handleSubmit() {
     error.value = '로그인이 필요합니다.'
     return
   }
-  if (!category.value) {
+  const cat = effectiveCategory.value
+  if (!cat) {
     error.value = '카테고리를 선택해 주세요.'
     return
   }
-  // 설정에 있는 id 만 허용 (임의 문자열 저장 방지)
-  if (!categories.value.some(c => c.id === category.value)) {
-    error.value = '목록에 있는 카테고리를 선택해 주세요. 없으면 아래 + 로 추가할 수 있습니다.'
+  if (!categories.value.some(c => c.id === cat) && !props.fixedCategory) {
+    error.value = '목록에 있는 카테고리를 선택해 주세요.'
     return
   }
 
@@ -148,7 +164,7 @@ async function handleSubmit() {
       title: title.value.trim(),
       content: content.value,
       tags,
-      category: category.value,
+      category: cat,
       attachments: attachments.value,
     }
 
@@ -189,7 +205,22 @@ async function handleSubmit() {
     class="flex flex-col gap-4"
     @submit.prevent="handleSubmit"
   >
-    <div class="flex flex-col gap-2">
+    <!-- path 로 카테고리 고정 시: 표시만 / 아니면 선택+추가 -->
+    <div
+      v-if="categoryLocked"
+      class="flex items-center gap-2 text-sm"
+    >
+      <span class="text-muted">카테고리</span>
+      <UBadge
+        :label="categoryLabel(fixedCategory) || fixedCategory"
+        variant="subtle"
+      />
+    </div>
+
+    <div
+      v-else
+      class="flex flex-col gap-2"
+    >
       <div class="flex items-center gap-2 flex-wrap">
         <USelect
           v-model="category"
@@ -198,8 +229,8 @@ async function handleSubmit() {
           class="w-48"
         />
         <UButton
-          type="button"
           v-if="isSignedIn"
+          type="button"
           variant="outline"
           color="neutral"
           size="sm"
@@ -208,10 +239,6 @@ async function handleSubmit() {
           @click="showAddCategory = !showAddCategory"
         />
       </div>
-      <p class="text-xs text-muted">
-        카테고리는 게시판 설정(boardSettings)에 있는 목록에서 고릅니다.
-      </p>
-
       <div
         v-if="showAddCategory"
         class="flex items-center gap-2"

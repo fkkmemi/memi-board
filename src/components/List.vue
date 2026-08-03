@@ -10,14 +10,19 @@ import { formatDate } from 'memi-board'
 const props = withDefaults(defineProps<{
   pageSize?: number
   /**
+   * 글 상세 링크 생성.
+   * 예: (p) => `/board/${p.category}/${p.id}`
+   * 없으면 postLinkBase / linkBase / select 순.
+   */
+  getPostLink?: (post: PostModel) => string | undefined
+  /**
    * 글 상세 링크 prefix.
-   * 예: `/board/post` → 각 행이 `/board/post/{id}` 로 이동.
-   * 없으면 select 이벤트만 emit.
+   * 예: `/board/post` → `/board/post/{id}`
    */
   postLinkBase?: string
   /** 지정 시 해당 카테고리 글만 조회 */
   category?: string
-  /** @deprecated postLinkBase 사용. 하위 호환: `${linkBase}/${id}` */
+  /** @deprecated postLinkBase / getPostLink 사용 */
   linkBase?: string
 }>(), {
   pageSize: 20,
@@ -36,6 +41,7 @@ const initialLoading = ref(true)
 const loadError = ref('')
 
 function postTo(post: PostModel): string | undefined {
+  if (props.getPostLink) return props.getPostLink(post)
   const base = props.postLinkBase || props.linkBase
   if (!base || !post.id) return undefined
   return `${base.replace(/\/$/, '')}/${post.id}`
