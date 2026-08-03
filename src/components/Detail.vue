@@ -52,10 +52,17 @@ async function handleDelete() {
   }
 }
 
-/** TipTap UEditor 대신 정적 HTML — 목록 이동 시 keyed plugin 충돌 방지 */
-const contentHtml = computed(() =>
-  post.value?.content ? renderMarkdownToHtml(post.value.content) : '',
-)
+/**
+ * 본문 표시: HTML(UEditor 저장)이면 그대로, 아니면 마크다운/플레인 변환.
+ * (상세에 UEditor 쓰면 목록 이동 시 TipTap plugin 충돌)
+ */
+const contentHtml = computed(() => {
+  const raw = post.value?.content || ''
+  if (!raw.trim()) return ''
+  // 저장된 HTML (에디터 content-type=html)
+  if (/<[a-z][\s\S]*>/i.test(raw)) return raw
+  return renderMarkdownToHtml(raw)
+})
 </script>
 
 <template>

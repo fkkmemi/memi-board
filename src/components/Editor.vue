@@ -1,10 +1,9 @@
 <script setup lang="ts">
 /**
- * 글쓰기 폼 — Nuxt UI UEditor (shineb PostEditor 패턴).
- * 이미지: 툴바 / 붙여넣기 / 드롭 → Storage 원본+썸네일.
- * TipTap Extension 은 쓰지 않음 (PluginKey 충돌·빈 에디터 방지) — editorProps 로 처리.
+ * 글쓰기 폼 — Nuxt UI UEditor (shineb PostEditor 와 동일 축).
+ * content-type=html (shineb). markdown 은 TipTap Markdown 확장 의존으로 빈 에디터 유발 가능.
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import type { Attachment, EditorImageEntry } from 'memi-board'
 import {
   useMemiBoardAuth,
@@ -30,6 +29,7 @@ const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardS
 const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
+/** HTML (UEditor content-type=html). 레거시 plain/markdown 도 로드 가능 */
 const content = ref('')
 const tagsInput = ref('')
 const category = ref<string | undefined>(undefined)
@@ -48,6 +48,8 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
+/** UEditor 마운트 실패 시 폴백 */
+const editorBroken = ref(false)
 
 const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
@@ -55,6 +57,8 @@ const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
+
+const editorRef = ref<{ editor?: { value?: unknown } | unknown } | null>(null)
 
 function imageNamespace(): string {
   return props.postId || attachmentNamespace.value
@@ -72,80 +76,41 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
   return entry
 }
 
-/** TipTap view 에 이미지 노드 삽입 */
-function insertImageAtSelection(view: { state: any, dispatch: (tr: any) => void }, src: string) {
-  const { schema, tr, selection } = view.state
-  const imageType = schema.nodes.image
-  if (!imageType) return
-  const node = imageType.create({ src })
-  view.dispatch(tr.replaceSelectionWith(node).scrollIntoView())
-  void selection
-}
-
-async function uploadAndInsert(view: { state: any, dispatch: (tr: any) => void }, file: File) {
-  imageUploading.value = true
-  imageUploadError.value = ''
-  try {
-    const entry = await doUploadImage(file)
-    insertImageAtSelection(view, entry.originalUrl)
-  }
-  catch (e) {
-    imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
-  }
-  finally {
-    imageUploading.value = false
-  }
-}
-
-function pickAndUploadImage(editor: {
-  view: { state: any, dispatch: (tr: any) => void }
-  chain: () => { focus: () => { setImage: (o: { src: string }) => { run: () => void } } }
-}) {
+function pickAndUploadImage(editor: any) {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
   input.onchange = () => {
     const file = input.files?.[0]
-    if (file) void uploadAndInsert(editor.view, file)
+    if (!file) return
+    void (async () => {
+      imageUploading.value = true
+      imageUploadError.value = ''
+      try {
+        const entry = await doUploadImage(file)
+        editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+      }
+      catch (e) {
+        imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+      }
+      finally {
+        imageUploading.value = false
+      }
+    })()
   }
   input.click()
 }
 
-const editorHandlers = {
+// shineb 와 동일 — 이미지 파일 업로드 핸들러 (isDisabled 는 생략: 초기화 중 extensionManager 접근 회피)
+const handlers = {
   image: {
-    canExecute: (editor: { can: () => { setImage: (o: { src: string }) => boolean } }) =>
-      editor.can().setImage({ src: '' }),
-    isActive: (editor: { isActive: (n: string) => boolean }) => editor.isActive('image'),
+    canExecute: (editor: any) => editor.can().setImage({ src: '' }),
+    isActive: (editor: any) => editor.isActive('image'),
     isDisabled: undefined as undefined,
     execute: (editor: any) => {
       pickAndUploadImage(editor)
       return editor.chain()
     },
-  },
-}
-
-/**
- * Extension 없이 paste/drop — PluginKey 충돌·생성 실패로 에디터가 안 뜨는 문제 회피
- * (UEditor editorProps → ProseMirror props)
- */
-const editorProps = {
-  handlePaste(view: any, event: ClipboardEvent) {
-    const items = Array.from(event.clipboardData?.items ?? []) as DataTransferItem[]
-    const imageItem = items.find(item => item.type.startsWith('image/'))
-    if (!imageItem) return false
-    const file = imageItem.getAsFile()
-    if (!file) return false
-    event.preventDefault()
-    void uploadAndInsert(view, file)
-    return true
-  },
-  handleDrop(view: any, event: DragEvent) {
-    const files = Array.from(event.dataTransfer?.files ?? []) as File[]
-    const image = files.find(f => f.type.startsWith('image/'))
-    if (!image) return false
-    event.preventDefault()
-    void uploadAndInsert(view, image)
-    return true
   },
 }
 
@@ -180,16 +145,70 @@ const toolbarItems = [
   ],
 ] as const
 
-function isContentEmpty(md: string): boolean {
-  const plain = md
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]*`/g, ' ')
-    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
-    .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
-    .replace(/[#>*_\-~|]+/g, ' ')
+function isContentEmpty(html: string): boolean {
+  const plain = html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
   return !plain
+}
+
+/** 붙여넣기/드롭 이미지 — DOM 이벤트로 처리 (TipTap Extension 없음) */
+function onEditorRootPaste(e: ClipboardEvent) {
+  const items = Array.from(e.clipboardData?.items ?? [])
+  const imageItem = items.find(i => i.type.startsWith('image/'))
+  if (!imageItem) return
+  const file = imageItem.getAsFile()
+  if (!file) return
+  e.preventDefault()
+  const ed = (editorRef.value as any)?.editor
+  const editor = ed?.value ?? ed
+  if (!editor) return
+  void (async () => {
+    imageUploading.value = true
+    imageUploadError.value = ''
+    try {
+      const entry = await doUploadImage(file)
+      editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+    }
+    catch (err) {
+      imageUploadError.value = (err as Error).message || '이미지 업로드에 실패했습니다.'
+    }
+    finally {
+      imageUploading.value = false
+    }
+  })()
+}
+
+function onEditorRootDrop(e: DragEvent) {
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  const image = files.find(f => f.type.startsWith('image/'))
+  if (!image) return
+  e.preventDefault()
+  const ed = (editorRef.value as any)?.editor
+  const editor = ed?.value ?? ed
+  if (!editor) return
+  void (async () => {
+    imageUploading.value = true
+    imageUploadError.value = ''
+    try {
+      const entry = await doUploadImage(image)
+      editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+    }
+    catch (err) {
+      imageUploadError.value = (err as Error).message || '이미지 업로드에 실패했습니다.'
+    }
+    finally {
+      imageUploading.value = false
+    }
+  })()
+}
+
+function onEditorRootDragOver(e: DragEvent) {
+  if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
+    e.preventDefault()
+  }
 }
 
 async function loadPost(id: string) {
@@ -243,6 +262,22 @@ watch(
   },
   { immediate: true },
 )
+
+// 에디터가 안 뜨면 (생성 실패) 수 초 후 폴백 표시
+let brokenTimer: ReturnType<typeof setTimeout> | undefined
+onMounted(() => {
+  brokenTimer = setTimeout(() => {
+    const ed = (editorRef.value as any)?.editor
+    const editor = ed?.value ?? ed
+    if (!editor && !editorBroken.value) {
+      console.warn('[memi-board] UEditor failed to mount — falling back to textarea')
+      editorBroken.value = true
+    }
+  }, 2000)
+})
+onBeforeUnmount(() => {
+  if (brokenTimer) clearTimeout(brokenTimer)
+})
 
 async function handleAddCategory() {
   error.value = ''
@@ -307,8 +342,9 @@ async function handleSubmit() {
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
   try {
-    const text = `${title.value}\n${content.value}`
-    const moderation = await checkText(text)
+    // 검열용: HTML 태그 제거한 plain text + 제목
+    const plain = content.value.replace(/<[^>]+>/g, ' ')
+    const moderation = await checkText(`${title.value}\n${plain}`)
     if (moderation.flagged) {
       error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'
       return
@@ -430,47 +466,65 @@ async function handleSubmit() {
       required
     />
 
-    <div class="rounded-xl border border-default overflow-hidden min-h-72">
+    <!-- shineb PostEditor 와 동일: content-type=html, handlers, toolbar -->
+    <div
+      class="rounded-xl border border-default overflow-hidden"
+      @paste="onEditorRootPaste"
+      @drop="onEditorRootDrop"
+      @dragover="onEditorRootDragOver"
+    >
       <UAlert
         v-if="imageUploadError"
         color="error"
         variant="subtle"
         icon="i-lucide-circle-alert"
-        title="이미지 업로드 실패"
+        title="업로드 실패"
         :description="imageUploadError"
-        class="rounded-none"
+        class="rounded-none rounded-t-xl"
       />
 
-      <!-- shineb 와 동일: handlers + toolbar, 커스텀 Extension 없음 -->
       <UEditor
+        v-if="!editorBroken"
+        ref="editorRef"
         v-model="content"
-        content-type="markdown"
-        placeholder="내용을 입력하세요. 이미지는 붙여넣기·드래그 또는 툴바 이미지 버튼으로 추가할 수 있어요…"
-        :handlers="editorHandlers"
-        :editor-props="editorProps"
-        :ui="{ content: 'min-h-64 p-4 max-w-none' }"
-        class="w-full"
+        content-type="html"
+        :handlers="handlers"
+        placeholder="본문을 입력하세요…"
+        :ui="{
+          root: 'w-full',
+          base: 'min-h-64 focus:outline-none',
+          content: 'min-h-64 p-4',
+        }"
+        class="w-full min-h-72"
       >
         <template #default="{ editor }">
-          <div class="border-b border-default sticky top-0 bg-default z-10 flex items-center gap-1">
-            <UEditorToolbar
-              :editor="editor"
-              :items="toolbarItems"
-              class="p-2 flex-1"
-            />
-            <div
-              v-if="imageUploading"
-              class="flex items-center gap-1.5 px-2 text-xs text-muted shrink-0"
-            >
-              <UIcon
-                name="i-lucide-loader-circle"
-                class="size-3.5 animate-spin"
-              />
-              업로드 중…
-            </div>
-          </div>
+          <UEditorToolbar
+            v-if="editor"
+            :editor="editor"
+            :items="toolbarItems"
+            class="border-b border-default p-2 sticky top-0 z-10 bg-default"
+          />
         </template>
       </UEditor>
+
+      <UTextarea
+        v-else
+        v-model="content"
+        placeholder="본문을 입력하세요… (간단 입력 모드)"
+        :rows="12"
+        class="w-full"
+      />
+
+      <p
+        v-if="imageUploading"
+        class="flex items-center gap-2 border-t border-default px-4 py-2 text-xs text-muted"
+      >
+        <UIcon
+          name="i-lucide-loader-circle"
+          class="size-3.5 animate-spin"
+        />
+        이미지 업로드 중…
+      </p>
     </div>
 
     <UInput
