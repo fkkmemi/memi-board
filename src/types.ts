@@ -8,6 +8,19 @@ export interface Attachment {
   type: string
 }
 
+/**
+ * 에디터 본문 이미지 업로드 결과 (원본 + 썸네일).
+ * Storage: `{prefix}/posts/{postId}/images/...` · `.../images/thumbnails/...`
+ * 본문 markdown 에는 originalUrl 만 넣고, 썸네일은 목록 카드 등에 활용 가능.
+ * 수정 중 버려진 파일은 호스트 스케줄러로 정리 (본문에 없는 path).
+ */
+export interface EditorImageEntry {
+  originalUrl: string
+  originalPath: string
+  thumbnailUrl: string
+  thumbnailPath: string
+}
+
 /** MVP: 차단된 글은 쓰기 자체가 일어나지 않으므로 항상 'approved'만 저장된다. */
 export type ModerationStatus = 'approved'
 

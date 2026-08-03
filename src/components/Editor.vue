@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Attachment } from 'memi-board'
-import { useMemiBoardAuth } from 'memi-board'
-import { useMemiBoardPosts } from 'memi-board'
-import { useMemiBoardModeration } from 'memi-board'
-import { useMemiBoardSettings } from 'memi-board'
+import type { Attachment, EditorImageEntry } from 'memi-board'
+import {
+  useMemiBoardAuth,
+  useMemiBoardPosts,
+  useMemiBoardModeration,
+  useMemiBoardSettings,
+  useMemiBoardStorage,
+  createPasteImageExtension,
+  EDITOR_IMAGE_MAX_BYTES,
+} from 'memi-board'
 import MemiBoardAttachments from './Attachments.vue'
 
 const props = defineProps<{
@@ -23,6 +28,7 @@ const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardA
 const { getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
 const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardSettings()
+const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
 /** markdown (UEditor content-type) — 레거시 일반 텍스트도 그대로 로드 가능 */
@@ -46,12 +52,82 @@ const saving = ref(false)
 /** 제출 중 안내 (검토 → 저장) */
 const submitHint = ref('')
 const error = ref('')
+const imageUploading = ref(false)
+const imageUploadError = ref('')
 
 const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
 const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
+
+/** 이 세션에서 올린 에디터 이미지 (고아 정리 스케줄러용 참조, 선택) */
+const uploadedEditorImages = ref<EditorImageEntry[]>([])
+
+function imageNamespace(): string {
+  return props.postId || attachmentNamespace.value
+}
+
+async function doUploadImage(file: File): Promise<EditorImageEntry> {
+  const entry = await uploadEditorImage(file, imageNamespace())
+  uploadedEditorImages.value.push(entry)
+  return entry
+}
+
+/** 툴바 이미지: 파일 선택 → Storage 업로드 → 본문에 삽입 (shineb) */
+function pickAndUploadImage(editor: { chain: () => { focus: () => { setImage: (opts: { src: string }) => { run: () => void } } } }) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = () => {
+    const file = input.files?.[0]
+    if (!file) return
+    void (async () => {
+      imageUploading.value = true
+      imageUploadError.value = ''
+      try {
+        if (file.size > EDITOR_IMAGE_MAX_BYTES) {
+          throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+        }
+        const entry = await doUploadImage(file)
+        editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+      }
+      catch (e) {
+        imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+      }
+      finally {
+        imageUploading.value = false
+      }
+    })()
+  }
+  input.click()
+}
+
+// 기본 URL prompt 이미지 핸들러 → Firebase 업로드로 교체
+const editorHandlers = {
+  image: {
+    canExecute: (editor: { can: () => { setImage: (o: { src: string }) => boolean } }) =>
+      editor.can().setImage({ src: '' }),
+    isActive: (editor: { isActive: (n: string) => boolean }) => editor.isActive('image'),
+    isDisabled: undefined as undefined,
+    execute: (editor: {
+      chain: () => { focus: () => { setImage: (opts: { src: string }) => { run: () => void } } }
+      can: () => { setImage: (o: { src: string }) => boolean }
+    }) => {
+      pickAndUploadImage(editor)
+      return editor.chain()
+    },
+  },
+}
+
+const pasteImageExtension = createPasteImageExtension({
+  upload: file => doUploadImage(file),
+  onUploading: (v) => { imageUploading.value = v },
+  onError: (msg) => { imageUploadError.value = msg },
+  maxBytes: EDITOR_IMAGE_MAX_BYTES,
+})
+
+const editorExtensions = [pasteImageExtension]
 
 /** shineb PostEditor 와 동일한 기본 툴바 (Nuxt UI Editor) */
 const toolbarItems = [
@@ -214,7 +290,6 @@ async function handleSubmit() {
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
   try {
-    // 검열: 제목 + 마크다운 원문 (금칙어 매칭용)
     const text = `${title.value}\n${content.value}`
     const moderation = await checkText(text)
 
@@ -271,7 +346,6 @@ async function handleSubmit() {
     class="flex flex-col gap-4"
     @submit.prevent="handleSubmit"
   >
-    <!-- path 로 카테고리 고정 시: 표시만 / 아니면 선택+추가 -->
     <div
       v-if="categoryLocked"
       class="flex items-center gap-2 text-sm"
@@ -340,21 +414,46 @@ async function handleSubmit() {
       required
     />
 
-    <!-- Nuxt UI Editor (TipTap) — shineb PostEditor 와 동일 패턴 -->
     <div class="rounded-xl border border-default overflow-hidden">
+      <UAlert
+        v-if="imageUploadError"
+        color="error"
+        variant="subtle"
+        icon="i-lucide-circle-alert"
+        title="이미지 업로드 실패"
+        :description="imageUploadError"
+        class="rounded-none"
+        close
+        @update:open="(o: boolean) => { if (!o) imageUploadError = '' }"
+      />
+
       <UEditor
         v-model="content"
         content-type="markdown"
-        placeholder="내용을 입력하세요…"
+        placeholder="내용을 입력하세요. 이미지는 붙여넣기·드래그 또는 툴바 이미지 버튼으로 추가할 수 있어요…"
+        :handlers="editorHandlers"
+        :extensions="editorExtensions"
         :ui="{ content: 'min-h-64 p-4 max-w-none' }"
         class="w-full"
       >
         <template #default="{ editor }">
-          <UEditorToolbar
-            :editor="editor"
-            :items="toolbarItems"
-            class="border-b border-default p-2 sticky top-0 bg-default z-10"
-          />
+          <div class="border-b border-default sticky top-0 bg-default z-10 flex items-center gap-1">
+            <UEditorToolbar
+              :editor="editor"
+              :items="toolbarItems"
+              class="p-2 flex-1"
+            />
+            <div
+              v-if="imageUploading"
+              class="flex items-center gap-1.5 px-2 text-xs text-muted shrink-0"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="size-3.5 animate-spin"
+              />
+              이미지 업로드 중…
+            </div>
+          </div>
           <UEditorDragHandle :editor="editor" />
         </template>
       </UEditor>
@@ -394,7 +493,7 @@ async function handleSubmit() {
       <UButton
         type="submit"
         :loading="saving"
-        :disabled="isWriteRestricted"
+        :disabled="isWriteRestricted || imageUploading"
         :label="isEdit ? '수정 완료' : '게시하기'"
       />
       <UButton

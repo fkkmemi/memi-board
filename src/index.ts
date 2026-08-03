@@ -27,6 +27,7 @@ export {
 
 export type {
   Attachment,
+  EditorImageEntry,
   ModerationStatus,
   PostModel,
   PostDetail,
@@ -36,3 +37,9 @@ export type {
   BoardSettingsModel,
   ModerationResult,
 } from './types'
+
+export { compressImage } from './utils/compressImage'
+export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
+export { createPasteImageExtension } from './utils/paste-image-extension'
+export type { PasteImageExtensionOptions } from './utils/paste-image-extension'
+export { EDITOR_IMAGE_MAX_BYTES } from './composables/useMemiBoardStorage'

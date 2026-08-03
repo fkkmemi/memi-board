@@ -229,6 +229,10 @@ const router = useRouter()
 **Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)  
 본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="markdown"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
+**에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
+`{prefix}/posts/{postId}/images/*` + `.../images/thumbnails/*` (원본+썸네일).  
+본문 markdown 에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
+
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`
 

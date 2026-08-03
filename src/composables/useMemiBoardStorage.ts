@@ -1,9 +1,20 @@
-import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage'
+import {
+  getStorage,
+  ref as storageRef,
+  uploadBytes,
+  uploadBytesResumable,
+  getDownloadURL,
+  deleteObject,
+} from 'firebase/storage'
 import type { UploadTask } from 'firebase/storage'
 import { useFirebaseApp } from 'vuefire'
 import { safeFileName } from '../utils/slugify'
+import { compressImage } from '../utils/compressImage'
 import { useMemiBoardConfig } from '../config'
-import type { Attachment } from '../types'
+import type { Attachment, EditorImageEntry } from '../types'
+
+/** 에디터 이미지 최대 크기 (바이트) */
+export const EDITOR_IMAGE_MAX_BYTES = 5 * 1024 * 1024
 
 export function useMemiBoardStorage() {
   const config = useMemiBoardConfig()
@@ -48,5 +59,57 @@ export function useMemiBoardStorage() {
     await deleteObject(storageRef(storage, attachment.path)).catch(() => {})
   }
 
-  return { uploadAttachment, deleteAttachment }
+  /**
+   * 에디터 본문 이미지: 원본 + 400px JPEG 썸네일 (shineb 동일).
+   * Storage:
+   *   `{prefix}/posts/{postId}/images/{ts}-{name}.ext`
+   *   `{prefix}/posts/{postId}/images/thumbnails/{ts}-{name}.jpg`
+   */
+  async function uploadEditorImage(file: File, postId: string): Promise<EditorImageEntry> {
+    if (!file.type.startsWith('image/')) {
+      throw new Error('이미지 파일만 업로드할 수 있습니다.')
+    }
+    if (file.size > EDITOR_IMAGE_MAX_BYTES) {
+      throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+    }
+
+    const storage = getStorage(app)
+    const ext = (file.name.split('.').pop() || file.type.split('/')[1] || 'png')
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .slice(0, 8) || 'png'
+    const safeName = safeFileName(file.name.replace(/\.[^.]+$/, '') || 'image', 40)
+    const baseName = `${Date.now()}-${safeName || 'image'}`
+    const ns = postId || `new-${Date.now()}`
+
+    const originalPath = `${prefix()}/posts/${ns}/images/${baseName}.${ext}`
+    const originalRef = storageRef(storage, originalPath)
+    await uploadBytes(originalRef, file, {
+      contentType: file.type || 'image/png',
+    })
+    const originalUrl = await getDownloadURL(originalRef)
+
+    const thumbBlob = await compressImage(file, { maxWidth: 400, quality: 0.8 })
+    const thumbnailPath = `${prefix()}/posts/${ns}/images/thumbnails/${baseName}.jpg`
+    const thumbRef = storageRef(storage, thumbnailPath)
+    await uploadBytes(thumbRef, thumbBlob, { contentType: 'image/jpeg' })
+    const thumbnailUrl = await getDownloadURL(thumbRef)
+
+    return { originalUrl, originalPath, thumbnailUrl, thumbnailPath }
+  }
+
+  /** 원본·썸네일 쌍 삭제 (고아 정리·첨부 삭제용) */
+  async function deleteEditorImage(entry: Pick<EditorImageEntry, 'originalPath' | 'thumbnailPath'>): Promise<void> {
+    const storage = getStorage(app)
+    await Promise.all([
+      deleteObject(storageRef(storage, entry.originalPath)).catch(() => {}),
+      deleteObject(storageRef(storage, entry.thumbnailPath)).catch(() => {}),
+    ])
+  }
+
+  return {
+    uploadAttachment,
+    deleteAttachment,
+    uploadEditorImage,
+    deleteEditorImage,
+  }
 }

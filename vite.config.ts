@@ -41,8 +41,14 @@ export default defineConfig({
         'firebase/storage',
         'firebase/ai',
         '@nuxt/kit',
+        '@tiptap/core',
+        '@tiptap/pm',
+        '@tiptap/pm/state',
+        '@tiptap/pm/view',
+        '@tiptap/pm/model',
         'node:fs',
         /^node:/,
+        /^@tiptap\//,
       ],
       // module 엔트리는 d.ts 생성 대상에서 제외 (scripts/build.mjs 가 module.d.ts 작성)
       onwarn(warning, warn) {

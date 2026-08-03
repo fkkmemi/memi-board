@@ -2,6 +2,16 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.11] - 2026-08-03
+
+### Added
+- 에디터 이미지 업로드 (shineb 동일 모델)
+  - 원본 + 400px JPEG 썸네일 → Storage `{prefix}/posts/{id}/images/` · `.../thumbnails/`
+  - 툴바 이미지 버튼 · **붙여넣기** · **드래그 앤 드롭**
+  - `uploadEditorImage` / `deleteEditorImage` / `createPasteImageExtension` / `extractEditorImageUrls`
+  - 본문에서 빠진 고아 파일은 호스트 스케줄러로 정리 예정
+- storage.rules 예시: `images/{allPaths=**}` (5MB, image/*)
+
 ## [0.4.10] - 2026-08-03
 
 ### Changed
