@@ -1,9 +1,13 @@
 <script setup lang="ts">
 /**
- * 글쓰기 폼 — Nuxt UI UEditor (shineb PostEditor 와 동일 축).
- * content-type=html (shineb). markdown 은 TipTap Markdown 확장 의존으로 빈 에디터 유발 가능.
+ * 글쓰기 폼 — Nuxt UI UEditor + shineb PostEditor 패턴.
+ * @see https://ui.nuxt.com/docs/components/editor
+ * @see shineb app/components/PostEditor.vue
+ *
+ * 커스텀은 handlers.image(파일 업로드) + DOM paste/drop 만.
+ * TipTap Extension / PluginKey 는 쓰지 않음 (유지보수·충돌 회피).
  */
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Attachment, EditorImageEntry } from 'memi-board'
 import {
   useMemiBoardAuth,
@@ -29,7 +33,7 @@ const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardS
 const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
-/** HTML (UEditor content-type=html). 레거시 plain/markdown 도 로드 가능 */
+/** UEditor content-type=html (shineb 와 동일) */
 const content = ref('')
 const tagsInput = ref('')
 const category = ref<string | undefined>(undefined)
@@ -48,8 +52,6 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
-/** UEditor 마운트 실패 시 폴백 */
-const editorBroken = ref(false)
 
 const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
@@ -57,8 +59,7 @@ const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
-
-const editorRef = ref<{ editor?: { value?: unknown } | unknown } | null>(null)
+const editorRef = ref<{ editor?: unknown } | null>(null)
 
 function imageNamespace(): string {
   return props.postId || attachmentNamespace.value
@@ -76,37 +77,39 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
   return entry
 }
 
+async function uploadAndSetImage(editor: any, file: File) {
+  imageUploading.value = true
+  imageUploadError.value = ''
+  try {
+    const entry = await doUploadImage(file)
+    editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+  }
+  catch (e) {
+    imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+  }
+  finally {
+    imageUploading.value = false
+  }
+}
+
 function pickAndUploadImage(editor: any) {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
   input.onchange = () => {
     const file = input.files?.[0]
-    if (!file) return
-    void (async () => {
-      imageUploading.value = true
-      imageUploadError.value = ''
-      try {
-        const entry = await doUploadImage(file)
-        editor.chain().focus().setImage({ src: entry.originalUrl }).run()
-      }
-      catch (e) {
-        imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
-      }
-      finally {
-        imageUploading.value = false
-      }
-    })()
+    if (file) void uploadAndSetImage(editor, file)
   }
   input.click()
 }
 
-// shineb 와 동일 — 이미지 파일 업로드 핸들러 (isDisabled 는 생략: 초기화 중 extensionManager 접근 회피)
+/** 공식 handlers API — 기본 image(URL prompt) 를 파일 업로드로 교체 (shineb) */
 const handlers = {
   image: {
     canExecute: (editor: any) => editor.can().setImage({ src: '' }),
     isActive: (editor: any) => editor.isActive('image'),
-    isDisabled: undefined as undefined,
+    isDisabled: (editor: any) =>
+      !editor.extensionManager?.extensions?.some((ext: any) => ext.name === 'image'),
     execute: (editor: any) => {
       pickAndUploadImage(editor)
       return editor.chain()
@@ -154,61 +157,34 @@ function isContentEmpty(html: string): boolean {
   return !plain
 }
 
-/** 붙여넣기/드롭 이미지 — DOM 이벤트로 처리 (TipTap Extension 없음) */
+function resolveEditor(): any | null {
+  const ed = (editorRef.value as any)?.editor
+  return ed?.value ?? ed ?? null
+}
+
+/** 앱 레벨 paste/drop (TipTap Extension 아님 — shineb 툴바 업로드와 동일 업로드 경로) */
 function onEditorRootPaste(e: ClipboardEvent) {
   const items = Array.from(e.clipboardData?.items ?? [])
   const imageItem = items.find(i => i.type.startsWith('image/'))
   if (!imageItem) return
   const file = imageItem.getAsFile()
-  if (!file) return
+  const editor = resolveEditor()
+  if (!file || !editor) return
   e.preventDefault()
-  const ed = (editorRef.value as any)?.editor
-  const editor = ed?.value ?? ed
-  if (!editor) return
-  void (async () => {
-    imageUploading.value = true
-    imageUploadError.value = ''
-    try {
-      const entry = await doUploadImage(file)
-      editor.chain().focus().setImage({ src: entry.originalUrl }).run()
-    }
-    catch (err) {
-      imageUploadError.value = (err as Error).message || '이미지 업로드에 실패했습니다.'
-    }
-    finally {
-      imageUploading.value = false
-    }
-  })()
+  void uploadAndSetImage(editor, file)
 }
 
 function onEditorRootDrop(e: DragEvent) {
   const files = Array.from(e.dataTransfer?.files ?? [])
   const image = files.find(f => f.type.startsWith('image/'))
-  if (!image) return
+  const editor = resolveEditor()
+  if (!image || !editor) return
   e.preventDefault()
-  const ed = (editorRef.value as any)?.editor
-  const editor = ed?.value ?? ed
-  if (!editor) return
-  void (async () => {
-    imageUploading.value = true
-    imageUploadError.value = ''
-    try {
-      const entry = await doUploadImage(image)
-      editor.chain().focus().setImage({ src: entry.originalUrl }).run()
-    }
-    catch (err) {
-      imageUploadError.value = (err as Error).message || '이미지 업로드에 실패했습니다.'
-    }
-    finally {
-      imageUploading.value = false
-    }
-  })()
+  void uploadAndSetImage(editor, image)
 }
 
 function onEditorRootDragOver(e: DragEvent) {
-  if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
-    e.preventDefault()
-  }
+  if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) e.preventDefault()
 }
 
 async function loadPost(id: string) {
@@ -262,22 +238,6 @@ watch(
   },
   { immediate: true },
 )
-
-// 에디터가 안 뜨면 (생성 실패) 수 초 후 폴백 표시
-let brokenTimer: ReturnType<typeof setTimeout> | undefined
-onMounted(() => {
-  brokenTimer = setTimeout(() => {
-    const ed = (editorRef.value as any)?.editor
-    const editor = ed?.value ?? ed
-    if (!editor && !editorBroken.value) {
-      console.warn('[memi-board] UEditor failed to mount — falling back to textarea')
-      editorBroken.value = true
-    }
-  }, 2000)
-})
-onBeforeUnmount(() => {
-  if (brokenTimer) clearTimeout(brokenTimer)
-})
 
 async function handleAddCategory() {
   error.value = ''
@@ -342,7 +302,6 @@ async function handleSubmit() {
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
   try {
-    // 검열용: HTML 태그 제거한 plain text + 제목
     const plain = content.value.replace(/<[^>]+>/g, ' ')
     const moderation = await checkText(`${title.value}\n${plain}`)
     if (moderation.flagged) {
@@ -466,7 +425,6 @@ async function handleSubmit() {
       required
     />
 
-    <!-- shineb PostEditor 와 동일: content-type=html, handlers, toolbar -->
     <div
       class="rounded-xl border border-default overflow-hidden"
       @paste="onEditorRootPaste"
@@ -484,36 +442,23 @@ async function handleSubmit() {
       />
 
       <UEditor
-        v-if="!editorBroken"
         ref="editorRef"
         v-model="content"
         content-type="html"
         :handlers="handlers"
         placeholder="본문을 입력하세요…"
-        :ui="{
-          root: 'w-full',
-          base: 'min-h-64 focus:outline-none',
-          content: 'min-h-64 p-4',
-        }"
-        class="w-full min-h-72"
+        :ui="{ content: 'min-h-64 p-4' }"
+        class="w-full"
       >
         <template #default="{ editor }">
           <UEditorToolbar
-            v-if="editor"
             :editor="editor"
             :items="toolbarItems"
-            class="border-b border-default p-2 sticky top-0 z-10 bg-default"
+            class="border-b border-default p-2"
           />
+          <UEditorDragHandle :editor="editor" />
         </template>
       </UEditor>
-
-      <UTextarea
-        v-else
-        v-model="content"
-        placeholder="본문을 입력하세요… (간단 입력 모드)"
-        :rows="12"
-        class="w-full"
-      />
 
       <p
         v-if="imageUploading"

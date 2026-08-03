@@ -2,13 +2,22 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.12] - 2026-08-03
+
+### Changed
+- 에디터를 **Nuxt UI / shineb 축으로 슬림화** (유지보수)
+  - `UEditor` + `UEditorToolbar` + `UEditorDragHandle`, `content-type="html"`
+  - 이미지: 공식 `handlers.image` + 앱 레벨 paste/drop (TipTap Extension 없음)
+  - 상세: 정적 HTML 렌더 유지 (읽기 전용 UEditor 미사용)
+  - textarea 폴백 / PluginKey Extension 제거
+
 ## [0.4.11] - 2026-08-03
 
 ### Added
 - 에디터 이미지 업로드 (shineb 동일 모델)
   - 원본 + 400px JPEG 썸네일 → Storage `{prefix}/posts/{id}/images/` · `.../thumbnails/`
-  - 툴바 이미지 버튼 · **붙여넣기** · **드래그 앤 드롭**
-  - `uploadEditorImage` / `deleteEditorImage` / `createPasteImageExtension` / `extractEditorImageUrls`
+  - 툴바 이미지 버튼 · 붙여넣기 · 드래그 앤 드롭
+  - `uploadEditorImage` / `deleteEditorImage` / `extractEditorImageUrls`
   - 본문에서 빠진 고아 파일은 호스트 스케줄러로 정리 예정
 - storage.rules 예시: `images/{allPaths=**}` (5MB, image/*)
 
