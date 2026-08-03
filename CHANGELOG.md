@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.6] - 2026-08-03
+
+### Removed
+- 검열 단계별 콘솔 스팸 (`[memi-board:moderation] start/local-pass/ai-raw` 등)
+- 에디터 화면의 **검열 디버그** 줄 (via/flagged 요약)
+
+### Changed
+- AI 실패 시만 `console.warn` 한 줄; 사용자 메시지는 기술 용어 없이 안내
+
 ## [0.4.5] - 2026-08-03
 
 ### Changed
@@ -9,7 +18,6 @@
 - `moderation.useLimitedUseAppCheckTokens` — App Check limited-use 토큰 on/off (기본 true)
 
 ### Fixed
-- 검열 실패 로그에 원인 메시지 보강
 - 로컬 금칙어 목록 보강 (`시이발` 등)
 
 ## [0.4.4] - 2026-08-03

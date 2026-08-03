@@ -42,36 +42,9 @@ const isEdit = computed(() => Boolean(props.postId))
 const categoryLocked = computed(() => Boolean(props.fixedCategory))
 const loading = ref(false)
 const saving = ref(false)
-/** 제출 중 단계 표시 (로컬 필터 → AI Logic → 저장) */
+/** 제출 중 안내 (검토 → 저장) */
 const submitHint = ref('')
-/** 마지막 검열 결과 요약 (화면 + 콘솔) */
-const lastModerationDebug = ref('')
 const error = ref('')
-
-function formatModerationDebug(m: {
-  flagged: boolean
-  category: string
-  reason: string
-  error?: boolean
-  via?: string
-}): string {
-  const viaLabel: Record<string, string> = {
-    empty: '빈 텍스트',
-    disabled: '검열 끔',
-    local: '로컬 금칙어',
-    ai: 'Firebase AI Logic',
-    'ai-error-allow': 'AI 실패 → onError:allow (통과)',
-    'ai-error-block': 'AI 실패 → onError:block (차단)',
-  }
-  const via = m.via ? (viaLabel[m.via] || m.via) : '?'
-  return [
-    `via: ${via}`,
-    `flagged: ${m.flagged}`,
-    `category: ${m.category}`,
-    m.reason ? `reason: ${m.reason}` : '',
-    m.error ? 'apiError: true' : '',
-  ].filter(Boolean).join(' · ')
-}
 
 const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
@@ -187,26 +160,17 @@ async function handleSubmit() {
   }
 
   saving.value = true
-  submitHint.value = '내용을 검토하는 중… (로컬 → AI Logic)'
-  lastModerationDebug.value = ''
+  submitHint.value = '내용을 검토하는 중…'
   try {
     const text = `${title.value}\n${content.value}`
-    console.info('[memi-board] post checkText 시작', { title: title.value, contentLen: content.value.length })
     const moderation = await checkText(text)
-    lastModerationDebug.value = formatModerationDebug(moderation)
-    console.info('[memi-board] post checkText 끝', lastModerationDebug.value, moderation)
 
     if (moderation.flagged) {
       error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'
       return
     }
 
-    if (moderation.via === 'ai-error-allow') {
-      submitHint.value = 'AI 검열 실패 — 설정상 통과 후 저장…'
-    }
-    else {
-      submitHint.value = '저장하는 중…'
-    }
+    submitHint.value = '저장하는 중…'
     const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
     const payload = {
       title: title.value.trim(),
@@ -350,12 +314,6 @@ async function handleSubmit() {
       class="text-sm text-muted"
     >
       {{ submitHint }}
-    </p>
-    <p
-      v-if="lastModerationDebug"
-      class="text-xs font-mono text-muted break-all rounded-md bg-muted/40 px-2 py-1.5"
-    >
-      검열 디버그: {{ lastModerationDebug }}
     </p>
 
     <div class="flex gap-2">

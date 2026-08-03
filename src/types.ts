@@ -62,7 +62,7 @@ export interface BoardSettingsModel {
   updatedAt?: Timestamp
 }
 
-/** 검열이 어느 단계에서 끝났는지 (디버그·UI 표시용) */
+/** 검열이 어느 단계에서 끝났는지 (호스트/로깅용, UI 노출 없음) */
 export type ModerationVia =
   | 'empty'
   | 'disabled'
@@ -75,8 +75,8 @@ export interface ModerationResult {
   flagged: boolean
   category: 'none' | 'abuse' | 'spam' | 'adult' | 'violence' | 'other'
   reason: string
-  /** true면 API/파싱 실패로 판단이 불확실함을 뜻한다 (onError 옵션에 따라 처리). */
+  /** true면 API/파싱 실패로 판단이 불확실함 (onError 옵션에 따라 처리) */
   error?: boolean
-  /** 로컬 리스트 / AI / 실패 후 allow 등 */
+  /** 로컬 리스트 / AI / 실패 후 allow|block */
   via?: ModerationVia
 }
