@@ -41,6 +41,7 @@ export type {
 export { compressImage } from './utils/compressImage'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
+export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './utils/storagePath'
 export { EDITOR_IMAGE_MAX_BYTES } from './composables/useMemiBoardStorage'
 // createPasteImageExtension 은 components/editor 에 두고 SFC 가 상대경로 import —
 // core 번들에 @tiptap peer 를 넣으면 Vite optional-peer stub 으로 PluginKey 가 깨진다.

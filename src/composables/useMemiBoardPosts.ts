@@ -21,6 +21,8 @@ import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/s
 import type { StorageReference } from 'firebase/storage'
 import { useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
+import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
+import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
 import { useMemiBoardConfig } from '../config'
 import type { Attachment, PostDetail, PostModel } from '../types'
 
@@ -30,6 +32,13 @@ async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
     ...list.items.map(item => deleteObject(item)),
     ...list.prefixes.map(prefix => deleteStorageFolder(prefix)),
   ])
+}
+
+async function deleteStoragePaths(storage: ReturnType<typeof getStorage>, paths: Iterable<string>): Promise<void> {
+  const unique = [...new Set([...paths].filter(Boolean))]
+  await Promise.all(
+    unique.map(path => deleteObject(storageRef(storage, path)).catch(() => {})),
+  )
 }
 
 export interface CreatePostInput {
@@ -144,20 +153,83 @@ export function useMemiBoardPosts() {
     ])
   }
 
-  /** 댓글 서브컬렉션 → 본문 → Storage 폴더 → 메타 순으로 삭제한다. */
+  /**
+   * 글 삭제 순서 (규칙: Storage 삭제는 부모 post 문서가 있을 때 소유권 검사 가능)
+   * 1) 메타·본문 읽어 첨부 path / 본문 이미지 URL 수집
+   * 2) 댓글 전부
+   * 3) 본문 body
+   * 4) Storage: posts/{id}/** (images + attachments)
+   * 5) Storage: 임시 네임스페이스(new-*) 등 첨부·본문에 남은 경로
+   * 6) 메타 post 문서
+   */
   async function deletePost(id: string): Promise<void> {
+    const [metaSnap, bodySnap] = await Promise.all([
+      getDoc(postDoc(id)),
+      getDoc(bodyDoc(id)),
+    ])
+    if (!metaSnap.exists()) return
+
+    const meta = metaSnap.data() as PostModel
+    const bodyContent = bodySnap.exists()
+      ? String((bodySnap.data() as { content?: string }).content ?? '')
+      : ''
+
+    // ── 댓글 ──────────────────────────────────────────
     const commentsSnap = await getDocs(commentsCol(id))
-    // Firestore write batch는 최대 500건. 여유를 두고 450건씩 나눠 삭제한다.
     for (let offset = 0; offset < commentsSnap.docs.length; offset += 450) {
       const batch = writeBatch(db)
       commentsSnap.docs.slice(offset, offset + 450).forEach(d => batch.delete(d.ref))
       await batch.commit()
     }
 
+    // ── Storage 정리용 path 수집 (post 문서 삭제 전) ──
     const storage = getStorage(app)
-    // Firestore/Storage 규칙이 부모 게시글의 소유권을 조회하므로 부모 문서는 마지막에 삭제한다.
+    const extraPaths = new Set<string>()
+    const extraNamespaces = new Set<string>()
+
+    for (const att of meta.attachments ?? []) {
+      if (att?.path) {
+        extraPaths.add(att.path)
+        const ns = postNamespaceFromStoragePath(att.path)
+        if (ns && ns !== id) extraNamespaces.add(ns)
+      }
+    }
+
+    for (const url of extractEditorImageUrls(bodyContent)) {
+      const path = storagePathFromDownloadUrl(url)
+      if (!path) continue
+      extraPaths.add(path)
+      // 썸네일 쌍 (images/foo.png → images/thumbnails/foo.jpg 추정)
+      const thumbGuess = path
+        .replace(/\/images\/([^/]+)$/, '/images/thumbnails/$1')
+        .replace(/\.[^.]+$/, '.jpg')
+      if (thumbGuess !== path && thumbGuess.includes('/images/thumbnails/')) {
+        extraPaths.add(thumbGuess)
+      }
+      // 원본이 thumbnails 가 아니고 basename 이 다른 확장자인 경우 동일 basename .jpg
+      const m = path.match(/^(.*\/images\/)([^/]+)\.[^.]+$/)
+      if (m && !path.includes('/thumbnails/')) {
+        extraPaths.add(`${m[1]}thumbnails/${m[2]}.jpg`)
+      }
+      const ns = postNamespaceFromStoragePath(path)
+      if (ns && ns !== id) extraNamespaces.add(ns)
+    }
+
+    // ── 본문 (규칙: body write 는 부모 post 소유권) ──
     await deleteDoc(bodyDoc(id))
+
+    // ── Storage: 최종 id 폴더 전체 (images/**, attachments/**) ──
     await deleteStorageFolder(storageRef(storage, `${prefix()}/posts/${id}`))
+
+    // ── 임시 네임스페이스 폴더 (작성 중 new-ts 에 올린 파일) ──
+    for (const ns of extraNamespaces) {
+      await deleteStorageFolder(storageRef(storage, `${prefix()}/posts/${ns}`))
+    }
+
+    // ── 폴더 삭제에 안 잡힌 개별 path (다른 prefix 등) ──
+    await deleteStoragePaths(storage, extraPaths)
+
+    // ── 메타 마지막 ──
     await deleteDoc(postDoc(id))
   }
 

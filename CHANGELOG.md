@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.13] - 2026-08-03
+
+### Fixed
+- `deletePost`: 댓글·본문·`posts/{id}` Storage 폴더 외에, 첨부 path·본문 이미지 URL(임시 `new-*` 네임스페이스 포함)까지 삭제
+
 ## [0.4.12] - 2026-08-03
 
 ### Changed
