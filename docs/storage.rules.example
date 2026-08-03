@@ -26,21 +26,18 @@ service firebase.storage {
 
     match /memiBoard/posts/{postId}/attachments/{fileName} {
       allow read: if true;
-
-      // 새 글 작성 중에는 아직 postId 문서가 없으므로(임시 네임스페이스) 소유권을 확인할 수 없다 —
-      // 로그인 여부만 확인한다. 저장된 글의 첨부파일 교체/삭제는 아래 delete 규칙으로 보호된다.
-      allow create: if isSignedIn();
-
+      // uploadBytesResumable → create + 청크 update 필요 (write)
+      allow write: if isSignedIn()
+        && request.resource.size < 20 * 1024 * 1024;
       allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
     }
 
     // 에디터 본문 이미지 + 썸네일
     // 원본: memiBoard/posts/{postId}/images/{file}
     // 썸네일: memiBoard/posts/{postId}/images/thumbnails/{file}
-    // 수정 중 본문에서 빠진 파일은 호스트 스케줄러로 정리 (본문 URL 미참조 path).
     match /memiBoard/posts/{postId}/images/{allPaths=**} {
       allow read: if true;
-      allow create: if isSignedIn()
+      allow write: if isSignedIn()
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg)');
       allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
