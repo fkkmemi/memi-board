@@ -1,29 +1,30 @@
 import { computed, watch } from 'vue'
 import { useFirestore, useDocument } from 'vuefire'
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { useMemiBoardConfig } from '../config'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
+import { slugify } from '../utils/slugify'
 import type { BoardCategory, BoardSettingsModel } from '../types'
 
-/** 카테고리가 아직 설정되지 않았을 때(설정 문서가 없을 때) 쓰는 기본값. */
-const DEFAULT_CATEGORIES: BoardCategory[] = [
+/** 설정 문서가 없을 때 UI·시드에 쓰는 기본 카테고리. */
+export const DEFAULT_CATEGORIES: BoardCategory[] = [
   { id: 'free', label: '자유' },
   { id: 'notice', label: '공지' },
   { id: 'question', label: '질문' },
 ]
 
 /**
- * 게시판 설정({prefix}Settings/config) — 지금은 카테고리 옵션만 다룬다.
- * 문서가 없으면 기본 카테고리를 그대로 보여주고, 관리자가 게시판을 방문하는 순간
- * 그 기본값으로 문서를 한 번 만들어 둔다(이후엔 Firebase 콘솔/향후 관리 UI에서 직접 수정).
- * 일반 사용자는 절대 이 문서를 쓰지 않는다(생성 실패해도 조용히 무시 — 기본값으로 계속 동작).
+ * 게시판 설정({prefix}Settings/config) — 카테고리 옵션 목록.
+ *
+ * - 읽기: 전체 공개 (useDocument 실시간)
+ * - 문서 없음: DEFAULT 로 보여 주고, 로그인 사용자가 처음 쓰거나 추가할 때 시드 생성
+ * - 카테고리 추가: 로그인 사용자 (글쓰기 폼에서 즉시 추가)
  */
 export function useMemiBoardSettings() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
-  const { isAdmin } = useMemiBoardAuth()
+  const { isSignedIn, isAdmin } = useMemiBoardAuth()
 
-  // useDocument 는 ref 를 받으므로 computed 로 prefix 반영
   const settingsRef = computed(() => doc(db, `${config.collectionPrefix}Settings`, 'config'))
   const { data: settingsDoc, pending: settingsPending } = useDocument<BoardSettingsModel>(settingsRef)
 
@@ -37,23 +38,77 @@ export function useMemiBoardSettings() {
     return categories.value.find(c => c.id === id)?.label ?? id
   }
 
-  /** 관리자가 게시판을 방문했는데 설정 문서가 아직 없으면 기본 카테고리로 한 번 만든다. */
-  watch(
-    [isAdmin, settingsPending],
-    async ([admin, pending]) => {
-      if (!admin || pending || settingsDoc.value) return
-      const ref = settingsRef.value
-      const snap = await getDoc(ref).catch(() => null)
-      if (!snap || snap.exists()) return
-      await setDoc(ref, {
-        categories: DEFAULT_CATEGORIES,
+  /** 설정 문서가 없으면 기본 카테고리로 한 번 생성. 로그인 필요. */
+  async function ensureSettings(): Promise<void> {
+    if (!isSignedIn.value) return
+    const ref = settingsRef.value
+    const snap = await getDoc(ref).catch(() => null)
+    if (!snap || snap.exists()) return
+    await setDoc(ref, {
+      categories: DEFAULT_CATEGORIES,
+      updatedAt: serverTimestamp(),
+    })
+  }
+
+  /**
+   * 카테고리 추가. label 로 id(slug) 생성, 중복 id 면 접미사.
+   * @returns 추가된(또는 기존 동일 label 의) category id
+   */
+  async function addCategory(label: string): Promise<string> {
+    const trimmed = label.trim()
+    if (!trimmed) throw new Error('카테고리 이름을 입력해 주세요.')
+    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+
+    await ensureSettings()
+
+    const existing = categories.value.find(
+      c => c.label === trimmed || c.id === slugify(trimmed),
+    )
+    if (existing) return existing.id
+
+    let id = slugify(trimmed) || `cat-${Date.now()}`
+    const used = new Set(categories.value.map(c => c.id))
+    if (used.has(id)) {
+      let n = 2
+      while (used.has(`${id}-${n}`)) n++
+      id = `${id}-${n}`
+    }
+
+    const next: BoardCategory[] = [...categories.value, { id, label: trimmed }]
+    const ref = settingsRef.value
+    const snap = await getDoc(ref)
+    if (snap.exists()) {
+      await updateDoc(ref, {
+        categories: next,
         updatedAt: serverTimestamp(),
-      }).catch(() => {
-        // 권한·네트워크 문제로 실패해도 화면은 기본 카테고리로 계속 동작하므로 무시한다.
       })
+    }
+    else {
+      await setDoc(ref, {
+        categories: next,
+        updatedAt: serverTimestamp(),
+      })
+    }
+    return id
+  }
+
+  // 관리자 방문 시 문서 없으면 시드 (기존 동작 유지 + 로그인 일반 사용자 ensure 와 병행)
+  watch(
+    [isAdmin, isSignedIn, settingsPending],
+    async ([admin, signedIn, pending]) => {
+      if (pending || settingsDoc.value) return
+      if (!admin && !signedIn) return
+      await ensureSettings().catch(() => {})
     },
     { immediate: true },
   )
 
-  return { categories, categoryLabel, settingsPending }
+  return {
+    categories,
+    categoryLabel,
+    settingsPending,
+    ensureSettings,
+    addCategory,
+    DEFAULT_CATEGORIES,
+  }
 }

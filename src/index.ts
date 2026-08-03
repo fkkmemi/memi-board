@@ -10,7 +10,7 @@ export { useMemiBoardComments } from './composables/useMemiBoardComments'
 export type { AddCommentInput } from './composables/useMemiBoardComments'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
-export { useMemiBoardSettings } from './composables/useMemiBoardSettings'
+export { useMemiBoardSettings, DEFAULT_CATEGORIES } from './composables/useMemiBoardSettings'
 
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'

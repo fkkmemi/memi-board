@@ -2,7 +2,18 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.2] - 2026-08-03
+
+### Added
+- **카테고리 관리 (`boardSettings` / `{prefix}Settings/config`)**: `useMemiBoardSettings().addCategory()` · `ensureSettings()` — 로그인 사용자가 옵션 추가 가능
+- 글 작성/수정 에디터: 카테고리는 설정 문서 목록에서만 선택, **카테고리 추가** UI 제공 (목록에 없는 임의 값 저장 불가)
+
+### Changed
+- 설정 문서 시드: 관리자만이 아니라 로그인 사용자 방문/추가 시에도 기본 카테고리 생성
+- `docs/firestore.rules.example` — boardSettings 쓰기를 로그인 사용자 + categories 필드 제한으로 완화
+
 ## [0.4.1] - 2026-08-03
+
 
 ### Fixed
 - **글 수정 로드**: `postId` prop 을 `onMounted` 한 번만 보던 것을 `watch(..., { immediate: true })` 로 바꿔 라우트/prop 타이밍에 글이 안 불러와지던 경우 수정

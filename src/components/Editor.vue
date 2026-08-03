@@ -14,23 +14,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
-const { user } = useMemiBoardAuth()
+const { user, isSignedIn } = useMemiBoardAuth()
 const { getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
-const { categories } = useMemiBoardSettings()
+const { categories, ensureSettings, addCategory } = useMemiBoardSettings()
 
 const title = ref('')
 const content = ref('')
 const tagsInput = ref('')
+/** boardSettings.categories 의 id */
 const category = ref<string | undefined>(undefined)
 const attachments = ref<Attachment[]>([])
 
-const categoryItems = computed(() => categories.value.map(c => ({ label: c.label, value: c.id })))
+const categoryItems = computed(() =>
+  categories.value.map(c => ({ label: c.label, value: c.id })),
+)
 
 const isEdit = computed(() => Boolean(props.postId))
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+
+const showAddCategory = ref(false)
+const newCategoryLabel = ref('')
+const addingCategory = ref(false)
 
 /** 새 글은 아직 slug가 없으므로 첨부파일 Storage 경로용 임시 네임스페이스를 쓴다. */
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
@@ -39,6 +46,7 @@ async function loadPost(id: string) {
   loading.value = true
   error.value = ''
   try {
+    await ensureSettings().catch(() => {})
     const post = await getPost(id)
     if (!post) {
       error.value = '게시글을 찾을 수 없습니다.'
@@ -49,6 +57,7 @@ async function loadPost(id: string) {
     title.value = post.title
     content.value = post.content
     tagsInput.value = (post.tags ?? []).join(', ')
+    // 설정에 없는 예전 카테고리 id 여도 선택값은 유지 (목록에 없으면 USelect 가 비울 수 있음)
     category.value = post.category
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
@@ -64,7 +73,6 @@ async function loadPost(id: string) {
   }
 }
 
-// postId 가 prop 으로 늦게 들어오거나 라우트 전환 시에도 로드 (onMounted 만으로는 부족할 수 있음)
 watch(
   () => props.postId,
   (id) => {
@@ -72,10 +80,32 @@ watch(
     else {
       loading.value = false
       attachmentNamespace.value = `new-${Date.now()}`
+      void ensureSettings().catch(() => {})
     }
   },
   { immediate: true },
 )
+
+async function handleAddCategory() {
+  error.value = ''
+  if (!isSignedIn.value) {
+    error.value = '카테고리 추가에는 로그인이 필요합니다.'
+    return
+  }
+  addingCategory.value = true
+  try {
+    const id = await addCategory(newCategoryLabel.value)
+    category.value = id
+    newCategoryLabel.value = ''
+    showAddCategory.value = false
+  }
+  catch (e) {
+    error.value = (e as Error).message || String(e)
+  }
+  finally {
+    addingCategory.value = false
+  }
+}
 
 function friendlyWriteError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e)
@@ -93,6 +123,15 @@ async function handleSubmit() {
   }
   if (!user.value) {
     error.value = '로그인이 필요합니다.'
+    return
+  }
+  if (!category.value) {
+    error.value = '카테고리를 선택해 주세요.'
+    return
+  }
+  // 설정에 있는 id 만 허용 (임의 문자열 저장 방지)
+  if (!categories.value.some(c => c.id === category.value)) {
+    error.value = '목록에 있는 카테고리를 선택해 주세요. 없으면 아래 + 로 추가할 수 있습니다.'
     return
   }
 
@@ -150,12 +189,57 @@ async function handleSubmit() {
     class="flex flex-col gap-4"
     @submit.prevent="handleSubmit"
   >
-    <USelect
-      v-model="category"
-      :items="categoryItems"
-      placeholder="카테고리 선택"
-      class="w-40"
-    />
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <USelect
+          v-model="category"
+          :items="categoryItems"
+          placeholder="카테고리 선택"
+          class="w-48"
+        />
+        <UButton
+          type="button"
+          v-if="isSignedIn"
+          variant="outline"
+          color="neutral"
+          size="sm"
+          icon="i-lucide-plus"
+          label="카테고리 추가"
+          @click="showAddCategory = !showAddCategory"
+        />
+      </div>
+      <p class="text-xs text-muted">
+        카테고리는 게시판 설정(boardSettings)에 있는 목록에서 고릅니다.
+      </p>
+
+      <div
+        v-if="showAddCategory"
+        class="flex items-center gap-2"
+      >
+        <UInput
+          v-model="newCategoryLabel"
+          placeholder="새 카테고리 이름"
+          class="w-48"
+          @keydown.enter.prevent="handleAddCategory"
+        />
+        <UButton
+          type="button"
+          size="sm"
+          label="추가"
+          :loading="addingCategory"
+          @click="handleAddCategory"
+        />
+        <UButton
+          type="button"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          label="취소"
+          @click="showAddCategory = false; newCategoryLabel = ''"
+        />
+      </div>
+    </div>
+
     <UInput
       v-model="title"
       placeholder="제목"
