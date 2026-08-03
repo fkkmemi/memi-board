@@ -2,6 +2,13 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.1] - 2026-08-03
+
+### Fixed
+- **글 수정 로드**: `postId` prop 을 `onMounted` 한 번만 보던 것을 `watch(..., { immediate: true })` 로 바꿔 라우트/prop 타이밍에 글이 안 불러와지던 경우 수정
+- **수정 저장 에러 메시지**: `permission-denied` 를 한국어로 안내
+- **updatePost**: 본문 `setDoc` 에 `merge: true`, 카테고리 미선택 시 `deleteField()` 로 정리
+
 ## [0.4.0] - 2026-08-03
 
 ### Changed (Breaking)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Attachment } from 'memi-board'
 import { useMemiBoardAuth } from 'memi-board'
 import { useMemiBoardPosts } from 'memi-board'
@@ -27,19 +27,23 @@ const attachments = ref<Attachment[]>([])
 
 const categoryItems = computed(() => categories.value.map(c => ({ label: c.label, value: c.id })))
 
-const loading = ref(!!props.postId)
+const isEdit = computed(() => Boolean(props.postId))
+const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
 
 /** 새 글은 아직 slug가 없으므로 첨부파일 Storage 경로용 임시 네임스페이스를 쓴다. */
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
 
-onMounted(async () => {
-  if (!props.postId) return
+async function loadPost(id: string) {
+  loading.value = true
+  error.value = ''
   try {
-    const post = await getPost(props.postId)
+    const post = await getPost(id)
     if (!post) {
       error.value = '게시글을 찾을 수 없습니다.'
+      title.value = ''
+      content.value = ''
       return
     }
     title.value = post.title
@@ -47,11 +51,39 @@ onMounted(async () => {
     tagsInput.value = (post.tags ?? []).join(', ')
     category.value = post.category
     attachments.value = post.attachments ?? []
+    attachmentNamespace.value = id
+  }
+  catch (e) {
+    const msg = (e as Error).message || String(e)
+    error.value = msg.includes('permission')
+      ? '글을 불러올 권한이 없습니다. 로그인 상태를 확인해 주세요.'
+      : `글을 불러오지 못했습니다: ${msg}`
   }
   finally {
     loading.value = false
   }
-})
+}
+
+// postId 가 prop 으로 늦게 들어오거나 라우트 전환 시에도 로드 (onMounted 만으로는 부족할 수 있음)
+watch(
+  () => props.postId,
+  (id) => {
+    if (id) void loadPost(id)
+    else {
+      loading.value = false
+      attachmentNamespace.value = `new-${Date.now()}`
+    }
+  },
+  { immediate: true },
+)
+
+function friendlyWriteError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e)
+  if (msg.includes('permission-denied') || msg.includes('Permission denied')) {
+    return '수정 권한이 없습니다. 본인이 작성한 글인지, 로그인이 유지되는지 확인해 주세요.'
+  }
+  return msg
+}
 
 async function handleSubmit() {
   error.value = ''
@@ -73,18 +105,21 @@ async function handleSubmit() {
     }
 
     const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
+    const payload = {
+      title: title.value.trim(),
+      content: content.value,
+      tags,
+      category: category.value,
+      attachments: attachments.value,
+    }
 
     if (props.postId) {
-      await updatePost(props.postId, { title: title.value, content: content.value, tags, category: category.value, attachments: attachments.value })
+      await updatePost(props.postId, payload)
       emit('saved', props.postId)
     }
     else {
       const id = await createPost({
-        title: title.value,
-        content: content.value,
-        tags,
-        category: category.value,
-        attachments: attachments.value,
+        ...payload,
         authorUid: user.value.uid,
         authorName: user.value.displayName,
         authorPhoto: user.value.photoURL,
@@ -93,7 +128,7 @@ async function handleSubmit() {
     }
   }
   catch (e) {
-    error.value = (e as Error).message
+    error.value = friendlyWriteError(e)
   }
   finally {
     saving.value = false
@@ -155,7 +190,7 @@ async function handleSubmit() {
       <UButton
         type="submit"
         :loading="saving"
-        :label="postId ? '수정 완료' : '게시하기'"
+        :label="isEdit ? '수정 완료' : '게시하기'"
       />
       <UButton
         variant="ghost"

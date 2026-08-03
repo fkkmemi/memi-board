@@ -12,6 +12,7 @@ import {
   startAfter,
   serverTimestamp,
   writeBatch,
+  deleteField,
 } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/storage'
@@ -116,15 +117,16 @@ export function useMemiBoardPosts() {
   }
 
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
+    // 메타·본문을 같이 갱신. category 미선택 시 필드 제거(부분 갱신으로 예전 값이 남는 것 방지).
     await Promise.all([
       updateDoc(postDoc(id), {
         title: input.title,
         tags: input.tags ?? [],
-        ...(input.category ? { category: input.category } : {}),
+        category: input.category ? input.category : deleteField(),
         attachments: input.attachments ?? [],
         updatedAt: serverTimestamp(),
       }),
-      setDoc(bodyDoc(id), { content: input.content }),
+      setDoc(bodyDoc(id), { content: input.content }, { merge: true }),
     ])
   }
 
