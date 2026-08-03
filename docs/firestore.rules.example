@@ -3,8 +3,10 @@
 // 이 모듈은 서버가 없는 클라이언트 전용 아키텍처이므로, 모든 권한 검증은 여기 규칙이 전부다.
 // 호스트 프로젝트의 firestore.rules에 아래 내용을 병합해서 배포해야 게시판이 실제로 안전해진다.
 //
-// collectionPrefix 모듈 옵션을 'memiBoard'가 아닌 다른 값으로 바꿨다면,
-// 아래 memiBoardPosts / memiBoardUsers를 그 값으로 전부 바꿔야 한다.
+// collectionPrefix 를 'memiBoard'가 아닌 다른 값(예: board)으로 쓰면
+// 아래 memiBoardPosts / memiBoardUsers / memiBoardSettings 이름을
+// {prefix}Posts / {prefix}Users / {prefix}Settings 로 전부 바꿔야 한다.
+// 예: board → boardPosts, boardUsers, boardSettings
 
 rules_version = '2';
 service cloud.firestore {

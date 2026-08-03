@@ -2,6 +2,13 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.7] - 2026-08-03
+
+### Changed
+- README 전면 정리 — 다른 Nuxt 호스트 재사용 체크리스트, 잘못된 `import { MemiBoardEditor }` 제거, List/Editor props, 검열 옵션·모델, App Check 실제 절차
+- npm 패키지에 `docs/` 포함 (rules 예시·firebase-setup)
+- firebase-setup: AI 모델·App Check·카테고리 인덱스 절 보강
+
 ## [0.4.6] - 2026-08-03
 
 ### Removed

@@ -76,13 +76,31 @@ Google보다 손이 더 간다:
 
 ## 7. Firebase AI Logic(Gemini) 활성화 — AI 검열용
 
-1. Firebase 콘솔 → AI Logic(또는 "Build" 메뉴 아래)에서 활성화하고, Gemini Developer API를 사용하도록 설정한다.
-2. **요금제 확인**: 무료(Spark) 플랜에서 AI Logic 사용량·기능이 제한될 수 있다 — 실제로 검열 API를 호출하기 전에 콘솔에서 현재 프로젝트 요금제와 AI Logic 사용 가능 여부를 확인한다. 필요하면 Blaze(종량제)로 업그레이드한다.
-3. 활성화만 하면 끝 — `configureMemiBoard({ moderation: { enabled: true } })`(기본값)면 자동으로 이 API를 호출한다.
+1. Firebase 콘솔 → **AI Logic** 에서 활성화하고, **Gemini Developer API** 를 사용하도록 설정한다.
+2. **요금제**: Spark에서도 되는 경우가 있으나 제한·쿼터가 있을 수 있다. 부족하면 Blaze.
+3. 모델: 호스트 `configureMemiBoard({ moderation: { model: 'gemini-3.5-flash-lite' } })` 권장.  
+   `gemini-2.5-flash` 는 **신규 프로젝트에서 "no longer available to new users"** 로 404 날 수 있다.
+4. `moderation.enabled` 기본이 `true` 이므로 활성화 후 글쓰기 시 자동 호출된다. 끄려면 `enabled: false`.
 
-## 8. App Check 설정 (선택, 권장)
+## 8. App Check 설정 (AI Logic Enforce 시 사실상 필수)
 
-1. Google reCAPTCHA 관리 콘솔 또는 Firebase 콘솔의 App Check 섹션에서 reCAPTCHA v3 사이트 키를 발급한다.
-2. `nuxt.config.ts`의 `vuefire.appCheck`에 `{ provider: 'ReCaptchaV3', key: '...' }`를 넣는다(호스트의 nuxt-vuefire 설정이다 — memi-board는 App Check를 직접 다루지 않는다).
-3. **중요**: 이 옵션을 켜는 것만으로는 아무것도 강제되지 않는다. 클라이언트가 App Check 토큰을 발급받아 요청에 붙이기 시작할 뿐이고, Firestore/Storage가 실제로 "App Check 토큰 없는 요청을 거부"하게 하려면 **Firebase 콘솔 → App Check → 각 API(Firestore/Storage)별로 "Enforce" 토글을 따로 켜야 한다.** 그 전까지는 모니터링(로그만 남기고 통과시킴) 상태다.
-4. 로컬 개발 중에는 디버그 토큰을 발급받아 써야 reCAPTCHA 없이도 통과된다 — Firebase 콘솔의 App Check 디버그 토큰 발급 안내를 따른다.
+AI Logic / `firebaseml` 이 **Enforce** 이면 App Check 토큰 없이 검열 API가 실패한다. memi-board는 App Check를 초기화하지 않는다 — **호스트 책임**.
+
+1. Firebase 콘솔 → App Check → **웹 앱**에 reCAPTCHA v3 등록 (사이트 키·시크릿).  
+   등록하는 웹 앱의 **appId** 가 호스트 `vuefire.config.appId` 와 같아야 한다.
+2. 호스트 클라이언트 플러그인에서 `initializeAppCheck` + `ReCaptchaV3Provider` (README App Check 절 예시).  
+   `vuefire.appCheck` 옵션만 쓰는 방법도 있으나, AI Logic 연동 이슈 시 명시적 `initializeAppCheck` 를 쓴다.
+3. **로컬:** `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true`(콘솔에 UUID 출력 후 App Check → 디버그 토큰 등록) 또는 등록된 고정 UUID.
+4. **프로덕션:** 디버그 토큰 사용 금지. reCAPTCHA 도메인에 실제 호스트 도메인 등록.
+5. (선택) Firestore/Storage Enforce — 켜면 토큰 없는 요청 거부. AI Logic 과 별개 토글이다.
+
+## 9. Firestore 복합 인덱스 (카테고리 필터 사용 시)
+
+`MemiBoardList` 에 `category` prop 을 넘기면 `category + createdAt` 복합 인덱스가 필요하다.  
+콘솔 에러의 인덱스 생성 링크를 따르거나, 호스트 `firestore.indexes.json` 에 추가 후:
+
+```bash
+firebase deploy --only firestore:indexes
+```
+
+컬렉션 ID 예: `collectionPrefix` 가 `board` 이면 `boardPosts`.
