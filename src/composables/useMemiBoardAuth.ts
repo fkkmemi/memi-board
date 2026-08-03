@@ -263,6 +263,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       threshold,
       banDecayMs(),
     )
+    // 앞 사유 문장과 이어 붙일 접미 (공백·구분자 포함)
     let messageSuffix = ` (경고 ${effectiveCount}/${threshold})`
     if (restricted) {
       const until = moderationWriteRestrictedUntilMs(
@@ -274,8 +275,8 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       )
       const untilLabel = until != null ? formatRestrictedUntilLabel(until, nextAt) : null
       messageSuffix = untilLabel
-        ? ` 경고 ${effectiveCount}회 — 글·댓글 작성이 제한됩니다 (${untilLabel}).`
-        : ` 경고 ${effectiveCount}회 — 글·댓글 작성이 제한됩니다.`
+        ? ` 경고 ${effectiveCount}회가 되어 글·댓글 작성이 제한됩니다 (${untilLabel}).`
+        : ` 경고 ${effectiveCount}회가 되어 글·댓글 작성이 제한됩니다.`
     }
     return { effectiveCount, restricted, messageSuffix }
   }

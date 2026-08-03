@@ -1,6 +1,12 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
 import { useFirebaseApp } from 'vuefire'
-import { buildLocalBlockRegex, DEFAULT_LOCAL_BLOCKLIST, MODERATION_SYSTEM, parseModerationJson } from '../utils/moderation-prompt'
+import {
+  buildLocalBlockRegex,
+  DEFAULT_LOCAL_BLOCKLIST,
+  formatModerationUserReason,
+  MODERATION_SYSTEM,
+  parseModerationJson,
+} from '../utils/moderation-prompt'
 import { useMemiBoardConfig } from '../config'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { ModerationResult, ModerationVia } from '../types'
@@ -27,10 +33,11 @@ export function useMemiBoardModeration() {
   function localCheck(text: string): ModerationResult | null {
     const match = text.match(localBlockRe)
     if (match) {
+      const hit = match[0] || ''
       return {
         flagged: true,
         category: 'abuse',
-        reason: '욕설·비속어가 포함되어 게시할 수 없습니다. 표현을 바꿔 주세요.',
+        reason: formatModerationUserReason({ via: 'local', localHit: hit, category: 'abuse' }),
         via: 'local',
       }
     }
@@ -81,23 +88,30 @@ export function useMemiBoardModeration() {
     }
   }
 
+  /** 사유 + 경고 횟수를 한 문장으로 */
+  function withUserFacingReason(result: ModerationResult, messageSuffix = ''): ModerationResult {
+    const why = formatModerationUserReason({
+      reason: result.reason,
+      category: result.category,
+      via: result.via,
+    })
+    // 예: 「시발」 같은 표현은… (경고 2/3)
+    const reason = messageSuffix ? `${why}${messageSuffix}` : why
+    return { ...result, reason }
+  }
+
   /** 콘텐츠 위반(local/ai)만 경고 누적. API 오류·이용제한 자체는 제외. */
   async function applyStrikeIfContentBlock(result: ModerationResult): Promise<ModerationResult> {
     if (!result.flagged || result.error) return result
     if (result.via !== 'local' && result.via !== 'ai') return result
     try {
       const { messageSuffix } = await recordContentModerationBlock()
-      if (messageSuffix) {
-        return {
-          ...result,
-          reason: `${result.reason || '게시할 수 없는 내용이 포함되어 있습니다.'}${messageSuffix}`,
-        }
-      }
+      return withUserFacingReason(result, messageSuffix)
     }
     catch (e) {
       console.warn('[memi-board] record moderation strike failed', e instanceof Error ? e.message : e)
+      return withUserFacingReason(result)
     }
-    return result
   }
 
   async function checkText(text: string): Promise<ModerationResult> {
@@ -132,7 +146,11 @@ export function useMemiBoardModeration() {
       const out: ModerationResult = {
         flagged: parsed.flagged,
         category: parsed.category as ModerationResult['category'],
-        reason: parsed.reason,
+        reason: formatModerationUserReason({
+          reason: parsed.reason,
+          category: parsed.category,
+          via: 'ai',
+        }),
         via: 'ai',
       }
       if (out.flagged) return applyStrikeIfContentBlock(out)
@@ -178,7 +196,11 @@ export function useMemiBoardModeration() {
       const out: ModerationResult = {
         flagged: parsed.flagged,
         category: parsed.category as ModerationResult['category'],
-        reason: parsed.reason,
+        reason: formatModerationUserReason({
+          reason: parsed.reason,
+          category: parsed.category,
+          via: 'ai',
+        }),
         via: 'ai',
       }
       if (out.flagged) return applyStrikeIfContentBlock(out)

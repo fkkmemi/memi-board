@@ -2,10 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.9] - 2026-08-03
+
+### Changed
+- 검열 차단 메시지에 **무엇이 문제인지** 표시
+  - 로컬 금칙어: 걸린 표현 안내 (예: 「시발」 같은 표현은…)
+  - AI: reason/category 기반 사용자용 문구 + 경고 n/3 접미
+
 ## [0.4.8] - 2026-08-03
 
 ### Added
-- 콘텐츠 검열 차단 누적 제한: `boardUsers.moderationBlockCount` / `moderationBlockAt`
+- 콘텐츠 검열 차단 누적 제한: `{prefix}Users.moderationBlockCount` / `moderationBlockAt`
   - 로컬·AI `flagged` 시 +1 (API 오류는 제외)
   - 기본 3회 이상 → 글·댓글 작성 약 24시간 제한 (24h lazy 차감, 매장 contentWarning 과 동일 모델)
   - `moderation.blockBanThreshold` / `blockBanDecayMs` (0 이면 off)

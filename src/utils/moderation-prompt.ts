@@ -11,8 +11,46 @@ flagged=false:
 
 JSON만 출력:
 {"flagged":boolean,"category":"none"|"abuse"|"spam"|"adult"|"violence"|"other","reason":string}
-- flagged=true면 category는 상황에 맞게 고르고, reason은 한국어 1문장 (예: "욕설이 포함되어 있어 게시할 수 없습니다.")
+- flagged=true면 category를 고르고, reason은 한국어로 **무엇이 문제인지** 구체적으로 1문장
+  (예: "욕설(비속어)이 포함되어 게시할 수 없습니다.", "광고·스팸성 문구가 있어 게시할 수 없습니다.")
+  욕설 단어 전체를 그대로 길게 인용하지 말고, 유형(욕설/혐오/스팸 등)을 분명히 밝힌다.
 - flagged=false면 category는 "none", reason은 ""`
+
+/** 사용자 안내용 카테고리 라벨 */
+export const MODERATION_CATEGORY_LABELS: Record<string, string> = {
+  abuse: '욕설·비속어·모욕',
+  spam: '스팸·광고',
+  adult: '선정적·성인 내용',
+  violence: '폭력·위협',
+  other: '부적절한 내용',
+  none: '',
+}
+
+/** 차단 사유를 사용자에게 읽기 쉽게 정리 */
+export function formatModerationUserReason(opts: {
+  reason?: string
+  category?: string
+  via?: string
+  localHit?: string
+}): string {
+  if (opts.via === 'local' && opts.localHit) {
+    const hit = opts.localHit.trim()
+    // 짧은 금칙어만 표시 (너무 길면 유형만)
+    if (hit.length > 0 && hit.length <= 12) {
+      return `「${hit}」 같은 표현은 사용할 수 없습니다. 다른 말로 바꿔 주세요.`
+    }
+    return '욕설·비속어가 포함되어 게시할 수 없습니다. 표현을 바꿔 주세요.'
+  }
+
+  const raw = (opts.reason || '').trim()
+  if (raw) return raw
+
+  const cat = opts.category && opts.category !== 'none'
+    ? MODERATION_CATEGORY_LABELS[opts.category] || opts.category
+    : ''
+  if (cat) return `${cat}이(가) 포함되어 게시할 수 없습니다. 내용을 수정해 주세요.`
+  return '게시할 수 없는 내용이 포함되어 있습니다. 내용을 수정해 주세요.'
+}
 
 /** API 없이도 1차로 걸러내는 한국어/영어 비속어 (부분 문자열 매칭) */
 export const DEFAULT_LOCAL_BLOCKLIST = [
