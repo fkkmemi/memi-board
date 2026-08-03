@@ -12,6 +12,7 @@ const { canDeleteComment } = useMemiBoardAuth()
 const deletingId = ref<string | null>(null)
 
 async function handleDelete(commentId: string) {
+  if (!window.confirm('이 댓글을 삭제하시겠습니까?')) return
   deletingId.value = commentId
   try {
     await deleteComment(commentId)
