@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { PostDetail } from 'memi-board'
-import { formatDate } from 'memi-board'
+import { formatDate, renderMarkdownToHtml } from 'memi-board'
 import { useMemiBoardPosts } from 'memi-board'
 import { useMemiBoardAuth } from 'memi-board'
 import { useMemiBoardSettings } from 'memi-board'
@@ -51,6 +51,11 @@ async function handleDelete() {
     deleting.value = false
   }
 }
+
+/** TipTap UEditor 대신 정적 HTML — 목록 이동 시 keyed plugin 충돌 방지 */
+const contentHtml = computed(() =>
+  post.value?.content ? renderMarkdownToHtml(post.value.content) : '',
+)
 </script>
 
 <template>
@@ -135,15 +140,10 @@ async function handleDelete() {
       </div>
     </header>
 
-    <!-- 마크다운 본문 (레거시 일반 텍스트도 markdown 으로 표시) -->
-    <UEditor
-      :model-value="post.content"
-      content-type="markdown"
-      :editable="false"
-      :ui="{
-        base: 'prose dark:prose-invert max-w-none break-words',
-        content: 'max-w-none',
-      }"
+    <!-- 마크다운 본문 (정적 렌더 — 상세에 UEditor 쓰면 목록 이동 시 TipTap plugin 충돌) -->
+    <div
+      class="prose dark:prose-invert max-w-none break-words"
+      v-html="contentHtml"
     />
 
     <MemiBoardAttachments

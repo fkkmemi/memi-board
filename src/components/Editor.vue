@@ -121,13 +121,13 @@ const editorHandlers = {
   },
 }
 
+// setup 당 1회만 생성 (재생성 시 PluginKey 충돌)
 const pasteImageExtension = createPasteImageExtension({
   upload: file => doUploadImage(file),
   onUploading: (v) => { imageUploading.value = v },
   onError: (msg) => { imageUploadError.value = msg },
   maxBytes: EDITOR_IMAGE_MAX_BYTES,
 })
-
 const editorExtensions = [pasteImageExtension]
 
 /** shineb PostEditor 와 동일한 기본 툴바 (Nuxt UI Editor) */
@@ -429,6 +429,7 @@ async function handleSubmit() {
       />
 
       <UEditor
+        :key="props.postId || attachmentNamespace"
         v-model="content"
         content-type="markdown"
         placeholder="내용을 입력하세요. 이미지는 붙여넣기·드래그 또는 툴바 이미지 버튼으로 추가할 수 있어요…"
@@ -455,7 +456,7 @@ async function handleSubmit() {
               이미지 업로드 중…
             </div>
           </div>
-          <UEditorDragHandle :editor="editor" />
+          <!-- DragHandle 은 플러그인 재등록 충돌이 잦아 제외 (툴바·paste/drop 유지) -->
         </template>
       </UEditor>
     </div>

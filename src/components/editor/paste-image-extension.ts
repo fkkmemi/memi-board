@@ -1,6 +1,6 @@
 /**
  * TipTap 붙여넣기·드롭 이미지 업로드 확장.
- * @tiptap/* 는 호스트(@nuxt/ui) peer — 런타임에만 resolve.
+ * PluginKey 는 모듈 단일 인스턴스 — 재생성 시 "Adding different instances of a keyed plugin" 방지.
  */
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
@@ -8,14 +8,15 @@ import type { EditorView } from '@tiptap/pm/view'
 import type { EditorImageEntry } from 'memi-board'
 
 export interface PasteImageExtensionOptions {
-  /** 업로드 실행 (원본+썸네일). 실패 시 throw */
   upload: (file: File) => Promise<EditorImageEntry>
   onUploading?: (uploading: boolean) => void
   onUploaded?: (entry: EditorImageEntry) => void | Promise<void>
   onError?: (msg: string) => void
-  /** 기본 5MB */
   maxBytes?: number
 }
+
+/** 전역 1개 — create 호출마다 new PluginKey 하면 키 충돌 남 */
+const pasteImagePluginKey = new PluginKey('memiBoardPasteImage')
 
 async function handleImageFile(
   file: File,
@@ -49,7 +50,7 @@ async function handleImageFile(
   }
 }
 
-/** 호스트 UEditor :extensions 에 넣을 TipTap Extension 생성 */
+/** 호스트 UEditor :extensions 에 넣을 TipTap Extension 생성 (인스턴스당 1회만 호출) */
 export function createPasteImageExtension(options: PasteImageExtensionOptions) {
   return Extension.create({
     name: 'memiBoardPasteImage',
@@ -57,7 +58,7 @@ export function createPasteImageExtension(options: PasteImageExtensionOptions) {
     addProseMirrorPlugins() {
       return [
         new Plugin({
-          key: new PluginKey('memiBoardPasteImage'),
+          key: pasteImagePluginKey,
           props: {
             handlePaste(view: EditorView, event: ClipboardEvent) {
               const items = Array.from(event.clipboardData?.items ?? []) as DataTransferItem[]
