@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useMemiBoardPosts } from 'memi-board'
@@ -9,7 +9,15 @@ import { formatDate } from 'memi-board'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
-  /** 지정하면 각 글이 `${linkBase}/${id}`로 이동하는 링크가 된다. 지정하지 않으면 select 이벤트만 emit. */
+  /**
+   * 글 상세 링크 prefix.
+   * 예: `/board/post` → 각 행이 `/board/post/{id}` 로 이동.
+   * 없으면 select 이벤트만 emit.
+   */
+  postLinkBase?: string
+  /** 지정 시 해당 카테고리 글만 조회 */
+  category?: string
+  /** @deprecated postLinkBase 사용. 하위 호환: `${linkBase}/${id}` */
   linkBase?: string
 }>(), {
   pageSize: 20,
@@ -27,11 +35,27 @@ const loading = ref(false)
 const initialLoading = ref(true)
 const loadError = ref('')
 
-async function loadMore() {
+function postTo(post: PostModel): string | undefined {
+  const base = props.postLinkBase || props.linkBase
+  if (!base || !post.id) return undefined
+  return `${base.replace(/\/$/, '')}/${post.id}`
+}
+
+async function loadMore(reset = false) {
   loading.value = true
   loadError.value = ''
+  if (reset) {
+    posts.value = []
+    cursor.value = undefined
+    hasMore.value = false
+    initialLoading.value = true
+  }
   try {
-    const result = await getPosts({ pageSize: props.pageSize, cursor: cursor.value })
+    const result = await getPosts({
+      pageSize: props.pageSize,
+      cursor: reset ? undefined : cursor.value,
+      category: props.category || undefined,
+    })
     posts.value.push(...result.posts)
     cursor.value = result.cursor
     hasMore.value = result.hasMore
@@ -46,10 +70,14 @@ async function loadMore() {
   }
 }
 
-onMounted(loadMore)
+watch(
+  () => props.category,
+  () => { void loadMore(true) },
+  { immediate: true },
+)
 
 function handleClick(post: PostModel) {
-  if (!props.linkBase) emit('select', post)
+  if (!postTo(post)) emit('select', post)
 }
 </script>
 
@@ -78,10 +106,10 @@ function handleClick(post: PostModel) {
     </p>
 
     <component
-      :is="linkBase ? RouterLink : 'button'"
+      :is="postTo(post) ? RouterLink : 'button'"
       v-for="post in posts"
       :key="post.id"
-      :to="linkBase ? `${linkBase}/${post.id}` : undefined"
+      :to="postTo(post)"
       class="text-left"
       @click="handleClick(post)"
     >
@@ -128,7 +156,7 @@ function handleClick(post: PostModel) {
       label="더 보기"
       block
       :loading="loading"
-      @click="loadMore"
+      @click="loadMore(false)"
     />
   </div>
 </template>

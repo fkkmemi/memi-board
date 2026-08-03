@@ -2,7 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.3] - 2026-08-03
+
+### Added
+- `getPosts({ category })` — 카테고리 필터 목록 조회 (`where category ==` + `orderBy createdAt`)
+- `MemiBoardList` props: `category`, `postLinkBase` (예: `/board/post` → `/board/post/{id}`)
+
+### Deprecated
+- `MemiBoardList` 의 `linkBase` — `postLinkBase` 사용 권장
+
 ## [0.4.2] - 2026-08-03
+
 
 ### Added
 - **카테고리 관리 (`boardSettings` / `{prefix}Settings/config`)**: `useMemiBoardSettings().addCategory()` · `ensureSettings()` — 로그인 사용자가 옵션 추가 가능

@@ -7,6 +7,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
   orderBy,
   limit as fbLimit,
   startAfter,
@@ -14,6 +15,7 @@ import {
   writeBatch,
   deleteField,
 } from 'firebase/firestore'
+import type { QueryConstraint } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/storage'
 import type { StorageReference } from 'firebase/storage'
@@ -63,11 +65,22 @@ export function useMemiBoardPosts() {
   const bodyDoc = (id: string) => doc(db, `${prefix()}Posts`, id, 'body', 'main')
   const commentsCol = (id: string) => collection(db, `${prefix()}Posts`, id, 'comments')
 
-  async function getPosts(opts: { pageSize?: number, cursor?: QueryDocumentSnapshot<DocumentData> } = {}) {
+  async function getPosts(opts: {
+    pageSize?: number
+    cursor?: QueryDocumentSnapshot<DocumentData>
+    /** 지정 시 해당 카테고리 글만 (boardSettings 의 category id) */
+    category?: string
+  } = {}) {
     const pageSize = opts.pageSize ?? 20
-    const constraints = opts.cursor
-      ? [orderBy('createdAt', 'desc'), startAfter(opts.cursor), fbLimit(pageSize + 1)]
-      : [orderBy('createdAt', 'desc'), fbLimit(pageSize + 1)]
+    const constraints: QueryConstraint[] = []
+    if (opts.category) {
+      // 복합 인덱스: category ASC + createdAt DESC (호스트 firestore.indexes.json)
+      constraints.push(where('category', '==', opts.category))
+    }
+    constraints.push(orderBy('createdAt', 'desc'))
+    if (opts.cursor) constraints.push(startAfter(opts.cursor))
+    constraints.push(fbLimit(pageSize + 1))
+
     const snapshot = await getDocs(query(postsCol(), ...constraints))
     const docs = snapshot.docs.slice(0, pageSize)
     return {
