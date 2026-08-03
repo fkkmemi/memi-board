@@ -128,21 +128,21 @@ export function useMemiBoardPosts() {
     ])
   }
 
-  /** 댓글 서브컬렉션 → 메타/본문 문서 → Storage 폴더 순으로 삭제한다. */
+  /** 댓글 서브컬렉션 → 본문 → Storage 폴더 → 메타 순으로 삭제한다. */
   async function deletePost(id: string): Promise<void> {
     const commentsSnap = await getDocs(commentsCol(id))
-    if (!commentsSnap.empty) {
+    // Firestore write batch는 최대 500건. 여유를 두고 450건씩 나눠 삭제한다.
+    for (let offset = 0; offset < commentsSnap.docs.length; offset += 450) {
       const batch = writeBatch(db)
-      commentsSnap.docs.forEach(d => batch.delete(d.ref))
+      commentsSnap.docs.slice(offset, offset + 450).forEach(d => batch.delete(d.ref))
       await batch.commit()
     }
 
     const storage = getStorage(app)
-    await Promise.all([
-      deleteDoc(postDoc(id)),
-      deleteDoc(bodyDoc(id)),
-      deleteStorageFolder(storageRef(storage, `${prefix}/posts/${id}`)),
-    ])
+    // Firestore/Storage 규칙이 부모 게시글의 소유권을 조회하므로 부모 문서는 마지막에 삭제한다.
+    await deleteDoc(bodyDoc(id))
+    await deleteStorageFolder(storageRef(storage, `${prefix}/posts/${id}`))
+    await deleteDoc(postDoc(id))
   }
 
   return { getPosts, getPost, createPost, updatePost, deletePost }

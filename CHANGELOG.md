@@ -2,6 +2,24 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.3.1] - 2026-08-03
+
+같은 목표(Nuxt 모듈 제거)로 독립적으로 작업된 다른 세션의 커밋(`abd8ef0`)과 히스토리가 갈라져 병합하며 발견한 것들. 두 구현을 비교해 실제 버그 2개를 찾아 고치고, 설계상 더 나은 선택 몇 가지를 반영했다.
+
+### Fixed
+
+- **글 삭제 시 다른 사람이 쓴 댓글에서 `permission-denied`**: 댓글 삭제 규칙이 댓글 작성자·관리자만 허용했는데, `deletePost()`는 글쓴이가 다른 사용자의 댓글까지 한꺼번에 지운다 — 글쓴이 본인도 지울 수 있도록 `docs/firestore.rules.example`에 `isOwner(parent post)` 조건 추가
+- **댓글 500개 넘는 글 삭제 시 실패**: Firestore write batch는 최대 500건인데 `deletePost()`가 댓글을 전부 한 batch에 넣었음 — 450건씩 나눠 커밋하도록 수정
+- **글 삭제 순서로 인한 permission-denied**: 본문(`body`)·첨부파일 Storage 규칙이 부모 글 문서의 소유권을 조회하는데, `deletePost()`가 부모 문서를 다른 것들과 동시에(병렬로) 지워서 순서에 따라 조회가 실패할 수 있었음 — 본문 → Storage → 부모 문서 순으로 고정
+- Tailwind v4는 기본적으로 `node_modules`를 스캔하지 않아 memi-board 컴포넌트의 유틸리티 클래스가 호스트 CSS에서 통째로 누락될 수 있음 — README에 `@source` 설정 안내 추가, playground/README 예시에도 반영
+
+### Changed
+
+- `List.vue`의 내부 링크를 `resolveComponent('NuxtLink')`(Nuxt 전용) 대신 `vue-router`의 `RouterLink`로 변경 — Nuxt 의존을 한 겹 더 걷어냄
+- `peerDependencies`에서 `nuxt`/`nuxt-vuefire` 제거(코드에서 직접 import한 적이 없어 불필요했음), `vue-router` 추가(RouterLink 직접 import로 실제 필요해짐). `vite.config.ts`의 external 목록에도 `vue-router` 추가 — 빠뜨리면 vue-router가 번들에 같이 딸려 들어가 호스트와 다른 라우터 인스턴스가 되는, vuefire/firebase 때와 같은 부류의 버그가 남
+- `tsconfig.json`을 playground의 Nuxt 생성 tsconfig 확장 대신 `src/`만 보는 독립 설정으로 교체 — `pnpm typecheck`가 이제 실제로 라이브러리 소스를 검사한다(이전엔 playground 앱 코드만 검사되고 있었음)
+- `package.json`에 `sideEffects: false`, `keywords` 추가
+
 ## [0.3.0] - 2026-07-31
 
 ### Changed (Breaking)

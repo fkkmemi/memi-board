@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, resolveComponent } from 'vue'
+import { ref, onMounted } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useMemiBoardPosts } from '../composables/useMemiBoardPosts'
 import { useMemiBoardSettings } from '../composables/useMemiBoardSettings'
@@ -15,10 +16,6 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ select: [post: PostModel] }>()
-
-// 정적 import 대신 런타임에 이름으로 찾는다 — Nuxt 앱 안에서는 전역 등록된 NuxtLink를 그대로 쓰고,
-// 라이브러리 자체는 Nuxt 빌드 컨텍스트 밖에서도(플레인 Vite) 빌드 가능하게 유지한다.
-const NuxtLink = resolveComponent('NuxtLink')
 
 const { getPosts } = useMemiBoardPosts()
 const { categoryLabel } = useMemiBoardSettings()
@@ -68,7 +65,7 @@ function handleClick(post: PostModel) {
     </p>
 
     <component
-      :is="linkBase ? NuxtLink : 'button'"
+      :is="linkBase ? RouterLink : 'button'"
       v-for="post in posts"
       :key="post.id"
       :to="linkBase ? `${linkBase}/${post.id}` : undefined"

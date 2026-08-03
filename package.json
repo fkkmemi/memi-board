@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "Firebase 기반 게시판을 Nuxt 4 프로젝트에 바로 붙이는 모듈 (posts CRUD, 첨부파일, 댓글, 권한, AI 검열)",
   "license": "MIT",
@@ -13,6 +13,8 @@
     "url": "https://github.com/fkkmemi/memi-board/issues"
   },
   "homepage": "https://github.com/fkkmemi/memi-board#readme",
+  "keywords": ["vue", "firebase", "firestore", "board", "community"],
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -36,8 +38,8 @@
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
     "firebase": "^12.0.0",
-    "nuxt": "^4.0.0",
-    "nuxt-vuefire": "^1.1.2",
+    "vue": "^3.5.0",
+    "vue-router": "^4.0.0 || ^5.0.0",
     "vuefire": "^3.2.3"
   },
   "devDependencies": {
@@ -50,6 +52,7 @@
     "vite": "^8.2.0",
     "vite-plugin-dts": "^5.0.3",
     "vue": "^3.5.40",
+    "vue-router": "^5.2.0",
     "vue-tsc": "^2.1.10",
     "vuefire": "^3.2.3"
   },

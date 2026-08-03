@@ -14,7 +14,7 @@ Nuxt 4 + Nuxt UI 프로젝트에 Firebase 기반 게시판을 바로 붙이는 �
 pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase
 ```
 
-`nuxt-vuefire`/`vuefire`/`firebase`는 `peerDependencies`다 — 반드시 프로젝트에 직접 설치해야 한다. memi-board가 자체적으로 이 패키지들을 번들하지 않는 이유는, 그러면 호스트 프로젝트가 설치한 버전과 memi-board 내부 버전이 **서로 다른 모듈 인스턴스**가 돼서 `useCurrentUser()`가 항상 `undefined`를 반환하거나 "VueFireAuth module was added" 에러가 나기 때문이다(vuefire의 인증 상태는 모듈 인스턴스별 내부 상태로 관리됨). 직접 설치하면 하나로 합쳐진다.
+`vuefire`/`firebase`/`vue-router`는 `peerDependencies`다 — 반드시 프로젝트에 직접 설치해야 한다(`vue-router`는 Nuxt가 내부적으로 이미 갖고 있어 보통 별도 설치가 필요 없다). memi-board가 자체적으로 이 패키지들을 번들하지 않는 이유는, 그러면 호스트 프로젝트가 설치한 버전과 memi-board 내부 버전이 **서로 다른 모듈 인스턴스**가 돼서 `useCurrentUser()`가 항상 `undefined`를 반환하거나 "VueFireAuth module was added" 에러가 나기 때문이다(vuefire의 인증 상태는 모듈 인스턴스별 내부 상태로 관리됨). 직접 설치하면 하나로 합쳐진다. `nuxt-vuefire`는 memi-board의 peer는 아니지만(memi-board는 vuefire만 직접 쓴다), Nuxt에서 Firebase를 연동하려면 결국 필요하다.
 
 ### 1. 호스트가 nuxt-vuefire를 직접 설정한다
 
@@ -56,6 +56,19 @@ export default defineNuxtPlugin(() => {
 ```
 
 값을 넘기지 않으면 `collectionPrefix: 'memiBoard'`, `auth.providers: ['google', 'apple']`, `moderation.enabled: true`가 기본값이다.
+
+### 3. Tailwind가 memi-board 컴포넌트를 스캔하게 한다
+
+Tailwind v4는 기본적으로 `node_modules`를 스캔 대상에서 제외한다 — memi-board의 컴포넌트가 쓰는 유틸리티 클래스(`flex`, `gap-2` 등)가 호스트의 최종 CSS에 아예 생성되지 않아 **레이아웃이 깨진 채로(스타일 없이) 렌더링**된다. 호스트의 CSS 진입점에 `@source`로 memi-board의 빌드 결과물을 명시적으로 추가해야 한다:
+
+```css
+/* app/assets/css/main.css */
+@import "tailwindcss";
+@import "@nuxt/ui";
+@source "../../../node_modules/memi-board/dist";
+```
+
+프로젝트 구조에 따라 `node_modules`까지의 상대 경로는 조정한다(CSS 파일 기준 상대 경로).
 
 > ⚠️ **설치는 여기서 끝이 아니다.** 이 패키지는 서버가 없어서 Firestore/Storage Security Rules를 직접 배포해야 글쓰기·댓글이 동작한다 — 아래 [Security Model](#security-model--반드시-읽어야-하는-부분) 섹션을 반드시 따라 한다. 건너뛰면 글쓰기 버튼을 눌렀을 때 `permission-denied`가 난다.
 

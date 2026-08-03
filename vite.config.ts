@@ -18,6 +18,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'vue',
+        'vue-router',
         'vuefire',
         'firebase/app',
         'firebase/auth',
