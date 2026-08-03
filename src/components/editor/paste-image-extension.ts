@@ -5,7 +5,7 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { EditorView } from '@tiptap/pm/view'
-import type { EditorImageEntry } from '../types'
+import type { EditorImageEntry } from 'memi-board'
 
 export interface PasteImageExtensionOptions {
   /** 업로드 실행 (원본+썸네일). 실패 시 throw */

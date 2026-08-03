@@ -7,10 +7,11 @@ import {
   useMemiBoardModeration,
   useMemiBoardSettings,
   useMemiBoardStorage,
-  createPasteImageExtension,
   EDITOR_IMAGE_MAX_BYTES,
 } from 'memi-board'
 import MemiBoardAttachments from './Attachments.vue'
+// 상대 import — 호스트 Vite 가 @tiptap 을 직접 resolve (core 번들 peer stub 회피)
+import { createPasteImageExtension } from './editor/paste-image-extension'
 
 const props = defineProps<{
   /** 지정하면 수정 모드 */
