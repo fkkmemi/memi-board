@@ -2,6 +2,18 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.15] - 2026-08-03
+
+### Fixed
+- npm 설치 환경에서 `MemiBoardSettings`가 배포되지 않은 상대경로 모듈을 참조해 호스트 빌드가 실패하던 문제
+
+## [0.4.14] - 2026-08-03
+
+### Added
+- `MemiBoardSettings` 관리자 설정 컴포넌트: ID 기준 카테고리 확장 패널, 라벨·순서·삭제 관리
+- 카테고리별 `listView`: `default`(일반)·`image`(이미지)·`video`(영상)
+- `useMemiBoardSettings().saveCategories()` 일괄 저장 API
+
 ## [0.4.13] - 2026-08-03
 
 ### Fixed

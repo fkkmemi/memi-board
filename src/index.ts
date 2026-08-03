@@ -16,6 +16,7 @@ export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
 
 export { formatDate } from './utils/formatDate'
+export { slugify } from './utils/slugify'
 export {
   DEFAULT_BLOCK_BAN_THRESHOLD,
   DEFAULT_BLOCK_BAN_DECAY_MS,
@@ -34,6 +35,7 @@ export type {
   CommentModel,
   BoardUserRole,
   BoardCategory,
+  BoardListView,
   BoardSettingsModel,
   ModerationResult,
 } from './types'

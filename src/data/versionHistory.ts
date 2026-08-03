@@ -11,6 +11,19 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.4.15',
+    date: '2026-08-03',
+    highlights: ['설정 화면이 설치된 프로젝트에서 정상적으로 열리도록 고쳤어요'],
+  },
+  {
+    version: '0.4.14',
+    date: '2026-08-03',
+    highlights: [
+      '관리자가 카테고리 이름과 순서를 한 화면에서 관리할 수 있어요',
+      '카테고리마다 일반·이미지·영상 목록 방식을 선택할 수 있어요',
+    ],
+  },
+  {
     version: '0.2.2',
     date: '2026-07-31',
     highlights: [

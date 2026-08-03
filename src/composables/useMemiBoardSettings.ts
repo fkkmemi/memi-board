@@ -8,9 +8,9 @@ import type { BoardCategory, BoardSettingsModel } from '../types'
 
 /** 설정 문서가 없을 때 UI·시드에 쓰는 기본 카테고리. */
 export const DEFAULT_CATEGORIES: BoardCategory[] = [
-  { id: 'free', label: '자유' },
-  { id: 'notice', label: '공지' },
-  { id: 'question', label: '질문' },
+  { id: 'free', label: '자유', listView: 'default' },
+  { id: 'notice', label: '공지', listView: 'default' },
+  { id: 'question', label: '질문', listView: 'default' },
 ]
 
 /**
@@ -36,6 +36,26 @@ export function useMemiBoardSettings() {
   function categoryLabel(id: string | undefined): string | undefined {
     if (!id) return undefined
     return categories.value.find(c => c.id === id)?.label ?? id
+  }
+
+  async function saveCategories(next: BoardCategory[]): Promise<void> {
+    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    const normalized = next.map(category => ({
+      id: category.id.trim(),
+      label: category.label.trim(),
+      listView: category.listView ?? 'default',
+    }))
+    if (!normalized.length) throw new Error('카테고리를 하나 이상 만들어 주세요.')
+    if (normalized.some(category => !category.id || !category.label)) {
+      throw new Error('카테고리 이름을 모두 입력해 주세요.')
+    }
+    if (new Set(normalized.map(category => category.id)).size !== normalized.length) {
+      throw new Error('카테고리 ID가 중복되었습니다.')
+    }
+    await setDoc(settingsRef.value, {
+      categories: normalized,
+      updatedAt: serverTimestamp(),
+    })
   }
 
   /** 설정 문서가 없으면 기본 카테고리로 한 번 생성. 로그인 필요. */
@@ -74,7 +94,7 @@ export function useMemiBoardSettings() {
       id = `${id}-${n}`
     }
 
-    const next: BoardCategory[] = [...categories.value, { id, label: trimmed }]
+    const next: BoardCategory[] = [...categories.value, { id, label: trimmed, listView: 'default' }]
     const ref = settingsRef.value
     const snap = await getDoc(ref)
     if (snap.exists()) {
@@ -109,6 +129,7 @@ export function useMemiBoardSettings() {
     settingsPending,
     ensureSettings,
     addCategory,
+    saveCategories,
     DEFAULT_CATEGORIES,
   }
 }

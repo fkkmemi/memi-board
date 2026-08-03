@@ -62,11 +62,15 @@ export interface BoardUserRole {
   role: 'user' | 'admin'
 }
 
+export type BoardListView = 'default' | 'image' | 'video'
+
 export interface BoardCategory {
   /** 글의 category 필드가 참조하는 키 (예: 'notice', 'free') */
   id: string
   /** 화면에 보이는 이름 */
   label: string
+  /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
+  listView?: BoardListView
 }
 
 /** {prefix}Settings/config 문서. 관리자(role:'admin')만 생성/수정, 읽기는 전체 공개. */
