@@ -1,3 +1,4 @@
+// @ts-nocheck — NuxtModule 반환 타입이 @nuxt/schema 경로에 묶여 d.ts 생성 시 불안정
 import {
   defineNuxtModule,
   createResolver,
