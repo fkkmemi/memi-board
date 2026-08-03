@@ -226,7 +226,8 @@ const router = useRouter()
 
 **List props:** `pageSize`, `category`, `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
 
-**Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)
+**Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)  
+본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="markdown"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`

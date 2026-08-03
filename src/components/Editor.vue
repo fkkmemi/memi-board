@@ -25,6 +25,7 @@ const { checkText } = useMemiBoardModeration()
 const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardSettings()
 
 const title = ref('')
+/** markdown (UEditor content-type) — 레거시 일반 텍스트도 그대로 로드 가능 */
 const content = ref('')
 const tagsInput = ref('')
 /** boardSettings.categories 의 id (fixedCategory 없을 때만 선택) */
@@ -51,6 +52,51 @@ const newCategoryLabel = ref('')
 const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
+
+/** shineb PostEditor 와 동일한 기본 툴바 (Nuxt UI Editor) */
+const toolbarItems = [
+  [
+    { kind: 'heading', level: 1, icon: 'i-lucide-heading-1' },
+    { kind: 'heading', level: 2, icon: 'i-lucide-heading-2' },
+    { kind: 'heading', level: 3, icon: 'i-lucide-heading-3' },
+  ],
+  [
+    { kind: 'mark', mark: 'bold', icon: 'i-lucide-bold' },
+    { kind: 'mark', mark: 'italic', icon: 'i-lucide-italic' },
+    { kind: 'mark', mark: 'underline', icon: 'i-lucide-underline' },
+    { kind: 'mark', mark: 'strike', icon: 'i-lucide-strikethrough' },
+    { kind: 'mark', mark: 'code', icon: 'i-lucide-code' },
+  ],
+  [
+    { kind: 'bulletList', icon: 'i-lucide-list' },
+    { kind: 'orderedList', icon: 'i-lucide-list-ordered' },
+    { kind: 'blockquote', icon: 'i-lucide-quote' },
+    { kind: 'codeBlock', icon: 'i-lucide-square-code' },
+  ],
+  [
+    { kind: 'link', icon: 'i-lucide-link' },
+    { kind: 'image', icon: 'i-lucide-image' },
+  ],
+  [
+    { kind: 'horizontalRule', icon: 'i-lucide-minus' },
+    { kind: 'undo', icon: 'i-lucide-undo-2' },
+    { kind: 'redo', icon: 'i-lucide-redo-2' },
+    { kind: 'clearFormatting', icon: 'i-lucide-remove-formatting' },
+  ],
+] as const
+
+/** 마크다운/빈 단락만 있는 경우 본문 없음으로 본다 */
+function isContentEmpty(md: string): boolean {
+  const plain = md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/!\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*]\([^)]*\)/g, ' ')
+    .replace(/[#>*_\-~|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return !plain
+}
 
 async function loadPost(id: string) {
   loading.value = true
@@ -141,7 +187,7 @@ function friendlyWriteError(e: unknown): string {
 
 async function handleSubmit() {
   error.value = ''
-  if (!title.value.trim() || !content.value.trim()) {
+  if (!title.value.trim() || isContentEmpty(content.value)) {
     error.value = '제목과 내용을 입력해 주세요.'
     return
   }
@@ -168,6 +214,7 @@ async function handleSubmit() {
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
   try {
+    // 검열: 제목 + 마크다운 원문 (금칙어 매칭용)
     const text = `${title.value}\n${content.value}`
     const moderation = await checkText(text)
 
@@ -292,12 +339,27 @@ async function handleSubmit() {
       size="lg"
       required
     />
-    <UTextarea
-      v-model="content"
-      placeholder="내용을 입력하세요"
-      :rows="12"
-      required
-    />
+
+    <!-- Nuxt UI Editor (TipTap) — shineb PostEditor 와 동일 패턴 -->
+    <div class="rounded-xl border border-default overflow-hidden">
+      <UEditor
+        v-model="content"
+        content-type="markdown"
+        placeholder="내용을 입력하세요…"
+        :ui="{ content: 'min-h-64 p-4 max-w-none' }"
+        class="w-full"
+      >
+        <template #default="{ editor }">
+          <UEditorToolbar
+            :editor="editor"
+            :items="toolbarItems"
+            class="border-b border-default p-2 sticky top-0 bg-default z-10"
+          />
+          <UEditorDragHandle :editor="editor" />
+        </template>
+      </UEditor>
+    </div>
+
     <UInput
       v-model="tagsInput"
       placeholder="태그 (쉼표로 구분)"
@@ -336,6 +398,7 @@ async function handleSubmit() {
         :label="isEdit ? '수정 완료' : '게시하기'"
       />
       <UButton
+        type="button"
         variant="ghost"
         color="neutral"
         label="취소"

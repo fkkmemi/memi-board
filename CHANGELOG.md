@@ -2,6 +2,14 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.10] - 2026-08-03
+
+### Changed
+- 글쓰기 본문: `UTextarea` → **Nuxt UI `UEditor`** (TipTap, markdown)
+  - 툴바·드래그 핸들 (shineb `PostEditor` 패턴)
+  - 상세 보기: 읽기 전용 `UEditor` 로 마크다운 렌더
+  - 기존 일반 텍스트 글도 markdown 으로 호환 표시
+
 ## [0.4.9] - 2026-08-03
 
 ### Changed

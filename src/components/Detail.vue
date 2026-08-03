@@ -135,9 +135,16 @@ async function handleDelete() {
       </div>
     </header>
 
-    <p class="whitespace-pre-wrap break-words leading-relaxed">
-      {{ post.content }}
-    </p>
+    <!-- 마크다운 본문 (레거시 일반 텍스트도 markdown 으로 표시) -->
+    <UEditor
+      :model-value="post.content"
+      content-type="markdown"
+      :editable="false"
+      :ui="{
+        base: 'prose dark:prose-invert max-w-none break-words',
+        content: 'max-w-none',
+      }"
+    />
 
     <MemiBoardAttachments
       v-if="post.attachments?.length"
