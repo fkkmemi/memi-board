@@ -1,4 +1,9 @@
 <script setup lang="ts">
+/**
+ * 글쓰기 폼 — Nuxt UI UEditor (shineb PostEditor 패턴).
+ * 이미지: 툴바 / 붙여넣기 / 드롭 → Storage 원본+썸네일.
+ * TipTap Extension 은 쓰지 않음 (PluginKey 충돌·빈 에디터 방지) — editorProps 로 처리.
+ */
 import { ref, computed, watch } from 'vue'
 import type { Attachment, EditorImageEntry } from 'memi-board'
 import {
@@ -10,16 +15,9 @@ import {
   EDITOR_IMAGE_MAX_BYTES,
 } from 'memi-board'
 import MemiBoardAttachments from './Attachments.vue'
-// 상대 import — 호스트 Vite 가 @tiptap 을 직접 resolve (core 번들 peer stub 회피)
-import { createPasteImageExtension } from './editor/paste-image-extension'
 
 const props = defineProps<{
-  /** 지정하면 수정 모드 */
   postId?: string
-  /**
-   * path 등으로 카테고리가 이미 정해진 경우 (예: /board/:category/new).
-   * 설정되면 선택 UI 없이 이 값으로 저장한다.
-   */
   fixedCategory?: string
 }>()
 
@@ -32,25 +30,20 @@ const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardS
 const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
-/** markdown (UEditor content-type) — 레거시 일반 텍스트도 그대로 로드 가능 */
 const content = ref('')
 const tagsInput = ref('')
-/** boardSettings.categories 의 id (fixedCategory 없을 때만 선택) */
 const category = ref<string | undefined>(undefined)
 const attachments = ref<Attachment[]>([])
 
 const categoryItems = computed(() =>
   categories.value.map(c => ({ label: c.label, value: c.id })),
 )
-
-/** 실제 저장에 쓰는 카테고리 id */
 const effectiveCategory = computed(() => props.fixedCategory || category.value)
-
 const isEdit = computed(() => Boolean(props.postId))
 const categoryLocked = computed(() => Boolean(props.fixedCategory))
+
 const loading = ref(false)
 const saving = ref(false)
-/** 제출 중 안내 (검토 → 저장) */
 const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
@@ -61,8 +54,6 @@ const newCategoryLabel = ref('')
 const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
-
-/** 이 세션에서 올린 에디터 이미지 (고아 정리 스케줄러용 참조, 선택) */
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
 
 function imageNamespace(): string {
@@ -70,67 +61,94 @@ function imageNamespace(): string {
 }
 
 async function doUploadImage(file: File): Promise<EditorImageEntry> {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('이미지 파일만 업로드할 수 있습니다.')
+  }
+  if (file.size > EDITOR_IMAGE_MAX_BYTES) {
+    throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+  }
   const entry = await uploadEditorImage(file, imageNamespace())
   uploadedEditorImages.value.push(entry)
   return entry
 }
 
-/** 툴바 이미지: 파일 선택 → Storage 업로드 → 본문에 삽입 (shineb) */
-function pickAndUploadImage(editor: { chain: () => { focus: () => { setImage: (opts: { src: string }) => { run: () => void } } } }) {
+/** TipTap view 에 이미지 노드 삽입 */
+function insertImageAtSelection(view: { state: any, dispatch: (tr: any) => void }, src: string) {
+  const { schema, tr, selection } = view.state
+  const imageType = schema.nodes.image
+  if (!imageType) return
+  const node = imageType.create({ src })
+  view.dispatch(tr.replaceSelectionWith(node).scrollIntoView())
+  void selection
+}
+
+async function uploadAndInsert(view: { state: any, dispatch: (tr: any) => void }, file: File) {
+  imageUploading.value = true
+  imageUploadError.value = ''
+  try {
+    const entry = await doUploadImage(file)
+    insertImageAtSelection(view, entry.originalUrl)
+  }
+  catch (e) {
+    imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+  }
+  finally {
+    imageUploading.value = false
+  }
+}
+
+function pickAndUploadImage(editor: {
+  view: { state: any, dispatch: (tr: any) => void }
+  chain: () => { focus: () => { setImage: (o: { src: string }) => { run: () => void } } }
+}) {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
   input.onchange = () => {
     const file = input.files?.[0]
-    if (!file) return
-    void (async () => {
-      imageUploading.value = true
-      imageUploadError.value = ''
-      try {
-        if (file.size > EDITOR_IMAGE_MAX_BYTES) {
-          throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
-        }
-        const entry = await doUploadImage(file)
-        editor.chain().focus().setImage({ src: entry.originalUrl }).run()
-      }
-      catch (e) {
-        imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
-      }
-      finally {
-        imageUploading.value = false
-      }
-    })()
+    if (file) void uploadAndInsert(editor.view, file)
   }
   input.click()
 }
 
-// 기본 URL prompt 이미지 핸들러 → Firebase 업로드로 교체
 const editorHandlers = {
   image: {
     canExecute: (editor: { can: () => { setImage: (o: { src: string }) => boolean } }) =>
       editor.can().setImage({ src: '' }),
     isActive: (editor: { isActive: (n: string) => boolean }) => editor.isActive('image'),
     isDisabled: undefined as undefined,
-    execute: (editor: {
-      chain: () => { focus: () => { setImage: (opts: { src: string }) => { run: () => void } } }
-      can: () => { setImage: (o: { src: string }) => boolean }
-    }) => {
+    execute: (editor: any) => {
       pickAndUploadImage(editor)
       return editor.chain()
     },
   },
 }
 
-// setup 당 1회만 생성 (재생성 시 PluginKey 충돌)
-const pasteImageExtension = createPasteImageExtension({
-  upload: file => doUploadImage(file),
-  onUploading: (v) => { imageUploading.value = v },
-  onError: (msg) => { imageUploadError.value = msg },
-  maxBytes: EDITOR_IMAGE_MAX_BYTES,
-})
-const editorExtensions = [pasteImageExtension]
+/**
+ * Extension 없이 paste/drop — PluginKey 충돌·생성 실패로 에디터가 안 뜨는 문제 회피
+ * (UEditor editorProps → ProseMirror props)
+ */
+const editorProps = {
+  handlePaste(view: any, event: ClipboardEvent) {
+    const items = Array.from(event.clipboardData?.items ?? []) as DataTransferItem[]
+    const imageItem = items.find(item => item.type.startsWith('image/'))
+    if (!imageItem) return false
+    const file = imageItem.getAsFile()
+    if (!file) return false
+    event.preventDefault()
+    void uploadAndInsert(view, file)
+    return true
+  },
+  handleDrop(view: any, event: DragEvent) {
+    const files = Array.from(event.dataTransfer?.files ?? []) as File[]
+    const image = files.find(f => f.type.startsWith('image/'))
+    if (!image) return false
+    event.preventDefault()
+    void uploadAndInsert(view, image)
+    return true
+  },
+}
 
-/** shineb PostEditor 와 동일한 기본 툴바 (Nuxt UI Editor) */
 const toolbarItems = [
   [
     { kind: 'heading', level: 1, icon: 'i-lucide-heading-1' },
@@ -162,7 +180,6 @@ const toolbarItems = [
   ],
 ] as const
 
-/** 마크다운/빈 단락만 있는 경우 본문 없음으로 본다 */
 function isContentEmpty(md: string): boolean {
   const plain = md
     .replace(/```[\s\S]*?```/g, ' ')
@@ -281,7 +298,6 @@ async function handleSubmit() {
     error.value = '목록에 있는 카테고리를 선택해 주세요.'
     return
   }
-
   if (isWriteRestricted.value) {
     error.value = restrictedMessage.value
       || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
@@ -293,7 +309,6 @@ async function handleSubmit() {
   try {
     const text = `${title.value}\n${content.value}`
     const moderation = await checkText(text)
-
     if (moderation.flagged) {
       error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'
       return
@@ -415,7 +430,7 @@ async function handleSubmit() {
       required
     />
 
-    <div class="rounded-xl border border-default overflow-hidden">
+    <div class="rounded-xl border border-default overflow-hidden min-h-72">
       <UAlert
         v-if="imageUploadError"
         color="error"
@@ -424,17 +439,15 @@ async function handleSubmit() {
         title="이미지 업로드 실패"
         :description="imageUploadError"
         class="rounded-none"
-        close
-        @update:open="(o: boolean) => { if (!o) imageUploadError = '' }"
       />
 
+      <!-- shineb 와 동일: handlers + toolbar, 커스텀 Extension 없음 -->
       <UEditor
-        :key="props.postId || attachmentNamespace"
         v-model="content"
         content-type="markdown"
         placeholder="내용을 입력하세요. 이미지는 붙여넣기·드래그 또는 툴바 이미지 버튼으로 추가할 수 있어요…"
         :handlers="editorHandlers"
-        :extensions="editorExtensions"
+        :editor-props="editorProps"
         :ui="{ content: 'min-h-64 p-4 max-w-none' }"
         class="w-full"
       >
@@ -453,10 +466,9 @@ async function handleSubmit() {
                 name="i-lucide-loader-circle"
                 class="size-3.5 animate-spin"
               />
-              이미지 업로드 중…
+              업로드 중…
             </div>
           </div>
-          <!-- DragHandle 은 플러그인 재등록 충돌이 잦아 제외 (툴바·paste/drop 유지) -->
         </template>
       </UEditor>
     </div>
