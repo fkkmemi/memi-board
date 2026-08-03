@@ -2,17 +2,25 @@ import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
 import { useFirebaseApp } from 'vuefire'
 import { buildLocalBlockRegex, DEFAULT_LOCAL_BLOCKLIST, MODERATION_SYSTEM, parseModerationJson } from '../utils/moderation-prompt'
 import { useMemiBoardConfig } from '../config'
+import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { ModerationResult, ModerationVia } from '../types'
 
 const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '', via: 'empty' }
 
 /**
- * 글쓰기 전 블로킹 검열. 로컬 비속어 필터 → Firebase AI Logic(Gemini).
+ * 글쓰기 전 블로킹 검열.
+ * 이용 제한 확인 → 로컬 비속어 → Firebase AI Logic(Gemini).
+ * 콘텐츠 차단(local/ai) 시 boardUsers 경고 누적.
  */
 export function useMemiBoardModeration() {
   const config = useMemiBoardConfig()
   const moderation = config.moderation ?? {}
   const app = useFirebaseApp()
+  const {
+    isWriteRestricted,
+    restrictedMessage,
+    recordContentModerationBlock,
+  } = useMemiBoardAuth()
 
   const localBlockRe = buildLocalBlockRegex([...DEFAULT_LOCAL_BLOCKLIST, ...(moderation.localBlocklist ?? [])])
 
@@ -73,14 +81,43 @@ export function useMemiBoardModeration() {
     }
   }
 
+  /** 콘텐츠 위반(local/ai)만 경고 누적. API 오류·이용제한 자체는 제외. */
+  async function applyStrikeIfContentBlock(result: ModerationResult): Promise<ModerationResult> {
+    if (!result.flagged || result.error) return result
+    if (result.via !== 'local' && result.via !== 'ai') return result
+    try {
+      const { messageSuffix } = await recordContentModerationBlock()
+      if (messageSuffix) {
+        return {
+          ...result,
+          reason: `${result.reason || '게시할 수 없는 내용이 포함되어 있습니다.'}${messageSuffix}`,
+        }
+      }
+    }
+    catch (e) {
+      console.warn('[memi-board] record moderation strike failed', e instanceof Error ? e.message : e)
+    }
+    return result
+  }
+
   async function checkText(text: string): Promise<ModerationResult> {
+    if (isWriteRestricted.value) {
+      return {
+        flagged: true,
+        category: 'other',
+        reason: restrictedMessage.value
+          || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
+        via: 'restricted',
+      }
+    }
+
     const trimmed = text.trim()
     if (!trimmed) {
       return { ...APPROVED, via: 'empty' as ModerationVia }
     }
 
     const local = localCheck(trimmed)
-    if (local) return local
+    if (local) return applyStrikeIfContentBlock(local)
 
     if (moderation.enabled === false) {
       return { ...APPROVED, via: 'disabled' }
@@ -92,12 +129,14 @@ export function useMemiBoardModeration() {
       const raw = result.response.text()
       const parsed = parseModerationJson(raw)
       if (!parsed) return errorResult()
-      return {
+      const out: ModerationResult = {
         flagged: parsed.flagged,
         category: parsed.category as ModerationResult['category'],
         reason: parsed.reason,
         via: 'ai',
       }
+      if (out.flagged) return applyStrikeIfContentBlock(out)
+      return out
     }
     catch (e) {
       console.warn('[memi-board] moderation AI failed', e instanceof Error ? e.message : e)
@@ -106,6 +145,16 @@ export function useMemiBoardModeration() {
   }
 
   async function checkImage(file: File): Promise<ModerationResult> {
+    if (isWriteRestricted.value) {
+      return {
+        flagged: true,
+        category: 'other',
+        reason: restrictedMessage.value
+          || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
+        via: 'restricted',
+      }
+    }
+
     if (moderation.enabled === false || !moderation.moderateImages) {
       return { ...APPROVED, via: 'disabled' }
     }
@@ -126,12 +175,14 @@ export function useMemiBoardModeration() {
       const raw = result.response.text()
       const parsed = parseModerationJson(raw)
       if (!parsed) return errorResult()
-      return {
+      const out: ModerationResult = {
         flagged: parsed.flagged,
         category: parsed.category as ModerationResult['category'],
         reason: parsed.reason,
         via: 'ai',
       }
+      if (out.flagged) return applyStrikeIfContentBlock(out)
+      return out
     }
     catch (e) {
       console.warn('[memi-board] moderation AI image failed', e instanceof Error ? e.message : e)

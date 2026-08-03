@@ -19,7 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
-const { user, isSignedIn } = useMemiBoardAuth()
+const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const { getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
 const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardSettings()
@@ -156,6 +156,12 @@ async function handleSubmit() {
   }
   if (!categories.value.some(c => c.id === cat) && !props.fixedCategory) {
     error.value = '목록에 있는 카테고리를 선택해 주세요.'
+    return
+  }
+
+  if (isWriteRestricted.value) {
+    error.value = restrictedMessage.value
+      || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
     return
   }
 
@@ -304,6 +310,12 @@ async function handleSubmit() {
     />
 
     <p
+      v-if="isWriteRestricted && restrictedMessage"
+      class="text-sm text-warning"
+    >
+      {{ restrictedMessage }}
+    </p>
+    <p
       v-if="error"
       class="text-sm text-error"
     >
@@ -320,6 +332,7 @@ async function handleSubmit() {
       <UButton
         type="submit"
         :loading="saving"
+        :disabled="isWriteRestricted"
         :label="isEdit ? '수정 완료' : '게시하기'"
       />
       <UButton

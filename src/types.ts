@@ -68,6 +68,7 @@ export type ModerationVia =
   | 'disabled'
   | 'local'
   | 'ai'
+  | 'restricted'
   | 'ai-error-allow'
   | 'ai-error-block'
 

@@ -12,6 +12,13 @@ export interface MemiBoardModerationOptions {
   moderateImages?: boolean
   /** AI Logic App Check limited-use 토큰 (재생 보호). 기본 true */
   useLimitedUseAppCheckTokens?: boolean
+  /**
+   * 콘텐츠 검열 차단(로컬/AI flagged) 누적 횟수 이상이 되면 글·댓글 작성 제한.
+   * 기본 3. 0 이하면 제한 기능 off.
+   */
+  blockBanThreshold?: number
+  /** 경고 1회 차감 간격(ms). 기본 24시간 */
+  blockBanDecayMs?: number
 }
 
 export interface MemiBoardConfig {
@@ -41,6 +48,8 @@ function getSharedConfig(): MemiBoardConfig {
         onError: 'allow',
         moderateImages: false,
         localBlocklist: [],
+        blockBanThreshold: 3,
+        blockBanDecayMs: 24 * 60 * 60 * 1000,
       },
     })
   }

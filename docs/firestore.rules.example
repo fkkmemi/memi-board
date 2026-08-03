@@ -60,11 +60,29 @@ service cloud.firestore {
     // 본인은 role:'user'로만 생성/유지할 수 있고, 자기 role을 'admin'으로 바꿀 수 없다.
     // 관리자 승격은 Firebase 콘솔에서 해당 uid 문서의 role 필드를 직접 'admin'으로 바꿔야 한다
     // (이 모듈은 관리자 승격 UI를 제공하지 않는다).
+    // moderationBlockCount/At: 검열 차단 누적(+1만). 감소·리셋은 admin.
     match /memiBoardUsers/{uid} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == uid && request.resource.data.role == 'user';
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'user'
+        && (!('moderationBlockCount' in request.resource.data)
+            || request.resource.data.moderationBlockCount == 0
+            || request.resource.data.moderationBlockCount == 1);
       allow update: if isAdmin()
-        || (isSignedIn() && request.auth.uid == uid && request.resource.data.role == resource.data.role);
+        || (isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['moderationBlockCount', 'moderationBlockAt'])
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
+              && request.resource.data.moderationBlockCount
+                == resource.data.get('moderationBlockCount', 0) + 1
+            )
+          ));
     }
 
     // 게시판 설정(카테고리 등) — 읽기 전체 공개.

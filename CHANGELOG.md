@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.4.8] - 2026-08-03
+
+### Added
+- 콘텐츠 검열 차단 누적 제한: `boardUsers.moderationBlockCount` / `moderationBlockAt`
+  - 로컬·AI `flagged` 시 +1 (API 오류는 제외)
+  - 기본 3회 이상 → 글·댓글 작성 약 24시간 제한 (24h lazy 차감, 매장 contentWarning 과 동일 모델)
+  - `moderation.blockBanThreshold` / `blockBanDecayMs` (0 이면 off)
+- Rules 예시: 경고 필드는 +1 만 허용, 감소·리셋은 admin
+
 ## [0.4.7] - 2026-08-03
 
 ### Changed

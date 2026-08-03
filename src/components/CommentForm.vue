@@ -6,7 +6,7 @@ import { useMemiBoardModeration } from 'memi-board'
 
 const props = defineProps<{ postId: string }>()
 
-const { user, isSignedIn } = useMemiBoardAuth()
+const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const { addComment } = useMemiBoardComments(props.postId)
 const { checkText } = useMemiBoardModeration()
 
@@ -19,6 +19,11 @@ async function handleSubmit() {
   if (!body.value.trim()) return
   if (!user.value) {
     error.value = '로그인이 필요합니다.'
+    return
+  }
+  if (isWriteRestricted.value) {
+    error.value = restrictedMessage.value
+      || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
     return
   }
 
@@ -57,6 +62,12 @@ async function handleSubmit() {
       placeholder="댓글을 입력하세요"
       :rows="2"
     />
+    <p
+      v-if="isWriteRestricted && restrictedMessage"
+      class="text-xs text-warning"
+    >
+      {{ restrictedMessage }}
+    </p>
     <div class="flex justify-between items-center">
       <p
         v-if="error"
@@ -70,7 +81,7 @@ async function handleSubmit() {
         size="sm"
         label="댓글 작성"
         :loading="submitting"
-        :disabled="!body.trim()"
+        :disabled="!body.trim() || isWriteRestricted"
       />
     </div>
   </form>

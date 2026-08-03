@@ -16,6 +16,14 @@ export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
 
 export { formatDate } from './utils/formatDate'
+export {
+  DEFAULT_BLOCK_BAN_THRESHOLD,
+  DEFAULT_BLOCK_BAN_DECAY_MS,
+  effectiveModerationBlockCount,
+  isModerationWriteRestricted,
+  moderationWriteRestrictedUntilMs,
+  formatRestrictedUntilLabel,
+} from './utils/moderation-strike'
 
 export type {
   Attachment,
