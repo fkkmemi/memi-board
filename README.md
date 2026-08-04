@@ -236,7 +236,7 @@ const router = useRouter()
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`
 
-댓글 목록은 최근 5개만 VueFire 실시간 구독하고, 이전 댓글은 `더보기`마다 cursor 기반으로 5개씩 읽는다.
+댓글은 시간순으로 10개씩 cursor 조회하며, 실제 `댓글 더보기` 버튼이 화면에 들어오면 1초 후 자동으로 다음 페이지를 읽는다. 기존 댓글을 모두 읽은 뒤에만 최신 댓글 1개를 실시간 구독한다. 대댓글은 5개씩 조회하고 모두 읽은 뒤 최신 답글 1개를 실시간 구독하며, 화면 깊이는 최대 2단계로 표시한다.
 
 ### 카테고리
 

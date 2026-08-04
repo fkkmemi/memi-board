@@ -62,6 +62,17 @@ export interface CommentModel {
   authorPhoto: string | null
   moderationStatus: ModerationStatus
   createdAt: Timestamp
+  /** 최상위 댓글은 null, 답글은 직접 답변 대상 댓글 ID. */
+  parentId?: string | null
+  /** 스레드의 최상위 댓글 ID. */
+  rootId?: string
+  /** 화면 들여쓰기 깊이. 0 → 1 → 2, 이후 2로 고정. */
+  depth?: number
+  replyToUid?: string | null
+  replyToName?: string | null
+  /** 최상위 댓글에 저장하는 전체 답글 수. */
+  replyCount?: number
+  isReply?: boolean
 }
 
 export type BoardUserRole = 'admin' | 'staff' | 'user'

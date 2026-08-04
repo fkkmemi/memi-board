@@ -1,6 +1,7 @@
-import { computed, ref, watch } from 'vue'
+import { computed, onScopeDispose, ref, watch } from 'vue'
 import type { Ref } from 'vue'
-import { useCollection, useFirestore } from 'vuefire'
+import type { DocumentData, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
+import { useFirestore } from 'vuefire'
 import {
   collection,
   doc,
@@ -8,10 +9,12 @@ import {
   getDocs,
   increment,
   limit,
+  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   startAfter,
+  where,
   writeBatch,
 } from 'firebase/firestore'
 import { useMemiBoardConfig } from '../config'
@@ -24,9 +27,14 @@ export interface AddCommentInput {
   authorPhoto: string | null
 }
 
-const COMMENT_PAGE_SIZE = 5
+export interface AddReplyInput extends AddCommentInput {
+  parent: CommentModel
+}
 
-/** 최근 5개는 onSnapshot, 이전 댓글은 더보기마다 5개씩 getDocs로 읽는다. */
+const COMMENT_PAGE_SIZE = 10
+const REPLY_PAGE_SIZE = 5
+
+/** 10개씩 순차 조회한 뒤 마지막 페이지에서만 최신 1개를 실시간 구독한다. */
 export function useMemiBoardComments(
   postId: string | Ref<string>,
   options: { subscribe?: boolean } = {},
@@ -37,22 +45,19 @@ export function useMemiBoardComments(
 
   const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
 
-  const commentsQuery = computed(() => options.subscribe === false
-    ? null
-    : query(
-      collection(db, `${prefix()}Posts`, id.value, 'comments'),
-      orderBy('createdAt', 'desc'),
-      orderBy(documentId(), 'desc'),
-      limit(COMMENT_PAGE_SIZE),
-    ),
-  )
-
-  const recentComments = useCollection<CommentModel>(commentsQuery, {
-    ssrKey: `${prefix()}Posts/${id.value}/comments/recent`,
-  })
-  const olderComments = ref<CommentModel[]>([])
+  // limit(1) 리스너는 최신 댓글 알림 용도다. 쿼리 결과 교체로 기존 댓글이
+  // 사라지지 않도록 수신 문서를 별도 배열에 누적한다.
+  const liveComments = ref<CommentModel[]>([])
+  // parentId 도입 전 댓글은 실시간 10개 슬롯과 분리해 최초 1회만 읽는다.
+  const legacyComments = ref<CommentModel[]>([])
+  const legacyPending = ref(options.subscribe !== false)
+  const pagedComments = ref<CommentModel[]>([])
   const loadingMore = ref(false)
   const hasMore = ref(options.subscribe !== false)
+  const initialPending = ref(options.subscribe !== false)
+  let pageCursor: QueryDocumentSnapshot<DocumentData> | null = null
+  let liveEnableTimer: ReturnType<typeof setTimeout> | undefined
+  let stopLiveSubscription: Unsubscribe | undefined
 
   function createdAtMs(comment: CommentModel): number {
     return comment.createdAt?.toMillis?.() ?? 0
@@ -60,7 +65,7 @@ export function useMemiBoardComments(
 
   const comments = computed(() => {
     const byId = new Map<string, CommentModel>()
-    for (const comment of [...recentComments.value, ...olderComments.value]) {
+    for (const comment of [...liveComments.value, ...legacyComments.value, ...pagedComments.value]) {
       if (comment.id) byId.set(comment.id, comment)
     }
     return [...byId.values()].sort((a, b) =>
@@ -68,43 +73,99 @@ export function useMemiBoardComments(
     )
   })
 
-  watch(id, () => {
-    olderComments.value = []
+  watch(id, async (currentId) => {
+    pagedComments.value = []
+    liveComments.value = []
+    legacyComments.value = []
+    pageCursor = null
+    clearTimeout(liveEnableTimer)
+    liveEnableTimer = undefined
+    stopLiveSubscription?.()
+    stopLiveSubscription = undefined
     hasMore.value = options.subscribe !== false
-  })
+    if (options.subscribe === false) return
 
-  watch(recentComments, (list) => {
-    if (!recentComments.pending.value && list.length < COMMENT_PAGE_SIZE && olderComments.value.length === 0) {
-      hasMore.value = false
+    legacyPending.value = true
+    initialPending.value = true
+    try {
+      const snapshotPromise = getDocs(query(
+        collection(db, `${prefix()}Posts`, currentId, 'comments'),
+        orderBy('createdAt', 'desc'),
+        orderBy(documentId(), 'desc'),
+      ))
+      await Promise.all([snapshotPromise.then((snapshot) => {
+        if (id.value !== currentId) return
+        const allComments = snapshot.docs
+          .map(item => ({ id: item.id, ...item.data() } as CommentModel))
+        legacyComments.value = allComments.filter(comment => comment.parentId === undefined)
+      }), loadMore()])
+      if (id.value !== currentId) return
+    }
+    finally {
+      if (id.value === currentId) {
+        legacyPending.value = false
+        initialPending.value = false
+      }
     }
   }, { immediate: true })
 
+  function startLiveSubscription() {
+    stopLiveSubscription?.()
+    stopLiveSubscription = onSnapshot(query(
+      collection(db, `${prefix()}Posts`, id.value, 'comments'),
+      where('parentId', '==', null),
+      orderBy('createdAt', 'desc'),
+      orderBy(documentId(), 'desc'),
+      limit(1),
+    ), (snapshot) => {
+      const byId = new Map(liveComments.value.map(comment => [comment.id, comment]))
+      for (const change of snapshot.docChanges()) {
+        if (change.type === 'removed') continue
+        byId.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as CommentModel)
+      }
+      liveComments.value = [...byId.values()]
+    }, (cause) => {
+      console.error('[memi-board:comments] onSnapshot failed', cause)
+    })
+  }
+
   async function loadMore(): Promise<void> {
     if (loadingMore.value || !hasMore.value) return
-    const oldest = comments.value[0]
-    if (!oldest?.id || !oldest.createdAt) {
-      hasMore.value = false
-      return
-    }
-
     loadingMore.value = true
     try {
+      const constraints = [
+        where('parentId', '==', null),
+        orderBy('createdAt', 'asc'),
+        orderBy(documentId(), 'asc'),
+        ...(pageCursor ? [startAfter(pageCursor)] : []),
+        limit(COMMENT_PAGE_SIZE + 1),
+      ]
       const snapshot = await getDocs(query(
         collection(db, `${prefix()}Posts`, id.value, 'comments'),
-        orderBy('createdAt', 'desc'),
-        orderBy(documentId(), 'desc'),
-        startAfter(oldest.createdAt, oldest.id),
-        limit(COMMENT_PAGE_SIZE),
+        ...constraints,
       ))
-      const page = snapshot.docs.map(item => ({ id: item.id, ...item.data() } as CommentModel))
-      const existing = new Set(olderComments.value.map(comment => comment.id))
-      olderComments.value.push(...page.filter(comment => !existing.has(comment.id)))
-      if (snapshot.size < COMMENT_PAGE_SIZE) hasMore.value = false
+      const pageDocs = snapshot.docs.slice(0, COMMENT_PAGE_SIZE)
+      const page = pageDocs.map(item => ({ id: item.id, ...item.data() } as CommentModel))
+      const existing = new Set(pagedComments.value.map(comment => comment.id))
+      pagedComments.value.push(...page.filter(comment => !existing.has(comment.id)))
+      pageCursor = pageDocs.at(-1) ?? pageCursor
+      if (snapshot.size <= COMMENT_PAGE_SIZE) {
+        hasMore.value = false
+        liveEnableTimer = setTimeout(() => {
+          liveEnableTimer = undefined
+          startLiveSubscription()
+        }, 1_000)
+      }
     }
     finally {
       loadingMore.value = false
     }
   }
+
+  onScopeDispose(() => {
+    clearTimeout(liveEnableTimer)
+    stopLiveSubscription?.()
+  })
 
   async function addComment(input: AddCommentInput): Promise<void> {
     const batch = writeBatch(db)
@@ -117,28 +178,170 @@ export function useMemiBoardComments(
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
       moderationStatus: 'approved',
+      parentId: null,
+      rootId: commentRef.id,
+      depth: 0,
+      replyToUid: null,
+      replyToName: null,
+      replyCount: 0,
+      isReply: false,
       createdAt: serverTimestamp(),
     })
     batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
-  async function deleteComment(commentId: string): Promise<void> {
+  async function addReply(input: AddReplyInput): Promise<void> {
+    if (!input.parent.id) throw new Error('답글 대상 댓글을 찾을 수 없습니다.')
     const batch = writeBatch(db)
     const p = prefix()
-    batch.delete(doc(db, `${p}Posts`, id.value, 'comments', commentId))
+    const commentsCol = collection(db, `${p}Posts`, id.value, 'comments')
+    const replyRef = doc(commentsCol)
+    const rootId = input.parent.parentId == null
+      ? input.parent.id
+      : input.parent.rootId
+    if (!rootId) throw new Error('댓글 스레드를 찾을 수 없습니다.')
+    const depth = Math.min((input.parent.depth ?? 0) + 1, 2)
+
+    batch.set(replyRef, {
+      postId: id.value,
+      body: input.body,
+      authorUid: input.authorUid,
+      authorName: input.authorName,
+      authorPhoto: input.authorPhoto,
+      moderationStatus: 'approved',
+      parentId: input.parent.id,
+      rootId,
+      depth,
+      replyToUid: input.parent.authorUid,
+      replyToName: input.parent.authorName,
+      replyCount: 0,
+      isReply: true,
+      createdAt: serverTimestamp(),
+    })
+    batch.update(doc(commentsCol, rootId), { replyCount: increment(1) })
+    batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(1) })
+    await batch.commit()
+  }
+
+  async function deleteComment(comment: CommentModel): Promise<void> {
+    if (!comment.id) return
+    if (comment.parentId == null && (comment.replyCount ?? 0) > 0) {
+      throw new Error('답글이 있는 댓글은 현재 삭제할 수 없습니다.')
+    }
+    const batch = writeBatch(db)
+    const p = prefix()
+    batch.delete(doc(db, `${p}Posts`, id.value, 'comments', comment.id))
+    if (comment.parentId && comment.rootId) {
+      batch.update(doc(db, `${p}Posts`, id.value, 'comments', comment.rootId), { replyCount: increment(-1) })
+    }
     batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(-1) })
     await batch.commit()
-    olderComments.value = olderComments.value.filter(comment => comment.id !== commentId)
+    pagedComments.value = pagedComments.value.filter(item => item.id !== comment.id)
+    legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
+    liveComments.value = liveComments.value.filter(item => item.id !== comment.id)
   }
 
   return {
     comments,
-    commentsPending: recentComments.pending,
+    commentsPending: computed(() => initialPending.value || legacyPending.value),
     hasMore,
     loadingMore,
     loadMore,
     addComment,
+    addReply,
     deleteComment,
   }
+}
+
+/** 펼친 스레드의 답글을 5개씩 일회성 조회한다. */
+export function useMemiBoardReplies(postId: string, rootId: string) {
+  const config = useMemiBoardConfig()
+  const db = useFirestore()
+  const replies = ref<CommentModel[]>([])
+  const loading = ref(false)
+  const loaded = ref(false)
+  const hasMore = ref(true)
+  let cursor: QueryDocumentSnapshot<DocumentData> | null = null
+  let stopLiveSubscription: Unsubscribe | undefined
+
+  function sortReplies(list: CommentModel[]) {
+    return list.sort((a, b) =>
+      (a.createdAt?.toMillis?.() ?? 0) - (b.createdAt?.toMillis?.() ?? 0)
+      || String(a.id).localeCompare(String(b.id)),
+    )
+  }
+
+  function startLiveSubscription() {
+    if (stopLiveSubscription) return
+    stopLiveSubscription = onSnapshot(query(
+      collection(db, `${config.collectionPrefix}Posts`, postId, 'comments'),
+      where('rootId', '==', rootId),
+      where('isReply', '==', true),
+      orderBy('createdAt', 'desc'),
+      orderBy(documentId(), 'desc'),
+      limit(1),
+    ), (snapshot) => {
+      const byId = new Map(replies.value.map(reply => [reply.id, reply]))
+      for (const change of snapshot.docChanges()) {
+        if (change.type === 'removed') continue
+        byId.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as CommentModel)
+      }
+      replies.value = sortReplies([...byId.values()])
+    }, (cause) => {
+      console.error('[memi-board:replies] onSnapshot failed', cause)
+    })
+  }
+
+  async function loadMore(): Promise<void> {
+    if (loading.value || !hasMore.value) return
+    loading.value = true
+    try {
+      const constraints = [
+        where('rootId', '==', rootId),
+        where('isReply', '==', true),
+        orderBy('createdAt', 'asc'),
+        orderBy(documentId(), 'asc'),
+        ...(cursor ? [startAfter(cursor)] : []),
+        limit(REPLY_PAGE_SIZE + 1),
+      ]
+      const snapshot = await getDocs(query(
+        collection(db, `${config.collectionPrefix}Posts`, postId, 'comments'),
+        ...constraints,
+      ))
+      const existing = new Set(replies.value.map(reply => reply.id))
+      const pageDocs = snapshot.docs.slice(0, REPLY_PAGE_SIZE)
+      const page = pageDocs
+        .map(item => ({ id: item.id, ...item.data() } as CommentModel))
+        .filter(reply => !existing.has(reply.id))
+      replies.value = sortReplies([...replies.value, ...page])
+      cursor = pageDocs.at(-1) ?? cursor
+      loaded.value = true
+      if (snapshot.size <= REPLY_PAGE_SIZE) {
+        hasMore.value = false
+        startLiveSubscription()
+      }
+    }
+    finally {
+      loading.value = false
+    }
+  }
+
+  function reset() {
+    stopLiveSubscription?.()
+    stopLiveSubscription = undefined
+    replies.value = []
+    cursor = null
+    loaded.value = false
+    hasMore.value = true
+  }
+
+  async function refresh(): Promise<void> {
+    reset()
+    await loadMore()
+  }
+
+  onScopeDispose(() => stopLiveSubscription?.())
+
+  return { replies, loading, loaded, hasMore, loadMore, refresh }
 }

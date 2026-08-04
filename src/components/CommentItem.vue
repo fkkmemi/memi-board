@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [commentId: string]
+  reply: [comment: CommentModel]
 }>()
 
 const { canDeleteComment } = useMemiBoardAuth()
@@ -46,8 +47,17 @@ const fullDate = computed(() => date.value ? dayjs(date.value).format('YYYY년 M
         </UTooltip>
       </div>
       <p class="whitespace-pre-wrap break-words text-sm">
+        <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
         {{ comment.body }}
       </p>
+      <UButton
+        label="답글"
+        size="xs"
+        color="neutral"
+        variant="link"
+        class="mt-1 px-0"
+        @click="emit('reply', comment)"
+      />
     </div>
     <UButton
       v-if="canDeleteComment(comment) && comment.id"

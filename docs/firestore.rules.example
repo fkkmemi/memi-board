@@ -64,9 +64,61 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if true;
 
+        function isLegacyTopLevelComment() {
+          return !request.resource.data.keys().hasAny([
+            'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
+          ]);
+        }
+        function isValidTopLevelComment() {
+          return request.resource.data.parentId == null
+            && request.resource.data.rootId == commentId
+            && request.resource.data.depth == 0
+            && request.resource.data.replyToUid == null
+            && request.resource.data.replyToName == null
+            && request.resource.data.replyCount == 0
+            && request.resource.data.isReply == false;
+        }
+        function isValidReply() {
+          let parentPath = /databases/$(database)/documents/memiBoardPosts/$(postId)/comments/$(request.resource.data.parentId);
+          let rootPath = /databases/$(database)/documents/memiBoardPosts/$(postId)/comments/$(request.resource.data.rootId);
+          let parent = get(parentPath).data;
+          return request.resource.data.parentId is string
+            && request.resource.data.rootId is string
+            && request.resource.data.parentId != commentId
+            && exists(parentPath)
+            && exists(rootPath)
+            && get(rootPath).data.get('parentId', null) == null
+            && request.resource.data.replyToUid == parent.authorUid
+            && request.resource.data.replyCount == 0
+            && request.resource.data.isReply == true
+            && ((parent.get('parentId', null) == null
+                  && request.resource.data.rootId == request.resource.data.parentId)
+              || (parent.get('parentId', null) != null
+                  && request.resource.data.rootId == parent.rootId))
+            && ((parent.get('depth', 0) < 2
+                  && request.resource.data.depth == parent.get('depth', 0) + 1)
+              || (parent.get('depth', 0) >= 2
+                  && request.resource.data.depth == 2));
+        }
+        function isReplyCountUpdate() {
+          return isSignedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
+            && request.resource.data.replyCount is int
+            && request.resource.data.replyCount >= 0
+            && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
+              || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
+        }
+
         allow create: if isSignedIn()
           && request.resource.data.authorUid == request.auth.uid
-          && request.resource.data.moderationStatus == 'approved';
+          && request.resource.data.postId == postId
+          && request.resource.data.body is string
+          && request.resource.data.moderationStatus == 'approved'
+          && (isLegacyTopLevelComment()
+            || (request.resource.data.keys().hasAll([
+                'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
+              ])
+              && (isValidTopLevelComment() || isValidReply())));
 
         // 댓글 작성자·부모 게시글 작성자·게시판 관리자 모두 삭제 가능.
         // 부모 글을 삭제할 때 작성자가 다른 사용자의 댓글도 함께 정리할 수 있어야 한다.
@@ -74,8 +126,8 @@ service cloud.firestore {
           || isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId)))
           || isStaff();
 
-        // 댓글 수정은 지원하지 않는다 (삭제 후 재작성만 가능) — Editor에서 UI 자체도 제공하지 않음
-        allow update: if false;
+        // 댓글 본문 수정은 지원하지 않는다. 답글 batch의 replyCount ±1만 허용한다.
+        allow update: if isReplyCountUpdate();
       }
     }
 

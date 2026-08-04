@@ -3,12 +3,14 @@ import { ref } from 'vue'
 import { useMemiBoardAuth } from 'memi-board'
 import { useMemiBoardComments } from 'memi-board'
 import { useMemiBoardModeration } from 'memi-board'
+import type { CommentModel } from 'memi-board'
 
-const props = defineProps<{ postId: string }>()
+const props = defineProps<{ postId: string, parent?: CommentModel | null }>()
+const emit = defineEmits<{ saved: [], cancel: [] }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
-const { addComment } = useMemiBoardComments(props.postId, { subscribe: false })
+const { addComment, addReply } = useMemiBoardComments(props.postId, { subscribe: false })
 const { checkText } = useMemiBoardModeration()
 
 const body = ref('')
@@ -35,13 +37,16 @@ async function handleSubmit() {
       error.value = moderation.reason || '작성할 수 없는 내용이 포함되어 있습니다.'
       return
     }
-    await addComment({
+    const input = {
       body: body.value,
       authorUid: user.value.uid,
       authorName: user.value.displayName,
       authorPhoto: user.value.photoURL,
-    })
+    }
+    if (props.parent) await addReply({ ...input, parent: props.parent })
+    else await addComment(input)
     body.value = ''
+    emit('saved')
   }
   catch (e) {
     error.value = (e as Error).message
@@ -60,7 +65,7 @@ async function handleSubmit() {
   >
     <UTextarea
       v-model="body"
-      placeholder="댓글을 입력하세요"
+      :placeholder="parent ? `${parent.authorName || '사용자'}님에게 답글` : '댓글을 입력하세요'"
       :rows="2"
     />
     <p
@@ -78,9 +83,18 @@ async function handleSubmit() {
       </p>
       <div class="flex-1" />
       <UButton
+        v-if="parent"
+        type="button"
+        size="sm"
+        label="취소"
+        color="neutral"
+        variant="ghost"
+        @click="emit('cancel')"
+      />
+      <UButton
         type="submit"
         size="sm"
-        label="댓글 작성"
+        :label="parent ? '답글 작성' : '댓글 작성'"
         :loading="submitting"
         :disabled="!body.trim() || isWriteRestricted"
       />

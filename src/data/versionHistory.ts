@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.9.0',
+    date: '2026-08-04',
+    highlights: [
+      '댓글에 답글을 달고 대화 흐름을 최대 2단계로 볼 수 있어요',
+      '댓글 10개·답글 5개 단위로 이어서 보고 마지막부터 새 댓글을 실시간으로 받아요',
+      '더보기 버튼이 화면에 들어오면 로딩 표시와 함께 다음 댓글을 자동으로 불러와요',
+    ],
+  },
+  {
     version: '0.8.0',
     date: '2026-08-04',
     highlights: [
