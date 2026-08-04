@@ -102,6 +102,6 @@
   },
   "dependencies": {
     "@nuxt/kit": "^4.5.1",
-    "@tiptap/extension-youtube": "^3.29.2"
+    "@tiptap/extension-youtube": "3.28.0"
   }
 }
