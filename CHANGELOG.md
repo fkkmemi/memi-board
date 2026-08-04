@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.9.1] - 2026-08-04
+
+### Fixed
+- npm 설치 환경에서 `MemiBoardUsers`가 패키지에 없는 상대경로 composable을 참조해 호스트 빌드가 실패하던 문제
+
 ## [0.9.0] - 2026-08-04
 
 ### Added

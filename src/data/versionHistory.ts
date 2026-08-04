@@ -11,6 +11,11 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.9.1',
+    date: '2026-08-04',
+    highlights: ['npm으로 설치한 프로젝트에서 사용자 관리 화면이 정상적으로 빌드돼요'],
+  },
+  {
     version: '0.9.0',
     date: '2026-08-04',
     highlights: [

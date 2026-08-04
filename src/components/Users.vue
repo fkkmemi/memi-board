@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useMemiBoardAuth } from '../composables/useMemiBoardAuth'
-import { BOARD_USER_ROLES, useMemiBoardUsers } from '../composables/useMemiBoardUsers'
-import type { BoardUserRole } from '../types'
+import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardUsers } from 'memi-board'
+import type { BoardUserRole } from 'memi-board'
 
 const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
 const { isAdmin, rolePending } = useMemiBoardAuth()
