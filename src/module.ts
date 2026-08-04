@@ -78,6 +78,7 @@ export default defineNuxtModule({
       { name: 'useMemiBoardModeration', from },
       { name: 'useMemiBoardStorage', from },
       { name: 'useMemiBoardSettings', from },
+      { name: 'useMemiBoardUsers', from },
       { name: 'versionHistory', from },
     ])
   },

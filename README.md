@@ -222,7 +222,7 @@ const router = useRouter()
 ### 제공하는 API
 
 **컴포넌트 (auto-import):**  
-`MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardVersionHistory`
+`MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardSettings`, `MemiBoardUsers`, `MemiBoardVersionHistory`
 
 **List props:** `pageSize`, `category`, `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
 
@@ -234,7 +234,7 @@ const router = useRouter()
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
 
 **composables:**  
-`useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`
+`useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`
 
 ### 카테고리
 
@@ -264,9 +264,9 @@ const router = useRouter()
 |------|------|
 | 글/댓글 읽기 | 공개 |
 | 글/댓글 작성 | 로그인 + `moderationStatus == 'approved'` (클라가 항상 approved 로 씀 — 검열 통과 후에만 write) |
-| 글 수정·삭제 | 작성자 또는 `{prefix}Users/{uid}.role == 'admin'` |
-| 댓글 삭제 | 댓글 작성자 · 글 작성자 · admin |
-| 관리자 승격 | **패키지가 하지 않음** — 콘솔에서 `role: 'admin'` 수동 설정 |
+| 글 수정·삭제 | 작성자 또는 `{prefix}Users/{uid}.role in ['admin', 'staff']` |
+| 댓글 삭제 | 댓글 작성자 · 글 작성자 · admin · staff |
+| 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |
 
 **알려진 한계:** AI 검열은 클라이언트 전용. SDK로 직접 write 하면 우회 가능. 중요 서비스면 Cloud Functions 검증을 호스트가 추가(패키지 범위 밖).
 

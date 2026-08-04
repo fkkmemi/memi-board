@@ -19,6 +19,10 @@ service cloud.firestore {
       return isSignedIn() &&
         get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role == 'admin';
     }
+    function isStaff() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
+    }
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
     }
@@ -30,12 +34,12 @@ service cloud.firestore {
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.moderationStatus == 'approved';
 
-      // 작성자 본인 또는 관리자만 수정/삭제 가능
-      allow update, delete: if isOwner(resource) || isAdmin();
+      // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능
+      allow update, delete: if isOwner(resource) || isStaff();
 
       match /body/{docId} {
         allow read: if true;
-        allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isAdmin();
+        allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isStaff();
       }
 
       match /comments/{commentId} {
@@ -49,7 +53,7 @@ service cloud.firestore {
         // 부모 글을 삭제할 때 작성자가 다른 사용자의 댓글도 함께 정리할 수 있어야 한다.
         allow delete: if isOwner(resource)
           || isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId)))
-          || isAdmin();
+          || isStaff();
 
         // 댓글 수정은 지원하지 않는다 (삭제 후 재작성만 가능) — Editor에서 UI 자체도 제공하지 않음
         allow update: if false;
@@ -57,19 +61,17 @@ service cloud.firestore {
     }
 
     // 게시판 역할 문서.
-    // 본인은 role:'user'로만 생성/유지할 수 있고, 자기 role을 'admin'으로 바꿀 수 없다.
-    // 관리자 승격은 Firebase 콘솔에서 해당 uid 문서의 role 필드를 직접 'admin'으로 바꿔야 한다
-    // (이 모듈은 관리자 승격 UI를 제공하지 않는다).
+    // 본인은 role:'user'로만 생성하며, admin은 Users UI에서 admin/staff/user를 변경한다.
     // moderationBlockCount/At: 검열 차단 누적(+1만). 감소·리셋은 admin.
     match /memiBoardUsers/{uid} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
       allow create: if isSignedIn()
         && request.auth.uid == uid
         && request.resource.data.role == 'user'
         && (!('moderationBlockCount' in request.resource.data)
             || request.resource.data.moderationBlockCount == 0
             || request.resource.data.moderationBlockCount == 1);
-      allow update: if isAdmin()
+      allow update: if (isAdmin() && request.resource.data.role in ['admin', 'staff', 'user'])
         || (isSignedIn()
           && request.auth.uid == uid
           && request.resource.data.role == resource.data.role

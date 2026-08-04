@@ -11,6 +11,7 @@ export type { AddCommentInput } from './composables/useMemiBoardComments'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
 export { useMemiBoardSettings, DEFAULT_CATEGORIES } from './composables/useMemiBoardSettings'
+export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
@@ -34,6 +35,7 @@ export type {
   PostDetail,
   CommentModel,
   BoardUserRole,
+  BoardUserModel,
   BoardCategory,
   BoardListView,
   BoardSettingsModel,

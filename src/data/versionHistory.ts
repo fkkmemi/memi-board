@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.6.0',
+    date: '2026-08-04',
+    changes: [
+      '관리자가 게시판 사용자를 확인하고 관리자·스태프·사용자 역할을 설정할 수 있어요',
+      '스태프는 게시판 설정이나 사용자 역할은 바꾸지 않고 게시글과 댓글을 관리할 수 있어요',
+    ],
+  },
+  {
     version: '0.5.0',
     date: '2026-08-04',
     highlights: [

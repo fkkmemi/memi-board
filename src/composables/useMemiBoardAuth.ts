@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { useMemiBoardConfig } from '../config'
-import type { PostModel, CommentModel } from '../types'
+import type { PostModel, CommentModel, BoardUserRole } from '../types'
 import {
   DEFAULT_BLOCK_BAN_DECAY_MS,
   DEFAULT_BLOCK_BAN_THRESHOLD,
@@ -28,6 +28,8 @@ export interface UseMemiBoardAuthReturn {
   user: ReturnType<typeof useCurrentUser>
   isSignedIn: ComputedRef<boolean>
   isAdmin: ComputedRef<boolean>
+  isStaff: ComputedRef<boolean>
+  canManageContent: ComputedRef<boolean>
   rolePending: Ref<boolean>
   /** 유효 검열 차단 누적 (lazy decay 반영) */
   moderationBlockCount: ComputedRef<number>
@@ -55,7 +57,7 @@ export interface UseMemiBoardAuthReturn {
 const AUTH_STATE_KEY = '__MEMI_BOARD_AUTH_STATE__' as const
 
 type BoardAuthShared = {
-  role: Ref<'user' | 'admin'>
+  role: Ref<BoardUserRole>
   rolePending: Ref<boolean>
   rawBlockCount: Ref<number>
   blockAtMs: Ref<number | null>
@@ -66,7 +68,7 @@ function getSharedAuthState(): BoardAuthShared {
   const g = globalThis as typeof globalThis & { [AUTH_STATE_KEY]?: BoardAuthShared }
   if (!g[AUTH_STATE_KEY]) {
     g[AUTH_STATE_KEY] = {
-      role: ref<'user' | 'admin'>('user'),
+      role: ref<BoardUserRole>('user'),
       rolePending: ref(true),
       rawBlockCount: ref(0),
       blockAtMs: ref<number | null>(null),
@@ -114,13 +116,15 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     blockAtMs.value = toBlockAtMs(data.moderationBlockAt)
   }
 
-  async function ensureUserDoc(firebaseUser: User): Promise<'user' | 'admin'> {
+  async function ensureUserDoc(firebaseUser: User): Promise<BoardUserRole> {
     const ref = roleDocRef(firebaseUser.uid)
     const snap = await getDoc(ref)
     if (!snap.exists()) {
       await setDoc(ref, {
         role: 'user',
         displayName: firebaseUser.displayName,
+        email: firebaseUser.email,
+        photoURL: firebaseUser.photoURL,
         updatedAt: serverTimestamp(),
       })
       applyUserData({ moderationBlockCount: 0 })
@@ -130,9 +134,11 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     applyUserData(data)
     await updateDoc(ref, {
       displayName: firebaseUser.displayName,
+      email: firebaseUser.email,
+      photoURL: firebaseUser.photoURL,
       updatedAt: serverTimestamp(),
     })
-    return (data.role as 'user' | 'admin') ?? 'user'
+    return (['admin', 'staff', 'user'].includes(String(data.role)) ? data.role : 'user') as BoardUserRole
   }
 
   async function refreshBoardUser() {
@@ -173,6 +179,8 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
 
   const isSignedIn = computed(() => !!user.value)
   const isAdmin = computed(() => role.value === 'admin')
+  const isStaff = computed(() => role.value === 'staff')
+  const canManageContent = computed(() => isAdmin.value || isStaff.value)
 
   const moderationBlockCount = computed(() =>
     effectiveModerationBlockCount(
@@ -312,17 +320,19 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
   }
 
   function canEdit(post: Pick<PostModel, 'authorUid'>) {
-    return isSignedIn.value && (user.value?.uid === post.authorUid || isAdmin.value)
+    return isSignedIn.value && (user.value?.uid === post.authorUid || canManageContent.value)
   }
 
   function canDeleteComment(comment: Pick<CommentModel, 'authorUid'>) {
-    return isSignedIn.value && (user.value?.uid === comment.authorUid || isAdmin.value)
+    return isSignedIn.value && (user.value?.uid === comment.authorUid || canManageContent.value)
   }
 
   return {
     user,
     isSignedIn,
     isAdmin,
+    isStaff,
+    canManageContent,
     rolePending,
     moderationBlockCount,
     isWriteRestricted,

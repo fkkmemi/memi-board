@@ -2,6 +2,18 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.6.0] - 2026-08-04
+
+### Added
+- `MemiBoardUsers` 관리자 사용자 목록·역할 변경 UI
+- `useMemiBoardUsers()` 실시간 사용자 구독과 역할 변경 API
+- `admin`·`staff`·`user` 역할별 권한 설명
+
+### Changed
+- `staff`가 모든 게시글·댓글과 관련 Storage 파일을 관리할 수 있도록 권한 모델 확장
+- 로그인 시 boardUsers 문서에 이메일과 프로필 사진 메타데이터 동기화
+- 사용자 목록 읽기를 관리자 또는 본인 문서로 제한
+
 ## [0.5.0] - 2026-08-04
 
 ### Added

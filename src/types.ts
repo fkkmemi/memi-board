@@ -64,8 +64,16 @@ export interface CommentModel {
   createdAt: Timestamp
 }
 
-export interface BoardUserRole {
-  role: 'user' | 'admin'
+export type BoardUserRole = 'admin' | 'staff' | 'user'
+
+export interface BoardUserModel {
+  id: string
+  role: BoardUserRole
+  displayName?: string | null
+  email?: string | null
+  photoURL?: string | null
+  moderationBlockCount?: number
+  updatedAt?: Timestamp
 }
 
 export type BoardListView = 'default' | 'image' | 'video'

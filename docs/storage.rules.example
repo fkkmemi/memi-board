@@ -12,9 +12,9 @@ service firebase.storage {
     function isSignedIn() {
       return request.auth != null;
     }
-    function isAdmin() {
+    function isStaff() {
       return isSignedIn() &&
-        firestore.get(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid)).data.role == 'admin';
+        firestore.get(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
     }
     function postExists(postId) {
       return firestore.exists(/databases/(default)/documents/memiBoardPosts/$(postId));
@@ -28,9 +28,9 @@ service firebase.storage {
       allow read: if true;
       // uploadBytesResumable → create + 청크 update 필요 (write)
       allow write: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isAdmin())
+        && (!postExists(postId) || isPostOwner(postId) || isStaff())
         && request.resource.size < 20 * 1024 * 1024;
-      allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
+      allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isStaff());
     }
 
     // 에디터 본문 이미지 + 썸네일
@@ -39,10 +39,10 @@ service firebase.storage {
     match /memiBoard/posts/{postId}/images/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isAdmin())
+        && (!postExists(postId) || isPostOwner(postId) || isStaff())
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg)');
-      allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
+      allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isStaff());
     }
   }
 }
