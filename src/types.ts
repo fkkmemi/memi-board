@@ -77,6 +77,7 @@ export interface BoardUserModel {
 }
 
 export type BoardListView = 'default' | 'image' | 'video'
+export type BoardWriteRole = 'user' | 'staff' | 'admin'
 
 export interface BoardCategory {
   /** 글의 category 필드가 참조하는 키 (예: 'notice', 'free') */
@@ -85,6 +86,8 @@ export interface BoardCategory {
   label: string
   /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
   listView?: BoardListView
+  /** 글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
+  writeRole?: BoardWriteRole
   /** 목록 노출 순서. 서브컬렉션 문서의 정렬 필드. */
   order?: number
 }

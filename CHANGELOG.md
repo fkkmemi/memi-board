@@ -2,6 +2,16 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.7.0] - 2026-08-04
+
+### Added
+- 카테고리별 글쓰기 최소 역할: 일반 이상·스태프 이상·관리자만
+- VueFire 카테고리 쿼리의 명시적 SSR key
+
+### Fixed
+- 게시판 설정에서 서버와 클라이언트의 로딩 상태가 달라 발생하던 hydration 경고
+- Nuxt 모듈 선언 생성 시 발생하던 비이식 타입 추론 경고
+
 ## [0.6.0] - 2026-08-04
 
 ### Added

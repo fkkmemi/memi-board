@@ -238,9 +238,9 @@ const router = useRouter()
 
 ### 카테고리
 
-- 문서: `{prefix}Settings/config/categories/{categoryId}` → `{ label, listView, order, updatedAt }`
+- 문서: `{prefix}Settings/config/categories/{categoryId}` → `{ label, listView, writeRole, order, updatedAt }`
 - 설정이 없으면 빈 목록이며 기본 카테고리를 자동 생성하지 않음
-- `MemiBoardSettings`에서 관리자가 카테고리별 저장·삭제·순서·리스트뷰 관리
+- `MemiBoardSettings`에서 관리자가 카테고리별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
 - `categoryId`는 문서 ID이자 게시글의 `category` 참조값이므로 생성 후 변경하지 않는 것을 권장
 
 ### 로그인 공급자
@@ -263,7 +263,8 @@ const router = useRouter()
 | 동작 | 조건 |
 |------|------|
 | 글/댓글 읽기 | 공개 |
-| 글/댓글 작성 | 로그인 + `moderationStatus == 'approved'` (클라가 항상 approved 로 씀 — 검열 통과 후에만 write) |
+| 글 작성 | 로그인 + 카테고리 `writeRole` 충족 + `moderationStatus == 'approved'` |
+| 댓글 작성 | 로그인 + `moderationStatus == 'approved'` (클라가 항상 approved 로 씀 — 검열 통과 후에만 write) |
 | 글 수정·삭제 | 작성자 또는 `{prefix}Users/{uid}.role in ['admin', 'staff']` |
 | 댓글 삭제 | 댓글 작성자 · 글 작성자 · admin · staff |
 | 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |

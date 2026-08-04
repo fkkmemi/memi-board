@@ -38,6 +38,7 @@ export type {
   BoardUserModel,
   BoardCategory,
   BoardListView,
+  BoardWriteRole,
   BoardSettingsModel,
   ModerationResult,
 } from './types'

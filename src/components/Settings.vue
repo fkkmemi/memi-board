@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { slugify, useMemiBoardAuth, useMemiBoardSettings } from 'memi-board'
-import type { BoardCategory, BoardListView } from 'memi-board'
+import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board'
 
 const props = withDefaults(defineProps<{
   /** 호스트 자체 관리자 권한도 허용할 때 true. Firebase rules 권한은 호스트가 별도로 맞춰야 한다. */
@@ -24,11 +24,20 @@ const listViewOptions: Array<{ label: string, value: BoardListView }> = [
   { label: '이미지', value: 'image' },
   { label: '영상', value: 'video' },
 ]
+const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
+  { label: '일반 이상', value: 'user' },
+  { label: '스태프 이상', value: 'staff' },
+  { label: '관리자만', value: 'admin' },
+]
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, saveCategories, deleteCategory } = useMemiBoardSettings()
 const canManage = computed(() => isAdmin.value || props.authorized)
-const pending = computed(() => rolePending.value || settingsPending.value)
+// Firebase의 SSR pending 값과 클라이언트 첫 값이 달라질 수 있다. 최초 hydration은
+// 양쪽 모두 로딩 화면으로 맞춘 뒤 mounted 이후 실제 상태를 렌더링한다.
+const mounted = ref(false)
+onMounted(() => { mounted.value = true })
+const pending = computed(() => !mounted.value || rolePending.value || settingsPending.value)
 
 const draft = ref<BoardCategory[]>([])
 const newLabel = ref('')
@@ -45,6 +54,7 @@ watch([categories, settingsPending], ([list, loading]) => {
     draft.value = list.map(category => ({
       ...category,
       listView: category.listView ?? 'default',
+      writeRole: category.writeRole ?? 'user',
     }))
   }
 }, { immediate: true })
@@ -56,7 +66,7 @@ function addCategory() {
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({ id, label, listView: 'default' })
+  draft.value.push({ id, label, listView: 'default', writeRole: 'user' })
   newLabel.value = ''
 }
 
@@ -163,6 +173,16 @@ async function runDeleteAll() {
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
           <UInput :model-value="category.id" disabled class="font-mono" />
+        </div>
+        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+          <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 글을 쓸 수 있는 최소 역할</p></div>
+          <USelect
+            v-model="category.writeRole"
+            :items="writeRoleOptions"
+            value-key="value"
+            label-key="label"
+            @update:model-value="savedId = null"
+          />
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>

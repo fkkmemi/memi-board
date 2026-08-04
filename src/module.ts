@@ -6,6 +6,9 @@ import {
   addImports,
 } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
+import type { NuxtModule } from '@nuxt/schema'
+
+interface MemiBoardModuleOptions {}
 
 /**
  * Thin Nuxt module — 호스트 Vite 파이프라인에 컴포넌트 SFC 만 올린다.
@@ -20,7 +23,7 @@ import { existsSync } from 'node:fs'
  * - composable / configure 를 auto-import
  * - transpile + optimizeDeps.exclude 로 prebundle 재발 방지
  */
-export default defineNuxtModule({
+const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<MemiBoardModuleOptions>({
   meta: {
     name: 'memi-board',
     configKey: 'memiBoard',
@@ -83,3 +86,5 @@ export default defineNuxtModule({
     ])
   },
 })
+
+export default memiBoardModule

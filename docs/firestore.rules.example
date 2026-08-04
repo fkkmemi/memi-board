@@ -23,6 +23,14 @@ service cloud.firestore {
       return isSignedIn() &&
         get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
     }
+    function canWriteCategory(categoryId) {
+      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
+      let requiredRole = get(categoryPath).data.get('writeRole', 'user');
+      return exists(categoryPath)
+        && (requiredRole == 'user'
+          || (requiredRole == 'staff' && isStaff())
+          || (requiredRole == 'admin' && isAdmin()));
+    }
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
     }
@@ -32,7 +40,9 @@ service cloud.firestore {
 
       allow create: if isSignedIn()
         && request.resource.data.authorUid == request.auth.uid
-        && request.resource.data.moderationStatus == 'approved';
+        && request.resource.data.moderationStatus == 'approved'
+        && request.resource.data.category is string
+        && canWriteCategory(request.resource.data.category);
 
       // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능
       allow update, delete: if isOwner(resource) || isStaff();
@@ -96,9 +106,10 @@ service cloud.firestore {
       match /categories/{categoryId} {
         allow read: if true;
         allow create, update: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
+          && request.resource.data.writeRole in ['user', 'staff', 'admin']
           && request.resource.data.order is number;
         allow delete: if isAdmin();
       }

@@ -8,9 +8,9 @@ import type { BoardCategory } from '../types'
 
 /** 필요할 때 호스트가 명시적으로 사용할 수 있는 예시 카테고리. 자동 적용하지 않는다. */
 export const DEFAULT_CATEGORIES: BoardCategory[] = [
-  { id: 'free', label: '자유', listView: 'default', order: 0 },
-  { id: 'notice', label: '공지', listView: 'default', order: 1 },
-  { id: 'question', label: '질문', listView: 'default', order: 2 },
+  { id: 'free', label: '자유', listView: 'default', writeRole: 'user', order: 0 },
+  { id: 'notice', label: '공지', listView: 'default', writeRole: 'admin', order: 1 },
+  { id: 'question', label: '질문', listView: 'default', writeRole: 'user', order: 2 },
 ]
 
 /** 게시판 카테고리 — `{prefix}Settings/config/categories/{categoryId}` 개별 문서. */
@@ -24,12 +24,17 @@ export function useMemiBoardSettings() {
     collection(db, `${config.collectionPrefix}Settings`, 'config', 'categories'),
   )
   const categoriesQuery = computed(() => query(categoriesRef.value, orderBy('order', 'asc')))
-  const { data: categoryDocs, pending: settingsPending } = useCollection<BoardCategory>(categoriesQuery)
+  // VueFire는 Query의 SSR state key를 경로만으로 만들 수 없으므로 명시해야
+  // 서버 렌더 결과와 클라이언트 hydration이 같은 데이터를 사용한다.
+  const { data: categoryDocs, pending: settingsPending } = useCollection<BoardCategory>(categoriesQuery, {
+    ssrKey: `${config.collectionPrefix}Settings/config/categories`,
+  })
   const categories = computed<BoardCategory[]>(() => categoryDocs.value.map((item, index) => ({
     ...item,
     id: item.id,
     order: typeof item.order === 'number' ? item.order : index,
     listView: item.listView ?? 'default',
+    writeRole: item.writeRole ?? 'user',
   })))
 
   function categoryLabel(id: string | undefined): string | undefined {
@@ -46,6 +51,7 @@ export function useMemiBoardSettings() {
     await setDoc(doc(categoriesRef.value, id), {
       label,
       listView: category.listView ?? 'default',
+      writeRole: category.writeRole ?? 'user',
       order,
       updatedAt: serverTimestamp(),
     }, { merge: true })
@@ -63,6 +69,7 @@ export function useMemiBoardSettings() {
       batch.set(doc(categoriesRef.value, id), {
         label,
         listView: category.listView ?? 'default',
+        writeRole: category.writeRole ?? 'user',
         order,
         updatedAt: serverTimestamp(),
       }, { merge: true })
@@ -91,7 +98,7 @@ export function useMemiBoardSettings() {
     let suffix = 2
     const used = new Set(categories.value.map(category => category.id))
     while (used.has(id)) id = `${base}-${suffix++}`
-    await saveCategory({ id, label: trimmed, listView: 'default', order: categories.value.length })
+    await saveCategory({ id, label: trimmed, listView: 'default', writeRole: 'user', order: categories.value.length })
     return id
   }
 

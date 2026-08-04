@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.7.0',
+    date: '2026-08-04',
+    highlights: [
+      '카테고리마다 글쓰기 권한을 일반 이상·스태프 이상·관리자만으로 설정할 수 있어요',
+      '게시판 설정 화면의 SSR hydration 경고를 해결했어요',
+    ],
+  },
+  {
     version: '0.6.0',
     date: '2026-08-04',
     highlights: [
