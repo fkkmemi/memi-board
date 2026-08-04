@@ -4,10 +4,10 @@
  * @see https://ui.nuxt.com/docs/components/editor
  * @see shineb app/components/PostEditor.vue
  *
- * 커스텀은 handlers.image(파일 업로드) + DOM paste/drop 만.
- * TipTap Extension / PluginKey 는 쓰지 않음 (유지보수·충돌 회피).
+ * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
 import { ref, computed, watch } from 'vue'
+import Youtube from '@tiptap/extension-youtube'
 import type { Attachment, EditorImageEntry } from 'memi-board'
 import {
   useMemiBoardAuth,
@@ -27,9 +27,9 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
-const { getPost, createPost, updatePost } = useMemiBoardPosts()
+const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts()
 const { checkText } = useMemiBoardModeration()
-const { categories, categoryLabel, ensureSettings, addCategory } = useMemiBoardSettings()
+const { categories, ensureSettings, addCategory } = useMemiBoardSettings()
 const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
@@ -44,7 +44,6 @@ const categoryItems = computed(() =>
 )
 const effectiveCategory = computed(() => props.fixedCategory || category.value)
 const isEdit = computed(() => Boolean(props.postId))
-const categoryLocked = computed(() => Boolean(props.fixedCategory))
 
 const loading = ref(false)
 const saving = ref(false)
@@ -57,9 +56,17 @@ const showAddCategory = ref(false)
 const newCategoryLabel = ref('')
 const addingCategory = ref(false)
 
-const attachmentNamespace = ref(props.postId ?? `new-${Date.now()}`)
+const attachmentNamespace = ref(props.postId ?? createPostId())
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
 const editorRef = ref<{ editor?: unknown } | null>(null)
+const editorExtensions = [
+  Youtube.configure({
+    nocookie: true,
+    controls: true,
+    width: 640,
+    height: 360,
+  }),
+]
 
 function imageNamespace(): string {
   return props.postId || attachmentNamespace.value
@@ -103,6 +110,28 @@ function pickAndUploadImage(editor: any) {
   input.click()
 }
 
+function youtubeUrl(value: string | null | undefined): string | null {
+  const raw = value?.trim()
+  if (!raw) return null
+  try {
+    const url = new URL(raw)
+    const host = url.hostname.toLowerCase().replace(/^www\./, '')
+    if (host === 'youtu.be' || host === 'youtube.com' || host === 'm.youtube.com' || host === 'music.youtube.com') {
+      return url.toString()
+    }
+  }
+  catch {
+    // URL 형식이 아니면 YouTube 임베드로 처리하지 않는다.
+  }
+  return null
+}
+
+function insertYoutube(editor: any, value?: string | null): boolean {
+  const src = youtubeUrl(value ?? window.prompt('YouTube 링크를 입력하세요.'))
+  if (!src) return false
+  return editor.chain().focus().setYoutubeVideo({ src }).run()
+}
+
 /** 공식 handlers API — 기본 image(URL prompt) 를 파일 업로드로 교체 (shineb) */
 const handlers = {
   image: {
@@ -112,6 +141,16 @@ const handlers = {
       !editor.extensionManager?.extensions?.some((ext: any) => ext.name === 'image'),
     execute: (editor: any) => {
       pickAndUploadImage(editor)
+      return editor.chain()
+    },
+  },
+  youtube: {
+    canExecute: (editor: any) => editor.can().setYoutubeVideo({ src: 'https://youtu.be/dQw4w9WgXcQ' }),
+    isActive: (editor: any) => editor.isActive('youtube'),
+    isDisabled: (editor: any) =>
+      !editor.extensionManager?.extensions?.some((ext: any) => ext.name === 'youtube'),
+    execute: (editor: any) => {
+      insertYoutube(editor)
       return editor.chain()
     },
   },
@@ -139,6 +178,7 @@ const toolbarItems = [
   [
     { kind: 'link', icon: 'i-lucide-link' },
     { kind: 'image', icon: 'i-lucide-image' },
+    { kind: 'youtube', icon: 'i-lucide-youtube', label: 'YouTube' },
   ],
   [
     { kind: 'horizontalRule', icon: 'i-lucide-minus' },
@@ -166,12 +206,20 @@ function resolveEditor(): any | null {
 function onEditorRootPaste(e: ClipboardEvent) {
   const items = Array.from(e.clipboardData?.items ?? [])
   const imageItem = items.find(i => i.type.startsWith('image/'))
-  if (!imageItem) return
-  const file = imageItem.getAsFile()
   const editor = resolveEditor()
-  if (!file || !editor) return
+  if (!editor) return
+  if (imageItem) {
+    const file = imageItem.getAsFile()
+    if (!file) return
+    e.preventDefault()
+    void uploadAndSetImage(editor, file)
+    return
+  }
+
+  const src = youtubeUrl(e.clipboardData?.getData('text/plain'))
+  if (!src) return
   e.preventDefault()
-  void uploadAndSetImage(editor, file)
+  insertYoutube(editor, src)
 }
 
 function onEditorRootDrop(e: DragEvent) {
@@ -223,7 +271,7 @@ watch(
     if (id) void loadPost(id)
     else {
       loading.value = false
-      attachmentNamespace.value = `new-${Date.now()}`
+      attachmentNamespace.value = createPostId()
       if (props.fixedCategory) category.value = props.fixedCategory
       void ensureSettings().catch(() => {})
     }
@@ -326,6 +374,7 @@ async function handleSubmit() {
     else {
       const id = await createPost({
         ...payload,
+        postId: attachmentNamespace.value,
         authorUid: user.value.uid,
         authorName: user.value.displayName,
         authorPhoto: user.value.photoURL,
@@ -358,18 +407,7 @@ async function handleSubmit() {
     @submit.prevent="handleSubmit"
   >
     <div
-      v-if="categoryLocked"
-      class="flex items-center gap-2 text-sm"
-    >
-      <span class="text-muted">카테고리</span>
-      <UBadge
-        :label="categoryLabel(fixedCategory) || fixedCategory"
-        variant="subtle"
-      />
-    </div>
-
-    <div
-      v-else
+      v-if="!fixedCategory"
       class="flex flex-col gap-2"
     >
       <div class="flex items-center gap-2 flex-wrap">
@@ -445,6 +483,7 @@ async function handleSubmit() {
         ref="editorRef"
         v-model="content"
         content-type="html"
+        :extensions="editorExtensions"
         :handlers="handlers"
         placeholder="본문을 입력하세요…"
         :ui="{ content: 'min-h-64 p-4' }"

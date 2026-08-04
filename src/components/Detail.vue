@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import type { PostDetail } from 'memi-board'
+import Youtube from '@tiptap/extension-youtube'
+import type { PostDetail, PostModel } from 'memi-board'
 import { formatDate, renderMarkdownToHtml } from 'memi-board'
 import { useMemiBoardPosts } from 'memi-board'
 import { useMemiBoardAuth } from 'memi-board'
@@ -12,9 +13,14 @@ import MemiBoardCommentList from './CommentList.vue'
 
 const props = defineProps<{ postId: string }>()
 
-const emit = defineEmits<{ deleted: [], edit: [postId: string] }>()
+const emit = defineEmits<{
+  deleted: []
+  edit: [postId: string]
+  list: []
+  navigate: [post: PostModel]
+}>()
 
-const { getPost, deletePost } = useMemiBoardPosts()
+const { getPost, getAdjacentPosts, deletePost } = useMemiBoardPosts()
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { categoryLabel } = useMemiBoardSettings()
 // post.commentCount는 상세 진입 시점의 스냅샷이라 새 댓글이 즉시 반영되지 않는다 — 실시간 댓글 목록 길이로 표시한다.
@@ -24,6 +30,16 @@ const post = ref<PostDetail | null>(null)
 const loading = ref(true)
 const deleting = ref(false)
 const notFound = ref(false)
+const previousPost = ref<PostModel | null>(null)
+const nextPost = ref<PostModel | null>(null)
+const viewerExtensions = [
+  Youtube.configure({
+    nocookie: true,
+    controls: true,
+    width: 640,
+    height: 360,
+  }),
+]
 
 async function load() {
   loading.value = true
@@ -33,6 +49,15 @@ async function load() {
     notFound.value = true
   }
   post.value = result
+  if (result) {
+    const adjacent = await getAdjacentPosts(result)
+    previousPost.value = adjacent.previous
+    nextPost.value = adjacent.next
+  }
+  else {
+    previousPost.value = null
+    nextPost.value = null
+  }
   loading.value = false
 }
 
@@ -97,39 +122,6 @@ const contentHtml = computed(() => {
             {{ post.title }}
           </h1>
         </div>
-        <div
-          v-if="canEdit(post) || canDelete(post)"
-          class="flex gap-2 shrink-0"
-        >
-          <UButton
-            v-if="canEdit(post)"
-            icon="i-lucide-pencil"
-            size="sm"
-            variant="outline"
-            color="neutral"
-            label="수정"
-            @click="emit('edit', postId)"
-          />
-          <UButton
-            v-if="canDelete(post)"
-            icon="i-lucide-trash-2"
-            size="sm"
-            variant="outline"
-            color="error"
-            label="삭제"
-            :loading="deleting"
-            @click="handleDelete"
-          />
-        </div>
-      </div>
-      <div class="flex items-center gap-3 text-sm text-muted">
-        <UAvatar
-          :src="post.authorPhoto ?? undefined"
-          :alt="post.authorName ?? '익명'"
-          size="xs"
-        />
-        <span>{{ post.authorName ?? '익명' }}</span>
-        <span>{{ formatDate(post.createdAt) }}</span>
       </div>
       <div
         v-if="post.tags?.length"
@@ -147,10 +139,14 @@ const contentHtml = computed(() => {
       </div>
     </header>
 
-    <!-- 마크다운 본문 (정적 렌더 — 상세에 UEditor 쓰면 목록 이동 시 TipTap plugin 충돌) -->
-    <div
-      class="prose dark:prose-invert max-w-none break-words"
-      v-html="contentHtml"
+    <!-- 작성 화면과 동일한 TipTap 스타일을 사용하는 읽기 전용 뷰어 -->
+    <UEditor
+      class="board-content prose dark:prose-invert max-w-none break-words"
+      :model-value="contentHtml"
+      content-type="html"
+      :editable="false"
+      :extensions="viewerExtensions"
+      :starter-kit="{ link: { openOnClick: true } }"
     />
 
     <MemiBoardAttachments
@@ -158,6 +154,68 @@ const contentHtml = computed(() => {
       :model-value="post.attachments"
       :post-id="postId"
     />
+
+    <div class="flex flex-col items-end gap-2">
+      <div class="flex items-center justify-end gap-3 text-sm text-muted">
+        <UAvatar
+          :src="post.authorPhoto ?? undefined"
+          :alt="post.authorName ?? '익명'"
+          size="xs"
+        />
+        <span>{{ post.authorName ?? '익명' }}</span>
+        <span>{{ formatDate(post.createdAt) }}</span>
+      </div>
+      <div v-if="canEdit(post) || canDelete(post)" class="flex gap-2">
+        <UButton
+          v-if="canEdit(post)"
+          icon="i-lucide-pencil"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          label="수정"
+          @click="emit('edit', postId)"
+        />
+        <UButton
+          v-if="canDelete(post)"
+          icon="i-lucide-trash-2"
+          size="sm"
+          variant="ghost"
+          color="error"
+          label="삭제"
+          :loading="deleting"
+          @click="handleDelete"
+        />
+      </div>
+    </div>
+
+    <nav class="grid grid-cols-3 items-center border-y border-default py-3" aria-label="게시글 이동">
+      <UButton
+        variant="ghost"
+        color="neutral"
+        icon="i-lucide-chevron-left"
+        label="이전"
+        class="justify-self-start"
+        :disabled="!previousPost?.id"
+        @click="previousPost?.id && emit('navigate', previousPost)"
+      />
+      <UButton
+        variant="ghost"
+        color="neutral"
+        icon="i-lucide-list"
+        label="목록"
+        class="justify-self-center"
+        @click="emit('list')"
+      />
+      <UButton
+        variant="ghost"
+        color="neutral"
+        trailing-icon="i-lucide-chevron-right"
+        label="다음"
+        class="justify-self-end"
+        :disabled="!nextPost?.id"
+        @click="nextPost?.id && emit('navigate', nextPost)"
+      />
+    </nav>
 
     <section class="flex flex-col gap-4 border-t border-default pt-4">
       <h2 class="text-sm font-medium text-muted">
@@ -168,3 +226,14 @@ const contentHtml = computed(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.board-content :deep(iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"]) {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  border-radius: 0.75rem;
+}
+</style>

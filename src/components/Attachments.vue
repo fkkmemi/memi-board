@@ -5,7 +5,7 @@ import { useMemiBoardStorage } from 'memi-board'
 
 const props = withDefaults(defineProps<{
   modelValue: Attachment[]
-  /** 새 글 작성 중이면 아직 slug가 없으므로 임시 네임스페이스를 넘긴다. */
+  /** 새 글 작성 중에도 미리 생성한 Firestore 자동 ID를 넘긴다. */
   postId: string
   editable?: boolean
   maxFiles?: number

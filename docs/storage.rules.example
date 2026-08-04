@@ -28,6 +28,7 @@ service firebase.storage {
       allow read: if true;
       // uploadBytesResumable → create + 청크 update 필요 (write)
       allow write: if isSignedIn()
+        && (!postExists(postId) || isPostOwner(postId) || isAdmin())
         && request.resource.size < 20 * 1024 * 1024;
       allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());
     }
@@ -38,6 +39,7 @@ service firebase.storage {
     match /memiBoard/posts/{postId}/images/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn()
+        && (!postExists(postId) || isPostOwner(postId) || isAdmin())
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg)');
       allow delete: if isSignedIn() && (!postExists(postId) || isPostOwner(postId) || isAdmin());

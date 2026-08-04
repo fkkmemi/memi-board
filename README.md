@@ -227,21 +227,21 @@ const router = useRouter()
 **List props:** `pageSize`, `category`, `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
 
 **Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)  
-본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="markdown"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
+본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
 **에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
 `{prefix}/posts/{postId}/images/*` + `.../images/thumbnails/*` (원본+썸네일).  
-본문 markdown 에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
+본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
 
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`
 
 ### 카테고리
 
-- 문서: `{prefix}Settings/config` → `categories: { id, label }[]`
-- 문서 없으면 UI는 기본(자유/공지/질문)으로 동작
-- **로그인 사용자**가 글쓰기 폼에서 카테고리 추가 가능 (`ensureSettings`로 문서 시드)
-- 관리자 전용 설정 UI는 없음 — 콘솔에서 배열 수정 가능
+- 문서: `{prefix}Settings/config/categories/{categoryId}` → `{ label, listView, order, updatedAt }`
+- 설정이 없으면 빈 목록이며 기본 카테고리를 자동 생성하지 않음
+- `MemiBoardSettings`에서 관리자가 카테고리별 저장·삭제·순서·리스트뷰 관리
+- `categoryId`는 문서 ID이자 게시글의 `category` 참조값이므로 생성 후 변경하지 않는 것을 권장
 
 ### 로그인 공급자
 

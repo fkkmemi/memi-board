@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.4.15",
+  "version": "0.5.0",
   "type": "module",
   "description": "Firebase 게시판 — core composable + thin Nuxt module(UI SFC). Nuxt 4 + Nuxt UI 호스트에 붙임",
   "license": "MIT",
@@ -101,6 +101,7 @@
     ]
   },
   "dependencies": {
-    "@nuxt/kit": "^4.5.1"
+    "@nuxt/kit": "^4.5.1",
+    "@tiptap/extension-youtube": "^3.29.2"
   }
 }

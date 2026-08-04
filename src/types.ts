@@ -26,8 +26,14 @@ export type ModerationStatus = 'approved'
 
 export interface PostModel {
   id?: string
+  /** 카테고리 내 URL 식별자. 최초 작성 시 생성되고 제목 수정 시에도 유지된다. */
+  slug: string
   title: string
   summary?: string
+  /** 목록 카드용 대표 이미지. 본문의 첫 이미지 또는 이미지 첨부파일. */
+  previewImage?: string
+  /** 영상 목록 카드용 URL. 현재 YouTube 임베드 또는 영상 첨부파일. */
+  videoUrl?: string
   tags?: string[]
   /** BoardCategory.id 참조. 미지정이면 '전체'로 취급. */
   category?: string
@@ -71,11 +77,12 @@ export interface BoardCategory {
   label: string
   /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
   listView?: BoardListView
+  /** 목록 노출 순서. 서브컬렉션 문서의 정렬 필드. */
+  order?: number
 }
 
-/** {prefix}Settings/config 문서. 관리자(role:'admin')만 생성/수정, 읽기는 전체 공개. */
+/** {prefix}Settings/config 메타 문서. 카테고리는 categories 서브컬렉션에 저장한다. */
 export interface BoardSettingsModel {
-  categories: BoardCategory[]
   updatedAt?: Timestamp
 }
 

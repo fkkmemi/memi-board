@@ -11,6 +11,16 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.5.0',
+    date: '2026-08-04',
+    highlights: [
+      '게시판마다 일반·이미지·영상 목록 화면을 선택할 수 있어요',
+      'YouTube 링크를 붙여넣으면 본문에 영상으로 표시돼요',
+      '게시글 아래에서 이전 글·목록·다음 글로 이동할 수 있어요',
+      '관리자가 카테고리를 각각 저장하고 관리할 수 있어요',
+    ],
+  },
+  {
     version: '0.4.15',
     date: '2026-08-03',
     highlights: ['설정 화면이 설치된 프로젝트에서 정상적으로 열리도록 고쳤어요'],

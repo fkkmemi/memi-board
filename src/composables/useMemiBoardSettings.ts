@@ -1,127 +1,99 @@
-import { computed, watch } from 'vue'
-import { useFirestore, useDocument } from 'vuefire'
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { computed } from 'vue'
+import { useCollection, useFirestore } from 'vuefire'
+import { collection, deleteDoc, doc, orderBy, query, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore'
 import { useMemiBoardConfig } from '../config'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import { slugify } from '../utils/slugify'
-import type { BoardCategory, BoardSettingsModel } from '../types'
+import type { BoardCategory } from '../types'
 
-/** 설정 문서가 없을 때 UI·시드에 쓰는 기본 카테고리. */
+/** 필요할 때 호스트가 명시적으로 사용할 수 있는 예시 카테고리. 자동 적용하지 않는다. */
 export const DEFAULT_CATEGORIES: BoardCategory[] = [
-  { id: 'free', label: '자유', listView: 'default' },
-  { id: 'notice', label: '공지', listView: 'default' },
-  { id: 'question', label: '질문', listView: 'default' },
+  { id: 'free', label: '자유', listView: 'default', order: 0 },
+  { id: 'notice', label: '공지', listView: 'default', order: 1 },
+  { id: 'question', label: '질문', listView: 'default', order: 2 },
 ]
 
-/**
- * 게시판 설정({prefix}Settings/config) — 카테고리 옵션 목록.
- *
- * - 읽기: 전체 공개 (useDocument 실시간)
- * - 문서 없음: DEFAULT 로 보여 주고, 로그인 사용자가 처음 쓰거나 추가할 때 시드 생성
- * - 카테고리 추가: 로그인 사용자 (글쓰기 폼에서 즉시 추가)
- */
+/** 게시판 카테고리 — `{prefix}Settings/config/categories/{categoryId}` 개별 문서. */
 export function useMemiBoardSettings() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
-  const { isSignedIn, isAdmin } = useMemiBoardAuth()
+  const { isSignedIn } = useMemiBoardAuth()
 
   const settingsRef = computed(() => doc(db, `${config.collectionPrefix}Settings`, 'config'))
-  const { data: settingsDoc, pending: settingsPending } = useDocument<BoardSettingsModel>(settingsRef)
-
-  const categories = computed<BoardCategory[]>(() => {
-    const list = settingsDoc.value?.categories
-    return list && list.length > 0 ? list : DEFAULT_CATEGORIES
-  })
+  const categoriesRef = computed(() =>
+    collection(db, `${config.collectionPrefix}Settings`, 'config', 'categories'),
+  )
+  const categoriesQuery = computed(() => query(categoriesRef.value, orderBy('order', 'asc')))
+  const { data: categoryDocs, pending: settingsPending } = useCollection<BoardCategory>(categoriesQuery)
+  const categories = computed<BoardCategory[]>(() => categoryDocs.value.map((item, index) => ({
+    ...item,
+    id: item.id,
+    order: typeof item.order === 'number' ? item.order : index,
+    listView: item.listView ?? 'default',
+  })))
 
   function categoryLabel(id: string | undefined): string | undefined {
     if (!id) return undefined
-    return categories.value.find(c => c.id === id)?.label ?? id
+    return categories.value.find(category => category.id === id)?.label ?? id
   }
 
+  async function saveCategory(category: BoardCategory, order = category.order ?? 0): Promise<void> {
+    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    const id = category.id.trim()
+    const label = category.label.trim()
+    if (!id || !label) throw new Error('카테고리 ID와 이름을 입력해 주세요.')
+    await setDoc(settingsRef.value, { updatedAt: serverTimestamp() }, { merge: true })
+    await setDoc(doc(categoriesRef.value, id), {
+      label,
+      listView: category.listView ?? 'default',
+      order,
+      updatedAt: serverTimestamp(),
+    }, { merge: true })
+  }
+
+  /** 호환용 일괄 저장. 각 카테고리는 독립 문서로 batch 저장한다. */
   async function saveCategories(next: BoardCategory[]): Promise<void> {
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
-    const normalized = next.map(category => ({
-      id: category.id.trim(),
-      label: category.label.trim(),
-      listView: category.listView ?? 'default',
-    }))
-    if (!normalized.length) throw new Error('카테고리를 하나 이상 만들어 주세요.')
-    if (normalized.some(category => !category.id || !category.label)) {
-      throw new Error('카테고리 이름을 모두 입력해 주세요.')
-    }
-    if (new Set(normalized.map(category => category.id)).size !== normalized.length) {
-      throw new Error('카테고리 ID가 중복되었습니다.')
-    }
-    await setDoc(settingsRef.value, {
-      categories: normalized,
-      updatedAt: serverTimestamp(),
+    const batch = writeBatch(db)
+    batch.set(settingsRef.value, { updatedAt: serverTimestamp() }, { merge: true })
+    next.forEach((category, order) => {
+      const id = category.id.trim()
+      const label = category.label.trim()
+      if (!id || !label) throw new Error('카테고리 ID와 이름을 입력해 주세요.')
+      batch.set(doc(categoriesRef.value, id), {
+        label,
+        listView: category.listView ?? 'default',
+        order,
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
     })
+    await batch.commit()
   }
 
-  /** 설정 문서가 없으면 기본 카테고리로 한 번 생성. 로그인 필요. */
+  async function deleteCategory(id: string): Promise<void> {
+    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    await deleteDoc(doc(categoriesRef.value, id))
+  }
+
   async function ensureSettings(): Promise<void> {
-    if (!isSignedIn.value) return
-    const ref = settingsRef.value
-    const snap = await getDoc(ref).catch(() => null)
-    if (!snap || snap.exists()) return
-    await setDoc(ref, {
-      categories: DEFAULT_CATEGORIES,
-      updatedAt: serverTimestamp(),
-    })
+    return Promise.resolve()
   }
 
-  /**
-   * 카테고리 추가. label 로 id(slug) 생성, 중복 id 면 접미사.
-   * @returns 추가된(또는 기존 동일 label 의) category id
-   */
   async function addCategory(label: string): Promise<string> {
     const trimmed = label.trim()
     if (!trimmed) throw new Error('카테고리 이름을 입력해 주세요.')
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
-
-    await ensureSettings()
-
-    const existing = categories.value.find(
-      c => c.label === trimmed || c.id === slugify(trimmed),
-    )
+    const existing = categories.value.find(category => category.label === trimmed)
     if (existing) return existing.id
 
-    let id = slugify(trimmed) || `cat-${Date.now()}`
-    const used = new Set(categories.value.map(c => c.id))
-    if (used.has(id)) {
-      let n = 2
-      while (used.has(`${id}-${n}`)) n++
-      id = `${id}-${n}`
-    }
-
-    const next: BoardCategory[] = [...categories.value, { id, label: trimmed, listView: 'default' }]
-    const ref = settingsRef.value
-    const snap = await getDoc(ref)
-    if (snap.exists()) {
-      await updateDoc(ref, {
-        categories: next,
-        updatedAt: serverTimestamp(),
-      })
-    }
-    else {
-      await setDoc(ref, {
-        categories: next,
-        updatedAt: serverTimestamp(),
-      })
-    }
+    const base = slugify(trimmed) || `cat-${Date.now()}`
+    let id = base
+    let suffix = 2
+    const used = new Set(categories.value.map(category => category.id))
+    while (used.has(id)) id = `${base}-${suffix++}`
+    await saveCategory({ id, label: trimmed, listView: 'default', order: categories.value.length })
     return id
   }
-
-  // 관리자 방문 시 문서 없으면 시드 (기존 동작 유지 + 로그인 일반 사용자 ensure 와 병행)
-  watch(
-    [isAdmin, isSignedIn, settingsPending],
-    async ([admin, signedIn, pending]) => {
-      if (pending || settingsDoc.value) return
-      if (!admin && !signedIn) return
-      await ensureSettings().catch(() => {})
-    },
-    { immediate: true },
-  )
 
   return {
     categories,
@@ -129,7 +101,9 @@ export function useMemiBoardSettings() {
     settingsPending,
     ensureSettings,
     addCategory,
+    saveCategory,
     saveCategories,
+    deleteCategory,
     DEFAULT_CATEGORIES,
   }
 }

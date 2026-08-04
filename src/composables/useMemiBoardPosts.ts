@@ -10,7 +10,9 @@ import {
   where,
   orderBy,
   limit as fbLimit,
+  limitToLast,
   startAfter,
+  endBefore,
   serverTimestamp,
   writeBatch,
   deleteField,
@@ -24,6 +26,7 @@ import { slugify } from '../utils/slugify'
 import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
 import { useMemiBoardConfig } from '../config'
+import { buildPostPreview } from '../utils/postPreview'
 import type { Attachment, PostDetail, PostModel } from '../types'
 
 async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
@@ -42,6 +45,8 @@ async function deleteStoragePaths(storage: ReturnType<typeof getStorage>, paths:
 }
 
 export interface CreatePostInput {
+  /** 작성 화면 진입 시 미리 만든 Firestore 자동 ID. Storage namespace와 동일하게 사용한다. */
+  postId?: string
   title: string
   content: string
   tags?: string[]
@@ -73,6 +78,11 @@ export function useMemiBoardPosts() {
   const postDoc = (id: string) => doc(db, `${prefix()}Posts`, id)
   const bodyDoc = (id: string) => doc(db, `${prefix()}Posts`, id, 'body', 'main')
   const commentsCol = (id: string) => collection(db, `${prefix()}Posts`, id, 'comments')
+
+  /** 문서를 쓰지 않고 Firestore 자동 ID만 미리 만든다. */
+  function createPostId(): string {
+    return doc(postsCol()).id
+  }
 
   async function getPosts(opts: {
     pageSize?: number
@@ -109,41 +119,89 @@ export function useMemiBoardPosts() {
     } as PostDetail
   }
 
+  /** 공개 URL의 category + slug로 내부 Firestore 문서를 찾는다. */
+  async function getPostBySlug(category: string, slug: string): Promise<PostDetail | null> {
+    const snapshot = await getDocs(query(
+      postsCol(),
+      where('category', '==', category),
+      where('slug', '==', slug),
+      fbLimit(1),
+    ))
+    const meta = snapshot.docs[0]
+    return meta ? getPost(meta.id) : null
+  }
+
+  /** 현재 카테고리의 최신순 목록을 기준으로 인접한 이전(오래된)·다음(최신) 글을 조회한다. */
+  async function getAdjacentPosts(current: PostModel): Promise<{
+    previous: PostModel | null
+    next: PostModel | null
+  }> {
+    if (!current.category || !current.createdAt) return { previous: null, next: null }
+    const base: QueryConstraint[] = [
+      where('category', '==', current.category),
+      orderBy('createdAt', 'desc'),
+    ]
+    const [previousSnapshot, nextSnapshot] = await Promise.all([
+      getDocs(query(postsCol(), ...base, startAfter(current.createdAt), fbLimit(1))),
+      getDocs(query(postsCol(), ...base, endBefore(current.createdAt), limitToLast(1))),
+    ])
+    const mapPost = (snapshot: typeof previousSnapshot): PostModel | null => {
+      const item = snapshot.docs[0]
+      return item ? ({ id: item.id, ...item.data() } as PostModel) : null
+    }
+    return {
+      previous: mapPost(previousSnapshot),
+      next: mapPost(nextSnapshot),
+    }
+  }
+
   async function createPost(input: CreatePostInput): Promise<string> {
     const baseSlug = slugify(input.title) || 'post'
     let slug = baseSlug
     let counter = 1
-    while ((await getDoc(postDoc(slug))).exists()) {
+    while (!(await getDocs(query(
+      postsCol(),
+      where('category', '==', input.category || ''),
+      where('slug', '==', slug),
+      fbLimit(1),
+    ))).empty) {
       counter++
       slug = `${baseSlug}-${counter}`
     }
+    const id = input.postId || createPostId()
 
-    await Promise.all([
-      setDoc(postDoc(slug), {
-        title: input.title,
-        tags: input.tags ?? [],
-        ...(input.category ? { category: input.category } : {}),
-        attachments: input.attachments ?? [],
-        commentCount: 0,
-        authorUid: input.authorUid,
-        authorName: input.authorName,
-        authorPhoto: input.authorPhoto,
-        moderationStatus: 'approved',
-        moderationModel: input.moderationModel ?? null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }),
-      setDoc(bodyDoc(slug), { content: input.content }),
-    ])
+    const preview = buildPostPreview(input.content, input.attachments)
+    await setDoc(postDoc(id), {
+      slug,
+      title: input.title,
+      ...preview,
+      tags: input.tags ?? [],
+      ...(input.category ? { category: input.category } : {}),
+      attachments: input.attachments ?? [],
+      commentCount: 0,
+      authorUid: input.authorUid,
+      authorName: input.authorName,
+      authorPhoto: input.authorPhoto,
+      moderationStatus: 'approved',
+      moderationModel: input.moderationModel ?? null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    // body 규칙이 부모 post 소유자를 조회하므로 부모 문서 생성 후 저장한다.
+    await setDoc(bodyDoc(id), { content: input.content })
 
     return slug
   }
 
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
     // 메타·본문을 같이 갱신. category 미선택 시 필드 제거(부분 갱신으로 예전 값이 남는 것 방지).
+    const preview = buildPostPreview(input.content, input.attachments)
     await Promise.all([
       updateDoc(postDoc(id), {
         title: input.title,
+        ...preview,
+        previewImage: preview.previewImage ? preview.previewImage : deleteField(),
+        videoUrl: preview.videoUrl ? preview.videoUrl : deleteField(),
         tags: input.tags ?? [],
         category: input.category ? input.category : deleteField(),
         attachments: input.attachments ?? [],
@@ -159,7 +217,7 @@ export function useMemiBoardPosts() {
    * 2) 댓글 전부
    * 3) 본문 body
    * 4) Storage: posts/{id}/** (images + attachments)
-   * 5) Storage: 임시 네임스페이스(new-*) 등 첨부·본문에 남은 경로
+   * 5) Storage: 게시글 자동 ID namespace의 첨부·본문 이미지 경로
    * 6) 메타 post 문서
    */
   async function deletePost(id: string): Promise<void> {
@@ -233,5 +291,14 @@ export function useMemiBoardPosts() {
     await deleteDoc(postDoc(id))
   }
 
-  return { getPosts, getPost, createPost, updatePost, deletePost }
+  return {
+    createPostId,
+    getPosts,
+    getPost,
+    getPostBySlug,
+    getAdjacentPosts,
+    createPost,
+    updatePost,
+    deletePost,
+  }
 }

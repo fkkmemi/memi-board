@@ -2,6 +2,26 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.5.0] - 2026-08-04
+
+### Added
+- 일반·이미지·영상 전용 리스트뷰 컴포넌트와 카테고리 설정 기반 자동 분기
+- 공식 TipTap YouTube 확장: 툴바 입력·URL 붙여넣기 자동 임베드·반응형 읽기 화면
+- 상세 하단 이전·목록·다음 탐색
+- 게시글 목록용 요약·대표 이미지·영상 URL 메타데이터
+- 카테고리 설정 패널별 저장·삭제·이동 및 해당 게시판 바로가기
+
+### Changed
+- Firestore 자동 ID를 게시글·Storage의 영구 내부 ID로 사용하고 공개 URL은 `category + slug`로 조회
+- 카테고리를 `{prefix}Settings/config/categories/{categoryId}` 개별 문서로 저장하고 `order`로 실시간 정렬
+- 상세 본문을 Nuxt UI Editor 읽기 전용 모드로 표시해 작성 화면과 문단 간격·서식을 통일
+- 고정 카테고리 작성·수정 UI와 상세 작성자·관리 버튼 배치 정리
+- 카테고리 기본값 자동 생성 및 프론트 fallback 제거
+
+### Fixed
+- 새 글 이미지·첨부파일이 `new-{timestamp}` 임시 폴더에 영구 잔류하던 구조
+- 제목 수정 시 내부 문서·Storage 식별자가 달라질 수 있던 구조
+
 ## [0.4.15] - 2026-08-03
 
 ### Fixed

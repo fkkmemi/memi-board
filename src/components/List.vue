@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, ref, watch } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useMemiBoardPosts } from 'memi-board'
 import { useMemiBoardSettings } from 'memi-board'
 import type { PostModel } from 'memi-board'
-import { formatDate } from 'memi-board'
+import MemiBoardListDefault from './ListDefault.vue'
+import MemiBoardListImage from './ListImage.vue'
+import MemiBoardListVideo from './ListVideo.vue'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
@@ -31,7 +32,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ select: [post: PostModel] }>()
 
 const { getPosts } = useMemiBoardPosts()
-const { categoryLabel } = useMemiBoardSettings()
+const { categories } = useMemiBoardSettings()
 
 const posts = ref<PostModel[]>([])
 const cursor = ref<QueryDocumentSnapshot<DocumentData> | undefined>(undefined)
@@ -39,6 +40,14 @@ const hasMore = ref(false)
 const loading = ref(false)
 const initialLoading = ref(true)
 const loadError = ref('')
+const listView = computed(() =>
+  categories.value.find(item => item.id === props.category)?.listView ?? 'default',
+)
+const listComponent = computed(() => ({
+  default: MemiBoardListDefault,
+  image: MemiBoardListImage,
+  video: MemiBoardListVideo,
+})[listView.value])
 
 function postTo(post: PostModel): string | undefined {
   if (props.getPostLink) return props.getPostLink(post)
@@ -82,9 +91,6 @@ watch(
   { immediate: true },
 )
 
-function handleClick(post: PostModel) {
-  if (!postTo(post)) emit('select', post)
-}
 </script>
 
 <template>
@@ -112,48 +118,12 @@ function handleClick(post: PostModel) {
     </p>
 
     <component
-      :is="postTo(post) ? RouterLink : 'button'"
-      v-for="post in posts"
-      :key="post.id"
-      :to="postTo(post)"
-      class="text-left"
-      @click="handleClick(post)"
-    >
-      <UCard class="hover:bg-elevated/50 transition-colors">
-        <div class="flex items-center justify-between gap-4">
-          <div class="flex items-center gap-2 min-w-0">
-            <UBadge
-              v-if="post.category"
-              :label="categoryLabel(post.category)"
-              variant="subtle"
-              size="sm"
-            />
-            <h3 class="font-medium truncate">
-              {{ post.title }}
-            </h3>
-          </div>
-          <span class="text-xs text-muted shrink-0">{{ formatDate(post.createdAt) }}</span>
-        </div>
-        <div class="flex items-center gap-3 text-xs text-muted mt-2">
-          <span>{{ post.authorName ?? '익명' }}</span>
-          <span class="flex items-center gap-1">
-            <UIcon
-              name="i-lucide-message-circle"
-              class="size-3"
-            />{{ post.commentCount }}
-          </span>
-          <span
-            v-if="post.attachments?.length"
-            class="flex items-center gap-1"
-          >
-            <UIcon
-              name="i-lucide-paperclip"
-              class="size-3"
-            />{{ post.attachments.length }}
-          </span>
-        </div>
-      </UCard>
-    </component>
+      :is="listComponent"
+      v-else-if="posts.length"
+      :posts="posts"
+      :post-to="postTo"
+      @select="emit('select', $event)"
+    />
 
     <UButton
       v-if="hasMore"

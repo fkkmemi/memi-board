@@ -21,7 +21,7 @@ export function useMemiBoardStorage() {
   const app = useFirebaseApp()
   const prefix = () => config.collectionPrefix
 
-  /** postId는 아직 저장되지 않은 새 글이면 임시 id(예: 'new-<timestamp>')를 넘겨도 된다 — 경로 네임스페이스일 뿐이다. */
+  /** postId는 작성 화면 진입 시 미리 생성한 Firestore 자동 ID를 사용한다. */
   function uploadAttachment(
     file: File,
     postId: string,
