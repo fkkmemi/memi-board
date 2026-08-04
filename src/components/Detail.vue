@@ -6,7 +6,6 @@ import { formatDate, renderMarkdownToHtml } from 'memi-board'
 import { useMemiBoardPosts } from 'memi-board'
 import { useMemiBoardAuth } from 'memi-board'
 import { useMemiBoardSettings } from 'memi-board'
-import { useMemiBoardComments } from 'memi-board'
 import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
@@ -23,8 +22,6 @@ const emit = defineEmits<{
 const { getPost, getAdjacentPosts, deletePost } = useMemiBoardPosts()
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { categoryLabel } = useMemiBoardSettings()
-// post.commentCount는 상세 진입 시점의 스냅샷이라 새 댓글이 즉시 반영되지 않는다 — 실시간 댓글 목록 길이로 표시한다.
-const { comments } = useMemiBoardComments(props.postId)
 
 const post = ref<PostDetail | null>(null)
 const loading = ref(true)
@@ -188,7 +185,7 @@ const contentHtml = computed(() => {
       </div>
     </div>
 
-    <nav class="grid grid-cols-3 items-center border-y border-default py-3" aria-label="게시글 이동">
+    <nav class="grid grid-cols-3 items-center py-3" aria-label="게시글 이동">
       <UButton
         variant="ghost"
         color="neutral"
@@ -219,10 +216,10 @@ const contentHtml = computed(() => {
 
     <section class="flex flex-col gap-4 border-t border-default pt-4">
       <h2 class="text-sm font-medium text-muted">
-        댓글 {{ comments.length }}
+        댓글
       </h2>
-      <MemiBoardCommentForm :post-id="postId" />
       <MemiBoardCommentList :post-id="postId" />
+      <MemiBoardCommentForm :post-id="postId" />
     </section>
   </div>
 </template>

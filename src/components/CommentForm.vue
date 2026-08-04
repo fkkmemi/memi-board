@@ -7,7 +7,8 @@ import { useMemiBoardModeration } from 'memi-board'
 const props = defineProps<{ postId: string }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
-const { addComment } = useMemiBoardComments(props.postId)
+// 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
+const { addComment } = useMemiBoardComments(props.postId, { subscribe: false })
 const { checkText } = useMemiBoardModeration()
 
 const body = ref('')

@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.8.0',
+    date: '2026-08-04',
+    highlights: [
+      '최근 댓글 5개는 실시간으로 보고 이전 댓글은 5개씩 불러올 수 있어요',
+      '댓글 시간이 상대시간으로 표시되고 전체 시간은 툴팁으로 확인할 수 있어요',
+      '댓글 작성 영역을 대화 흐름의 맨 아래로 옮겼어요',
+    ],
+  },
+  {
     version: '0.7.0',
     date: '2026-08-04',
     highlights: [

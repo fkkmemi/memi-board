@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { formatDate } from 'memi-board'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useMemiBoardComments } from 'memi-board'
-import { useMemiBoardAuth } from 'memi-board'
+import MemiBoardCommentItem from './CommentItem.vue'
+import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 
 const props = defineProps<{ postId: string }>()
 
-const { comments, deleteComment } = useMemiBoardComments(props.postId)
-const { canDeleteComment } = useMemiBoardAuth()
+const { comments, commentsPending, hasMore, loadingMore, loadMore, deleteComment } = useMemiBoardComments(props.postId)
 
 const deletingId = ref<string | null>(null)
+const now = ref(Date.now())
+let relativeTimeTimer: ReturnType<typeof setInterval> | undefined
+
+onMounted(() => {
+  relativeTimeTimer = setInterval(() => { now.value = Date.now() }, 60_000)
+})
+onUnmounted(() => clearInterval(relativeTimeTimer))
 
 async function handleDelete(commentId: string) {
   if (!window.confirm('이 댓글을 삭제하시겠습니까?')) return
@@ -25,41 +31,38 @@ async function handleDelete(commentId: string) {
 
 <template>
   <div class="flex flex-col gap-3">
+    <div v-if="commentsPending" class="flex flex-col gap-3" aria-label="댓글을 불러오고 있습니다">
+      <MemiBoardCommentSkeleton v-for="index in 5" :key="`initial-${index}`" />
+    </div>
     <p
-      v-if="!comments.length"
+      v-else-if="!comments.length"
       class="text-sm text-muted"
     >
       아직 댓글이 없습니다.
     </p>
 
-    <div
+    <UButton
+      v-if="!commentsPending && hasMore"
+      label="이전 댓글 더보기"
+      icon="i-lucide-chevron-up"
+      color="neutral"
+      variant="soft"
+      block
+      :loading="loadingMore"
+      @click="loadMore"
+    />
+
+    <div v-if="loadingMore" class="flex flex-col gap-3" aria-label="이전 댓글을 불러오고 있습니다">
+      <MemiBoardCommentSkeleton v-for="index in 5" :key="`more-${index}`" />
+    </div>
+
+    <MemiBoardCommentItem
       v-for="comment in comments"
       :key="comment.id"
-      class="flex items-start gap-3"
-    >
-      <UAvatar
-        :src="comment.authorPhoto ?? undefined"
-        :alt="comment.authorName ?? '익명'"
-        size="sm"
-      />
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-2">
-          <span class="text-sm font-medium">{{ comment.authorName ?? '익명' }}</span>
-          <span class="text-xs text-muted">{{ formatDate(comment.createdAt) }}</span>
-        </div>
-        <p class="text-sm whitespace-pre-wrap break-words">
-          {{ comment.body }}
-        </p>
-      </div>
-      <UButton
-        v-if="canDeleteComment(comment)"
-        icon="i-lucide-trash-2"
-        size="xs"
-        variant="ghost"
-        color="error"
-        :loading="deletingId === comment.id"
-        @click="handleDelete(comment.id!)"
-      />
-    </div>
+      :comment="comment"
+      :now="now"
+      :deleting="deletingId === comment.id"
+      @delete="handleDelete"
+    />
   </div>
 </template>

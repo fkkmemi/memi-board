@@ -2,6 +2,21 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.8.0] - 2026-08-04
+
+### Added
+- 최근 댓글 5개 실시간 구독과 이전 댓글 5개 cursor 조회를 결합한 하이브리드 목록
+- Day.js 한국어 상대시간과 전체 날짜·시간 툴팁
+- 개별 댓글과 로딩 스켈레톤 컴포넌트
+
+### Changed
+- 댓글 작성 폼을 시간순 목록 아래로 이동
+- 이전 댓글 더보기와 5개 스켈레톤을 목록 상단에 배치
+- 일반 사용자의 댓글 batch가 부모 게시글 `commentCount`만 ±1 갱신할 수 있도록 규칙 예제 보완
+
+### Fixed
+- 일반 사용자의 댓글 작성·삭제 batch가 게시글 update 권한에서 거부되던 문제
+
 ## [0.7.0] - 2026-08-04
 
 ### Added

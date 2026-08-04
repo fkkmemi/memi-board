@@ -34,6 +34,14 @@ service cloud.firestore {
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
     }
+    function isCommentCountUpdate() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['commentCount'])
+        && request.resource.data.commentCount is int
+        && request.resource.data.commentCount >= 0
+        && (request.resource.data.commentCount == resource.data.get('commentCount', 0) + 1
+          || request.resource.data.commentCount == resource.data.get('commentCount', 0) - 1);
+    }
 
     match /memiBoardPosts/{postId} {
       allow read: if true;
@@ -45,7 +53,8 @@ service cloud.firestore {
         && canWriteCategory(request.resource.data.category);
 
       // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능
-      allow update, delete: if isOwner(resource) || isStaff();
+      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate();
+      allow delete: if isOwner(resource) || isStaff();
 
       match /body/{docId} {
         allow read: if true;

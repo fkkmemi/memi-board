@@ -236,6 +236,8 @@ const router = useRouter()
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`
 
+댓글 목록은 최근 5개만 VueFire 실시간 구독하고, 이전 댓글은 `더보기`마다 cursor 기반으로 5개씩 읽는다.
+
 ### 카테고리
 
 - 문서: `{prefix}Settings/config/categories/{categoryId}` → `{ label, listView, writeRole, order, updatedAt }`
