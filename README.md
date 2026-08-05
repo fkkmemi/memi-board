@@ -264,7 +264,9 @@ const router = useRouter()
 본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
 **에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
-`{prefix}/posts/{postId}/images/*` + `.../images/thumbnails/*` (원본+썸네일).  
+`{prefix}/posts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
+
+본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
 
 **composables:**  

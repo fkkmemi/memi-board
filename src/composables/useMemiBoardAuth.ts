@@ -44,6 +44,7 @@ export interface UseMemiBoardAuthReturn {
   signOut: () => Promise<void>
   canEdit: (post: Pick<PostModel, 'authorUid'>) => boolean
   canDelete: (post: Pick<PostModel, 'authorUid'>) => boolean
+  canEditComment: (comment: Pick<CommentModel, 'authorUid'>) => boolean
   canDeleteComment: (comment: Pick<CommentModel, 'authorUid'>) => boolean
   /** 콘텐츠 검열 차단 1회 기록 후 메시지 조각 반환 */
   recordContentModerationBlock: () => Promise<{
@@ -323,6 +324,10 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     return isSignedIn.value && (user.value?.uid === post.authorUid || canManageContent.value)
   }
 
+  function canEditComment(comment: Pick<CommentModel, 'authorUid'>) {
+    return isSignedIn.value && user.value?.uid === comment.authorUid
+  }
+
   function canDeleteComment(comment: Pick<CommentModel, 'authorUid'>) {
     return isSignedIn.value && (user.value?.uid === comment.authorUid || canManageContent.value)
   }
@@ -345,6 +350,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     signOut,
     canEdit,
     canDelete: canEdit,
+    canEditComment,
     canDeleteComment,
     recordContentModerationBlock,
     refreshBoardUser,

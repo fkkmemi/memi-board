@@ -8,6 +8,8 @@ const props = withDefaults(defineProps<{
   authorized?: boolean
   /** 카테고리 페이지 기본 경로. 기본 `/board` → `/board/{id}` */
   categoryBase?: string
+  /** 지정하면 해당 카테고리 하나만 편집하고 추가·삭제·순서·위험 영역을 숨긴다. */
+  categoryId?: string
   /** 호스트 서버에서 게시판 전체 데이터를 삭제하는 관리자 전용 작업. */
   deleteAll?: () => Promise<void>
 }>(), {
@@ -51,7 +53,8 @@ const deleteDone = ref(false)
 
 watch([categories, settingsPending], ([list, loading]) => {
   if (!loading && draft.value.length === 0) {
-    draft.value = list.map(category => ({
+    const visible = props.categoryId ? list.filter(category => category.id === props.categoryId) : list
+    draft.value = visible.map(category => ({
       ...category,
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
@@ -112,8 +115,9 @@ async function save(category: BoardCategory, index: number) {
   savedId.value = null
   savingId.value = category.id
   try {
-    await saveCategory(category, index)
-    category.order = index
+    const order = props.categoryId ? (category.order ?? index) : index
+    await saveCategory(category, order)
+    category.order = order
     savedId.value = category.id
     emit('saved', draft.value)
   }
@@ -155,6 +159,14 @@ async function runDeleteAll() {
     description="주소를 다시 확인해 주세요."
   />
   <div v-else class="flex flex-col gap-4">
+    <UAlert
+      v-if="categoryId && !draft.length"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-circle-help"
+      title="없는 게시판입니다"
+      description="게시판 주소를 다시 확인해 주세요."
+    />
     <details
       v-for="(category, index) in draft"
       :key="category.id"
@@ -199,7 +211,7 @@ async function runDeleteAll() {
           />
         </div>
         <div class="flex flex-wrap justify-between gap-2 border-t border-default pt-4">
-          <div class="flex gap-1">
+          <div v-if="!categoryId" class="flex gap-1">
             <UButton label="위로" icon="i-lucide-arrow-up" color="neutral" variant="outline" size="sm" :disabled="index === 0 || ordering" @click="moveCategory(index, -1)" />
             <UButton label="아래로" icon="i-lucide-arrow-down" color="neutral" variant="outline" size="sm" :disabled="index === draft.length - 1 || ordering" @click="moveCategory(index, 1)" />
           </div>
@@ -212,7 +224,7 @@ async function runDeleteAll() {
               size="sm"
               :to="categoryTo(category.id)"
             />
-            <UButton label="카테고리 삭제" icon="i-lucide-trash-2" color="error" variant="ghost" size="sm" @click="removeCategory(index)" />
+            <UButton v-if="!categoryId" label="카테고리 삭제" icon="i-lucide-trash-2" color="error" variant="ghost" size="sm" @click="removeCategory(index)" />
             <UButton
               label="저장"
               icon="i-lucide-save"
@@ -225,14 +237,14 @@ async function runDeleteAll() {
       </div>
     </details>
 
-    <div class="flex gap-2 border-t border-default pt-4">
+    <div v-if="!categoryId" class="flex gap-2 border-t border-default pt-4">
       <UInput v-model="newLabel" class="flex-1" placeholder="새 카테고리 이름" @keyup.enter="addCategory" />
       <UButton label="추가" icon="i-lucide-plus" color="neutral" variant="outline" @click="addCategory" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="savedId" color="success" variant="subtle" :description="`‘${draft.find(item => item.id === savedId)?.label}’ 카테고리를 저장했습니다.`" />
 
-    <section v-if="deleteAll" class="mt-4 flex flex-col gap-3 border-t border-error/40 pt-6">
+    <section v-if="deleteAll && !categoryId" class="mt-4 flex flex-col gap-3 border-t border-error/40 pt-6">
       <div>
         <h2 class="font-semibold text-error">위험 영역</h2>
         <p class="mt-1 text-sm text-muted">

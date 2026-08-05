@@ -15,7 +15,7 @@ import {
   useMemiBoardModeration,
   useMemiBoardSettings,
   useMemiBoardStorage,
-  EDITOR_IMAGE_MAX_BYTES,
+  EDITOR_IMAGE_SOURCE_MAX_BYTES,
 } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
 
@@ -76,8 +76,8 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
   if (!file.type.startsWith('image/')) {
     throw new Error('이미지 파일만 업로드할 수 있습니다.')
   }
-  if (file.size > EDITOR_IMAGE_MAX_BYTES) {
-    throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+  if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
+    throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
   }
   const entry = await uploadEditorImage(file, imageNamespace())
   uploadedEditorImages.value.push(entry)
@@ -507,7 +507,7 @@ async function handleSubmit() {
           name="i-lucide-loader-circle"
           class="size-3.5 animate-spin"
         />
-        이미지 업로드 중…
+        이미지 최적화 및 업로드 중…
       </p>
     </div>
 

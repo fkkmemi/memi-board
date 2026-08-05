@@ -15,6 +15,30 @@ import type { Attachment, EditorImageEntry } from '../types'
 
 /** 에디터 이미지 최대 크기 (바이트) */
 export const EDITOR_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+/** 휴대폰 원본 이미지 선택 허용 크기. 큰 이미지는 업로드 전에 최적화한다. */
+export const EDITOR_IMAGE_SOURCE_MAX_BYTES = 25 * 1024 * 1024
+
+async function optimizeEditorImage(file: File): Promise<{ blob: File | Blob, compressed: boolean }> {
+  if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
+    throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+  }
+  if (file.size <= EDITOR_IMAGE_MAX_BYTES) return { blob: file, compressed: false }
+
+  try {
+    let blob = await compressImage(file, { maxWidth: 2560, quality: 0.85 })
+    if (blob.size > EDITOR_IMAGE_MAX_BYTES) {
+      blob = await compressImage(file, { maxWidth: 2048, quality: 0.75 })
+    }
+    if (blob.size > EDITOR_IMAGE_MAX_BYTES) {
+      throw new Error('압축 후에도 이미지가 5MB를 초과합니다. 더 작은 이미지를 선택해 주세요.')
+    }
+    return { blob, compressed: true }
+  }
+  catch (cause) {
+    if (cause instanceof Error && cause.message.includes('압축 후에도')) throw cause
+    throw new Error('이 이미지 형식은 브라우저에서 최적화할 수 없습니다. JPG, PNG 또는 WebP로 변환해 주세요.')
+  }
+}
 
 export function useMemiBoardStorage() {
   const config = useMemiBoardConfig()
@@ -69,12 +93,10 @@ export function useMemiBoardStorage() {
     if (!file.type.startsWith('image/')) {
       throw new Error('이미지 파일만 업로드할 수 있습니다.')
     }
-    if (file.size > EDITOR_IMAGE_MAX_BYTES) {
-      throw new Error(`이미지는 ${EDITOR_IMAGE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
-    }
+    const optimized = await optimizeEditorImage(file)
 
     const storage = getStorage(app)
-    const ext = (file.name.split('.').pop() || file.type.split('/')[1] || 'png')
+    const ext = (optimized.compressed ? 'jpg' : (file.name.split('.').pop() || file.type.split('/')[1] || 'png'))
       .replace(/[^a-zA-Z0-9]/g, '')
       .slice(0, 8) || 'png'
     const safeName = safeFileName(file.name.replace(/\.[^.]+$/, '') || 'image', 40)
@@ -83,12 +105,12 @@ export function useMemiBoardStorage() {
 
     const originalPath = `${prefix()}/posts/${ns}/images/${baseName}.${ext}`
     const originalRef = storageRef(storage, originalPath)
-    await uploadBytes(originalRef, file, {
-      contentType: file.type || 'image/png',
+    await uploadBytes(originalRef, optimized.blob, {
+      contentType: optimized.blob.type || 'image/jpeg',
     })
     const originalUrl = await getDownloadURL(originalRef)
 
-    const thumbBlob = await compressImage(file, { maxWidth: 400, quality: 0.8 })
+    const thumbBlob = await compressImage(optimized.blob, { maxWidth: 400, quality: 0.8 })
     const thumbnailPath = `${prefix()}/posts/${ns}/images/thumbnails/${baseName}.jpg`
     const thumbRef = storageRef(storage, thumbnailPath)
     await uploadBytes(thumbRef, thumbBlob, { contentType: 'image/jpeg' })

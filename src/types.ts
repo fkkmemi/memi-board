@@ -64,6 +64,10 @@ export interface CommentModel {
   createdAt: Timestamp
   /** 기존 댓글에는 없을 수 있다. 댓글 수정 기능에서 갱신한다. */
   updatedAt?: Timestamp
+  /** 관리자·스태프의 블라인드 상태. 본문 데이터는 보존한다. */
+  isBlinded?: boolean
+  moderatedAt?: Timestamp
+  moderatedBy?: string
   /** 최상위 댓글은 null, 답글은 직접 답변 대상 댓글 ID. */
   parentId?: string | null
   /** 스레드의 최상위 댓글 ID. */

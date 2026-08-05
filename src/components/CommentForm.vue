@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useMemiBoardAuth } from 'memi-board/runtime'
-import { useMemiBoardComments } from 'memi-board/runtime'
+import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
 import { useMemiBoardModeration } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
@@ -67,6 +67,7 @@ async function handleSubmit() {
       v-model="body"
       :placeholder="parent ? `${parent.authorName || '사용자'}님에게 답글` : '댓글을 입력하세요'"
       :rows="2"
+      :maxlength="COMMENT_BODY_MAX_LENGTH"
     />
     <p
       v-if="isWriteRestricted && restrictedMessage"
@@ -75,6 +76,7 @@ async function handleSubmit() {
       {{ restrictedMessage }}
     </p>
     <div class="flex justify-between items-center">
+      <span class="text-xs text-dimmed">{{ body.length.toLocaleString() }} / {{ COMMENT_BODY_MAX_LENGTH.toLocaleString() }}</span>
       <p
         v-if="error"
         class="text-xs text-error"

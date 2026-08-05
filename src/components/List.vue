@@ -188,14 +188,6 @@ watch(
       @click="loadMore(false)"
     />
 
-    <button
-      type="button"
-      class="mx-auto mt-3 cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted"
-      @click="infoOpen = true"
-    >
-      powered by memi
-    </button>
-
     <UModal
       v-model:open="infoOpen"
       title="게시판 정보"

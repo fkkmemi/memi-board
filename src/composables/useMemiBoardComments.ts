@@ -14,6 +14,7 @@ import {
   query,
   serverTimestamp,
   startAfter,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
@@ -33,6 +34,16 @@ export interface AddReplyInput extends AddCommentInput {
 
 const COMMENT_PAGE_SIZE = 10
 const REPLY_PAGE_SIZE = 5
+export const COMMENT_BODY_MAX_LENGTH = 1_000
+
+function normalizedCommentBody(body: string): string {
+  const trimmed = body.trim()
+  if (!trimmed) throw new Error('댓글 내용을 입력해 주세요.')
+  if (trimmed.length > COMMENT_BODY_MAX_LENGTH) {
+    throw new Error(`댓글은 ${COMMENT_BODY_MAX_LENGTH.toLocaleString()}자까지 작성할 수 있습니다.`)
+  }
+  return trimmed
+}
 
 /** 10개씩 순차 조회한 뒤 마지막 페이지에서만 최신 1개를 실시간 구독한다. */
 export function useMemiBoardComments(
@@ -168,12 +179,13 @@ export function useMemiBoardComments(
   })
 
   async function addComment(input: AddCommentInput): Promise<void> {
+    const body = normalizedCommentBody(input.body)
     const batch = writeBatch(db)
     const p = prefix()
     const commentRef = doc(collection(db, `${p}Posts`, id.value, 'comments'))
     batch.set(commentRef, {
       postId: id.value,
-      body: input.body,
+      body,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
@@ -193,6 +205,7 @@ export function useMemiBoardComments(
   }
 
   async function addReply(input: AddReplyInput): Promise<void> {
+    const body = normalizedCommentBody(input.body)
     if (!input.parent.id) throw new Error('답글 대상 댓글을 찾을 수 없습니다.')
     const batch = writeBatch(db)
     const p = prefix()
@@ -206,7 +219,7 @@ export function useMemiBoardComments(
 
     batch.set(replyRef, {
       postId: id.value,
-      body: input.body,
+      body,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
@@ -244,6 +257,22 @@ export function useMemiBoardComments(
     liveComments.value = liveComments.value.filter(item => item.id !== comment.id)
   }
 
+  async function updateComment(commentId: string, body: string): Promise<void> {
+    const trimmed = normalizedCommentBody(body)
+    await updateDoc(doc(db, `${prefix()}Posts`, id.value, 'comments', commentId), {
+      body: trimmed,
+      updatedAt: serverTimestamp(),
+    })
+  }
+
+  async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {
+    await updateDoc(doc(db, `${prefix()}Posts`, id.value, 'comments', commentId), {
+      isBlinded,
+      moderatedAt: serverTimestamp(),
+      moderatedBy: moderatorUid,
+    })
+  }
+
   return {
     comments,
     commentsPending: computed(() => initialPending.value || legacyPending.value),
@@ -252,6 +281,8 @@ export function useMemiBoardComments(
     loadMore,
     addComment,
     addReply,
+    updateComment,
+    setCommentBlinded,
     deleteComment,
   }
 }

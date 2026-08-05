@@ -108,11 +108,29 @@ service cloud.firestore {
             && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
               || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
         }
+        function isCommentBodyUpdate() {
+          return isOwner(resource)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt'])
+            && request.resource.data.body is string
+            && request.resource.data.body.size() > 0
+            && request.resource.data.body.size() <= 1000
+            && request.resource.data.updatedAt == request.time;
+        }
+        function isCommentBlindUpdate() {
+          return isStaff()
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['isBlinded', 'moderatedAt', 'moderatedBy'])
+            && request.resource.data.isBlinded is bool
+            && request.resource.data.moderatedAt == request.time
+            && request.resource.data.moderatedBy == request.auth.uid;
+        }
 
         allow create: if isSignedIn()
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.postId == postId
           && request.resource.data.body is string
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 1000
           && request.resource.data.moderationStatus == 'approved'
           && (isLegacyTopLevelComment()
             || (request.resource.data.keys().hasAll([
@@ -126,8 +144,10 @@ service cloud.firestore {
           || isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId)))
           || isStaff();
 
-        // 댓글 본문 수정은 지원하지 않는다. 답글 batch의 replyCount ±1만 허용한다.
-        allow update: if isReplyCountUpdate();
+        // 작성자 본인만 본문과 수정시간을 변경할 수 있다.
+        // 관리자·스태프는 본문 대신 블라인드 상태만 변경할 수 있다.
+        // 답글 batch에서는 최상위 댓글의 replyCount ±1만 별도로 허용한다.
+        allow update: if isCommentBodyUpdate() || isCommentBlindUpdate() || isReplyCountUpdate();
       }
     }
 
@@ -158,15 +178,27 @@ service cloud.firestore {
           ));
     }
 
-    // 게시판 설정 + 카테고리 개별 문서 — 읽기 전체 공개, 쓰기는 관리자만.
+    // 게시판 설정 + 카테고리 개별 문서 — 읽기 전체 공개.
+    // 스태프는 기존 카테고리만 수정하고 생성·삭제는 관리자만 가능하다.
     match /memiBoardSettings/{docId} {
       allow read: if true;
-      allow create, update: if isAdmin()
+      allow create: if isAdmin()
         && request.resource.data.keys().hasOnly(['updatedAt']);
+      allow update: if (isAdmin()
+          && request.resource.data.keys().hasOnly(['updatedAt']))
+        || (isStaff()
+          && request.resource.data.keys().hasOnly(['updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
 
       match /categories/{categoryId} {
         allow read: if true;
-        allow create, update: if isAdmin()
+        allow create: if isAdmin()
+          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'order', 'updatedAt'])
+          && request.resource.data.label is string
+          && request.resource.data.listView in ['default', 'image', 'video']
+          && request.resource.data.writeRole in ['user', 'staff', 'admin']
+          && request.resource.data.order is number;
+        allow update: if isStaff()
           && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']

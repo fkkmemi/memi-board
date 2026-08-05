@@ -68,6 +68,7 @@ async function handleDelete(comment: CommentModel) {
   <article class="flex flex-col gap-3">
     <MemiBoardCommentItem
       :comment="root"
+      :post-id="postId"
       :now="now"
       :deleting="deletingId === root.id"
       @reply="startReply"
@@ -91,6 +92,7 @@ async function handleDelete(comment: CommentModel) {
         v-for="reply in replies"
         :key="reply.id"
         :comment="reply"
+        :post-id="postId"
         :now="now"
         :deleting="deletingId === reply.id"
         :class="(reply.depth ?? 1) >= 2 ? 'ml-4 sm:ml-8' : ''"
