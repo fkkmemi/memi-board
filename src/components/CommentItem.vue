@@ -4,7 +4,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ko'
 import type { CommentModel } from 'memi-board/runtime'
-import { useMemiBoardAuth } from 'memi-board/runtime'
+import { formatTimestampDetails, useMemiBoardAuth } from 'memi-board/runtime'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ko')
@@ -24,7 +24,7 @@ const { canDeleteComment } = useMemiBoardAuth()
 
 const date = computed(() => props.comment.createdAt?.toDate?.())
 const relativeDate = computed(() => date.value ? dayjs(date.value).from(dayjs(props.now)) : '방금 전')
-const fullDate = computed(() => date.value ? dayjs(date.value).format('YYYY년 M월 D일 HH:mm:ss') : '시간 확인 중')
+const timestampDetails = computed(() => formatTimestampDetails(props.comment.createdAt, props.comment.updatedAt).join('\n'))
 </script>
 
 <template>
@@ -37,7 +37,10 @@ const fullDate = computed(() => date.value ? dayjs(date.value).format('YYYY년 M
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">{{ comment.authorName ?? '익명' }}</span>
-        <UTooltip :text="fullDate">
+        <UTooltip
+          :text="timestampDetails"
+          :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+        >
           <time
             :datetime="date?.toISOString()"
             class="cursor-help text-xs text-muted"

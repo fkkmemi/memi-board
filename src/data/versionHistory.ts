@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.10.1',
+    date: '2026-08-05',
+    highlights: [
+      '게시글과 댓글의 시간을 몇 분 전처럼 한눈에 보기 쉽게 표시해요',
+      '시간에 마우스를 올리면 작성 시간과 실제 수정 시간을 정확히 확인할 수 있어요',
+      '작성 시간과 수정 시간이 같을 때는 날짜와 시간을 한 번만 간결하게 보여줘요',
+    ],
+  },
+  {
     version: '0.10.0',
     date: '2026-08-05',
     highlights: [

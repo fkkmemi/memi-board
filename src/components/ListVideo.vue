@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatDate } from 'memi-board/runtime'
+import { formatRelativeDate, formatTimestampDetails } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
+  now: number
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
@@ -37,7 +38,17 @@ function image(post: PostModel): string | undefined {
         <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
         <div class="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
           <span class="truncate">{{ post.authorName ?? '익명' }}</span>
-          <span class="shrink-0">{{ formatDate(post.createdAt) }}</span>
+          <UTooltip
+            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+          >
+            <time
+              :datetime="post.createdAt?.toDate?.().toISOString()"
+              class="shrink-0 cursor-help"
+            >
+              {{ formatRelativeDate(post.createdAt, now) }}
+            </time>
+          </UTooltip>
         </div>
       </div>
     </component>

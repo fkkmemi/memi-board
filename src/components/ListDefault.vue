@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatDate, useMemiBoardSettings } from 'memi-board/runtime'
+import { formatRelativeDate, formatTimestampDetails, useMemiBoardSettings } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
+  now: number
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
@@ -28,7 +29,17 @@ const NuxtLink = resolveComponent('NuxtLink')
             <UBadge v-if="post.category" :label="categoryLabel(post.category)" variant="subtle" size="sm" />
             <h3 class="font-medium truncate">{{ post.title }}</h3>
           </div>
-          <span class="text-xs text-muted shrink-0">{{ formatDate(post.createdAt) }}</span>
+          <UTooltip
+            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+          >
+            <time
+              :datetime="post.createdAt?.toDate?.().toISOString()"
+              class="shrink-0 cursor-help text-xs text-muted"
+            >
+              {{ formatRelativeDate(post.createdAt, now) }}
+            </time>
+          </UTooltip>
         </div>
         <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
         <div class="flex items-center gap-3 text-xs text-muted mt-2">

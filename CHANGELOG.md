@@ -2,6 +2,20 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.10.1] - 2026-08-05
+
+### Added
+- 게시글 목록·상세·댓글의 작성 시각을 Day.js 한국어 상대시간으로 표시하고 1분마다 갱신
+- 댓글 모델에 향후 수정 기능을 위한 선택적 `updatedAt` 필드 추가, 새 댓글·답글 생성 시 초기값 저장
+- 생성·수정 시각이 다를 때 두 시간을 구분해 보여주는 공통 `formatTimestampDetails` 런타임 유틸
+
+### Changed
+- 게시글 목록·상세·댓글 시간 툴팁을 동일한 Nuxt UI 기본 툴팁 표현으로 통일
+- 생성·수정 시각이 같거나 기존 데이터에 수정 시각이 없으면 전체 날짜·시간 하나만 표시
+
+### Fixed
+- 여러 줄 시간 툴팁이 Nuxt UI 기본 고정 높이를 벗어나 테두리 밖으로 넘치던 문제
+
 ## [0.10.0] - 2026-08-05
 
 ### Added

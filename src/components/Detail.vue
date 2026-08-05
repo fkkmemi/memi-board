@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostDetail, PostModel } from 'memi-board/runtime'
-import { formatDate, renderMarkdownToHtml } from 'memi-board/runtime'
+import { formatRelativeDate, formatTimestampDetails, renderMarkdownToHtml } from 'memi-board/runtime'
 import { useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -29,6 +29,8 @@ const deleting = ref(false)
 const notFound = ref(false)
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
 const viewerExtensions = [
   Youtube.configure({
     nocookie: true,
@@ -58,7 +60,13 @@ async function load() {
   loading.value = false
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  clock = setInterval(() => { now.value = Date.now() }, 60_000)
+})
+onBeforeUnmount(() => {
+  if (clock) clearInterval(clock)
+})
 watch(() => props.postId, load)
 
 async function handleDelete() {
@@ -160,7 +168,17 @@ const contentHtml = computed(() => {
           size="xs"
         />
         <span>{{ post.authorName ?? '익명' }}</span>
-        <span>{{ formatDate(post.createdAt) }}</span>
+        <UTooltip
+          :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+          :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+        >
+          <time
+            :datetime="post.createdAt?.toDate?.().toISOString()"
+            class="cursor-help"
+          >
+            {{ formatRelativeDate(post.createdAt, now) }}
+          </time>
+        </UTooltip>
       </div>
       <div v-if="canEdit(post) || canDelete(post)" class="flex gap-2">
         <UButton

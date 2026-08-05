@@ -16,7 +16,7 @@ export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardU
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
 
-export { formatDate } from './utils/formatDate'
+export { formatDate, formatFullDate, formatRelativeDate, formatTimestampDetails } from './utils/formatDate'
 export { slugify } from './utils/slugify'
 export {
   DEFAULT_BLOCK_BAN_THRESHOLD,

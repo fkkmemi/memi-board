@@ -186,6 +186,7 @@ export function useMemiBoardComments(
       replyCount: 0,
       isReply: false,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
     batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(1) })
     await batch.commit()
@@ -218,6 +219,7 @@ export function useMemiBoardComments(
       replyCount: 0,
       isReply: true,
       createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     })
     batch.update(doc(commentsCol, rootId), { replyCount: increment(1) })
     batch.update(doc(db, `${p}Posts`, id.value), { commentCount: increment(1) })

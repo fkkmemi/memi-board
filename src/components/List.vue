@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -45,6 +45,8 @@ const initialLoading = ref(true)
 const loadError = ref('')
 const infoOpen = ref(false)
 const infoTab = ref<'about' | 'history'>('about')
+const now = ref(Date.now())
+let clock: ReturnType<typeof setInterval> | undefined
 const boardStacks = [
   {
     category: '프레임워크 & 언어',
@@ -82,6 +84,14 @@ const boardStacks = [
     ],
   },
 ]
+
+onMounted(() => {
+  clock = setInterval(() => { now.value = Date.now() }, 60_000)
+})
+
+onBeforeUnmount(() => {
+  if (clock) clearInterval(clock)
+})
 const listView = computed(() =>
   categories.value.find(item => item.id === props.category)?.listView ?? 'default',
 )
@@ -164,6 +174,7 @@ watch(
       v-else-if="posts.length"
       :posts="posts"
       :post-to="postTo"
+      :now="now"
       @select="emit('select', $event)"
     />
 
