@@ -27,7 +27,7 @@ cpSync(srcComponents, destComponents, { recursive: true })
 const moduleDts = resolve(root, 'dist/module.d.ts')
 writeFileSync(
   moduleDts,
-  `import type { NuxtModule } from '@nuxt/schema'\n\ndeclare const module: NuxtModule<Record<string, never>>\nexport default module\n`,
+  `import type { NuxtModule } from '@nuxt/schema'\nimport type { MemiBoardConfig } from './index.js'\n\ndeclare const module: NuxtModule<Partial<MemiBoardConfig>>\nexport default module\n`,
 )
 
 console.log('✓ build done')

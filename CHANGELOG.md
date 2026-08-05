@@ -2,6 +2,25 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.10.0] - 2026-08-05
+
+### Added
+- 패키지 루트 `memi-board`를 Nuxt 모듈 진입점으로 제공하고 런타임 API는 `memi-board/runtime`으로 분리
+- `nuxt.config.ts`의 `memiBoard` 옵션을 런타임 설정으로 자동 연결하는 Nuxt 플러그인 생성
+- 모듈이 필요한 Day.js 최적화와 Vue·Firebase·TipTap 의존성 중복 제거 설정을 자동 적용
+
+### Changed
+- 별도 `configureMemiBoard` 플러그인 없이 `nuxt.config.ts` 한 곳에서 게시판을 설치하고 설정하도록 단순화
+- 게시글 목록 이동을 NuxtLink 기반으로 통일해 SSR·CSR 환경에서 동일하게 동작
+- TipTap 핵심 패키지를 설치 프로젝트가 직접 버전에 맞춰 설치하지 않아도 되도록 패키지 내부 의존성으로 정리
+- README와 Firebase 설정 문서를 Nuxt 4 설치, 관리자 초기화, 로컬 링크 개발 흐름에 맞게 전면 개편
+
+### Fixed
+- 설치 프로젝트의 Day.js 중복 인스턴스로 상세 페이지 이동이 멈출 수 있던 문제
+
+### Compatibility
+- 기존 `memi-board/nuxt` 모듈 경로는 호환 별칭으로 유지
+
 ## [0.9.1] - 2026-08-04
 
 ### Fixed

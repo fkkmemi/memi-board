@@ -8,7 +8,7 @@
  */
 import { ref, computed, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
-import type { Attachment, EditorImageEntry } from 'memi-board'
+import type { Attachment, EditorImageEntry } from 'memi-board/runtime'
 import {
   useMemiBoardAuth,
   useMemiBoardPosts,
@@ -16,7 +16,7 @@ import {
   useMemiBoardSettings,
   useMemiBoardStorage,
   EDITOR_IMAGE_MAX_BYTES,
-} from 'memi-board'
+} from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
 
 const props = defineProps<{

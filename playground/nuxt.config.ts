@@ -10,16 +10,21 @@ export default defineNuxtConfig({
   // memi-board는 클라이언트 전용(Firebase Web SDK) — SSR 비활성화
   ssr: false,
 
-  // 호스트가 vuefire 설정. memi-board/nuxt 는 UI SFC 등록만.
+  // 호스트가 vuefire 설정. memi-board 모듈은 게시판 UI와 런타임 설정을 등록.
   modules: [
     '@nuxt/ui',
     'nuxt-vuefire',
     resolve(root, 'src/module.ts'),
   ],
 
-  // playground 가 패키지 루트를 memi-board 로 resolve
+  memiBoard: {
+    collectionPrefix: 'memiBoard',
+    auth: { providers: ['google', 'apple'] },
+  },
+
+  // playground 가 패키지 런타임 엔트리를 소스로 직접 resolve
   alias: {
-    'memi-board': resolve(root, 'src/index.ts'),
+    'memi-board/runtime': resolve(root, 'src/index.ts'),
   },
 
   css: ['~/assets/css/main.css'],

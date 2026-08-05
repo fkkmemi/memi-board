@@ -3,8 +3,8 @@ import { computed } from 'vue'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ko'
-import type { CommentModel } from 'memi-board'
-import { useMemiBoardAuth } from 'memi-board'
+import type { CommentModel } from 'memi-board/runtime'
+import { useMemiBoardAuth } from 'memi-board/runtime'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ko')

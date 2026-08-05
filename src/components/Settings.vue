@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { slugify, useMemiBoardAuth, useMemiBoardSettings } from 'memi-board'
-import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board'
+import { slugify, useMemiBoardAuth, useMemiBoardSettings } from 'memi-board/runtime'
+import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{
   /** 호스트 자체 관리자 권한도 허용할 때 true. Firebase rules 권한은 호스트가 별도로 맞춰야 한다. */

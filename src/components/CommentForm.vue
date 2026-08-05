@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useMemiBoardAuth } from 'memi-board'
-import { useMemiBoardComments } from 'memi-board'
-import { useMemiBoardModeration } from 'memi-board'
-import type { CommentModel } from 'memi-board'
+import { useMemiBoardAuth } from 'memi-board/runtime'
+import { useMemiBoardComments } from 'memi-board/runtime'
+import { useMemiBoardModeration } from 'memi-board/runtime'
+import type { CommentModel } from 'memi-board/runtime'
 
 const props = defineProps<{ postId: string, parent?: CommentModel | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()

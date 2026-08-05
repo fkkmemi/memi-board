@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
-import { useMemiBoardComments } from 'memi-board'
+import { useMemiBoardComments } from 'memi-board/runtime'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 

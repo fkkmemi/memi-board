@@ -1,8 +1,8 @@
 {
   "name": "memi-board",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "type": "module",
-  "description": "Firebase 게시판 — core composable + thin Nuxt module(UI SFC). Nuxt 4 + Nuxt UI 호스트에 붙임",
+  "description": "Nuxt 4 + Nuxt UI + VueFire/Firebase 전용 게시판 모듈",
   "license": "MIT",
   "author": "fkkmemi",
   "repository": {
@@ -14,7 +14,6 @@
   },
   "homepage": "https://github.com/fkkmemi/memi-board#readme",
   "keywords": [
-    "vue",
     "nuxt",
     "firebase",
     "firestore",
@@ -31,6 +30,10 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/module.d.ts",
+      "import": "./dist/module.mjs"
+    },
+    "./runtime": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
@@ -39,8 +42,8 @@
       "import": "./dist/module.mjs"
     }
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/module.mjs",
+  "types": "./dist/module.d.ts",
   "files": [
     "dist",
     "docs"
@@ -56,28 +59,11 @@
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",
-    "@tiptap/core": ">=2.0.0",
-    "@tiptap/pm": ">=2.0.0",
     "dayjs": "^1.11.0",
     "firebase": "^12.0.0",
-    "nuxt": ">=3.0.0 || >=4.0.0",
+    "nuxt": ">=4.0.0",
     "vue": "^3.5.0",
-    "vue-router": "^4.0.0 || ^5.0.0",
     "vuefire": "^3.2.3"
-  },
-  "peerDependenciesMeta": {
-    "nuxt": {
-      "optional": true
-    },
-    "@nuxt/ui": {
-      "optional": true
-    },
-    "@tiptap/core": {
-      "optional": true
-    },
-    "@tiptap/pm": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@nuxt/ui": "^4.9.0",
@@ -104,6 +90,6 @@
   },
   "dependencies": {
     "@nuxt/kit": "^4.5.1",
-    "@tiptap/extension-youtube": "3.28.0"
+    "@tiptap/extension-youtube": "^3.29.2"
   }
 }

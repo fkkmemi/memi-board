@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
-import { useMemiBoardPosts } from 'memi-board'
-import { useMemiBoardSettings } from 'memi-board'
-import type { PostModel } from 'memi-board'
+import { useMemiBoardPosts } from 'memi-board/runtime'
+import { useMemiBoardSettings } from 'memi-board/runtime'
+import type { PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListImage from './ListImage.vue'
 import MemiBoardListVideo from './ListVideo.vue'

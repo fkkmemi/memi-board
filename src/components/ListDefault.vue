@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import type { PostModel } from 'memi-board'
-import { formatDate, useMemiBoardSettings } from 'memi-board'
+import { resolveComponent } from 'vue'
+import type { PostModel } from 'memi-board/runtime'
+import { formatDate, useMemiBoardSettings } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
@@ -9,12 +9,13 @@ defineProps<{
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
+const NuxtLink = resolveComponent('NuxtLink')
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
     <component
-      :is="postTo(post) ? RouterLink : 'button'"
+      :is="postTo(post) ? NuxtLink : 'button'"
       v-for="post in posts"
       :key="post.id"
       :to="postTo(post)"

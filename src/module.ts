@@ -4,31 +4,34 @@ import {
   createResolver,
   addComponentsDir,
   addImports,
+  addPlugin,
+  addTemplate,
 } from '@nuxt/kit'
 import { existsSync } from 'node:fs'
 import type { NuxtModule } from '@nuxt/schema'
+import type { MemiBoardConfig } from './config'
 
-interface MemiBoardModuleOptions {}
+type MemiBoardModuleOptions = Partial<MemiBoardConfig>
 
 /**
- * Thin Nuxt module — 호스트 Vite 파이프라인에 컴포넌트 SFC 만 올린다.
+ * Nuxt 전용 모듈 — 호스트 Vite 파이프라인에 게시판 SFC와 필수 설정을 올린다.
  *
  * 하지 않는 일:
  * - nuxt-vuefire / Firebase 설정
  * - 라우트·미들웨어 등록
- * - configureMemiBoard (호스트 플러그인에서 호출)
  *
  * 하는 일:
  * - components 디렉터리 등록 → 호스트가 SFC 컴파일 → Nuxt UI auto-import 정상 동작
  * - composable / configure 를 auto-import
- * - transpile + optimizeDeps.exclude 로 prebundle 재발 방지
+ * - memiBoard 옵션을 런타임 플러그인으로 전달해 configureMemiBoard 자동 호출
+ * - transpile + optimizeDeps 설정으로 linked package와 CommonJS 의존성 정규화
  */
 const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<MemiBoardModuleOptions>({
   meta: {
     name: 'memi-board',
     configKey: 'memiBoard',
   },
-  setup(_options, nuxt) {
+  setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url)
 
     // 우선순위:
@@ -56,6 +59,9 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       'vue-router',
       'vuefire',
       'firebase',
+      '@tiptap/core',
+      '@tiptap/pm',
+      '@tiptap/vue-3',
     ])
     nuxt.options.vite.resolve.dedupe = [...dedupe]
 
@@ -64,6 +70,16 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
     exclude.add('memi-board')
     nuxt.options.vite.optimizeDeps.exclude = [...exclude]
 
+    // CommentItem 이 사용하는 dayjs(CommonJS)를 개발 서버에서도 ESM 형태로
+    // 사전 번들링한다. 호스트가 같은 설정을 별도로 작성할 필요가 없다.
+    const include = new Set([
+      ...(nuxt.options.vite.optimizeDeps.include || []),
+      'dayjs',
+      'dayjs/plugin/relativeTime',
+      'dayjs/locale/ko',
+    ])
+    nuxt.options.vite.optimizeDeps.include = [...include]
+
     addComponentsDir({
       path: componentsDir,
       pathPrefix: false,
@@ -71,7 +87,7 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       // List.vue → MemiBoardList
     })
 
-    const from = 'memi-board'
+    const from = 'memi-board/runtime'
     addImports([
       { name: 'configureMemiBoard', from },
       { name: 'useMemiBoardConfig', from },
@@ -84,6 +100,19 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'useMemiBoardUsers', from },
       { name: 'versionHistory', from },
     ])
+
+    const runtimeConfig = JSON.stringify(options).replace(/</g, '\\u003c')
+    const configPlugin = addTemplate({
+      filename: 'memi-board.config.mjs',
+      getContents: () => `
+import { configureMemiBoard } from 'memi-board/runtime'
+
+export default defineNuxtPlugin(() => {
+  configureMemiBoard(${runtimeConfig})
+})
+`,
+    })
+    addPlugin(configPlugin.dst)
   },
 })
 

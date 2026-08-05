@@ -1,4 +1,4 @@
-/** Core API — composables / config / types only. UI SFC 는 memi-board/nuxt 모듈이 등록. */
+/** Runtime API — composables / config / types only. UI SFC는 루트 Nuxt 모듈이 등록. */
 
 export { configureMemiBoard, useMemiBoardConfig } from './config'
 export type { MemiBoardConfig, MemiBoardAuthOptions, MemiBoardModerationOptions } from './config'

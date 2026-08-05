@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router'
-import type { PostModel } from 'memi-board'
-import { formatDate } from 'memi-board'
+import { resolveComponent } from 'vue'
+import type { PostModel } from 'memi-board/runtime'
+import { formatDate } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
+const NuxtLink = resolveComponent('NuxtLink')
 
 function image(post: PostModel): string | undefined {
   return post.previewImage || post.attachments?.find(item => item.type.startsWith('image/'))?.url
@@ -17,7 +18,7 @@ function image(post: PostModel): string | undefined {
 <template>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
     <component
-      :is="postTo(post) ? RouterLink : 'button'"
+      :is="postTo(post) ? NuxtLink : 'button'"
       v-for="post in posts"
       :key="post.id"
       :to="postTo(post)"

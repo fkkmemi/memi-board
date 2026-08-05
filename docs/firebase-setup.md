@@ -78,7 +78,7 @@ Google보다 손이 더 간다:
 
 1. Firebase 콘솔 → **AI Logic** 에서 활성화하고, **Gemini Developer API** 를 사용하도록 설정한다.
 2. **요금제**: Spark에서도 되는 경우가 있으나 제한·쿼터가 있을 수 있다. 부족하면 Blaze.
-3. 모델: 호스트 `configureMemiBoard({ moderation: { model: 'gemini-3.5-flash-lite' } })` 권장.  
+3. 모델: 호스트 `nuxt.config.ts`의 `memiBoard.moderation.model`에 `gemini-3.5-flash-lite` 권장.
    `gemini-2.5-flash` 는 **신규 프로젝트에서 "no longer available to new users"** 로 404 날 수 있다.
 4. `moderation.enabled` 기본이 `true` 이므로 활성화 후 글쓰기 시 자동 호출된다. 끄려면 `enabled: false`.
 

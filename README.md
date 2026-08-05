@@ -14,7 +14,7 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 **클라이언트 전용 게시판**
 
 | 항목 | 요구 |
 |------|------|
-| 런타임 | Nuxt **4+** (3.x peer 는 허용하나 playground/검증은 4 기준) |
+| 런타임 | Nuxt **4+** |
 | UI | `@nuxt/ui` **4+** (컴포넌트가 `UButton` 등 auto-import 전제) |
 | 데이터 | Firebase **Firestore + Auth + Storage** |
 | Vue | `vue` 3.5+, `vuefire` 3.2+, `firebase` 12+ |
@@ -22,21 +22,20 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 **클라이언트 전용 게시판**
 
 **의도적으로 하지 않는 일:** Firebase 초기화, 라우트/미들웨어 등록, App Check 초기화, 서버 검열.
 
-## 구조 (0.4+)
+## 구조
 
 | 엔트리 | 역할 |
 |--------|------|
-| `memi-board` | **core** — `configureMemiBoard`, composables, types (**Vue 컴포넌트 export 없음**) |
-| `memi-board/nuxt` | **thin Nuxt 모듈** — SFC를 호스트 Vite에 등록 → `MemiBoardList` 등 auto-import |
+| `memi-board` | **Nuxt 모듈** — 설정, SFC auto-import, peer dedupe, `dayjs` 개발 서버 최적화 |
+| `memi-board/runtime` | composables, types, 유틸리티 (**Vue 컴포넌트 export 없음**) |
 
-런타임 설정은 모듈 options가 아니라 호스트 플러그인의 `configureMemiBoard()` 한곳.
+일반 사용자는 `nuxt.config.ts`의 `memiBoard`만 설정한다. 별도 Nuxt 플러그인은 필요 없다.
 
 ```
 호스트 Nuxt 앱
 ├── nuxt-vuefire + firebaseConfig     ← 인증·Firestore
 ├── (선택) App Check 플러그인         ← AI Logic Enforce 시 필수에 가까움
-├── memi-board/nuxt                   ← UI 등록
-├── plugins/memi-board.ts             ← configureMemiBoard
+├── memi-board                        ← Nuxt 모듈 + 런타임 설정
 ├── pages/board/*                     ← 라우트는 호스트 소유
 └── firestore.rules + storage.rules   ← docs 예시 병합 후 배포
 ```
@@ -46,10 +45,10 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 **클라이언트 전용 게시판**
 **사전 준비:** Node + pnpm, Firebase 프로젝트(Firestore·Storage·Auth). 처음부터면 → [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ```bash
-pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase
+pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs
 ```
 
-`vuefire` / `firebase` / `nuxt-vuefire` 는 **호스트에 직접 설치** — peer 이중 인스턴스가 나면 인증·Firestore가 깨진다.
+`vuefire` / `firebase` / `nuxt-vuefire` / `dayjs`는 **호스트에 직접 설치**한다. TipTap은 `@nuxt/ui`와 `memi-board`가 관리하므로 호스트에서 별도로 설치하거나 버전을 맞출 필요가 없다.
 
 ### 1. modules + vuefire
 
@@ -59,8 +58,21 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/ui',
     'nuxt-vuefire',
-    'memi-board/nuxt',
+    'memi-board',
   ],
+  memiBoard: {
+    // Firestore: {prefix}Posts, {prefix}Users, {prefix}Settings
+    collectionPrefix: 'board',
+    auth: { providers: ['google', 'apple'] }, // + 'emailPassword'
+    moderation: {
+      enabled: true,
+      model: 'gemini-3.5-flash-lite',
+      onError: 'block', // 'allow' | 'block'
+      moderateImages: false,
+      useLimitedUseAppCheckTokens: false,
+      // localBlocklist: ['금칙어'],
+    },
+  },
   vuefire: {
     // 콘솔 → 프로젝트 설정 → 내 앱 → 웹 앱 SDK snippet 과 동일해야 함
     // (appId 가 다른 웹 앱이면 App Check / AI Logic 이 실패한다)
@@ -74,33 +86,18 @@ export default defineNuxtConfig({
     },
     auth: { enabled: true },
   },
+  routeRules: {
+    // 게시판은 Firebase Auth/Firestore를 사용하는 클라이언트 전용 화면이다.
+    '/board/**': { ssr: false },
+    '/board-settings': { ssr: false },
+    '/board-users': { ssr: false },
+  },
 })
 ```
 
-### 2. configureMemiBoard
+`memiBoard` 옵션은 Nuxt 모듈이 런타임 플러그인으로 자동 전달한다. `app/plugins/memi-board.ts`를 만들지 않는다.
 
-```ts
-// app/plugins/memi-board.ts
-import { configureMemiBoard } from 'memi-board'
-
-export default defineNuxtPlugin(() => {
-  configureMemiBoard({
-    // Firestore: {prefix}Posts, {prefix}Users, {prefix}Settings
-    collectionPrefix: 'board',
-    auth: { providers: ['google', 'apple'] }, // + 'emailPassword'
-    moderation: {
-      enabled: true,
-      model: 'gemini-3.5-flash-lite', // 권장. 2.5-flash 는 신규 프로젝트에서 미제공일 수 있음
-      onError: 'block', // 'allow' | 'block' — AI 실패 시 저장 허용/거부 (기본 allow)
-      moderateImages: false,
-      useLimitedUseAppCheckTokens: false, // App Check 세션 토큰으로도 가능
-      // localBlocklist: ['금칙어'],
-    },
-  })
-})
-```
-
-### 3. Tailwind `@source` (필수)
+### 2. Tailwind `@source` (필수)
 
 패키지 SFC 안의 클래스가 purge되지 않도록:
 
@@ -111,7 +108,7 @@ export default defineNuxtPlugin(() => {
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 4. Security Rules + 인덱스 배포
+### 3. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
    (`memiBoard*` 이름을 쓰는 `collectionPrefix`에 맞게 치환)
@@ -145,15 +142,29 @@ export default defineNuxtPlugin(() => {
 
 > ⚠️ npm 패키지 tarball에도 `docs/` 가 포함된다(0.4.7+). 구버전이면 GitHub의 `docs/`를 보면 된다.
 
+### 4. 최초 관리자와 카테고리 만들기
+
+Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
+
+1. 아래 게시판 페이지를 만든 뒤 Google 또는 Apple로 로그인한다.
+2. Firebase Console → Firestore에서 `{prefix}Users/{uid}` 문서를 찾는다.
+3. 해당 문서의 `role`을 문자열 `admin`으로 변경한다.
+   - `collectionPrefix: 'board'`라면 `boardUsers/{uid}`
+   - UID는 Firebase Console → Authentication → Users에서도 확인할 수 있다.
+4. `/board-settings`에서 첫 카테고리를 만든다. 카테고리가 없으면 글을 작성할 수 없다.
+5. 이후 역할 변경은 `/board-users`의 `MemiBoardUsers`에서 처리한다.
+
+> 최초 관리자 지정은 신뢰할 수 있는 프로젝트 운영자가 Firebase Console에서만 수행한다. 클라이언트 코드에 관리자 UID나 우회 규칙을 넣지 않는다.
+
 ## 사용법
 
 라우팅·미들웨어는 **호스트 소유**. 컴포넌트는 모듈 auto-import (`MemiBoardList` 등).  
-`import { MemiBoardEditor } from 'memi-board'` 는 **안 된다** — core 엔트리는 composable/types 만 export.
+`import { MemiBoardEditor } from 'memi-board/runtime'`는 **안 된다**. 컴포넌트는 모듈이 auto-import하고, composable과 type만 `memi-board/runtime`에서 명시적으로 가져올 수 있다.
 
 ```vue
 <!-- app/pages/board/index.vue -->
 <script setup lang="ts">
-import { useMemiBoardAuth } from 'memi-board'
+import { useMemiBoardAuth } from 'memi-board/runtime'
 const { isSignedIn } = useMemiBoardAuth()
 </script>
 
@@ -205,7 +216,7 @@ export default defineNuxtRouteMiddleware(async () => {
 <script setup lang="ts">
 definePageMeta({ middleware: 'board-auth' })
 const router = useRouter()
-// MemiBoardEditor 는 auto-import (import from 'memi-board' 불필요)
+// MemiBoardEditor 는 auto-import (import from 'memi-board/runtime' 불필요)
 </script>
 
 <template>
@@ -218,6 +229,26 @@ const router = useRouter()
 ```
 
 전체 페이지 예시는 `playground/app/pages/board/` 참고.
+
+### 관리 페이지
+
+기본 Rules는 게시판의 `{prefix}Users/{uid}.role == 'admin'`을 검사한다. 컴포넌트도 같은 role을 확인하므로 기본 설치에서는 `authorized`를 전달하지 않는다.
+
+```vue
+<!-- app/pages/board-settings.vue -->
+<template>
+  <MemiBoardSettings />
+</template>
+```
+
+```vue
+<!-- app/pages/board-users.vue -->
+<template>
+  <MemiBoardUsers />
+</template>
+```
+
+호스트의 별도 사이트 관리자 체계를 연동할 때만 `authorized`를 사용할 수 있다. 이 prop은 UI 표시만 허용하며 Firestore Rules를 우회하지 않는다. 이 경우에도 해당 사용자를 게시판 admin으로 등록하거나 호스트 Rules를 같은 관리자 체계에 맞게 수정해야 한다. 관리 URL이 일반 사용자에게 노출되지 않도록 호스트 라우트 가드를 추가하는 것을 권장한다.
 
 ### 제공하는 API
 
@@ -323,13 +354,16 @@ export default defineNuxtPlugin(() => {
 ## 다른 프로젝트에 붙일 때 체크리스트
 
 - [ ] 동일 스택: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
-- [ ] `pnpm add memi-board` 및 peer 직접 설치
-- [ ] `modules`에 `memi-board/nuxt`
-- [ ] `configureMemiBoard` 플러그인 (`collectionPrefix` 충돌 없게)
+- [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs`
+- [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
+- [ ] 게시판·관리 경로에 `ssr: false`
+- [ ] `nuxt.config.ts`의 `memiBoard` 설정 (`collectionPrefix` 충돌 없게)
 - [ ] CSS `@source` …/memi-board/dist/runtime/components
 - [ ] Rules 예시 병합 + **deploy**
 - [ ] 카테고리 필터 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
+- [ ] 최초 로그인 후 Firebase Console에서 `{prefix}Users/{uid}.role = 'admin'`
+- [ ] 설정 페이지에서 첫 카테고리 생성
 - [ ] (검열) AI Logic 활성화 + 권장 모델 + App Check
 - [ ] `pnpm why vuefire` 로 이중 인스턴스 없는지 확인
 
@@ -351,7 +385,25 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 
 ### monorepo `link:` / `file:` 로 개발할 때
 
-패키지 쪽 `node_modules`의 vuefire가 잡히면 이중 인스턴스. 호스트에서 `vite.resolve.dedupe` + 필요 시 alias/optimizeDeps. 배포 전에는 **npm 버전**으로 설치하는 것을 권장.
+링크하기 전에 패키지 의존성과 `dist`를 준비한다.
+
+```bash
+# memi-board 저장소
+pnpm install
+pnpm build
+
+# 호스트 저장소
+pnpm add link:../memi-board
+```
+
+`src/components` 수정은 Nuxt 모듈이 링크 소스를 직접 읽으므로 즉시 반영된다. `src/module.ts` 또는 core composable을 수정하면 `pnpm build`를 다시 실행하고 호스트 개발 서버를 재시작한다. 모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe와 `dayjs` 최적화를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
+
+링크 상태에서 새 Tailwind 클래스를 바로 시험하려면 호스트 CSS에 소스 경로를 하나 더 둔다.
+
+```css
+@source "../../../node_modules/memi-board/src/components";
+@source "../../../node_modules/memi-board/dist/runtime/components";
+```
 
 ## 로컬 개발 (이 리포)
 
