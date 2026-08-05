@@ -42,6 +42,16 @@ service cloud.firestore {
         && (request.resource.data.commentCount == resource.data.get('commentCount', 0) + 1
           || request.resource.data.commentCount == resource.data.get('commentCount', 0) - 1);
     }
+    // commentCount와 동일한 신뢰 수준(클라이언트 편의 카운터, 보안 판단에 안 씀).
+    // 실제 좋아요 여부·중복 방지는 likes/{uid} 서브컬렉션 규칙(문서당 1인 1개, create만 허용)이 담당한다.
+    function isLikeCountUpdate() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+        && request.resource.data.likeCount is int
+        && request.resource.data.likeCount >= 0
+        && (request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
+          || request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1);
+    }
 
     match /memiBoardPosts/{postId} {
       allow read: if true;
@@ -53,12 +63,24 @@ service cloud.firestore {
         && canWriteCategory(request.resource.data.category);
 
       // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능
-      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate();
+      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate() || isLikeCountUpdate();
       allow delete: if isOwner(resource) || isStaff();
 
       match /body/{docId} {
         allow read: if true;
         allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isStaff();
+      }
+
+      // 문서 ID = 좋아요 누른 uid. 존재 여부 자체가 "좋아요함"의 기준.
+      // update를 허용하지 않아, 이미 좋아요한 uid가 같은 문서에 다시 set()을 보내도
+      // (Firestore 관점에서 update로 분류되어) 규칙상 거부된다 — 중복 집계를 막는다.
+      match /likes/{uid} {
+        allow read: if true;
+        allow create: if isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+        allow delete: if isSignedIn() && request.auth.uid == uid;
       }
 
       match /comments/{commentId} {

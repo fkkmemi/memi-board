@@ -40,6 +40,8 @@ export interface PostModel {
   attachments?: Attachment[]
   /** 클라이언트 batch로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. */
   commentCount: number
+  /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. 실제 좋아요 여부는 likes/{uid} 서브컬렉션이 기준. */
+  likeCount: number
   authorUid: string
   authorName: string | null
   authorPhoto: string | null

@@ -179,6 +179,7 @@ export function useMemiBoardPosts() {
       ...(input.category ? { category: input.category } : {}),
       attachments: input.attachments ?? [],
       commentCount: 0,
+      likeCount: 0,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,

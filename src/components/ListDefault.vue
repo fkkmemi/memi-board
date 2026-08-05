@@ -44,6 +44,7 @@ const NuxtLink = resolveComponent('NuxtLink')
         <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
         <div class="flex items-center gap-3 text-xs text-muted mt-2">
           <span>{{ post.authorName ?? '익명' }}</span>
+          <span class="flex items-center gap-1"><UIcon name="i-lucide-heart" class="size-3" />{{ post.likeCount ?? 0 }}</span>
           <span class="flex items-center gap-1"><UIcon name="i-lucide-message-circle" class="size-3" />{{ post.commentCount }}</span>
           <span v-if="post.attachments?.length" class="flex items-center gap-1"><UIcon name="i-lucide-paperclip" class="size-3" />{{ post.attachments.length }}</span>
         </div>

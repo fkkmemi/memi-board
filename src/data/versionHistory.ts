@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.11.0',
+    date: '2026-08-05',
+    highlights: [
+      '게시글에 좋아요 버튼이 생겼어요',
+      '좋아요는 한 사람당 하나만 눌릴 수 있고, 아무리 많이 쌓여도 정확하게 집계돼요',
+      '게시글 목록에서도 좋아요 수를 바로 확인할 수 있어요',
+    ],
+  },
+  {
     version: '0.10.1',
     date: '2026-08-05',
     highlights: [

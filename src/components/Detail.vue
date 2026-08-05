@@ -9,6 +9,7 @@ import { useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
+import MemiBoardLikeButton from './LikeButton.vue'
 
 const props = defineProps<{ postId: string }>()
 
@@ -68,6 +69,11 @@ onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
 watch(() => props.postId, load)
+
+function handleLikeToggled(liked: boolean) {
+  if (!post.value) return
+  post.value.likeCount = (post.value.likeCount ?? 0) + (liked ? 1 : -1)
+}
 
 async function handleDelete() {
   if (!post.value) return
@@ -201,6 +207,14 @@ const contentHtml = computed(() => {
           @click="handleDelete"
         />
       </div>
+    </div>
+
+    <div class="flex justify-center">
+      <MemiBoardLikeButton
+        :post-id="postId"
+        :like-count="post.likeCount ?? 0"
+        @toggled="handleLikeToggled"
+      />
     </div>
 
     <nav class="grid grid-cols-3 items-center py-3" aria-label="게시글 이동">

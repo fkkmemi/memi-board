@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.11.0] - 2026-08-05
+
+### Added
+- 게시글 좋아요 버튼(`LikeButton`, `useMemiBoardLikes`) — `likes/{uid}` 서브컬렉션으로 1인 1좋아요를 보장하고, 트랜잭션으로 토글해 대량(1000+) 좋아요에서도 카운터가 실제 문서 수와 어긋나지 않게 처리
+- `PostModel.likeCount` 필드, 게시글 목록(`ListDefault`)에 좋아요 수 뱃지 노출
+
+### Compatibility
+- `docs/firestore.rules.example`에 `isLikeCountUpdate()`와 `memiBoardPosts/{postId}/likes/{uid}` 규칙 추가 — 설치 프로젝트가 실제 배포하는 `firestore.rules`에도 병합해야 좋아요가 동작한다
+
 ## [0.10.1] - 2026-08-05
 
 ### Added
