@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
-import type { PostDetail, PostModel } from 'memi-board/runtime'
+import type { PostModel } from 'memi-board/runtime'
 import { formatRelativeDate, formatTimestampDetails, renderMarkdownToHtml } from 'memi-board/runtime'
-import { useMemiBoardPosts } from 'memi-board/runtime'
+import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
@@ -20,14 +20,15 @@ const emit = defineEmits<{
   navigate: [post: PostModel]
 }>()
 
-const { getPost, getAdjacentPosts, deletePost } = useMemiBoardPosts()
+const { getAdjacentPosts, deletePost } = useMemiBoardPosts()
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { categoryLabel } = useMemiBoardSettings()
 
-const post = ref<PostDetail | null>(null)
-const loading = ref(true)
+// 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
+// 좋아요 토글도 이 구독이 그대로 비춰주므로 별도 로컬 낙관적 갱신이 필요 없다.
+const { post, pending: loading } = useMemiBoardPost(computed(() => props.postId))
+const notFound = computed(() => !loading.value && !post.value)
 const deleting = ref(false)
-const notFound = ref(false)
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
 const now = ref(Date.now())
@@ -41,39 +42,23 @@ const viewerExtensions = [
   }),
 ]
 
-async function load() {
-  loading.value = true
-  notFound.value = false
-  const result = await getPost(props.postId)
-  if (!result) {
-    notFound.value = true
-  }
-  post.value = result
-  if (result) {
-    const adjacent = await getAdjacentPosts(result)
-    previousPost.value = adjacent.previous
-    nextPost.value = adjacent.next
-  }
-  else {
-    previousPost.value = null
-    nextPost.value = null
-  }
-  loading.value = false
-}
+// 인접 글은 처음 로드될 때 한 번만 조회한다 — post는 좋아요·댓글 수 변경으로도
+// 계속 갱신되므로, 매번 다시 조회하면 그때마다 불필요한 쿼리가 발생한다.
+let adjacentLoaded = false
+watch(post, async (current) => {
+  if (!current || adjacentLoaded) return
+  adjacentLoaded = true
+  const adjacent = await getAdjacentPosts(current)
+  previousPost.value = adjacent.previous
+  nextPost.value = adjacent.next
+}, { immediate: true })
 
 onMounted(() => {
-  void load()
   clock = setInterval(() => { now.value = Date.now() }, 60_000)
 })
 onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
-watch(() => props.postId, load)
-
-function handleLikeToggled(liked: boolean) {
-  if (!post.value) return
-  post.value.likeCount = (post.value.likeCount ?? 0) + (liked ? 1 : -1)
-}
 
 async function handleDelete() {
   if (!post.value) return
@@ -213,7 +198,6 @@ const contentHtml = computed(() => {
       <MemiBoardLikeButton
         :post-id="postId"
         :like-count="post.likeCount ?? 0"
-        @toggled="handleLikeToggled"
       />
     </div>
 

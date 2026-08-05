@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
-import { useMemiBoardPosts } from 'memi-board/runtime'
+import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useMemiBoardPostList } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import type { PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
@@ -28,21 +27,73 @@ const props = withDefaults(defineProps<{
   /** @deprecated postLinkBase / getPostLink 사용 */
   linkBase?: string
 }>(), {
-  pageSize: 20,
+  pageSize: 10,
   introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
 })
 
 const emit = defineEmits<{ select: [post: PostModel] }>()
 
-const { getPosts } = useMemiBoardPosts()
 const { categories } = useMemiBoardSettings()
+const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
+  computed(() => props.category),
+  { pageSize: props.pageSize },
+)
 
-const posts = ref<PostModel[]>([])
-const cursor = ref<QueryDocumentSnapshot<DocumentData> | undefined>(undefined)
-const hasMore = ref(false)
-const loading = ref(false)
-const initialLoading = ref(true)
-const loadError = ref('')
+const loadMoreTrigger = ref<HTMLElement | null>(null)
+let loadMoreDelayTimer: ReturnType<typeof setTimeout> | undefined
+let loadMoreObserver: IntersectionObserver | undefined
+const waitingToLoad = ref(false)
+const morePending = computed(() => waitingToLoad.value || loadingMore.value)
+let triggerVisible = false
+let automaticRequest = false
+
+function cancelAutomaticLoad() {
+  if (!automaticRequest || !loadMoreDelayTimer) return
+  clearTimeout(loadMoreDelayTimer)
+  loadMoreDelayTimer = undefined
+  automaticRequest = false
+  waitingToLoad.value = false
+}
+
+// 옵저버가 트리거를 보자마자 바로 불러오면 스크롤 중 살짝만 걸쳐도 계속 재요청된다 —
+// 500ms 뒤에도 여전히 보이는 경우에만(자동 요청) 실제로 더 불러온다. 버튼 클릭은 즉시 실행.
+function scheduleLoadMore(automatic = false) {
+  if (loadMoreDelayTimer || loadingMore.value || !hasMore.value) return
+  automaticRequest = automatic
+  waitingToLoad.value = true
+  loadMoreDelayTimer = setTimeout(() => {
+    loadMoreDelayTimer = undefined
+    if (automaticRequest && !triggerVisible) {
+      automaticRequest = false
+      waitingToLoad.value = false
+      return
+    }
+    automaticRequest = false
+    waitingToLoad.value = false
+    if (hasMore.value && !loadingMore.value) void loadMore()
+  }, 500)
+}
+
+onMounted(() => {
+  loadMoreObserver = new IntersectionObserver((entries) => {
+    triggerVisible = entries.some(entry => entry.isIntersecting)
+    if (triggerVisible) scheduleLoadMore(true)
+    else cancelAutomaticLoad()
+  })
+  if (loadMoreTrigger.value) loadMoreObserver.observe(loadMoreTrigger.value)
+})
+
+watch(loadMoreTrigger, (element, previous) => {
+  if (previous) loadMoreObserver?.unobserve(previous)
+  if (element) loadMoreObserver?.observe(element)
+}, { flush: 'post' })
+
+onUnmounted(() => {
+  clearTimeout(loadMoreDelayTimer)
+  waitingToLoad.value = false
+  loadMoreObserver?.disconnect()
+})
+
 const infoOpen = ref(false)
 const infoTab = ref<'about' | 'history'>('about')
 const now = ref(Date.now())
@@ -108,46 +159,11 @@ function postTo(post: PostModel): string | undefined {
   return `${base.replace(/\/$/, '')}/${post.id}`
 }
 
-async function loadMore(reset = false) {
-  loading.value = true
-  loadError.value = ''
-  if (reset) {
-    posts.value = []
-    cursor.value = undefined
-    hasMore.value = false
-    initialLoading.value = true
-  }
-  try {
-    const result = await getPosts({
-      pageSize: props.pageSize,
-      cursor: reset ? undefined : cursor.value,
-      category: props.category || undefined,
-    })
-    posts.value.push(...result.posts)
-    cursor.value = result.cursor
-    hasMore.value = result.hasMore
-  }
-  catch (e) {
-    loadError.value = (e as Error).message || String(e)
-    console.error('[memi-board] getPosts failed', e)
-  }
-  finally {
-    loading.value = false
-    initialLoading.value = false
-  }
-}
-
-watch(
-  () => props.category,
-  () => { void loadMore(true) },
-  { immediate: true },
-)
-
 </script>
 
 <template>
   <div class="flex flex-col gap-2">
-    <template v-if="initialLoading">
+    <template v-if="postsPending">
       <USkeleton
         v-for="i in 3"
         :key="i"
@@ -178,15 +194,30 @@ watch(
       @select="emit('select', $event)"
     />
 
-    <UButton
-      v-if="hasMore"
-      variant="outline"
-      color="neutral"
-      label="더 보기"
-      block
-      :loading="loading"
-      @click="loadMore(false)"
-    />
+    <div
+      v-if="!postsPending && hasMore"
+      ref="loadMoreTrigger"
+      class="flex justify-center py-1"
+    >
+      <UButton
+        variant="outline"
+        color="neutral"
+        label="더 보기"
+        block
+        class="w-full"
+        :loading="morePending"
+        :disabled="morePending"
+        @click="scheduleLoadMore()"
+      />
+    </div>
+
+    <template v-if="morePending">
+      <USkeleton
+        v-for="i in 3"
+        :key="`more-${i}`"
+        class="h-20 w-full"
+      />
+    </template>
 
     <UModal
       v-model:open="infoOpen"

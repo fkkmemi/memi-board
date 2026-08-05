@@ -7,17 +7,8 @@ const props = defineProps<{
   likeCount: number
 }>()
 
-const emit = defineEmits<{
-  toggled: [liked: boolean]
-}>()
-
 const { isSignedIn } = useMemiBoardAuth()
 const { isLiked, likePending, toggleLike } = useMemiBoardLikes(props.postId)
-
-async function handleClick() {
-  const liked = await toggleLike()
-  emit('toggled', liked)
-}
 </script>
 
 <template>
@@ -29,7 +20,7 @@ async function handleClick() {
     :color="isLiked ? 'error' : 'neutral'"
     :label="String(likeCount ?? 0)"
     :loading="likePending"
-    @click="handleClick"
+    @click="toggleLike"
   />
   <span
     v-else

@@ -1,8 +1,12 @@
+import { computed, onScopeDispose, ref, watch } from 'vue'
+import type { Ref } from 'vue'
 import {
   collection,
   doc,
+  documentId,
   getDoc,
   getDocs,
+  onSnapshot,
   setDoc,
   updateDoc,
   deleteDoc,
@@ -17,11 +21,11 @@ import {
   writeBatch,
   deleteField,
 } from 'firebase/firestore'
-import type { QueryConstraint } from 'firebase/firestore'
+import type { QueryConstraint, Unsubscribe } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/storage'
 import type { StorageReference } from 'firebase/storage'
-import { useFirebaseApp, useFirestore } from 'vuefire'
+import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
 import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
@@ -302,4 +306,161 @@ export function useMemiBoardPosts() {
     updatePost,
     deletePost,
   }
+}
+
+const POST_PAGE_SIZE = 10
+
+/**
+ * 최신 {pageSize}건은 onSnapshot으로 실시간 구독해 목록에 보이는 동안 좋아요·댓글 수가
+ * 바로 갱신되게 하고, 그 이전 글은 "더보기" 클릭 시 1회성 getDocs로 이어서 불러온다.
+ * 두 구간이 살짝 겹쳐도 id 기준으로 합쳐 중복 없이 렌더한다.
+ *
+ * 알려진 한계: "더보기"로 이전 글을 불러온 뒤 새 글이 pageSize개 이상 연달아 올라오면
+ * 실시간 구간과 페이지 구간 사이에 짧은 공백이 생길 수 있다 — 새로고침하면 바로 채워지고,
+ * 이 정도 트래픽 폭이면 실사용에서 발생 가능성이 낮아 별도 보정 로직은 두지 않았다.
+ */
+export function useMemiBoardPostList(
+  category?: string | Ref<string | undefined>,
+  options: { pageSize?: number } = {},
+) {
+  const config = useMemiBoardConfig()
+  const db = useFirestore()
+  const prefix = () => config.collectionPrefix
+  const postsCol = () => collection(db, `${prefix()}Posts`)
+  const pageSize = options.pageSize ?? POST_PAGE_SIZE
+
+  const categoryValue = computed(() => (
+    typeof category === 'string' || category === undefined ? category : category.value
+  ))
+
+  const headPosts = ref<PostModel[]>([])
+  const olderPosts = ref<PostModel[]>([])
+  const headPending = ref(true)
+  const hasMore = ref(true)
+  const loadingMore = ref(false)
+  const loadError = ref('')
+  let headTailCursor: QueryDocumentSnapshot<DocumentData> | null = null
+  let olderCursor: QueryDocumentSnapshot<DocumentData> | null = null
+  let stopHeadSubscription: Unsubscribe | undefined
+
+  function createdAtMs(post: PostModel): number {
+    return post.createdAt?.toMillis?.() ?? 0
+  }
+
+  const posts = computed(() => {
+    const byId = new Map<string, PostModel>()
+    for (const post of [...olderPosts.value, ...headPosts.value]) {
+      if (post.id) byId.set(post.id, post)
+    }
+    return [...byId.values()].sort((a, b) =>
+      createdAtMs(b) - createdAtMs(a) || String(b.id).localeCompare(String(a.id)),
+    )
+  })
+
+  function baseConstraints(): QueryConstraint[] {
+    const value = categoryValue.value
+    return value ? [where('category', '==', value)] : []
+  }
+
+  function startHeadSubscription() {
+    stopHeadSubscription?.()
+    stopHeadSubscription = onSnapshot(query(
+      postsCol(),
+      ...baseConstraints(),
+      orderBy('createdAt', 'desc'),
+      orderBy(documentId(), 'desc'),
+      fbLimit(pageSize),
+    ), (snapshot) => {
+      headPosts.value = snapshot.docs.map(item => ({ id: item.id, ...item.data() }) as PostModel)
+      headTailCursor = snapshot.docs.at(-1) ?? null
+      // "더보기"를 이미 눌러 이전 페이지 커서가 잡힌 뒤에는, 새 글·좋아요 변경으로
+      // 다시 흐르는 head 구독이 hasMore를 되돌리지 않도록 이전 페이지 조회 결과만 따른다.
+      if (!olderCursor) hasMore.value = snapshot.docs.length >= pageSize
+      headPending.value = false
+    }, (cause) => {
+      console.error('[memi-board:postList] onSnapshot failed', cause)
+      headPending.value = false
+    })
+  }
+
+  async function loadMore(): Promise<void> {
+    if (loadingMore.value || !hasMore.value || headPending.value) return
+    loadingMore.value = true
+    loadError.value = ''
+    try {
+      const cursor = olderCursor ?? headTailCursor
+      const constraints = [
+        ...baseConstraints(),
+        orderBy('createdAt', 'desc'),
+        orderBy(documentId(), 'desc'),
+        ...(cursor ? [startAfter(cursor)] : []),
+        fbLimit(pageSize + 1),
+      ]
+      const snapshot = await getDocs(query(postsCol(), ...constraints))
+      const pageDocs = snapshot.docs.slice(0, pageSize)
+      const page = pageDocs.map(item => ({ id: item.id, ...item.data() }) as PostModel)
+      const existingIds = new Set([...olderPosts.value, ...headPosts.value].map(post => post.id))
+      olderPosts.value.push(...page.filter(post => !existingIds.has(post.id)))
+      olderCursor = pageDocs.at(-1) ?? olderCursor
+      hasMore.value = snapshot.docs.length > pageSize
+    }
+    catch (e) {
+      loadError.value = (e as Error).message || String(e)
+      console.error('[memi-board:postList] loadMore failed', e)
+    }
+    finally {
+      loadingMore.value = false
+    }
+  }
+
+  function reset() {
+    stopHeadSubscription?.()
+    headPosts.value = []
+    olderPosts.value = []
+    headTailCursor = null
+    olderCursor = null
+    hasMore.value = true
+    loadError.value = ''
+    headPending.value = true
+    startHeadSubscription()
+  }
+
+  watch(categoryValue, reset, { immediate: true })
+
+  onScopeDispose(() => stopHeadSubscription?.())
+
+  return {
+    posts,
+    postsPending: headPending,
+    hasMore,
+    loadingMore,
+    loadError,
+    loadMore,
+  }
+}
+
+/**
+ * 게시글 상세를 VueFire useDocument로 실시간 구독한다 (메타 + 본문).
+ * 좋아요·댓글 수 등 다른 사람의 변경이 화면에 바로 반영된다 — 좋아요 토글도
+ * 별도 로컬 낙관적 갱신 없이 이 구독이 그대로 반영해 준다.
+ */
+export function useMemiBoardPost(postId: string | Ref<string>) {
+  const config = useMemiBoardConfig()
+  const db = useFirestore()
+  const prefix = () => config.collectionPrefix
+
+  const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
+  const postRef = computed(() => doc(db, `${prefix()}Posts`, id.value))
+  const bodyRef = computed(() => doc(db, `${prefix()}Posts`, id.value, 'body', 'main'))
+
+  const { data: meta, pending: metaPending } = useDocument<PostModel>(postRef)
+  const { data: body, pending: bodyPending } = useDocument<{ content: string }>(bodyRef)
+
+  const post = computed<PostDetail | null>(() => {
+    if (!meta.value) return null
+    return { ...meta.value, id: id.value, content: body.value?.content ?? '' } as PostDetail
+  })
+  const pending = computed(() => metaPending.value || bodyPending.value)
+
+  return { post, pending }
 }

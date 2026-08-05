@@ -2,6 +2,13 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.11.1] - 2026-08-05
+
+### Changed
+- 게시글 목록(`List`) 로딩 방식을 변경 — 최신 글 `pageSize`(기본 10)개는 `onSnapshot`으로 실시간 구독해 목록에 보이는 동안 좋아요·댓글 수가 바로 갱신되고, 그 이전 글은 "더보기" 클릭 시에만 1회성 조회로 이어서 불러온다
+- "더보기"에 `CommentList`와 동일한 `IntersectionObserver` 자동 로드를 추가하고, 트리거가 보인 뒤 500ms 지나도 계속 보일 때만 실제로 불러오게 해 스크롤 중 반복 요청을 방지
+- 게시글 상세(`Detail`)를 1회성 조회 대신 VueFire `useDocument`로 실시간 구독하도록 변경(`useMemiBoardPost`) — 좋아요·댓글 수가 별도 로컬 갱신 없이 화면에 바로 반영된다
+
 ## [0.11.0] - 2026-08-05
 
 ### Added

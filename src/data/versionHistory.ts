@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.11.1',
+    date: '2026-08-05',
+    highlights: [
+      '게시글을 보는 동안 다른 사람이 누른 좋아요·댓글 수가 화면에 바로 나타나요',
+      '게시글 목록도 새로고침 없이 실시간으로 갱신돼요',
+    ],
+  },
+  {
     version: '0.11.0',
     date: '2026-08-05',
     highlights: [
