@@ -55,6 +55,7 @@
     "dev": "pnpm build && nuxi dev playground",
     "dev:build": "pnpm build && nuxi build playground",
     "dev:prepare": "pnpm build && nuxi prepare playground",
+    "release": "node scripts/release.mjs",
     "typecheck": "vue-tsc --noEmit"
   },
   "peerDependencies": {

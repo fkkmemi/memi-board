@@ -17,6 +17,7 @@ export const versionHistory: VersionHistoryEntry[] = [
       'Nuxt 설정 한 곳에서 게시판 설치와 Firebase 연결을 모두 설정할 수 있어요',
       '설치 프로젝트가 TipTap과 Day.js의 세부 번들 설정을 직접 맞추지 않아도 돼요',
       '게시글 목록 이동을 NuxtLink로 통일해 SSR과 CSR 환경에서 안정적으로 열려요',
+      '게시판 아래에서 제작 정보와 사용 기술, 지금까지의 버전 이야기를 볼 수 있어요',
     ],
   },
   {

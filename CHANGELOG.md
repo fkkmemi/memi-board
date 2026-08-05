@@ -8,6 +8,8 @@
 - 패키지 루트 `memi-board`를 Nuxt 모듈 진입점으로 제공하고 런타임 API는 `memi-board/runtime`으로 분리
 - `nuxt.config.ts`의 `memiBoard` 옵션을 런타임 설정으로 자동 연결하는 Nuxt 플러그인 생성
 - 모듈이 필요한 Day.js 최적화와 Vue·Firebase·TipTap 의존성 중복 제거 설정을 자동 적용
+- 게시판 하단 `powered by memi` 정보창에 기술 스택 카드와 버전 히스토리 탭 제공
+- OTP 한 번으로 빌드·타입 검사·패키지 점검 후 배포하는 `pnpm release` 명령
 
 ### Changed
 - 별도 `configureMemiBoard` 플러그인 없이 `nuxt.config.ts` 한 곳에서 게시판을 설치하고 설정하도록 단순화

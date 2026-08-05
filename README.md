@@ -172,7 +172,10 @@ const { isSignedIn } = useMemiBoardAuth()
   <div>
     <UButton v-if="isSignedIn" to="/board/new" label="새 글쓰기" />
     <!-- 단순: 상세 /board/{id} -->
-    <MemiBoardList post-link-base="/board" />
+    <MemiBoardList
+      post-link-base="/board"
+      introduction="우리 서비스의 소식과 이야기를 나누는 게시판입니다."
+    />
     <!-- 카테고리 path: get-post-link 권장 -->
     <!--
     <MemiBoardList
@@ -421,6 +424,16 @@ pnpm build:watch   # src 변경 시 dist 갱신
 firebase emulators:start --project demo-memi-board
 NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
 ```
+
+## npm 배포
+
+npm의 6자리 OTP를 인자로 전달하면 빌드, 타입 검사, 패키지 dry-run을 모두 통과한 뒤에만 배포한다.
+
+```bash
+pnpm release 123456
+```
+
+`pnpm publish 123456`은 pnpm이 `123456`을 OTP가 아닌 폴더 경로로 해석하므로 사용하지 않는다.
 
 ## 버전 · 라이선스
 

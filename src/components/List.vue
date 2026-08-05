@@ -10,6 +10,8 @@ import MemiBoardListVideo from './ListVideo.vue'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
+  /** 정보창의 '이 게시판은' 탭에 표시할 소개 */
+  introduction?: string
   /**
    * 글 상세 링크 생성.
    * 예: (p) => `/board/${p.category}/${p.id}`
@@ -27,6 +29,7 @@ const props = withDefaults(defineProps<{
   linkBase?: string
 }>(), {
   pageSize: 20,
+  introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
 })
 
 const emit = defineEmits<{ select: [post: PostModel] }>()
@@ -40,6 +43,45 @@ const hasMore = ref(false)
 const loading = ref(false)
 const initialLoading = ref(true)
 const loadError = ref('')
+const infoOpen = ref(false)
+const infoTab = ref<'about' | 'history'>('about')
+const boardStacks = [
+  {
+    category: '프레임워크 & 언어',
+    icon: 'i-lucide-layers',
+    color: 'text-blue-500',
+    panelClass: 'border-blue-100 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/30',
+    items: [
+      { name: 'Nuxt 4', desc: 'Vue 기반 SSR 프레임워크', url: 'https://nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
+      { name: 'Vue 3', desc: 'Composition API · script setup', url: 'https://vuejs.org', icon: 'i-simple-icons-vuedotjs', color: '#4FC08D' },
+      { name: 'TypeScript', desc: '안전한 데이터와 컴포넌트 타입', url: 'https://www.typescriptlang.org', icon: 'i-simple-icons-typescript', color: '#3178C6' },
+    ],
+  },
+  {
+    category: 'UI & 스타일',
+    icon: 'i-lucide-palette',
+    color: 'text-purple-500',
+    panelClass: 'border-purple-100 bg-purple-50 dark:border-purple-900/50 dark:bg-purple-950/30',
+    items: [
+      { name: 'Nuxt UI v4', desc: '게시판·폼·모달 UI', url: 'https://ui.nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
+      { name: 'Tailwind CSS v4', desc: '반응형 · 라이트/다크 스타일', url: 'https://tailwindcss.com', icon: 'i-simple-icons-tailwindcss', color: '#06B6D4' },
+      { name: 'Lucide Icons', desc: '가볍고 일관된 아이콘', url: 'https://lucide.dev', icon: 'i-lucide-box', color: '#F97316' },
+      { name: 'dayjs', desc: '읽기 편한 날짜와 상대 시각', url: 'https://day.js.org', icon: 'i-lucide-clock', color: '#FF5F4C' },
+    ],
+  },
+  {
+    category: '백엔드 & 데이터',
+    icon: 'i-lucide-database',
+    color: 'text-orange-500',
+    panelClass: 'border-orange-100 bg-orange-50 dark:border-orange-900/50 dark:bg-orange-950/30',
+    items: [
+      { name: 'Firebase Firestore', desc: '게시글과 댓글을 위한 실시간 DB', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'Firebase Auth', desc: '안전한 사용자 로그인과 권한', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'Firebase Storage', desc: '이미지와 첨부파일 보관', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'nuxt-vuefire', desc: 'Nuxt와 Firebase 실시간 연결', url: 'https://vuefire.vuejs.org', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+    ],
+  },
+]
 const listView = computed(() =>
   categories.value.find(item => item.id === props.category)?.listView ?? 'default',
 )
@@ -134,5 +176,119 @@ watch(
       :loading="loading"
       @click="loadMore(false)"
     />
+
+    <button
+      type="button"
+      class="mx-auto mt-3 cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted"
+      @click="infoOpen = true"
+    >
+      powered by memi
+    </button>
+
+    <UModal
+      v-model:open="infoOpen"
+      title="게시판 정보"
+      :ui="{ content: 'sm:max-w-2xl' }"
+    >
+      <template #body>
+        <div class="flex flex-col gap-4">
+          <div class="flex gap-1 rounded-lg bg-muted p-1">
+            <UButton
+              size="sm"
+              class="flex-1 justify-center"
+              :color="infoTab === 'about' ? 'primary' : 'neutral'"
+              :variant="infoTab === 'about' ? 'solid' : 'ghost'"
+              @click="infoTab = 'about'"
+            >
+              이 게시판은
+            </UButton>
+            <UButton
+              size="sm"
+              class="flex-1 justify-center"
+              :color="infoTab === 'history' ? 'primary' : 'neutral'"
+              :variant="infoTab === 'history' ? 'solid' : 'ghost'"
+              @click="infoTab = 'history'"
+            >
+              버전 히스토리
+            </UButton>
+          </div>
+
+          <div
+            v-if="infoTab === 'about'"
+            class="max-h-[min(60vh,36rem)] space-y-4 overflow-y-auto px-1"
+          >
+            <div class="flex items-start gap-3 px-1">
+              <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary-500/10">
+                <UIcon
+                  name="i-lucide-code-2"
+                  class="size-5 text-primary-500"
+                />
+              </div>
+              <div>
+                <h3 class="font-bold text-highlighted">
+                  이 게시판은
+                </h3>
+                <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted">
+                  {{ introduction }}
+                </p>
+              </div>
+            </div>
+
+            <section
+              v-for="group in boardStacks"
+              :key="group.category"
+              class="rounded-2xl border p-4"
+              :class="group.panelClass"
+            >
+              <div class="mb-3 flex items-center gap-2">
+                <UIcon
+                  :name="group.icon"
+                  class="size-4"
+                  :class="group.color"
+                />
+                <h4 class="text-sm font-bold text-highlighted">
+                  {{ group.category }}
+                </h4>
+              </div>
+              <div class="grid gap-2 sm:grid-cols-2">
+                <a
+                  v-for="item in group.items"
+                  :key="item.name"
+                  :href="item.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group flex items-center gap-3 rounded-xl border border-default bg-default/70 p-3 transition-colors hover:border-accented"
+                >
+                  <span
+                    class="flex size-9 shrink-0 items-center justify-center rounded-lg"
+                    :style="{ backgroundColor: `${item.color}20` }"
+                  >
+                    <UIcon
+                      :name="item.icon"
+                      class="size-4"
+                      :style="{ color: item.color }"
+                    />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-bold text-highlighted">{{ item.name }}</span>
+                    <span class="block truncate text-xs text-muted">{{ item.desc }}</span>
+                  </span>
+                  <UIcon
+                    name="i-lucide-arrow-up-right"
+                    class="size-3.5 shrink-0 text-dimmed transition-colors group-hover:text-muted"
+                  />
+                </a>
+              </div>
+            </section>
+          </div>
+          <div
+            v-else
+            class="max-h-[min(55vh,30rem)] overflow-y-auto px-1"
+          >
+            <MemiBoardVersionHistory />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
