@@ -236,28 +236,31 @@ service cloud.firestore {
       match /categories/{categoryId} {
         allow read: if true;
         allow create: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
           && request.resource.data.label is string
+          && (!('description' in request.resource.data) || request.resource.data.description is string)
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
           // memi-board 0.11.x 이하는 이 필드들을 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
           && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
           && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
           && request.resource.data.order is number;
-        // 스태프는 라벨·리스트뷰·권한 등급은 바꿀 수 있지만 allowedStaffUids(자기 접근 범위)는
+        // 스태프는 라벨·설명·리스트뷰·권한 등급은 바꿀 수 있지만 allowedStaffUids(자기 접근 범위)는
         // 못 바꾼다 — 이 필드는 관리자만. hasOnly에는 있어도(클라이언트가 항상 같은 값을
         // 되돌려 보내므로), 값 자체가 기존과 같아야만(diff 없음) 통과한다.
         allow update: if (isAdmin()
-            && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
             && request.resource.data.label is string
+            && (!('description' in request.resource.data) || request.resource.data.description is string)
             && request.resource.data.listView in ['default', 'image', 'video']
             && request.resource.data.writeRole in ['user', 'staff', 'admin']
             && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
             && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
             && request.resource.data.order is number)
           || (isStaff()
-            && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
             && request.resource.data.label is string
+            && (!('description' in request.resource.data) || request.resource.data.description is string)
             && request.resource.data.listView in ['default', 'image', 'video']
             && request.resource.data.writeRole in ['user', 'staff', 'admin']
             && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])

@@ -33,6 +33,8 @@ export function useMemiBoardSettings() {
     ...item,
     id: item.id,
     order: typeof item.order === 'number' ? item.order : index,
+    // 예전 필드명 desc 를 description 으로 읽기 (하위 호환)
+    description: item.description ?? (item as { desc?: string }).desc ?? '',
     listView: item.listView ?? 'default',
     writeRole: item.writeRole ?? 'user',
     commentWriteRole: item.commentWriteRole ?? 'user',
@@ -44,6 +46,12 @@ export function useMemiBoardSettings() {
     return categories.value.find(category => category.id === id)?.label ?? id
   }
 
+  function categoryDescription(id: string | undefined): string | undefined {
+    if (!id) return undefined
+    const value = categories.value.find(category => category.id === id)?.description?.trim()
+    return value || undefined
+  }
+
   async function saveCategory(category: BoardCategory, order = category.order ?? 0): Promise<void> {
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
     const id = category.id.trim()
@@ -52,6 +60,7 @@ export function useMemiBoardSettings() {
     await setDoc(settingsRef.value, { updatedAt: serverTimestamp() }, { merge: true })
     await setDoc(doc(categoriesRef.value, id), {
       label,
+      description: (category.description ?? '').trim(),
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
@@ -72,6 +81,7 @@ export function useMemiBoardSettings() {
       if (!id || !label) throw new Error('카테고리 ID와 이름을 입력해 주세요.')
       batch.set(doc(categoriesRef.value, id), {
         label,
+        description: (category.description ?? '').trim(),
         listView: category.listView ?? 'default',
         writeRole: category.writeRole ?? 'user',
         commentWriteRole: category.commentWriteRole ?? 'user',
@@ -111,6 +121,7 @@ export function useMemiBoardSettings() {
   return {
     categories,
     categoryLabel,
+    categoryDescription,
     settingsPending,
     ensureSettings,
     addCategory,

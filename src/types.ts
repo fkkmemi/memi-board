@@ -103,6 +103,8 @@ export interface BoardCategory {
   id: string
   /** 화면에 보이는 이름 */
   label: string
+  /** 게시판 설명 (목록·설정 화면 안내용). 미지정이면 비움. */
+  description?: string
   /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
   listView?: BoardListView
   /** 글쓰기 최소 역할. 미지정된 기존 데이터는 user. */

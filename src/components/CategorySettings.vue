@@ -54,18 +54,44 @@ const needsStaffPicker = computed(() =>
   (draft.value?.writeRole === 'staff' || draft.value?.commentWriteRole === 'staff')
   && canManageStaffAssignment.value)
 
-watch([source, () => props.categoryId], ([category]) => {
-  draft.value = category
-    ? {
-        ...category,
-        listView: category.listView ?? 'default',
-        writeRole: category.writeRole ?? 'user',
-        commentWriteRole: category.commentWriteRole ?? 'user',
-        allowedStaffUids: category.allowedStaffUids ?? [],
-      }
-    : null
+function toDraft(category: BoardCategory): BoardCategory {
+  return {
+    ...category,
+    description: category.description ?? '',
+    listView: category.listView ?? 'default',
+    writeRole: category.writeRole ?? 'user',
+    commentWriteRole: category.commentWriteRole ?? 'user',
+    allowedStaffUids: category.allowedStaffUids ?? [],
+  }
+}
+
+// 카테고리 전환·최초 로드 시에만 draft를 서버 값으로 맞춘다.
+// 저장 직후 onSnapshot 갱신으로 draft.description 이 비워지거나 입력 중이던 값이 덮이지 않게 한다.
+watch(() => props.categoryId, () => {
+  draft.value = source.value ? toDraft(source.value) : null
   saved.value = false
   error.value = ''
+})
+
+watch(source, (category) => {
+  if (!category) {
+    draft.value = null
+    return
+  }
+  if (!draft.value || draft.value.id !== category.id) {
+    draft.value = toDraft(category)
+    return
+  }
+  // 저장 직후 서버 스냅샷이 오면 description 등 누락 없이 draft만 보강(입력 중이면 유지)
+  if (saving.value || saved.value) {
+    draft.value = {
+      ...draft.value,
+      ...toDraft(category),
+      // 방금 저장한 로컬 값을 우선 — 스냅샷 지연/구 필드명 대비
+      description: draft.value.description || toDraft(category).description || '',
+      label: draft.value.label || category.label,
+    }
+  }
 }, { immediate: true })
 
 async function save() {
@@ -73,10 +99,13 @@ async function save() {
   saving.value = true
   saved.value = false
   error.value = ''
+  const snapshot = { ...draft.value }
   try {
-    await saveCategory(draft.value, draft.value.order ?? 0)
+    await saveCategory(snapshot, snapshot.order ?? 0)
+    // 저장 성공 직후 draft 유지 (스냅샷 오기 전에 watch가 비우지 않도록)
+    draft.value = toDraft(snapshot)
     saved.value = true
-    emit('saved', draft.value)
+    emit('saved', snapshot)
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : '게시판 설정을 저장하지 못했습니다.'
@@ -119,6 +148,17 @@ async function save() {
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
       <UInput v-model="draft.label" @update:model-value="saved = false" />
+    </div>
+    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
+      <div><p class="text-sm font-medium">설명</p><p class="text-xs text-muted">게시판 상단 등에 보이는 안내 문구</p></div>
+      <UTextarea
+        v-model="draft.description"
+        :rows="3"
+        autoresize
+        :maxrows="6"
+        placeholder="이 게시판에 대한 짧은 설명 (선택)"
+        @update:model-value="saved = false"
+      />
     </div>
     <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>

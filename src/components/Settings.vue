@@ -75,6 +75,7 @@ watch([categories, settingsPending], ([list, loading]) => {
     const visible = props.categoryId ? list.filter(category => category.id === props.categoryId) : list
     draft.value = visible.map(category => ({
       ...category,
+      description: category.description ?? '',
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
@@ -90,7 +91,7 @@ function addCategory() {
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({ id, label, listView: 'default', writeRole: 'user', commentWriteRole: 'user', allowedStaffUids: [] })
+  draft.value.push({ id, label, description: '', listView: 'default', writeRole: 'user', commentWriteRole: 'user', allowedStaffUids: [] })
   newLabel.value = ''
 }
 
@@ -238,6 +239,17 @@ async function runDeleteAll() {
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
           <UInput v-model="category.label" @update:model-value="savedId = null" />
+        </div>
+        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div><p class="text-sm font-medium">설명</p><p class="text-xs text-muted">게시판 상단 등에 보이는 안내 문구</p></div>
+          <UTextarea
+            v-model="category.description"
+            :rows="3"
+            autoresize
+            :maxrows="6"
+            placeholder="이 게시판에 대한 짧은 설명 (선택)"
+            @update:model-value="savedId = null"
+          />
         </div>
         <div class="flex flex-col gap-2">
           <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>

@@ -2,6 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.15.0] - 2026-08-06
+
+### Added
+- 카테고리 설명 필드(`BoardCategory.description`) — 설정 화면에서 입력·저장, `categoryDescription()` 헬퍼
+- 목록 헤더 제목에 설명이 있으면 호버 툴팁으로 표시(자리 차지 없음, 시간 필드와 같은 패턴)
+- `docs/firestore.rules.example`에 카테고리 `description` 키 허용
+
+### Changed
+- `ListDefault` 카드 — 썸네일을 카드 좌·상·하에 밀착(행 높이 스트레치), 제목·요약 최대 2줄·overflow 방지, 텍스트 좌우 여백 조정
+- `CategorySettings` 저장 직후 draft가 스냅샷으로 비워지지 않도록 watch 보강
+
 ## [0.14.1] - 2026-08-06
 
 ### Changed

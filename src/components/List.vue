@@ -31,6 +31,11 @@ const props = withDefaults(defineProps<{
   view?: BoardListView
   /** 목록 위 헤더에 표시할 제목(예: 카테고리 이름). 지정하면 헤더 행(제목 + 버튼들)을 보여준다. */
   title?: string
+  /**
+   * 카테고리 라벨(제목) 호버 툴팁 문구.
+   * 비우면 category가 있을 때 해당 카테고리 description을 쓴다. 둘 다 없으면 툴팁 없음.
+   */
+  description?: string
   /** '게시판 설정' 버튼 링크. 지정하면(그리고 canManageSettings가 true면) 헤더에 버튼을 보여준다. */
   settingsTo?: string
   /** '게시판 설정' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
@@ -48,7 +53,13 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [post: PostModel], 'update:view': [view: BoardListView] }>()
 
-const { categories } = useMemiBoardSettings()
+const { categories, categoryDescription } = useMemiBoardSettings()
+const listDescription = computed(() => {
+  const explicit = props.description?.trim()
+  if (explicit) return explicit
+  if (props.category) return categoryDescription(props.category)
+  return undefined
+})
 const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
   computed(() => props.category),
   { pageSize: props.pageSize },
@@ -189,7 +200,21 @@ function postTo(post: PostModel): string | undefined {
 <template>
   <div class="flex flex-col gap-2">
     <div v-if="hasHeader" class="flex items-center justify-between gap-4">
-      <h1 v-if="title" class="min-w-0 truncate text-2xl font-bold tracking-tight text-highlighted">{{ title }}</h1>
+      <UTooltip
+        v-if="title && listDescription"
+        :text="listDescription"
+        :ui="{ content: 'h-auto max-w-xs py-2', text: 'whitespace-pre-line overflow-visible' }"
+      >
+        <h1 class="min-w-0 cursor-help truncate text-2xl font-bold tracking-tight text-highlighted">
+          {{ title }}
+        </h1>
+      </UTooltip>
+      <h1
+        v-else-if="title"
+        class="min-w-0 truncate text-2xl font-bold tracking-tight text-highlighted"
+      >
+        {{ title }}
+      </h1>
       <div class="flex shrink-0 items-center gap-2">
         <UButton
           v-if="settingsTo && canManageSettings"
