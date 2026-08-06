@@ -2,6 +2,18 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.19.0] - 2026-08-06
+
+### Added
+- 호스트 API 없이 쓰는 게시판 SEO — `useMemiBoardPostSeo` / `useMemiBoardListSeo`
+- Firestore 직조회 `fetchPublicPostForSeo` / `fetchPublicListForSeo` (`listed` 만)
+- `memiBoard.seo` 설정: `siteName`, `siteUrl`, `defaultOgImage`, `basePath`
+- OG 헬퍼: 제목·설명·절대 URL (`previewImage` → og:image)
+
+### Notes
+- 호스트는 공개 board 경로 SSR on + `seo.siteUrl`/`siteName` 만 맞추면 됨 (커스텀 `/api/board/**` 불필요)
+- SEO composable 은 호스트 Nuxt 가 소스를 컴파일 (`#imports`) — monorepo `link:` 에서도 Nuxt 이중 로딩 없음
+
 ## [0.18.0] - 2026-08-06
 
 ### Added

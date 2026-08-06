@@ -17,7 +17,12 @@ export default defineConfig({
         'src/data/**/*.ts',
         'src/utils/**/*.ts',
       ],
-      exclude: ['src/module.ts', 'src/components/**'],
+      // SEO composable 은 #imports 사용 → 호스트 전용 runtime 복사본만 배포
+      exclude: [
+        'src/module.ts',
+        'src/components/**',
+        'src/composables/useMemiBoardSeo.ts',
+      ],
     }),
   ],
   build: {
@@ -41,6 +46,13 @@ export default defineConfig({
         'firebase/storage',
         'firebase/ai',
         '@nuxt/kit',
+        '@nuxt/schema',
+        // useMemiBoard*Seo — 호스트 Nuxt 런타임에서 해석
+        'nuxt',
+        'nuxt/app',
+        /^nuxt\//,
+        '#app',
+        '#imports',
         '@tiptap/core',
         '@tiptap/pm',
         '@tiptap/pm/state',

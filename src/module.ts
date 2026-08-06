@@ -59,6 +59,7 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       'vue-router',
       'vuefire',
       'firebase',
+      'nuxt',
       '@tiptap/core',
       '@tiptap/pm',
       '@tiptap/vue-3',
@@ -87,6 +88,18 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       // List.vue → MemiBoardList
     })
 
+    // SEO: 호스트 Nuxt 가 소스를 컴파일해야 #imports / useSeoMeta 가 앱 인스턴스를 탄다.
+    // dist/index.js 에 넣으면 link 시 패키지 node_modules/nuxt 로 해석되어 깨진다.
+    const seoCandidates = [
+      resolve('../src/composables/useMemiBoardSeo.ts'),
+      resolve('./runtime/composables/useMemiBoardSeo.ts'),
+      resolve('./composables/useMemiBoardSeo.ts'),
+    ]
+    const seoFrom = seoCandidates.find(p => existsSync(p))
+    if (!seoFrom) {
+      throw new Error('[memi-board] useMemiBoardSeo runtime not found')
+    }
+
     const from = 'memi-board/runtime'
     addImports([
       { name: 'configureMemiBoard', from },
@@ -99,6 +112,11 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'useMemiBoardStorage', from },
       { name: 'useMemiBoardSettings', from },
       { name: 'useMemiBoardUsers', from },
+      { name: 'useMemiBoardPostSeo', from: seoFrom },
+      { name: 'useMemiBoardListSeo', from: seoFrom },
+      { name: 'fetchPublicPostForSeo', from },
+      { name: 'fetchPublicListForSeo', from },
+      { name: 'resolvePublicSeoDb', from },
       { name: 'versionHistory', from },
     ])
 

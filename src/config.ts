@@ -21,10 +21,34 @@ export interface MemiBoardModerationOptions {
   blockBanDecayMs?: number
 }
 
+/**
+ * 게시판 SEO (호스트 API 없이 Firestore 직조회 + useSeoMeta).
+ * 호스트는 siteUrl/siteName 과 공개 board 경로 SSR on 만 맞추면 된다.
+ */
+export interface MemiBoardSeoOptions {
+  /** false 면 useMemiBoard*Seo 가 no-op. 기본 true */
+  enabled?: boolean
+  /** og:site_name · title 접미사. 예: Loop Waiting */
+  siteName?: string
+  /**
+   * 절대 URL용 origin. 예: https://loopwait.com
+   * 비우면 useRequestURL / NUXT_PUBLIC_SITE_URL 순으로 추론.
+   */
+  siteUrl?: string
+  /** 글에 previewImage 없을 때. 상대경로 또는 https */
+  defaultOgImage?: string
+  /**
+   * 호스트 게시판 base path (trailing slash 없음). 기본 '/board'
+   * canonical: {base}, {base}/{category}, {base}/{category}/{slug}
+   */
+  basePath?: string
+}
+
 export interface MemiBoardConfig {
   collectionPrefix: string
   auth: MemiBoardAuthOptions
   moderation: MemiBoardModerationOptions
+  seo: MemiBoardSeoOptions
 }
 
 const GLOBAL_KEY = '__MEMI_BOARD_CONFIG__' as const
@@ -51,6 +75,13 @@ function getSharedConfig(): MemiBoardConfig {
         blockBanThreshold: 3,
         blockBanDecayMs: 24 * 60 * 60 * 1000,
       },
+      seo: {
+        enabled: true,
+        siteName: 'Board',
+        siteUrl: '',
+        defaultOgImage: '',
+        basePath: '/board',
+      },
     })
   }
   return g[GLOBAL_KEY]
@@ -65,6 +96,7 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   if (options.collectionPrefix) config.collectionPrefix = options.collectionPrefix
   if (options.auth) Object.assign(config.auth, options.auth)
   if (options.moderation) Object.assign(config.moderation, options.moderation)
+  if (options.seo) Object.assign(config.seo, options.seo)
 }
 
 export function useMemiBoardConfig(): MemiBoardConfig {

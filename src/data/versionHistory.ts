@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.19.0',
+    date: '2026-08-06',
+    highlights: [
+      '게시판 목록·글 공유 미리보기(제목·설명·대표 이미지)를 모듈만으로 붙일 수 있어요',
+      '호스트가 따로 SEO API를 만들 필요 없이, 공개 글 기준으로 미리보기가 채워져요',
+    ],
+  },
+  {
     version: '0.18.0',
     date: '2026-08-06',
     highlights: [

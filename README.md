@@ -1,12 +1,14 @@
 # memi-board
 
-Nuxt 4 + Nuxt UI + Firebase 프로젝트에 **클라이언트 전용 게시판**을 붙이는 npm 패키지.
+Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지.
 
-- 게시글 CRUD · 댓글 · Storage 첨부 · 카테고리
+- 게시글 CRUD · 댓글 · Storage 첨부 · 카테고리 · 조회수
 - 작성자/관리자 권한 (Firestore Rules)
 - 로컬 비속어 + Firebase AI Logic(Gemini) 검열 (선택)
+- **공유 미리보기(OG)** — 호스트 SEO API 없이 목록·상세 메타 (`useMemiBoard*Seo`)
 
-**서버 / Firebase Admin 불필요.** 권한은 Rules, 검열은 브라우저(우회 가능 — 아래 한계 참고).
+**서버 / Firebase Admin 불필요** (권한은 Rules, 검열은 브라우저 — 우회 가능, 아래 한계 참고).  
+공개 목록·글 상세만 SSR로 OG를 채우고, 쓰기·설정은 CSR로 두면 된다.
 
 같은 스택(Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase)이면 **다른 호스트 앱에도 그대로 재사용** 가능하다. Firebase 프로젝트는 호스트마다 달라도 되고, 같은 프로젝트를 공유해도 `collectionPrefix`로 컬렉션만 나누면 된다.
 
@@ -36,7 +38,7 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 **클라이언트 전용 게시판**
 ├── nuxt-vuefire + firebaseConfig     ← 인증·Firestore
 ├── (선택) App Check 플러그인         ← AI Logic Enforce 시 필수에 가까움
 ├── memi-board                        ← Nuxt 모듈 + 런타임 설정
-├── pages/board/*                     ← 라우트는 호스트 소유
+├── pages/board/*                     ← 라우트는 호스트 소유 (+ SEO 한 줄)
 └── firestore.rules + storage.rules   ← docs 예시 병합 후 배포
 ```
 
@@ -50,7 +52,14 @@ pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs
 
 `vuefire` / `firebase` / `nuxt-vuefire` / `dayjs`는 **호스트에 직접 설치**한다. TipTap은 `@nuxt/ui`와 `memi-board`가 관리하므로 호스트에서 별도로 설치하거나 버전을 맞출 필요가 없다.
 
-### 1. modules + vuefire
+---
+
+## 부모(호스트) 앱 설정
+
+호스트가 하는 일만 정리한다. **호스트 전용 SEO API·서버 라우트는 필요 없다.**  
+Firestore `listed === true` 공개 글을 패키지가 직접 읽고 `useSeoMeta`로 OG를 채운다.
+
+### 1. `nuxt.config.ts` — modules + `memiBoard` + vuefire + routeRules
 
 ```ts
 // nuxt.config.ts
@@ -60,6 +69,7 @@ export default defineNuxtConfig({
     'nuxt-vuefire',
     'memi-board',
   ],
+
   memiBoard: {
     // Firestore: {prefix}Posts, {prefix}Users, {prefix}Settings
     collectionPrefix: 'board',
@@ -71,8 +81,27 @@ export default defineNuxtConfig({
       moderateImages: false,
       useLimitedUseAppCheckTokens: false,
       // localBlocklist: ['금칙어'],
+      // blockBanThreshold: 3,
+      // blockBanDecayMs: 24 * 60 * 60 * 1000,
+    },
+    // 공유 미리보기(OG) — 호스트 API 없이 패키지 composable 사용
+    seo: {
+      enabled: true,
+      siteName: 'My App',                           // og:site_name · title 접미사
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL
+        || 'https://example.com',                   // 절대 URL origin (trailing slash 없음)
+      defaultOgImage: '/images/og-default.jpg',     // 글에 previewImage 없을 때
+      basePath: '/board',                           // canonical 경로 prefix
     },
   },
+
+  // (선택) 호스트 전역 siteUrl — SEO가 memiBoard.seo.siteUrl 다음으로 참고할 수 있음
+  runtimeConfig: {
+    public: {
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
+    },
+  },
+
   vuefire: {
     // 콘솔 → 프로젝트 설정 → 내 앱 → 웹 앱 SDK snippet 과 동일해야 함
     // (appId 가 다른 웹 앱이면 App Check / AI Logic 이 실패한다)
@@ -86,18 +115,112 @@ export default defineNuxtConfig({
     },
     auth: { enabled: true },
   },
+
   routeRules: {
-    // 게시판은 Firebase Auth/Firestore를 사용하는 클라이언트 전용 화면이다.
-    '/board/**': { ssr: false },
-    '/board-settings': { ssr: false },
+    // 공개 목록·글 상세: SSR 유지(기본) → 카톡/OG 크롤러가 HTML 메타를 읽음
+    // 쓰기·설정만 CSR
+    '/board/**/new': { ssr: false },
+    '/board/**/**/edit': { ssr: false },
+    '/board/version-history': { ssr: false },
+    '/board-settings/**': { ssr: false },
     '/board-users': { ssr: false },
   },
 })
 ```
 
-`memiBoard` 옵션은 Nuxt 모듈이 런타임 플러그인으로 자동 전달한다. `app/plugins/memi-board.ts`를 만들지 않는다.
+`memiBoard` 옵션은 Nuxt 모듈이 런타임 플러그인으로 자동 전달한다. **`app/plugins/memi-board.ts`를 만들지 않는다.**
 
-### 2. Tailwind `@source` (필수)
+#### `memiBoard` 옵션 요약
+
+| 키 | 기본 | 설명 |
+|----|------|------|
+| `collectionPrefix` | `'memiBoard'` | Firestore/Storage 접두 (`board` → `boardPosts` …) |
+| `auth.providers` | `['google','apple']` | 로그인 공급자 |
+| `moderation.*` | (아래 AI 절) | 로컬·Gemini 검열 |
+| `seo.enabled` | `true` | `false`면 SEO composable no-op |
+| `seo.siteName` | `'Board'` | OG 사이트명·title 접미사 |
+| `seo.siteUrl` | `''` | 절대 URL origin. 비우면 `runtimeConfig.public.siteUrl` → 요청 origin 순 |
+| `seo.defaultOgImage` | `''` | 대표 이미지 없을 때 (상대경로 또는 `https://…`) |
+| `seo.basePath` | `'/board'` | canonical: `{base}`, `{base}/{category}`, `{base}/{category}/{slug}` |
+
+#### routeRules 원칙
+
+| 경로 | SSR | 이유 |
+|------|-----|------|
+| `/board`, `/board/{category}`, `/board/{category}/{slug}` | **on** (기본) | OG/카톡 미리보기 |
+| `/board/**/new`, `…/edit`, 설정·유저 관리 | **off** | 로그인·권한 UI, SEO 불필요 |
+
+> 예전 가이드의 `/board/**: { ssr: false }` 전부 CSR은 **공유 미리보기가 비게 된다.** 공개 읽기 경로는 SSR을 켠다.
+
+### 2. 페이지에서 SEO 한 줄 (auto-import)
+
+모듈이 `useMemiBoardListSeo` / `useMemiBoardPostSeo`를 auto-import한다.  
+**호스트 `/server/api/board/**` SEO 엔드포인트는 만들지 않는다.**
+
+```vue
+<!-- app/pages/board/index.vue — 전체 목록 -->
+<script setup lang="ts">
+await useMemiBoardListSeo({ path: '/board' })
+// … MemiBoardList 등
+</script>
+```
+
+```vue
+<!-- app/pages/board/[category]/index.vue — 카테고리 목록 -->
+<script setup lang="ts">
+const route = useRoute()
+const categoryId = computed(() => String(route.params.category || ''))
+
+await useMemiBoardListSeo({
+  category: categoryId,
+  path: computed(() => `/board/${encodeURIComponent(categoryId.value)}`),
+})
+</script>
+```
+
+```vue
+<!-- app/pages/board/[category]/[id]/index.vue — 글 상세 (id 자리 = slug) -->
+<script setup lang="ts">
+const route = useRoute()
+const categoryId = computed(() => String(route.params.category || ''))
+const id = computed(() => String(route.params.id || ''))
+
+const { post: postSeo } = await useMemiBoardPostSeo({
+  category: categoryId,
+  slug: id,
+  path: computed(() =>
+    `/board/${encodeURIComponent(categoryId.value)}/${encodeURIComponent(id.value)}`,
+  ),
+})
+// postSeo: id · title · previewImage 등 — 상세 로드와 공유 가능
+</script>
+```
+
+| composable | 대상 | OG 요약 |
+|------------|------|---------|
+| `useMemiBoardListSeo` | 목록 | 카테고리 label·description, 최근 공개 글 이미지 |
+| `useMemiBoardPostSeo` | 상세 | 제목·요약·작성자, **`previewImage` → og:image** |
+
+- 공개(`listed`) 글만 조회. **숨김 게시판**은 메타를 비우고 `noindex` 쪽에 가깝게 동작한다.
+- 글 상세 `og:type` = `article`, 목록 = `website`.
+- 로컬 확인:  
+  `curl -sL 'http://localhost:3000/board/…' | grep og:title`  
+  또는 브라우저 **페이지 소스 보기** (`view-source:`). DevTools Elements만 보면 하이드레이션 이후와 헷갈릴 수 있다.
+- 카톡·슬랙 미리보기는 **배포 URL**로 확인 (localhost 크롤 불가).
+
+### 3. 부모 설정 체크리스트
+
+- [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
+- [ ] `memiBoard.collectionPrefix` · `auth` · `moderation` · **`seo`**
+- [ ] `seo.siteUrl` / `seo.siteName` / `seo.defaultOgImage` / `seo.basePath`
+- [ ] 공개 board 경로 **SSR on**, 쓰기·설정만 `ssr: false`
+- [ ] 목록·상세 페이지에 `await useMemiBoard*Seo(…)` 한 줄
+- [ ] 호스트 SEO API **만들지 않음**
+- [ ] CSS `@source` (아래)
+- [ ] Rules·indexes **deploy**
+- [ ] 최초 admin + 첫 카테고리
+
+### 4. Tailwind `@source` (필수)
 
 패키지 SFC 안의 클래스가 purge되지 않도록:
 
@@ -108,7 +231,7 @@ export default defineNuxtConfig({
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 3. Security Rules + 인덱스 배포
+### 5. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
    (`memiBoard*` 이름을 쓰는 `collectionPrefix`에 맞게 치환)
@@ -142,7 +265,7 @@ export default defineNuxtConfig({
 
 > ⚠️ npm 패키지 tarball에도 `docs/` 가 포함된다(0.4.7+). 구버전이면 GitHub의 `docs/`를 보면 된다.
 
-### 4. 최초 관리자와 카테고리 만들기
+### 6. 최초 관리자와 카테고리 만들기
 
 Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
 
@@ -270,7 +393,11 @@ const router = useRouter()
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
 
 **composables:**  
-`useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`
+`useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`, `useMemiBoardViews`  
+**SEO (auto-import, 호스트 파이프라인):**  
+`useMemiBoardListSeo`, `useMemiBoardPostSeo`  
+**SEO fetch (필요 시):**  
+`fetchPublicListForSeo`, `fetchPublicPostForSeo`, `resolvePublicSeoDb`
 
 댓글은 시간순으로 10개씩 cursor 조회하며, 실제 `댓글 더보기` 버튼이 화면에 들어오면 1초 후 자동으로 다음 페이지를 읽는다. 기존 댓글을 모두 읽은 뒤에만 최신 댓글 1개를 실시간 구독한다. 대댓글은 5개씩 조회하고 모두 읽은 뒤 최신 답글 1개를 실시간 구독하며, 화면 깊이는 최대 2단계로 표시한다.
 
@@ -361,11 +488,13 @@ export default defineNuxtPlugin(() => {
 - [ ] 동일 스택: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
 - [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs`
 - [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
-- [ ] 게시판·관리 경로에 `ssr: false`
-- [ ] `nuxt.config.ts`의 `memiBoard` 설정 (`collectionPrefix` 충돌 없게)
+- [ ] `memiBoard` (`collectionPrefix` · `auth` · `moderation` · **`seo`**)
+- [ ] 공개 목록·상세 **SSR on**, 쓰기·설정만 `ssr: false` (전 경로 CSR 금지)
+- [ ] 목록·상세 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo`
+- [ ] 호스트 SEO API 없음
 - [ ] CSS `@source` …/memi-board/dist/runtime/components
 - [ ] Rules 예시 병합 + **deploy**
-- [ ] 카테고리 필터 사용 시 indexes deploy
+- [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
 - [ ] 최초 로그인 후 Firebase Console에서 `{prefix}Users/{uid}.role = 'admin'`
 - [ ] 설정 페이지에서 첫 카테고리 생성
@@ -401,7 +530,15 @@ pnpm build
 pnpm add link:../memi-board
 ```
 
-`src/components` 수정은 Nuxt 모듈이 링크 소스를 직접 읽으므로 즉시 반영된다. `src/module.ts` 또는 core composable을 수정하면 `pnpm build`를 다시 실행하고 호스트 개발 서버를 재시작한다. 모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe와 `dayjs` 최적화를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
+| 수정 대상 | 반영 |
+|-----------|------|
+| `src/components/*` | 모듈이 링크 소스 직독 → **즉시** (dev HMR) |
+| `useMemiBoard*Seo` (`src/composables/useMemiBoardSeo.ts`) | 호스트 Nuxt가 소스 컴파일 → **즉시** (dev 재시작이 필요할 수 있음) |
+| `src/module.ts` · 그 외 core composable (`dist`) | **`pnpm build`** 후 호스트 dev 재시작 |
+
+SEO composable은 `#imports`로 호스트 Nuxt 인스턴스를 쓴다. `dist/index.js`에 `nuxt/app`을 넣지 않으므로 link 시 Nuxt 이중 로딩(E1001)이 나지 않는다.
+
+모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe와 `dayjs` 최적화를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
 
 링크 상태에서 새 Tailwind 클래스를 바로 시험하려면 호스트 CSS에 소스 경로를 하나 더 둔다.
 
@@ -409,6 +546,15 @@ pnpm add link:../memi-board
 @source "../../../node_modules/memi-board/src/components";
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
+
+### OG 메타가 비어 있거나 카톡 미리보기가 안 될 때
+
+1. 공개 경로가 `ssr: false`로 꺼져 있지 않은지 (`routeRules`)
+2. 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo` 호출 여부
+3. `memiBoard.seo.siteUrl` · `siteName` · `defaultOgImage`
+4. `curl` / view-source 에 `og:title` 이 있는지 (Elements만 보지 말 것)
+5. 글이 `listed` / 숨김 게시판이 아닌지 (숨김은 noindex)
+6. 배포 URL로 재스크랩 (카톡·FB 캐시)
 
 ## 로컬 개발 (이 리포)
 

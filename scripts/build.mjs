@@ -23,6 +23,13 @@ mkdirSync(resolve(root, 'dist/runtime'), { recursive: true })
 console.log('→ copy components → dist/runtime/components')
 cpSync(srcComponents, destComponents, { recursive: true })
 
+// SEO composable — 호스트 Nuxt 컴파일용 (#imports). lib 번들에 넣지 않음.
+const seoSrc = resolve(root, 'src/composables/useMemiBoardSeo.ts')
+const seoDestDir = resolve(root, 'dist/runtime/composables')
+mkdirSync(seoDestDir, { recursive: true })
+console.log('→ copy useMemiBoardSeo → dist/runtime/composables')
+cpSync(seoSrc, resolve(seoDestDir, 'useMemiBoardSeo.ts'))
+
 // module types (vite-plugin-dts skips module entry portably)
 const moduleDts = resolve(root, 'dist/module.d.ts')
 writeFileSync(
