@@ -15,7 +15,7 @@ const stacks = [
 </script>
 
 <template>
-  <footer class="flex justify-center border-t border-default/60 pt-4">
+  <footer class="flex justify-center pt-2">
     <button type="button" class="cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted" @click="open = true">
       powered by memi
     </button>

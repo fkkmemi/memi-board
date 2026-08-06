@@ -13,75 +13,95 @@ const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
 const NuxtLink = resolveComponent('NuxtLink')
 
-function hasImage(post: PostModel): boolean {
-  return !!(post.previewImage || post.attachments?.some(item => item.type.startsWith('image/')))
+function thumb(post: PostModel): string | undefined {
+  return post.previewImage || post.attachments?.find(item => item.type.startsWith('image/'))?.url
 }
 </script>
 
 <template>
-  <!-- DC식 조밀 행: 카드 간격 없이 한 줄 행 + 구분선 -->
-  <div class="divide-y divide-default overflow-hidden rounded-lg border border-default">
-    <component
-      :is="postTo(post) ? NuxtLink : 'button'"
-      v-for="post in posts"
-      :key="post.id"
-      :to="postTo(post)"
-      class="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm transition-colors hover:bg-elevated/50 sm:gap-3 sm:px-3"
-      @click="!postTo(post) && emit('select', post)"
-    >
-      <!-- 좋아요 -->
-      <span
-        class="flex w-7 shrink-0 items-center justify-center text-xs tabular-nums"
-        :class="(post.likeCount ?? 0) > 0 ? 'text-primary font-medium' : 'text-muted'"
-      >
-        {{ post.likeCount ?? 0 }}
-      </span>
+  <!--
+    조밀 = 타임라인 스트림.
+    레일 위 원형 노드 자리에 썸네일, 제목 한 줄 + 메타.
+  -->
+  <div class="relative">
+    <!-- 세로 레일 (썸네일 중심 기준) -->
+    <div
+      class="pointer-events-none absolute bottom-4 left-5 top-4 w-px bg-gradient-to-b from-primary/40 via-default to-primary/20"
+      aria-hidden="true"
+    />
 
-      <!-- 카테고리 -->
-      <UBadge
-        v-if="post.category && showCategory"
-        class="shrink-0"
-        :label="categoryLabel(post.category)"
-        variant="subtle"
-        size="sm"
-      />
-
-      <!-- 제목 + 이미지/댓글 표시 -->
-      <div class="flex min-w-0 flex-1 items-center gap-1">
-        <span class="min-w-0 truncate font-medium text-highlighted">
-          {{ post.title }}
-        </span>
-        <UIcon
-          v-if="hasImage(post)"
-          name="i-lucide-image"
-          class="size-3.5 shrink-0 text-muted"
-        />
-        <span
-          v-if="post.commentCount > 0"
-          class="shrink-0 text-xs font-medium tabular-nums text-primary"
+    <ul class="flex flex-col gap-0.5">
+      <li v-for="post in posts" :key="post.id">
+        <component
+          :is="postTo(post) ? NuxtLink : 'button'"
+          :to="postTo(post)"
+          class="group relative flex w-full items-center gap-3 rounded-lg py-1.5 pr-2 pl-0 text-left transition-colors hover:bg-elevated/60"
+          @click="!postTo(post) && emit('select', post)"
         >
-          {{ post.commentCount }}
-        </span>
-      </div>
+          <!-- 레일 위 원형 썸네일 (이미지 없으면 플레이스홀더) -->
+          <div
+            class="relative z-10 size-10 shrink-0 overflow-hidden rounded-full bg-elevated ring-2 ring-default shadow-sm transition duration-300 group-hover:ring-primary/50"
+          >
+            <img
+              v-if="thumb(post)"
+              :src="thumb(post)"
+              :alt="post.title"
+              class="size-full object-cover transition duration-300 group-hover:scale-110"
+            >
+            <div
+              v-else
+              class="flex size-full items-center justify-center text-muted"
+            >
+              <UIcon name="i-lucide-file-text" class="size-4" />
+            </div>
+          </div>
 
-      <!-- 작성자 -->
-      <span class="hidden w-20 shrink-0 truncate text-right text-xs text-muted sm:block">
-        {{ post.authorName ?? '익명' }}
-      </span>
+          <!-- 본문 -->
+          <div class="min-w-0 flex-1">
+            <div class="flex min-w-0 items-center gap-1.5">
+              <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-highlighted transition-colors group-hover:text-primary">
+                {{ post.title }}
+              </h3>
+              <span
+                v-if="post.commentCount > 0"
+                class="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
+              >
+                {{ post.commentCount }}
+              </span>
+            </div>
 
-      <!-- 시간 -->
-      <UTooltip
-        :delay-duration="0"
-        :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-        :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
-      >
-        <time
-          :datetime="post.createdAt?.toDate?.().toISOString()"
-          class="w-12 shrink-0 cursor-help text-right text-xs tabular-nums text-muted sm:w-14"
-        >
-          {{ formatRelativeDate(post.createdAt, now) }}
-        </time>
-      </UTooltip>
-    </component>
+            <div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-muted">
+              <span class="max-w-[7rem] truncate font-medium text-toned">
+                {{ post.authorName ?? '익명' }}
+              </span>
+              <span class="text-default/40" aria-hidden="true">·</span>
+              <UTooltip
+                :delay-duration="0"
+                :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+                :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+              >
+                <time
+                  :datetime="post.createdAt?.toDate?.().toISOString()"
+                  class="cursor-help tabular-nums"
+                >
+                  {{ formatRelativeDate(post.createdAt, now) }}
+                </time>
+              </UTooltip>
+              <template v-if="(post.likeCount ?? 0) > 0">
+                <span class="text-default/40" aria-hidden="true">·</span>
+                <span class="inline-flex items-center gap-0.5 tabular-nums">
+                  <UIcon name="i-lucide-heart" class="size-3 text-primary/80" />
+                  {{ post.likeCount }}
+                </span>
+              </template>
+              <template v-if="post.category && showCategory">
+                <span class="text-default/40" aria-hidden="true">·</span>
+                <span class="truncate text-muted">{{ categoryLabel(post.category) }}</span>
+              </template>
+            </div>
+          </div>
+        </component>
+      </li>
+    </ul>
   </div>
 </template>
