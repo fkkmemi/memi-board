@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.14.1',
+    date: '2026-08-06',
+    highlights: [
+      '일반 리스트뷰에 정사각형 썸네일이 생기고, 작성자·시간·좋아요·댓글수를 오른쪽에 보기 좋게 정리했어요',
+      '카테고리 안에서는 같은 카테고리 뱃지가 매 글마다 반복 표시되지 않아요',
+    ],
+  },
+  {
     version: '0.14.0',
     date: '2026-08-06',
     highlights: [

@@ -240,6 +240,7 @@ function postTo(post: PostModel): string | undefined {
       :posts="posts"
       :post-to="postTo"
       :now="now"
+      :show-category="!category"
       @select="emit('select', $event)"
     />
 
