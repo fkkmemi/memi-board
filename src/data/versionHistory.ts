@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.19.2',
+    date: '2026-08-06',
+    highlights: [
+      '이미지만 넣고 글 없이 올리는 건 막았어요 — 본문에 글자를 넣어야 해요',
+    ],
+  },
+  {
     version: '0.19.1',
     date: '2026-08-06',
     highlights: [

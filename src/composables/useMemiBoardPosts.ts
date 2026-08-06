@@ -29,6 +29,7 @@ import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
 import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
+import { hasBodyText } from '../utils/postBody'
 import { useMemiBoardConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
@@ -209,6 +210,12 @@ export function useMemiBoardPosts() {
   }
 
   async function createPost(input: CreatePostInput): Promise<string> {
+    if (!input.title?.trim()) {
+      throw new Error('제목을 입력해 주세요.')
+    }
+    if (!hasBodyText(input.content)) {
+      throw new Error('본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.')
+    }
     const baseSlug = slugify(input.title) || 'post'
     let slug = baseSlug
     let counter = 1
@@ -251,6 +258,12 @@ export function useMemiBoardPosts() {
   }
 
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
+    if (!input.title?.trim()) {
+      throw new Error('제목을 입력해 주세요.')
+    }
+    if (!hasBodyText(input.content)) {
+      throw new Error('본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.')
+    }
     // 메타·본문을 같이 갱신. category 미선택 시 필드 제거(부분 갱신으로 예전 값이 남는 것 방지).
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForCategory(input.category)

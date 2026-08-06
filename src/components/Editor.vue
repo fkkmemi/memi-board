@@ -16,6 +16,8 @@ import {
   useMemiBoardSettings,
   useMemiBoardStorage,
   EDITOR_IMAGE_SOURCE_MAX_BYTES,
+  hasBodyText,
+  plainTextFromHtml,
 } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
 
@@ -188,15 +190,6 @@ const toolbarItems = [
   ],
 ] as const
 
-function isContentEmpty(html: string): boolean {
-  const plain = html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-  return !plain
-}
-
 function resolveEditor(): any | null {
   const ed = (editorRef.value as any)?.editor
   return ed?.value ?? ed ?? null
@@ -336,8 +329,13 @@ function friendlyWriteError(e: unknown): string {
 
 async function handleSubmit() {
   error.value = ''
-  if (!title.value.trim() || isContentEmpty(content.value)) {
-    error.value = '제목과 내용을 입력해 주세요.'
+  if (!title.value.trim()) {
+    error.value = '제목을 입력해 주세요.'
+    return
+  }
+  // 이미지·유튜브·첨부만 있고 글자가 없으면 게시 불가
+  if (!hasBodyText(content.value)) {
+    error.value = '본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.'
     return
   }
   if (!user.value) {
@@ -362,7 +360,7 @@ async function handleSubmit() {
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
   try {
-    const plain = content.value.replace(/<[^>]+>/g, ' ')
+    const plain = plainTextFromHtml(content.value)
     const moderation = await checkText(`${title.value}\n${plain}`)
     if (moderation.flagged) {
       error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'

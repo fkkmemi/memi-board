@@ -2,6 +2,12 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.19.2] - 2026-08-06
+
+### Fixed
+- 본문에 **글자 없이 이미지만** 있는 글 작성·수정 차단 (안내 문구 포함)
+- `hasBodyText` / `plainTextFromHtml` — 이미지·iframe·유튜브만 있으면 빈 본문으로 처리
+
 ## [0.19.1] - 2026-08-06
 
 ### Changed
