@@ -10,14 +10,7 @@ import {
 import { useBoardPathConfig } from '../config'
 import { boardPostDoc, boardPostLikeDoc } from '../utils/boardPaths'
 
-/**
- * 게시글 좋아요 상태 구독 + 토글.
- * `memiBoards/{boardId}/posts/{postId}/likes/{uid}` 문서 존재 여부가 "좋아요함"의 기준이고,
- * `likeCount`는 그 문서 수를 반영하는 클라이언트 편의 카운터일 뿐이다(commentCount와 동일한 성격).
- * 토글은 배치가 아니라 트랜잭션으로 처리한다 — "있으면 취소, 없으면 추가"라는 read-then-branch라
- * 다중 탭 경합 시에도 likeCount가 실제 likes 문서 수와 어긋나지 않게 하기 위함이다.
- */
-export function useMemiBoardLikes(postId: string) {
+export function useMemiBoardLikes(boardId: string, postId: string) {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const user = useCurrentUser()
@@ -27,7 +20,7 @@ export function useMemiBoardLikes(postId: string) {
   let stopSubscription: Unsubscribe | undefined
 
   function likeDocRef(uid: string) {
-    return boardPostLikeDoc(db, cfg(), postId, uid)
+    return boardPostLikeDoc(db, cfg(), boardId, postId, uid)
   }
 
   watch(user, (current) => {
@@ -46,7 +39,6 @@ export function useMemiBoardLikes(postId: string) {
 
   onScopeDispose(() => stopSubscription?.())
 
-  /** 좋아요 토글. 반환값은 토글 후의 좋아요 상태. */
   async function toggleLike(): Promise<boolean> {
     const uid = user.value?.uid
     if (!uid) throw new Error('로그인이 필요합니다.')
@@ -54,7 +46,7 @@ export function useMemiBoardLikes(postId: string) {
     likePending.value = true
     try {
       const likeRef = likeDocRef(uid)
-      const postRef = boardPostDoc(db, cfg(), postId)
+      const postRef = boardPostDoc(db, cfg(), boardId, postId)
       return await runTransaction(db, async (tx) => {
         const likeSnap = await tx.get(likeRef)
         if (likeSnap.exists()) {

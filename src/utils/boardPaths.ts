@@ -1,17 +1,19 @@
 /**
- * Firestore / Storage 경로 — multi-board 트리.
+ * Firestore / Storage 경로
  *
  * ```
+ * memiBoardUsers/{uid}
+ *
+ * memiBoards/{boardId}                         // 목록용 메타(optional stub + order)
+ * memiBoards/{boardId}/settings/config         // 보드 설정 (구 category + boardSettings)
  * memiBoards/{boardId}/posts/{postId}
  * memiBoards/{boardId}/posts/{postId}/body/main
- * memiBoards/{boardId}/posts/{postId}/comments/{commentId}
- * memiBoards/{boardId}/posts/{postId}/likes/{uid}
- * memiBoards/{boardId}/settings/config
- * memiBoards/{boardId}/settings/config/categories/{categoryId}
- * memiBoards/{boardId}/users/{uid}
+ * memiBoards/{boardId}/posts/{postId}/comments|likes
  * ```
  *
  * Storage: `memiBoards/{boardId}/posts/{postId}/...`
+ *
+ * 카테고리 개념 없음 — 예전 category id 가 곧 boardId.
  */
 import {
   collection,
@@ -22,114 +24,101 @@ import {
 } from 'firebase/firestore'
 
 export const DEFAULT_BOARDS_COLLECTION = 'memiBoards'
-export const DEFAULT_BOARD_ID = 'default'
+export const DEFAULT_USERS_COLLECTION = 'memiBoardUsers'
 
 export interface BoardPathConfig {
-  /** 루트 컬렉션. 기본 `memiBoards` */
   boardsCollection: string
-  /** 게시판 문서 ID */
-  boardId: string
+  usersCollection: string
 }
 
 export function resolveBoardPathConfig(input: {
   boardsCollection?: string
-  boardId?: string
+  usersCollection?: string
 }): BoardPathConfig {
-  const boardsCollection = input.boardsCollection?.trim() || DEFAULT_BOARDS_COLLECTION
-  const boardId = input.boardId?.trim() || DEFAULT_BOARD_ID
-  if (!boardId) {
-    throw new Error('[memi-board] boardId 가 비어 있습니다.')
+  return {
+    boardsCollection: input.boardsCollection?.trim() || DEFAULT_BOARDS_COLLECTION,
+    usersCollection: input.usersCollection?.trim() || DEFAULT_USERS_COLLECTION,
   }
-  return { boardsCollection, boardId }
 }
 
-/** `memiBoards/{boardId}` */
-export function boardDocPath(cfg: BoardPathConfig): string {
-  return `${cfg.boardsCollection}/${cfg.boardId}`
+export function boardsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.boardsCollection)
 }
 
-/** Storage 루트 접두 — `memiBoards/{boardId}` */
-export function boardStorageRoot(cfg: BoardPathConfig): string {
-  return boardDocPath(cfg)
+export function boardDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  boardId: string,
+): DocumentReference {
+  return doc(db, cfg.boardsCollection, boardId)
 }
 
-export function boardPostStorageFolder(cfg: BoardPathConfig, postId: string): string {
-  return `${boardStorageRoot(cfg)}/posts/${postId}`
+/** 구 boardSettings — 보드 단위 설정 문서 */
+export function boardSettingsDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  boardId: string,
+): DocumentReference {
+  return doc(db, cfg.boardsCollection, boardId, 'settings', 'config')
 }
 
-export function boardPostsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
-  return collection(db, cfg.boardsCollection, cfg.boardId, 'posts')
+export function boardPostsCol(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  boardId: string,
+): CollectionReference {
+  return collection(db, cfg.boardsCollection, boardId, 'posts')
 }
 
 export function boardPostDoc(
   db: Firestore,
   cfg: BoardPathConfig,
+  boardId: string,
   postId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'posts', postId)
+  return doc(db, cfg.boardsCollection, boardId, 'posts', postId)
 }
 
 export function boardPostBodyDoc(
   db: Firestore,
   cfg: BoardPathConfig,
+  boardId: string,
   postId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'posts', postId, 'body', 'main')
+  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'body', 'main')
 }
 
 export function boardPostCommentsCol(
   db: Firestore,
   cfg: BoardPathConfig,
+  boardId: string,
   postId: string,
 ): CollectionReference {
-  return collection(db, cfg.boardsCollection, cfg.boardId, 'posts', postId, 'comments')
+  return collection(db, cfg.boardsCollection, boardId, 'posts', postId, 'comments')
 }
 
 export function boardPostCommentDoc(
   db: Firestore,
   cfg: BoardPathConfig,
+  boardId: string,
   postId: string,
   commentId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'posts', postId, 'comments', commentId)
+  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'comments', commentId)
 }
 
 export function boardPostLikeDoc(
   db: Firestore,
   cfg: BoardPathConfig,
+  boardId: string,
   postId: string,
   uid: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'posts', postId, 'likes', uid)
-}
-
-/** 기존 boardSettings 메타 — `.../settings/config` */
-export function boardSettingsDoc(db: Firestore, cfg: BoardPathConfig): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'settings', 'config')
-}
-
-export function boardCategoriesCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
-  return collection(db, cfg.boardsCollection, cfg.boardId, 'settings', 'config', 'categories')
-}
-
-export function boardCategoryDoc(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  categoryId: string,
-): DocumentReference {
-  return doc(
-    db,
-    cfg.boardsCollection,
-    cfg.boardId,
-    'settings',
-    'config',
-    'categories',
-    categoryId,
-  )
+  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'likes', uid)
 }
 
 export function boardUsersCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
-  return collection(db, cfg.boardsCollection, cfg.boardId, 'users')
+  return collection(db, cfg.usersCollection)
 }
 
 export function boardUserDoc(
@@ -137,10 +126,21 @@ export function boardUserDoc(
   cfg: BoardPathConfig,
   uid: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, cfg.boardId, 'users', uid)
+  return doc(db, cfg.usersCollection, uid)
 }
 
-/** vuefire ssrKey / 로그용 안정 문자열 */
+export function boardStorageRoot(cfg: BoardPathConfig, boardId: string): string {
+  return `${cfg.boardsCollection}/${boardId}`
+}
+
+export function boardPostStorageFolder(
+  cfg: BoardPathConfig,
+  boardId: string,
+  postId: string,
+): string {
+  return `${boardStorageRoot(cfg, boardId)}/posts/${postId}`
+}
+
 export function boardSsrKey(cfg: BoardPathConfig, suffix: string): string {
-  return `${boardDocPath(cfg)}/${suffix}`
+  return `${cfg.boardsCollection}/${cfg.usersCollection}/${suffix}`
 }

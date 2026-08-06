@@ -3,12 +3,13 @@ import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardLikes } from 'memi-board/runtime'
 
 const props = defineProps<{
+  boardId: string
   postId: string
   likeCount: number
 }>()
 
 const { isSignedIn } = useMemiBoardAuth()
-const { isLiked, likePending, toggleLike } = useMemiBoardLikes(props.postId)
+const { isLiked, likePending, toggleLike } = useMemiBoardLikes(props.boardId, props.postId)
 </script>
 
 <template>

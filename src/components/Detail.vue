@@ -12,7 +12,7 @@ import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
 
-const props = defineProps<{ postId: string }>()
+const props = defineProps<{ boardId: string, postId: string }>()
 
 const emit = defineEmits<{
   deleted: []
@@ -21,14 +21,14 @@ const emit = defineEmits<{
   navigate: [post: PostModel]
 }>()
 
-const { getAdjacentPosts, deletePost } = useMemiBoardPosts()
+const { getAdjacentPosts, deletePost } = useMemiBoardPosts(() => props.boardId)
 const { canEdit, canDelete } = useMemiBoardAuth()
-const { categoryLabel } = useMemiBoardSettings()
+const { boardLabel } = useMemiBoardSettings()
 const { recordView } = useMemiBoardViews()
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
 // 좋아요 토글도 이 구독이 그대로 비춰주므로 별도 로컬 낙관적 갱신이 필요 없다.
-const { post, pending: loading } = useMemiBoardPost(computed(() => props.postId))
+const { post, pending: loading } = useMemiBoardPost(() => props.boardId, computed(() => props.postId))
 const notFound = computed(() => !loading.value && !post.value)
 const deleting = ref(false)
 const previousPost = ref<PostModel | null>(null)
@@ -58,9 +58,9 @@ watch(post, async (current) => {
 
 // 상세 진입 시 조회수 +1 (로그인 불필요, 세션당 1회)
 watch(
-  () => props.postId,
-  (id) => {
-    if (id) void recordView(id)
+  () => [props.boardId, props.postId] as const,
+  ([boardId, id]) => {
+    if (boardId && id) void recordView(boardId, id)
   },
   { immediate: true },
 )
@@ -123,7 +123,7 @@ const contentHtml = computed(() => {
         <div class="flex items-center gap-2 min-w-0">
           <UBadge
             v-if="post.category"
-            :label="categoryLabel(post.category)"
+            :label="boardLabel(boardId)"
             variant="subtle"
           />
           <h1
@@ -163,6 +163,7 @@ const contentHtml = computed(() => {
     <MemiBoardAttachments
       v-if="post.attachments?.length"
       :model-value="post.attachments"
+      :board-id="boardId"
       :post-id="postId"
     />
 
@@ -216,6 +217,7 @@ const contentHtml = computed(() => {
 
     <div class="flex justify-center">
       <MemiBoardLikeButton
+        :board-id="boardId"
         :post-id="postId"
         :like-count="post.likeCount ?? 0"
       />
@@ -254,8 +256,8 @@ const contentHtml = computed(() => {
       <h2 class="text-sm font-medium text-muted">
         댓글
       </h2>
-      <MemiBoardCommentList :post-id="postId" :category="post.category" />
-      <MemiBoardCommentForm :post-id="postId" :category="post.category" />
+      <MemiBoardCommentList :board-id="boardId" :post-id="postId" />
+      <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />
     </section>
   </div>
 </template>

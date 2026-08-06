@@ -1,14 +1,5 @@
-// memi-board Storage Security Rules 예시
-//
-// 호스트 프로젝트의 storage.rules에 아래 match 블록을 병합해서 배포해야 한다
-// (Storage rules는 프로젝트당 파일 하나이므로, 이 블록만 통째로 복사해서 기존 규칙 안에 끼워 넣으면 된다).
-//
-// 경로 (0.20+):
-//   memiBoards/{boardId}/posts/{postId}/attachments/...
-//   memiBoards/{boardId}/posts/{postId}/images/...
-//   memiBoards/{boardId}/posts/{postId}/images/thumbnails/...
-//
-// boardsCollection / boardId 는 호스트 memiBoard 설정과 맞춘다.
+// memi-board 0.21+ Storage Rules
+// memiBoards/{boardId}/posts/{postId}/attachments|images/...
 
 rules_version = '2';
 service firebase.storage {
@@ -17,37 +8,39 @@ service firebase.storage {
     function isSignedIn() {
       return request.auth != null;
     }
-    function isStaff(boardId) {
-      return isSignedIn() &&
-        firestore.get(/databases/(default)/documents/memiBoards/$(boardId)/users/$(request.auth.uid)).data.role in ['admin', 'staff'];
+    function isBoardStaff() {
+      let userPath = /databases/(default)/documents/memiBoardUsers/$(request.auth.uid);
+      return isSignedIn()
+        && firestore.exists(userPath)
+        && firestore.get(userPath).data.role in ['admin', 'staff'];
     }
     function postExists(boardId, postId) {
       return firestore.exists(/databases/(default)/documents/memiBoards/$(boardId)/posts/$(postId));
     }
     function isPostOwner(boardId, postId) {
-      return isSignedIn() &&
-        firestore.get(/databases/(default)/documents/memiBoards/$(boardId)/posts/$(postId)).data.authorUid == request.auth.uid;
+      let postPath = /databases/(default)/documents/memiBoards/$(boardId)/posts/$(postId);
+      return isSignedIn()
+        && firestore.exists(postPath)
+        && firestore.get(postPath).data.authorUid == request.auth.uid;
     }
 
     match /memiBoards/{boardId}/posts/{postId}/attachments/{fileName} {
       allow read: if true;
-      // uploadBytesResumable → create + 청크 update 필요 (write)
       allow write: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isStaff(boardId))
+        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff())
         && request.resource.size < 20 * 1024 * 1024;
       allow delete: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isStaff(boardId));
+        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff());
     }
 
-    // 에디터 본문 이미지 + 썸네일
     match /memiBoards/{boardId}/posts/{postId}/images/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isStaff(boardId))
+        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff())
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg)');
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg|heic|heif)');
       allow delete: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isStaff(boardId));
+        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff());
     }
   }
 }

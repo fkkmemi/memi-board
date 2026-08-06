@@ -22,35 +22,30 @@ import {
 import MemiBoardAttachments from './Attachments.vue'
 
 const props = defineProps<{
+  /** 글이 속할 보드 id (필수) */
+  boardId: string
   postId?: string
+  /** @deprecated boardId 사용 */
   fixedCategory?: string
 }>()
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
-const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts()
+const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
+const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts(resolvedBoardId)
 const { checkText } = useMemiBoardModeration()
-const { categories, ensureSettings, addCategory } = useMemiBoardSettings()
+const { getBoard, ensureSettings } = useMemiBoardSettings()
 const { uploadEditorImage } = useMemiBoardStorage()
 
 const title = ref('')
 /** UEditor content-type=html (shineb 와 동일) */
 const content = ref('')
 const tagsInput = ref('')
-const category = ref<string | undefined>(undefined)
 const attachments = ref<Attachment[]>([])
 
-const categoryItems = computed(() =>
-  categories.value.map(c => ({ label: c.label, value: c.id })),
-)
-const effectiveCategory = computed(() => props.fixedCategory || category.value)
-/** 이미지 리스트뷰 카테고리 — 제목 없음, 이미지+본문 필수 (인스타형) */
-const isImageListView = computed(() => {
-  const id = effectiveCategory.value
-  if (!id) return false
-  return categories.value.find(c => c.id === id)?.listView === 'image'
-})
+/** 이미지 리스트뷰 보드 — 제목 없음, 이미지+본문 필수 */
+const isImageListView = computed(() => getBoard(resolvedBoardId.value)?.listView === 'image')
 const isEdit = computed(() => Boolean(props.postId))
 
 const loading = ref(false)
@@ -59,10 +54,6 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
-
-const showAddCategory = ref(false)
-const newCategoryLabel = ref('')
-const addingCategory = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? createPostId())
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
@@ -240,7 +231,7 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
     throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
   }
-  const entry = await uploadEditorImage(file, imageNamespace())
+  const entry = await uploadEditorImage(file, resolvedBoardId.value, imageNamespace())
   uploadedEditorImages.value.push(entry)
   return entry
 }
@@ -574,12 +565,11 @@ async function loadPost(id: string) {
       return
     }
     title.value = post.title
-    category.value = post.category
     tagsInput.value = (post.tags ?? []).join(', ')
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
     // 이미지 보드: 본문 이미지를 갤러리로, 에디터에는 글만
-    const imageBoard = categories.value.find(c => c.id === post.category)?.listView === 'image'
+    const imageBoard = isImageListView.value
       || Boolean(post.previewImage && !post.title?.trim())
     if (imageBoard) {
       const fromBody = extractAllImageSrcs(post.content)
@@ -613,47 +603,11 @@ watch(
       loading.value = false
       attachmentNamespace.value = createPostId()
       coverSlots.value = []
-      if (props.fixedCategory) category.value = props.fixedCategory
       void ensureSettings().catch(() => {})
     }
   },
   { immediate: true },
 )
-
-watch(
-  () => props.fixedCategory,
-  (c) => {
-    if (c && !props.postId) category.value = c
-  },
-  { immediate: true },
-)
-
-async function handleAddCategory() {
-  error.value = ''
-  if (!isSignedIn.value) {
-    error.value = '카테고리 추가에는 로그인이 필요합니다.'
-    return
-  }
-  addingCategory.value = true
-  try {
-    const label = newCategoryLabel.value.trim()
-    const moderation = await checkText(label)
-    if (moderation.flagged) {
-      error.value = moderation.reason || '사용할 수 없는 카테고리 이름입니다.'
-      return
-    }
-    const id = await addCategory(label)
-    category.value = id
-    newCategoryLabel.value = ''
-    showAddCategory.value = false
-  }
-  catch (e) {
-    error.value = (e as Error).message || String(e)
-  }
-  finally {
-    addingCategory.value = false
-  }
-}
 
 function friendlyWriteError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e)
@@ -685,13 +639,8 @@ async function handleSubmit() {
     error.value = '로그인이 필요합니다.'
     return
   }
-  const cat = effectiveCategory.value
-  if (!cat) {
-    error.value = '카테고리를 선택해 주세요.'
-    return
-  }
-  if (!categories.value.some(c => c.id === cat) && !props.fixedCategory) {
-    error.value = '목록에 있는 카테고리를 선택해 주세요.'
+  if (!resolvedBoardId.value) {
+    error.value = '게시판(보드)이 지정되지 않았습니다.'
     return
   }
   if (isWriteRestricted.value) {
@@ -720,7 +669,6 @@ async function handleSubmit() {
       title: imageBoard ? '' : title.value.trim(),
       content: bodyContent,
       tags,
-      category: cat,
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
       attachments: imageBoard ? [] : attachments.value,
     }
@@ -767,56 +715,6 @@ async function handleSubmit() {
     @drop.capture="onImageFormDrop"
     @dragover.capture="onImageFormDragOver"
   >
-    <div
-      v-if="!fixedCategory"
-      class="flex flex-col gap-2"
-    >
-      <div class="flex items-center gap-2 flex-wrap">
-        <USelect
-          v-model="category"
-          :items="categoryItems"
-          placeholder="카테고리 선택"
-          class="w-48"
-        />
-        <UButton
-          v-if="isSignedIn"
-          type="button"
-          variant="outline"
-          color="neutral"
-          size="sm"
-          icon="i-lucide-plus"
-          label="카테고리 추가"
-          @click="showAddCategory = !showAddCategory"
-        />
-      </div>
-      <div
-        v-if="showAddCategory"
-        class="flex items-center gap-2"
-      >
-        <UInput
-          v-model="newCategoryLabel"
-          placeholder="새 카테고리 이름"
-          class="w-48"
-          @keydown.enter.prevent="handleAddCategory"
-        />
-        <UButton
-          type="button"
-          size="sm"
-          label="추가"
-          :loading="addingCategory"
-          @click="handleAddCategory"
-        />
-        <UButton
-          type="button"
-          size="sm"
-          variant="ghost"
-          color="neutral"
-          label="취소"
-          @click="showAddCategory = false; newCategoryLabel = ''"
-        />
-      </div>
-    </div>
-
     <UInput
       v-if="!isImageListView"
       v-model="title"
@@ -1009,6 +907,7 @@ async function handleSubmit() {
     <MemiBoardAttachments
       v-if="!isImageListView"
       v-model="attachments"
+      :board-id="resolvedBoardId"
       :post-id="attachmentNamespace"
       editable
     />

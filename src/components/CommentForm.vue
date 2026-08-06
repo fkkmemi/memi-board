@@ -6,19 +6,23 @@ import { useMemiBoardModeration } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
-const props = defineProps<{ postId: string, category?: string, parent?: CommentModel | null }>()
+const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()
 
 const { user, isSignedIn, isAdmin, isStaff, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
-const { addComment, addReply } = useMemiBoardComments(props.postId, { subscribe: false })
+const { addComment, addReply } = useMemiBoardComments(
+  props.boardId,
+  props.postId,
+  { subscribe: false },
+)
 const { checkText } = useMemiBoardModeration()
-const { categories } = useMemiBoardSettings()
+const { getBoard } = useMemiBoardSettings()
 
-// 카테고리별 댓글쓰기 권한 — 글쓰기 권한과 같은 등급 체계(user/staff/admin)를 그대로 재사용한다.
+// 보드별 댓글쓰기 권한
 const canComment = computed(() => {
   if (!isSignedIn.value) return false
-  const required = categories.value.find(item => item.id === props.category)?.commentWriteRole ?? 'user'
+  const required = getBoard(props.boardId)?.commentWriteRole ?? 'user'
   if (required === 'admin') return isAdmin.value
   if (required === 'staff') return isAdmin.value || isStaff.value
   return true

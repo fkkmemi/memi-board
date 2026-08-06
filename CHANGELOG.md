@@ -2,6 +2,20 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.21.0] - 2026-08-06
+
+### Breaking
+- **카테고리 개념 제거** — 예전 category id 가 곧 `boardId`
+  - `memiBoards/{boardId}/posts/{postId}` (+ body/comments/likes)
+  - `memiBoards/{boardId}/settings/config` (보드 설정·메타)
+  - `memiBoardUsers/{uid}` (역할, top-level — 보드 밖)
+- 설정 키 `boardId` 제거 → 활성 보드는 composable/컴포넌트 인자
+- `useMemiBoardPosts(boardId)`, `useMemiBoardPostList(boardId)`, `useMemiBoardLikes(boardId, postId)` 등 시그니처 변경
+- `MemiBoardList` / `Detail` / `Editor` 에 `boardId` prop 필수
+
+### Added
+- `BoardModel` 타입 (`BoardCategory` 는 deprecated 별칭)
+
 ## [0.20.0] - 2026-08-06
 
 ### Breaking

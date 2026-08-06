@@ -12,6 +12,7 @@ dayjs.locale('ko')
 
 const props = defineProps<{
   comment: CommentModel
+  boardId: string
   postId: string
   now: number
   deleting?: boolean
@@ -23,7 +24,11 @@ const emit = defineEmits<{
 }>()
 
 const { user, canEditComment, canDeleteComment, canManageContent, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
-const { updateComment, setCommentBlinded } = useMemiBoardComments(props.postId, { subscribe: false })
+const { updateComment, setCommentBlinded } = useMemiBoardComments(
+  props.boardId,
+  props.postId,
+  { subscribe: false },
+)
 const { checkText } = useMemiBoardModeration()
 
 const editing = ref(false)

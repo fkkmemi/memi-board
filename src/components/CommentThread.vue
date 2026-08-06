@@ -6,10 +6,18 @@ import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentItem from './CommentItem.vue'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 
-const props = defineProps<{ postId: string, category?: string, root: CommentModel, now: number }>()
+const props = defineProps<{ boardId: string, postId: string, root: CommentModel, now: number }>()
 
-const { deleteComment } = useMemiBoardComments(props.postId, { subscribe: false })
-const { replies, loading, loaded, hasMore, loadMore, refresh } = useMemiBoardReplies(props.postId, props.root.id!)
+const { deleteComment } = useMemiBoardComments(
+  props.boardId,
+  props.postId,
+  { subscribe: false },
+)
+const { replies, loading, loaded, hasMore, loadMore, refresh } = useMemiBoardReplies(
+  props.boardId,
+  props.postId,
+  props.root.id!,
+)
 const expanded = ref((props.root.replyCount ?? 0) > 0)
 const replyingTo = ref<CommentModel | null>(null)
 const deletingId = ref<string | null>(null)
@@ -68,6 +76,7 @@ async function handleDelete(comment: CommentModel) {
   <article class="flex flex-col gap-3">
     <MemiBoardCommentItem
       :comment="root"
+      :board-id="boardId"
       :post-id="postId"
       :now="now"
       :deleting="deletingId === root.id"
@@ -92,7 +101,8 @@ async function handleDelete(comment: CommentModel) {
         v-for="reply in replies"
         :key="reply.id"
         :comment="reply"
-        :post-id="postId"
+        :board-id="boardId"
+      :post-id="postId"
         :now="now"
         :deleting="deletingId === reply.id"
         :class="(reply.depth ?? 1) >= 2 ? 'ml-4 sm:ml-8' : ''"
@@ -112,8 +122,9 @@ async function handleDelete(comment: CommentModel) {
 
     <MemiBoardCommentForm
       v-if="replyingTo"
+      :board-id="boardId"
       :post-id="postId"
-      :category="category"
+      
       :parent="replyingTo"
       class="ml-10"
       @saved="handleSaved"

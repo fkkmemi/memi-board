@@ -35,7 +35,10 @@ export interface PostModel {
   /** 영상 목록 카드용 URL. 현재 YouTube 임베드 또는 영상 첨부파일. */
   videoUrl?: string
   tags?: string[]
-  /** BoardCategory.id 참조. 미지정이면 '전체'로 취급. */
+  /**
+   * @deprecated 카테고리 개념 제거 — 글은 memiBoards/{boardId}/posts 에만 존재.
+   * 레거시 읽기 호환용으로만 남을 수 있음.
+   */
   category?: string
   attachments?: Attachment[]
   /** 클라이언트 batch로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. */
@@ -110,36 +113,37 @@ export type BoardWriteRole = 'user' | 'staff' | 'admin'
 /** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글 listed=false. */
 export type BoardVisibility = 'public' | 'hidden'
 
-export interface BoardCategory {
-  /** 글의 category 필드가 참조하는 키 (예: 'notice', 'free') */
+/**
+ * 보드 1개 메타 (= 예전 BoardCategory).
+ * id 가 곧 boardId — memiBoards/{id}/settings/config 에 저장.
+ */
+export interface BoardModel {
+  /** boardId (예: 'notice', 'free') */
   id: string
-  /** 화면에 보이는 이름 */
   label: string
-  /** 게시판 설명 (목록·설정 화면 안내용). 미지정이면 비움. */
   description?: string
   /**
-   * 보임/숨김. hidden = 일기장·비공개 게시판.
-   * 칩·전체 목록에서 제외, 글에 listed=false 복제(rules). 미지정은 public.
+   * 보임/숨김. hidden = 일기장·비공개.
+   * 보드 목록·칩에서 제외, 글 listed=false. 미지정은 public.
    */
   visibility?: BoardVisibility
-  /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
   listView?: BoardListView
-  /** 글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
   writeRole?: BoardWriteRole
-  /** 댓글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
   commentWriteRole?: BoardWriteRole
   /**
-   * writeRole/commentWriteRole가 'staff'일 때만 의미가 있다. 비어있으면(또는 미지정)
-   * 스태프 전체 허용, 지정하면 이 uid 목록에 있는 스태프만 이 카테고리에 쓸 수 있다.
-   * 게시판마다 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3).
+   * writeRole/commentWriteRole 가 'staff'일 때 허용 스태프 uid.
+   * 비어있으면 스태프 전체, 관리자는 항상 통과.
    */
   allowedStaffUids?: string[]
-  /** 목록 노출 순서. 서브컬렉션 문서의 정렬 필드. */
+  /** 보드 목록 정렬 */
   order?: number
 }
 
-/** memiBoards/{boardId}/settings/config 메타 문서. 카테고리는 categories 서브컬렉션. */
-export interface BoardSettingsModel {
+/** @deprecated BoardModel 사용 — 카테고리 개념 제거, id = boardId */
+export type BoardCategory = BoardModel
+
+/** memiBoards/{boardId}/settings/config */
+export interface BoardSettingsModel extends Omit<BoardModel, 'id'> {
   updatedAt?: Timestamp
 }
 

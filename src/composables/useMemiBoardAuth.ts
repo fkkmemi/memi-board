@@ -168,8 +168,11 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
         try {
           role.value = await ensureUserDoc(current)
         }
-        catch {
+        catch (cause) {
+          // permission-denied 시 문서 미생성 — rules 미배포·isBoardAdmin get 실패 등
+          console.error('[memi-board] ensureUserDoc failed', cause)
           role.value = 'user'
+          applyUserData(undefined)
         }
         finally {
           rolePending.value = false

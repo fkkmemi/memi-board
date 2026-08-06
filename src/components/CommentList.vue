@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
 import { useMemiBoardComments } from 'memi-board/runtime'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 
-const props = defineProps<{ postId: string, category?: string }>()
+const props = defineProps<{ boardId: string, postId: string }>()
 
-const { comments, commentsPending, hasMore, loadingMore, loadMore } = useMemiBoardComments(props.postId)
+const { comments, commentsPending, hasMore, loadingMore, loadMore } = useMemiBoardComments(
+  toRef(props, 'boardId'),
+  toRef(props, 'postId'),
+)
 const now = ref(Date.now())
 const loadMoreTrigger = ref<HTMLElement | null>(null)
 let relativeTimeTimer: ReturnType<typeof setInterval> | undefined
@@ -82,8 +85,8 @@ onUnmounted(() => {
       v-for="comment in comments"
       :key="comment.id"
       :root="comment"
+      :board-id="boardId"
       :post-id="postId"
-      :category="category"
       :now="now"
     />
 

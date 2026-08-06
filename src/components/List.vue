@@ -24,7 +24,9 @@ const props = withDefaults(defineProps<{
    * 예: `/board/post` → `/board/post/{id}`
    */
   postLinkBase?: string
-  /** 지정 시 해당 카테고리 글만 조회 */
+  /** 보드 id (필수에 가깝다 — memiBoards/{boardId}/posts) */
+  boardId: string
+  /** @deprecated boardId 사용 */
   category?: string
   /** @deprecated postLinkBase / getPostLink 사용 */
   linkBase?: string
@@ -54,15 +56,16 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [post: PostModel], 'update:view': [view: BoardListView] }>()
 
-const { categories, categoryDescription } = useMemiBoardSettings()
+const { boardDescription, getBoard } = useMemiBoardSettings()
+const resolvedBoardId = computed(() => props.boardId || props.category || '')
 const listDescription = computed(() => {
   const explicit = props.description?.trim()
   if (explicit) return explicit
-  if (props.category) return categoryDescription(props.category)
+  if (resolvedBoardId.value) return boardDescription(resolvedBoardId.value)
   return undefined
 })
 const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
-  computed(() => props.category),
+  resolvedBoardId,
   { pageSize: props.pageSize },
 )
 
@@ -172,11 +175,11 @@ onBeforeUnmount(() => {
 })
 // 카테고리 설정값은 게시판을 처음 열 때 보여줄 방식일 뿐 — 화면에서 자유롭게 바꿔 볼 수 있다.
 // props.view가 오면(호스트가 전환 버튼을 직접 배치) 그 값을 그대로 따르고, 없으면 내부에서 관리한다.
-const categoryListView = computed(() =>
-  categories.value.find(item => item.id === props.category)?.listView ?? 'default',
+const boardListView = computed(() =>
+  getBoard(resolvedBoardId.value)?.listView ?? 'default',
 )
-const internalViewMode = ref<BoardListView>(props.view ?? categoryListView.value)
-watch(categoryListView, (value) => { if (props.view === undefined) internalViewMode.value = value })
+const internalViewMode = ref<BoardListView>(props.view ?? boardListView.value)
+watch(boardListView, (value) => { if (props.view === undefined) internalViewMode.value = value })
 const viewMode = computed(() => props.view ?? internalViewMode.value)
 function setViewMode(value: BoardListView) {
   if (props.view === undefined) internalViewMode.value = value

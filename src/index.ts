@@ -10,22 +10,21 @@ export type {
 
 export {
   DEFAULT_BOARDS_COLLECTION,
-  DEFAULT_BOARD_ID,
+  DEFAULT_USERS_COLLECTION,
   resolveBoardPathConfig,
-  boardDocPath,
-  boardStorageRoot,
-  boardPostStorageFolder,
+  boardsCol,
+  boardDoc,
+  boardSettingsDoc,
   boardPostsCol,
   boardPostDoc,
   boardPostBodyDoc,
   boardPostCommentsCol,
   boardPostCommentDoc,
   boardPostLikeDoc,
-  boardSettingsDoc,
-  boardCategoriesCol,
-  boardCategoryDoc,
   boardUsersCol,
   boardUserDoc,
+  boardStorageRoot,
+  boardPostStorageFolder,
   boardSsrKey,
 } from './utils/boardPaths'
 export type { BoardPathConfig } from './utils/boardPaths'
@@ -60,7 +59,7 @@ export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
-export { useMemiBoardSettings, DEFAULT_CATEGORIES } from './composables/useMemiBoardSettings'
+export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 
 export { versionHistory } from './data/versionHistory'
@@ -87,6 +86,7 @@ export type {
   BoardUserRole,
   BoardUserModel,
   BoardCategory,
+  BoardModel,
   BoardListView,
   BoardWriteRole,
   BoardVisibility,

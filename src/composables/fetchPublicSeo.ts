@@ -1,8 +1,6 @@
 /**
- * 공개 SEO용 Firestore 직조회 (호스트 API 불필요).
- * listed === true 만 — 숨김 게시판 글은 null / 빈 목록.
- *
- * useFirestore 는 setup 에서 받은 db 를 넘긴다 (async 핸들러 안 use* 금지).
+ * 공개 SEO용 Firestore 직조회.
+ * listed === true 만. boardId = 예전 category 경로 세그먼트.
  */
 import {
   getDoc,
@@ -16,8 +14,8 @@ import {
 import { useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
 import {
-  boardCategoryDoc,
   boardPostsCol,
+  boardSettingsDoc,
   resolveBoardPathConfig,
   type BoardPathConfig,
 } from '../utils/boardPaths'
@@ -32,7 +30,6 @@ export type PublicSeoDb = {
   paths: BoardPathConfig
 }
 
-/** setup 동기 구간에서만 호출 — useFirestore + config 캡처 */
 export function resolvePublicSeoDb(): PublicSeoDb {
   return {
     db: useFirestore(),
@@ -40,33 +37,32 @@ export function resolvePublicSeoDb(): PublicSeoDb {
   }
 }
 
-function postsCol(ctx: PublicSeoDb) {
-  return boardPostsCol(ctx.db, ctx.paths)
-}
-
-function categoryDoc(ctx: PublicSeoDb, categoryId: string) {
-  return boardCategoryDoc(ctx.db, ctx.paths, categoryId)
-}
-
-async function loadCategoryMeta(ctx: PublicSeoDb, categoryId: string): Promise<{
+async function loadBoardMeta(ctx: PublicSeoDb, boardId: string): Promise<{
   label: string
   description: string
   hidden: boolean
 }> {
   try {
-    const snap = await getDoc(categoryDoc(ctx, categoryId))
+    const snap = await getDoc(boardSettingsDoc(ctx.db, ctx.paths, boardId))
     if (!snap.exists()) {
-      return { label: categoryId, description: '', hidden: false }
+      // 부모 문서 fallback
+      const parent = await getDoc(
+        // lazy import path via settings only
+        boardSettingsDoc(ctx.db, ctx.paths, boardId),
+      )
+      if (!parent.exists()) {
+        return { label: boardId, description: '', hidden: false }
+      }
     }
     const d = snap.data() ?? {}
     return {
-      label: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : categoryId,
+      label: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : boardId,
       description: typeof d.description === 'string' ? d.description.trim() : '',
       hidden: d.visibility === 'hidden',
     }
   }
   catch {
-    return { label: categoryId, description: '', hidden: false }
+    return { label: boardId, description: '', hidden: false }
   }
 }
 
@@ -83,26 +79,24 @@ function createdAtIso(value: unknown): string | null {
   return null
 }
 
-/** 공개 글 1건 (category + slug). 없거나 숨김이면 null. */
+/** 공개 글 1건 (boardId + slug) */
 export async function fetchPublicPostForSeo(
-  category: string,
+  boardId: string,
   slug: string,
   ctx?: PublicSeoDb,
 ): Promise<BoardPostSeoPayload | null> {
-  const cat = category.trim()
+  const b = boardId.trim()
   const s = slug.trim()
-  if (!cat || !s) return null
+  if (!b || !s) return null
 
   const store = ctx ?? resolvePublicSeoDb()
-  // paths 가 옛 prefix 형태 없이 항상 resolve 되게
   store.paths = resolveBoardPathConfig(store.paths)
-  const meta = await loadCategoryMeta(store, cat)
+  const meta = await loadBoardMeta(store, b)
   if (meta.hidden) return null
 
   try {
     const snap = await getDocs(query(
-      postsCol(store),
-      where('category', '==', cat),
+      boardPostsCol(store.db, store.paths, b),
       where('slug', '==', s),
       where('listed', '==', true),
       fbLimit(1),
@@ -115,11 +109,10 @@ export async function fetchPublicPostForSeo(
     return {
       id: row.id,
       slug: typeof d.slug === 'string' ? d.slug : s,
-      category: cat,
+      category: b,
       categoryLabel: meta.label,
       title,
       summary: typeof d.summary === 'string' ? d.summary.trim().slice(0, 200) : '',
-      // OG·공유용 — 원본 대신 400px 썸네일 경로
       previewImage: toBoardOgImageUrl(d.previewImage),
       authorName: typeof d.authorName === 'string' && d.authorName.trim() ? d.authorName.trim() : null,
       createdAt: createdAtIso(d.createdAt),
@@ -131,31 +124,31 @@ export async function fetchPublicPostForSeo(
   }
 }
 
-/** 전체 또는 카테고리 공개 목록 SEO 페이로드. */
+/** 전체 보드 목록 또는 단일 보드 SEO */
 export async function fetchPublicListForSeo(
-  category?: string | null,
+  boardId?: string | null,
   ctx?: PublicSeoDb,
 ): Promise<BoardListSeoPayload> {
-  const cat = category?.trim() || null
+  const b = boardId?.trim() || null
   const store = ctx ?? resolvePublicSeoDb()
   store.paths = resolveBoardPathConfig(store.paths)
 
-  if (cat) {
-    const meta = await loadCategoryMeta(store, cat)
+  if (b) {
+    const meta = await loadBoardMeta(store, b)
     if (meta.hidden) {
       return {
         kind: 'category',
-        category: cat,
+        category: b,
         categoryLabel: meta.label,
         description: '',
         ogImage: null,
         recentTitles: [],
       }
     }
-    const { recentTitles, ogImage } = await loadRecentListed(store, cat)
+    const { recentTitles, ogImage } = await loadRecentListed(store, b)
     return {
       kind: 'category',
-      category: cat,
+      category: b,
       categoryLabel: meta.label,
       description: meta.description || `${meta.label} 게시판`,
       ogImage,
@@ -163,37 +156,29 @@ export async function fetchPublicListForSeo(
     }
   }
 
-  const { recentTitles, ogImage } = await loadRecentListed(store, null)
   return {
     kind: 'all',
     category: null,
     categoryLabel: '전체',
     description: '게시판 — 공지와 커뮤니티 소식을 확인하세요.',
-    ogImage,
-    recentTitles,
+    ogImage: null,
+    recentTitles: [],
   }
 }
 
-async function loadRecentListed(ctx: PublicSeoDb, category: string | null): Promise<{
+async function loadRecentListed(ctx: PublicSeoDb, boardId: string): Promise<{
   recentTitles: string[]
   ogImage: string | null
 }> {
   const recentTitles: string[] = []
   let ogImage: string | null = null
   try {
-    const constraints = category
-      ? [
-          where('category', '==', category),
-          where('listed', '==', true),
-          orderBy('createdAt', 'desc'),
-          fbLimit(12),
-        ]
-      : [
-          where('listed', '==', true),
-          orderBy('createdAt', 'desc'),
-          fbLimit(12),
-        ]
-    const snap = await getDocs(query(postsCol(ctx), ...constraints))
+    const snap = await getDocs(query(
+      boardPostsCol(ctx.db, ctx.paths, boardId),
+      where('listed', '==', true),
+      orderBy('createdAt', 'desc'),
+      fbLimit(12),
+    ))
     for (const row of snap.docs) {
       const d = row.data() ?? {}
       const title = typeof d.title === 'string' ? d.title.trim() : ''

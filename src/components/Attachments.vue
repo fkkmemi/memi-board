@@ -5,6 +5,7 @@ import { useMemiBoardStorage } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{
   modelValue: Attachment[]
+  boardId: string
   /** 새 글 작성 중에도 미리 생성한 Firestore 자동 ID를 넘긴다. */
   postId: string
   editable?: boolean
@@ -43,7 +44,7 @@ async function onFileInputChange(e: Event) {
     const uploaded: Attachment[] = []
     for (const file of toUpload) {
       uploadProgress.value = 0
-      const { promise } = uploadAttachment(file, props.postId, (ratio) => {
+      const { promise } = uploadAttachment(file, props.boardId, props.postId, (ratio) => {
         uploadProgress.value = ratio
       })
       uploaded.push(await promise)

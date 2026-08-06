@@ -1,5 +1,5 @@
-import { computed, onScopeDispose, ref, watch } from 'vue'
-import type { Ref } from 'vue'
+import { computed, onScopeDispose, ref, toValue, watch } from 'vue'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import {
@@ -52,13 +52,15 @@ function normalizedCommentBody(body: string): string {
 
 /** 10개씩 순차 조회한 뒤 마지막 페이지에서만 최신 1개를 실시간 구독한다. */
 export function useMemiBoardComments(
-  postId: string | Ref<string>,
+  boardId: MaybeRefOrGetter<string>,
+  postId: MaybeRefOrGetter<string>,
   options: { subscribe?: boolean } = {},
 ) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
 
-  const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
+  const bid = computed(() => toValue(boardId))
+  const id = computed(() => toValue(postId))
 
   // limit(1) 리스너는 최신 댓글 알림 용도다. 쿼리 결과 교체로 기존 댓글이
   // 사라지지 않도록 수신 문서를 별도 배열에 누적한다.
@@ -88,7 +90,7 @@ export function useMemiBoardComments(
     )
   })
 
-  watch(id, async (currentId) => {
+  watch([id, bid], async ([currentId]) => {
     pagedComments.value = []
     liveComments.value = []
     legacyComments.value = []
@@ -104,7 +106,7 @@ export function useMemiBoardComments(
     initialPending.value = true
     try {
       const snapshotPromise = getDocs(query(
-        boardPostCommentsCol(db, cfg(), currentId),
+        boardPostCommentsCol(db, cfg(), bid.value, currentId),
         orderBy('createdAt', 'desc'),
         orderBy(documentId(), 'desc'),
       ))
@@ -127,7 +129,7 @@ export function useMemiBoardComments(
   function startLiveSubscription() {
     stopLiveSubscription?.()
     stopLiveSubscription = onSnapshot(query(
-      boardPostCommentsCol(db, cfg(), id.value),
+      boardPostCommentsCol(db, cfg(), bid.value, id.value),
       where('parentId', '==', null),
       orderBy('createdAt', 'desc'),
       orderBy(documentId(), 'desc'),
@@ -156,7 +158,7 @@ export function useMemiBoardComments(
         limit(COMMENT_PAGE_SIZE + 1),
       ]
       const snapshot = await getDocs(query(
-        boardPostCommentsCol(db, cfg(), id.value),
+        boardPostCommentsCol(db, cfg(), bid.value, id.value),
         ...constraints,
       ))
       const pageDocs = snapshot.docs.slice(0, COMMENT_PAGE_SIZE)
@@ -185,7 +187,7 @@ export function useMemiBoardComments(
   async function addComment(input: AddCommentInput): Promise<void> {
     const body = normalizedCommentBody(input.body)
     const batch = writeBatch(db)
-    const commentRef = doc(boardPostCommentsCol(db, cfg(), id.value))
+    const commentRef = doc(boardPostCommentsCol(db, cfg(), bid.value, id.value))
     batch.set(commentRef, {
       postId: id.value,
       body,
@@ -203,7 +205,7 @@ export function useMemiBoardComments(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    batch.update(boardPostDoc(db, cfg(), id.value), { commentCount: increment(1) })
+    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
@@ -211,7 +213,7 @@ export function useMemiBoardComments(
     const body = normalizedCommentBody(input.body)
     if (!input.parent.id) throw new Error('답글 대상 댓글을 찾을 수 없습니다.')
     const batch = writeBatch(db)
-    const commentsCol = boardPostCommentsCol(db, cfg(), id.value)
+    const commentsCol = boardPostCommentsCol(db, cfg(), bid.value, id.value)
     const replyRef = doc(commentsCol)
     const rootId = input.parent.parentId == null
       ? input.parent.id
@@ -237,7 +239,7 @@ export function useMemiBoardComments(
       updatedAt: serverTimestamp(),
     })
     batch.update(doc(commentsCol, rootId), { replyCount: increment(1) })
-    batch.update(boardPostDoc(db, cfg(), id.value), { commentCount: increment(1) })
+    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
@@ -247,11 +249,11 @@ export function useMemiBoardComments(
       throw new Error('답글이 있는 댓글은 현재 삭제할 수 없습니다.')
     }
     const batch = writeBatch(db)
-    batch.delete(boardPostCommentDoc(db, cfg(), id.value, comment.id))
+    batch.delete(boardPostCommentDoc(db, cfg(), bid.value, id.value, comment.id))
     if (comment.parentId && comment.rootId) {
-      batch.update(boardPostCommentDoc(db, cfg(), id.value, comment.rootId), { replyCount: increment(-1) })
+      batch.update(boardPostCommentDoc(db, cfg(), bid.value, id.value, comment.rootId), { replyCount: increment(-1) })
     }
-    batch.update(boardPostDoc(db, cfg(), id.value), { commentCount: increment(-1) })
+    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(-1) })
     await batch.commit()
     pagedComments.value = pagedComments.value.filter(item => item.id !== comment.id)
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
@@ -260,14 +262,14 @@ export function useMemiBoardComments(
 
   async function updateComment(commentId: string, body: string): Promise<void> {
     const trimmed = normalizedCommentBody(body)
-    await updateDoc(boardPostCommentDoc(db, cfg(), id.value, commentId), {
+    await updateDoc(boardPostCommentDoc(db, cfg(), bid.value, id.value, commentId), {
       body: trimmed,
       updatedAt: serverTimestamp(),
     })
   }
 
   async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {
-    await updateDoc(boardPostCommentDoc(db, cfg(), id.value, commentId), {
+    await updateDoc(boardPostCommentDoc(db, cfg(), bid.value, id.value, commentId), {
       isBlinded,
       moderatedAt: serverTimestamp(),
       moderatedBy: moderatorUid,
@@ -289,7 +291,7 @@ export function useMemiBoardComments(
 }
 
 /** 펼친 스레드의 답글을 5개씩 일회성 조회한다. */
-export function useMemiBoardReplies(postId: string, rootId: string) {
+export function useMemiBoardReplies(boardId: string, postId: string, rootId: string) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
   const replies = ref<CommentModel[]>([])
@@ -309,7 +311,7 @@ export function useMemiBoardReplies(postId: string, rootId: string) {
   function startLiveSubscription() {
     if (stopLiveSubscription) return
     stopLiveSubscription = onSnapshot(query(
-      boardPostCommentsCol(db, cfg(), postId),
+      boardPostCommentsCol(db, cfg(), boardId, postId),
       where('rootId', '==', rootId),
       where('isReply', '==', true),
       orderBy('createdAt', 'desc'),
@@ -340,7 +342,7 @@ export function useMemiBoardReplies(postId: string, rootId: string) {
         limit(REPLY_PAGE_SIZE + 1),
       ]
       const snapshot = await getDocs(query(
-        boardPostCommentsCol(db, cfg(), postId),
+        boardPostCommentsCol(db, cfg(), boardId, postId),
         ...constraints,
       ))
       const existing = new Set(replies.value.map(reply => reply.id))

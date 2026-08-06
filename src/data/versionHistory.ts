@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.21.0',
+    date: '2026-08-06',
+    highlights: [
+      '카테고리 대신 게시판(보드)만 있어요 — 예전 카테고리 이름이 곧 보드 ID예요',
+      '글은 memiBoards/{보드}/posts, 설정은 settings, 회원 역할은 memiBoardUsers 에 모아요',
+    ],
+  },
+  {
     version: '0.20.0',
     date: '2026-08-06',
     highlights: [
