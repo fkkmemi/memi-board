@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.13.2] - 2026-08-06
+
+### Fixed
+- 글쓰기 화면(`Editor`)에 삽입한 유튜브 임베드가 모바일에서 고정 640px 너비로 넘치던 문제 — 상세 화면(`Detail`)에만 있던 반응형 `iframe` 스타일(`board-content` 클래스 + `width:100%; aspect-ratio:16/9`)을 `Editor`에도 동일하게 적용
+
 ## [0.13.1] - 2026-08-06
 
 ### Fixed

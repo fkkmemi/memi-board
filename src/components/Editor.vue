@@ -487,7 +487,7 @@ async function handleSubmit() {
         :handlers="handlers"
         placeholder="본문을 입력하세요…"
         :ui="{ content: 'min-h-64 p-4' }"
-        class="w-full"
+        class="board-content w-full"
       >
         <template #default="{ editor }">
           <UEditorToolbar
@@ -558,3 +558,14 @@ async function handleSubmit() {
     </div>
   </form>
 </template>
+
+<style scoped>
+.board-content :deep(iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"]) {
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border: 0;
+  border-radius: 0.75rem;
+}
+</style>
