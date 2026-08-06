@@ -2,10 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMemiBoardPostList } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
-import type { PostModel } from 'memi-board/runtime'
+import type { BoardListView, PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListImage from './ListImage.vue'
 import MemiBoardListVideo from './ListVideo.vue'
+import MemiBoardListViewSwitch from './ListViewSwitch.vue'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
@@ -26,12 +27,26 @@ const props = withDefaults(defineProps<{
   category?: string
   /** @deprecated postLinkBase / getPostLink 사용 */
   linkBase?: string
+  /** 흔치 않게 뷰 전환을 바깥에서 직접 제어해야 할 때만 v-model:view로 넘긴다. */
+  view?: BoardListView
+  /** 목록 위 헤더에 표시할 제목(예: 카테고리 이름). 지정하면 헤더 행(제목 + 버튼들)을 보여준다. */
+  title?: string
+  /** '게시판 설정' 버튼 링크. 지정하면(그리고 canManageSettings가 true면) 헤더에 버튼을 보여준다. */
+  settingsTo?: string
+  /** '게시판 설정' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
+  canManageSettings?: boolean
+  /** '새 글쓰기' 버튼 링크. 지정하면(그리고 canWrite가 true면) 헤더에 버튼을 보여준다. */
+  writeTo?: string
+  /** '새 글쓰기' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
+  canWrite?: boolean
 }>(), {
   pageSize: 10,
   introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
+  canManageSettings: true,
+  canWrite: true,
 })
 
-const emit = defineEmits<{ select: [post: PostModel] }>()
+const emit = defineEmits<{ select: [post: PostModel], 'update:view': [view: BoardListView] }>()
 
 const { categories } = useMemiBoardSettings()
 const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
@@ -143,14 +158,24 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
-const listView = computed(() =>
+// 카테고리 설정값은 게시판을 처음 열 때 보여줄 방식일 뿐 — 화면에서 자유롭게 바꿔 볼 수 있다.
+// props.view가 오면(호스트가 전환 버튼을 직접 배치) 그 값을 그대로 따르고, 없으면 내부에서 관리한다.
+const categoryListView = computed(() =>
   categories.value.find(item => item.id === props.category)?.listView ?? 'default',
 )
+const internalViewMode = ref<BoardListView>(props.view ?? categoryListView.value)
+watch(categoryListView, (value) => { if (props.view === undefined) internalViewMode.value = value })
+const viewMode = computed(() => props.view ?? internalViewMode.value)
+function setViewMode(value: BoardListView) {
+  if (props.view === undefined) internalViewMode.value = value
+  emit('update:view', value)
+}
 const listComponent = computed(() => ({
   default: MemiBoardListDefault,
   image: MemiBoardListImage,
   video: MemiBoardListVideo,
-})[listView.value])
+})[viewMode.value])
+const hasHeader = computed(() => !!(props.title || (props.settingsTo && props.canManageSettings) || (props.writeTo && props.canWrite)))
 
 function postTo(post: PostModel): string | undefined {
   if (props.getPostLink) return props.getPostLink(post)
@@ -163,6 +188,30 @@ function postTo(post: PostModel): string | undefined {
 
 <template>
   <div class="flex flex-col gap-2">
+    <div v-if="hasHeader" class="flex items-center justify-between gap-4">
+      <h1 v-if="title" class="min-w-0 truncate text-2xl font-bold tracking-tight text-highlighted">{{ title }}</h1>
+      <div class="flex shrink-0 items-center gap-2">
+        <UButton
+          v-if="settingsTo && canManageSettings"
+          :to="settingsTo"
+          label="게시판 설정"
+          icon="i-lucide-settings"
+          color="neutral"
+          variant="outline"
+        />
+        <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />
+        <UButton
+          v-if="writeTo && canWrite"
+          :to="writeTo"
+          label="새 글쓰기"
+          icon="i-lucide-pencil"
+        />
+      </div>
+    </div>
+    <div v-else-if="view === undefined" class="flex justify-end">
+      <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />
+    </div>
+
     <template v-if="postsPending">
       <USkeleton
         v-for="i in 3"

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { slugify, useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
+import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
   /** 호스트 자체 관리자 권한도 허용할 때 true. Firebase rules 권한은 호스트가 별도로 맞춰야 한다. */
@@ -206,23 +207,19 @@ async function runDeleteAll() {
           <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
           <UInput :model-value="category.id" disabled class="font-mono" />
         </div>
-        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+        <div class="flex flex-col gap-2">
           <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 글을 쓸 수 있는 최소 역할</p></div>
-          <USelect
+          <MemiBoardOptionCards
             v-model="category.writeRole"
-            :items="writeRoleOptions"
-            value-key="value"
-            label-key="label"
+            :options="writeRoleOptions"
             @update:model-value="savedId = null"
           />
         </div>
-        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+        <div class="flex flex-col gap-2">
           <div><p class="text-sm font-medium">댓글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 댓글을 쓸 수 있는 최소 역할</p></div>
-          <USelect
+          <MemiBoardOptionCards
             v-model="category.commentWriteRole"
-            :items="writeRoleOptions"
-            value-key="value"
-            label-key="label"
+            :options="writeRoleOptions"
             @update:model-value="savedId = null"
           />
         </div>
@@ -242,13 +239,11 @@ async function runDeleteAll() {
           <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
           <UInput v-model="category.label" @update:model-value="savedId = null" />
         </div>
-        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+        <div class="flex flex-col gap-2">
           <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>
-          <USelect
+          <MemiBoardOptionCards
             v-model="category.listView"
-            :items="listViewOptions"
-            value-key="value"
-            label-key="label"
+            :options="listViewOptions"
             @update:model-value="savedId = null"
           />
         </div>

@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.14.0',
+    date: '2026-08-06',
+    highlights: [
+      '게시판 설정에서 글쓰기·댓글쓰기 권한과 리스트뷰를 셀렉트 대신 카드로 골라요',
+      '게시판 목록 위에서 일반·이미지·영상 보기를 아이콘 버튼으로 바로 바꿔볼 수 있어요',
+    ],
+  },
+  {
     version: '0.13.3',
     date: '2026-08-06',
     highlights: [

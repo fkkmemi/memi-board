@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
+import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
   categoryId: string
@@ -95,13 +96,13 @@ async function save() {
       <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
       <UInput :model-value="draft.id" disabled class="font-mono" />
     </div>
-    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+    <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">글을 쓸 수 있는 최소 역할</p></div>
-      <USelect v-model="draft.writeRole" :items="writeRoleOptions" value-key="value" label-key="label" @update:model-value="saved = false" />
+      <MemiBoardOptionCards v-model="draft.writeRole" :options="writeRoleOptions" @update:model-value="saved = false" />
     </div>
-    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+    <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">댓글쓰기 권한</p><p class="text-xs text-muted">댓글을 쓸 수 있는 최소 역할</p></div>
-      <USelect v-model="draft.commentWriteRole" :items="writeRoleOptions" value-key="value" label-key="label" @update:model-value="saved = false" />
+      <MemiBoardOptionCards v-model="draft.commentWriteRole" :options="writeRoleOptions" @update:model-value="saved = false" />
     </div>
     <div v-if="needsStaffPicker" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">허용 스태프</p><p class="text-xs text-muted">비워두면 스태프 전체 허용, 지정하면 이 사람들만</p></div>
@@ -119,9 +120,9 @@ async function save() {
       <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
       <UInput v-model="draft.label" @update:model-value="saved = false" />
     </div>
-    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+    <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>
-      <USelect v-model="draft.listView" :items="listViewOptions" value-key="value" label-key="label" @update:model-value="saved = false" />
+      <MemiBoardOptionCards v-model="draft.listView" :options="listViewOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex justify-end border-t border-default pt-4">
       <UButton label="저장" icon="i-lucide-save" :loading="saving" @click="save" />

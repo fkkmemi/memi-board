@@ -2,6 +2,13 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.14.0] - 2026-08-06
+
+### Added
+- `Settings`/`CategorySettings`의 글쓰기 권한·댓글쓰기 권한·리스트뷰 선택을 `USelect` 대신 카드형 선택지(`OptionCards`)로 변경 — 3개 선택지를 한 화면에서 바로 비교하고 고를 수 있고, 라벨을 필드 위쪽에 고정
+- `List`가 목록 위 헤더(제목·"게시판 설정"·"새 글쓰기" 버튼)를 직접 그리도록 `title`/`settingsTo`/`canManageSettings`/`writeTo`/`canWrite` prop 추가 — 호스트는 링크와 권한 값만 넘기면 되고 버튼 배치를 직접 조립할 필요가 없다
+- `List`에 일반/이미지/영상 뷰 전환 아이콘 버튼(`ListViewSwitch`) 추가 — 카테고리의 `listView` 설정은 처음 진입 시 기본값으로만 쓰이고, 화면에서 즉시 다른 방식으로 바꿔 볼 수 있다(새로고침하면 다시 설정값으로 돌아감)
+
 ## [0.13.3] - 2026-08-06
 
 ### Fixed
