@@ -28,7 +28,7 @@ function image(post: PostModel): string | undefined {
       <img
         v-if="image(post)"
         :src="image(post)"
-        :alt="post.title"
+        :alt="post.title?.trim() || post.summary || '이미지'"
         class="size-full object-cover transition duration-300 group-hover:scale-105"
       >
       <div
@@ -43,9 +43,15 @@ function image(post: PostModel): string | undefined {
         class="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent"
       />
 
-      <!-- 좌측 상단: 제목 + 댓글수 (조밀/일반과 동일 패턴) -->
-      <div class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3">
-        <h3 class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm">
+      <!-- 좌측 상단: 제목(있을 때만) + 댓글수. 이미지 보드는 제목 없이 썸네일 중심 -->
+      <div
+        v-if="post.title?.trim() || (post.commentCount ?? 0) > 0"
+        class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3"
+      >
+        <h3
+          v-if="post.title?.trim()"
+          class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm"
+        >
           {{ post.title }}
         </h3>
         <span

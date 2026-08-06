@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.19.3',
+    date: '2026-08-06',
+    highlights: [
+      '이미지 목록 게시판은 인스타처럼 제목 없이 사진+내용만 올리면 돼요',
+      '사진을 여러 장 올리고 끌어 순서를 바꿀 수 있어요 (첫 장이 대표)',
+    ],
+  },
+  {
     version: '0.19.2',
     date: '2026-08-06',
     highlights: [

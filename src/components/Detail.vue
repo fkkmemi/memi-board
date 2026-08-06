@@ -126,7 +126,10 @@ const contentHtml = computed(() => {
             :label="categoryLabel(post.category)"
             variant="subtle"
           />
-          <h1 class="text-2xl font-semibold">
+          <h1
+            v-if="post.title?.trim()"
+            class="text-2xl font-semibold"
+          >
             {{ post.title }}
           </h1>
         </div>

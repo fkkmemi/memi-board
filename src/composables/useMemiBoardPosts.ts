@@ -29,7 +29,7 @@ import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
 import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
-import { hasBodyText } from '../utils/postBody'
+import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { useMemiBoardConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
@@ -91,7 +91,7 @@ export function useMemiBoardPosts() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
-  const { isCategoryHidden } = useMemiBoardSettings()
+  const { isCategoryHidden, categories } = useMemiBoardSettings()
   // prefix 는 setup 시점에 고정하지 않는다 (configure 이전 호출·이중 인스턴스 대비)
   const prefix = () => config.collectionPrefix
 
@@ -102,6 +102,35 @@ export function useMemiBoardPosts() {
 
   function listedForCategory(categoryId: string | undefined): boolean {
     return !isCategoryHidden(categoryId)
+  }
+
+  /** 카테고리 listView === 'image' — 인스타형(제목 없음, 이미지+본문 필수) */
+  function isImageListCategory(categoryId: string | undefined): boolean {
+    if (!categoryId) return false
+    return categories.value.find(c => c.id === categoryId)?.listView === 'image'
+  }
+
+  function assertPostContent(
+    input: { title?: string, content: string, attachments?: Attachment[], category?: string },
+  ) {
+    const imageBoard = isImageListCategory(input.category)
+    if (!hasBodyText(input.content)) {
+      throw new Error(
+        imageBoard
+          ? '내용을 입력해 주세요.'
+          : '본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.',
+      )
+    }
+    if (imageBoard) {
+      // 저장 시 드롭존 이미지가 본문 앞에 합쳐진 뒤 검사
+      if (!hasBodyImage(input.content, input.attachments)) {
+        throw new Error('사진을 올려 주세요.')
+      }
+      return
+    }
+    if (!input.title?.trim()) {
+      throw new Error('제목을 입력해 주세요.')
+    }
   }
 
   /** 문서를 쓰지 않고 Firestore 자동 ID만 미리 만든다. */
@@ -210,31 +239,38 @@ export function useMemiBoardPosts() {
   }
 
   async function createPost(input: CreatePostInput): Promise<string> {
-    if (!input.title?.trim()) {
-      throw new Error('제목을 입력해 주세요.')
-    }
-    if (!hasBodyText(input.content)) {
-      throw new Error('본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.')
-    }
-    const baseSlug = slugify(input.title) || 'post'
-    let slug = baseSlug
-    let counter = 1
-    while (!(await getDocs(query(
-      postsCol(),
-      where('category', '==', input.category || ''),
-      where('slug', '==', slug),
-      fbLimit(1),
-    ))).empty) {
-      counter++
-      slug = `${baseSlug}-${counter}`
-    }
+    assertPostContent(input)
     const id = input.postId || createPostId()
+    const imageBoard = isImageListCategory(input.category)
+    // 이미지 보드: title = 본문 앞부분(summary 와 유사), URL slug = 문서 ID
+    // 일반: 사용자 제목 + 제목 기반 slug
+    let slug: string
+    let title: string
+    if (imageBoard) {
+      slug = id
+      title = titleFromBody(input.content)
+    }
+    else {
+      title = input.title.trim()
+      const baseSlug = slugify(title) || 'post'
+      slug = baseSlug
+      let counter = 1
+      while (!(await getDocs(query(
+        postsCol(),
+        where('category', '==', input.category || ''),
+        where('slug', '==', slug),
+        fbLimit(1),
+      ))).empty) {
+        counter++
+        slug = `${baseSlug}-${counter}`
+      }
+    }
 
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForCategory(input.category)
     await setDoc(postDoc(id), {
       slug,
-      title: input.title,
+      title,
       ...preview,
       tags: input.tags ?? [],
       ...(input.category ? { category: input.category } : {}),
@@ -258,18 +294,15 @@ export function useMemiBoardPosts() {
   }
 
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
-    if (!input.title?.trim()) {
-      throw new Error('제목을 입력해 주세요.')
-    }
-    if (!hasBodyText(input.content)) {
-      throw new Error('본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.')
-    }
+    assertPostContent(input)
+    const imageBoard = isImageListCategory(input.category)
+    const title = imageBoard ? titleFromBody(input.content) : input.title.trim()
     // 메타·본문을 같이 갱신. category 미선택 시 필드 제거(부분 갱신으로 예전 값이 남는 것 방지).
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForCategory(input.category)
     await Promise.all([
       updateDoc(postDoc(id), {
-        title: input.title,
+        title,
         ...preview,
         previewImage: preview.previewImage ? preview.previewImage : deleteField(),
         videoUrl: preview.videoUrl ? preview.videoUrl : deleteField(),

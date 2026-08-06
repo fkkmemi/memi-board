@@ -79,8 +79,15 @@ export function toAbsoluteUrl(pathOrUrl: string, origin: string, fallbackPath = 
   return `${base}${s.startsWith('/') ? s : `/${s}`}`
 }
 
-export function boardPostOgTitle(title: string, categoryLabel: string | undefined, siteName: string): string {
-  const t = title.trim() || '게시글'
+export function boardPostOgTitle(
+  title: string,
+  categoryLabel: string | undefined,
+  siteName: string,
+  /** 제목 없을 때(이미지 보드) 본문 요약 사용 */
+  summary?: string,
+): string {
+  const fromSummary = summary?.trim().slice(0, 40)
+  const t = title.trim() || fromSummary || '사진'
   const cat = categoryLabel?.trim()
   const site = siteName.trim() || 'Board'
   return cat ? `${t} · ${cat} | ${site}` : `${t} | ${site}`

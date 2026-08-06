@@ -45,7 +45,7 @@ function thumb(post: PostModel): string | undefined {
             <img
               v-if="thumb(post)"
               :src="thumb(post)"
-              :alt="post.title"
+              :alt="post.title?.trim() || post.summary || '사진'"
               class="size-full object-cover transition duration-300 group-hover:scale-110"
             >
             <div
@@ -60,7 +60,7 @@ function thumb(post: PostModel): string | undefined {
           <div class="min-w-0 flex-1">
             <div class="flex min-w-0 items-center gap-1.5">
               <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-highlighted transition-colors group-hover:text-primary">
-                {{ post.title }}
+                {{ post.title?.trim() || post.summary || '사진' }}
               </h3>
               <span
                 v-if="(post.commentCount ?? 0) > 0"

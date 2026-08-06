@@ -60,7 +60,7 @@ function image(post: PostModel): string | undefined {
               />
               <div class="flex min-w-0 flex-1 items-start gap-1.5">
                 <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug sm:text-base">
-                  {{ post.title }}
+                  {{ post.title?.trim() || post.summary || '사진' }}
                 </h3>
                 <span
                   v-if="(post.commentCount ?? 0) > 0"

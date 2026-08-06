@@ -72,7 +72,13 @@ export type {
   ModerationResult,
 } from './types'
 
-export { plainTextFromHtml, hasBodyText, isContentEmpty } from './utils/postBody'
+export {
+  plainTextFromHtml,
+  hasBodyText,
+  hasBodyImage,
+  isContentEmpty,
+  titleFromBody,
+} from './utils/postBody'
 export { compressImage } from './utils/compressImage'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'

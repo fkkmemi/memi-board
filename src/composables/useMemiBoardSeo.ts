@@ -94,7 +94,12 @@ export async function useMemiBoardPostSeo(opts?: {
 
   const title = computed(() =>
     post.value
-      ? boardPostOgTitle(post.value.title, post.value.categoryLabel, siteName)
+      ? boardPostOgTitle(
+          post.value.title,
+          post.value.categoryLabel,
+          siteName,
+          post.value.summary,
+        )
       : `게시글 | ${siteName}`,
   )
   const description = computed(() =>

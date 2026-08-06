@@ -2,6 +2,18 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.19.3] - 2026-08-06
+
+### Added
+- 카테고리 `listView: 'image'` — 인스타형 글쓰기 (제목 입력 없음, **이미지+내용 필수**, slug=문서 ID)
+- 이미지 보드: **여러 장 갤러리** (드롭·붙여넣기·추가, 최대 20장, 첫 장=대표)
+- 갤러리 **드래그로 순서 변경** (파일 재업로드/복사 없음)
+- TipTap 본문에는 사진·유튜브 삽입 불가 (사진은 갤러리만)
+- `hasBodyImage` / `titleFromBody` — 이미지 여부, 본문 앞 40자로 title 자동 생성
+
+### Changed
+- 이미지 보드: Editor 제목·파일첨부 숨김, 저장 시 `title` = 본문 plain 앞부분
+
 ## [0.19.2] - 2026-08-06
 
 ### Fixed
