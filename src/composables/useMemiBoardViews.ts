@@ -1,6 +1,7 @@
-import { updateDoc, increment, doc } from 'firebase/firestore'
+import { increment, updateDoc } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { useMemiBoardConfig } from '../config'
+import { useBoardPathConfig } from '../config'
+import { boardPostDoc } from '../utils/boardPaths'
 
 /**
  * 게시글 조회수.
@@ -10,12 +11,12 @@ import { useMemiBoardConfig } from '../config'
  * - 같은 브라우저·세션에서 같은 글을 반복 열어 폭증하지 않도록 sessionStorage 로 1회만 기록.
  */
 export function useMemiBoardViews() {
-  const config = useMemiBoardConfig()
+  const cfg = () => useBoardPathConfig()
   const db = useFirestore()
-  const prefix = config.collectionPrefix
 
   function sessionKey(postId: string): string {
-    return `memi-board:viewed:${prefix}:${postId}`
+    const { boardsCollection, boardId } = cfg()
+    return `memi-board:viewed:${boardsCollection}:${boardId}:${postId}`
   }
 
   function hasRecordedView(postId: string): boolean {
@@ -49,7 +50,7 @@ export function useMemiBoardViews() {
     // 낙관적으로 먼저 표시 — 동시 탭 이중 증가 완화
     markRecorded(id)
     try {
-      await updateDoc(doc(db, `${prefix}Posts`, id), {
+      await updateDoc(boardPostDoc(db, cfg(), id), {
         viewCount: increment(1),
       })
     }

@@ -2,6 +2,22 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.20.0] - 2026-08-06
+
+### Breaking
+- Firestore/Storage 경로를 multi-board 트리로 변경 (마이그레이션 없음 — 기존 데이터 삭제 전제)
+  - `memiBoards/{boardId}/posts/{postId}` (+ `body/main`, `comments`, `likes`)
+  - `memiBoards/{boardId}/settings/config` (+ `categories`) — 구 `boardSettings`
+  - `memiBoards/{boardId}/users/{uid}` — 구 `{prefix}Users`
+  - Storage: `memiBoards/{boardId}/posts/{postId}/…`
+- 설정 키 `collectionPrefix` 제거 → `boardsCollection`(기본 `memiBoards`) + **`boardId`**(기본 `default`)
+- `docs/firestore.rules.example` · `storage.rules.example` 경로 전면 개편
+- 복합 인덱스 collection group: `posts` (구 `boardPosts` 등 prefix 컬렉션 ID 폐기)
+
+### Added
+- `src/utils/boardPaths.ts` — 경로 헬퍼 + `useBoardPathConfig()`
+- runtime export: path helpers (`boardPostsCol`, `boardSettingsDoc`, …)
+
 ## [0.19.3] - 2026-08-06
 
 ### Added

@@ -103,4 +103,4 @@ AI Logic / `firebaseml` 이 **Enforce** 이면 App Check 토큰 없이 검열 AP
 firebase deploy --only firestore:indexes
 ```
 
-컬렉션 ID 예: `collectionPrefix` 가 `board` 이면 `boardPosts`.
+컬렉션 ID: 서브컬렉션 `posts` (collection group `posts`). 경로 예: `memiBoards/{boardId}/posts`.

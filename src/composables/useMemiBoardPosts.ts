@@ -1,7 +1,6 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import type { Ref } from 'vue'
 import {
-  collection,
   doc,
   documentId,
   getDoc,
@@ -30,8 +29,15 @@ import { slugify } from '../utils/slugify'
 import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
-import { useMemiBoardConfig } from '../config'
+import { useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
+import {
+  boardPostBodyDoc,
+  boardPostCommentsCol,
+  boardPostDoc,
+  boardPostStorageFolder,
+  boardPostsCol,
+} from '../utils/boardPaths'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { Attachment, PostDetail, PostModel } from '../types'
@@ -88,17 +94,16 @@ export function isFirestorePermissionDenied(error: unknown): boolean {
 
 /** 목록 조회는 posts/{id} 메타만 읽고, 본문(body/main)은 상세 조회 시에만 읽는다. */
 export function useMemiBoardPosts() {
-  const config = useMemiBoardConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isCategoryHidden, categories } = useMemiBoardSettings()
-  // prefix 는 setup 시점에 고정하지 않는다 (configure 이전 호출·이중 인스턴스 대비)
-  const prefix = () => config.collectionPrefix
+  // boardId 는 setup 시점에 고정하지 않는다 (configure 이전 호출·이중 인스턴스 대비)
+  const cfg = () => useBoardPathConfig()
 
-  const postsCol = () => collection(db, `${prefix()}Posts`)
-  const postDoc = (id: string) => doc(db, `${prefix()}Posts`, id)
-  const bodyDoc = (id: string) => doc(db, `${prefix()}Posts`, id, 'body', 'main')
-  const commentsCol = (id: string) => collection(db, `${prefix()}Posts`, id, 'comments')
+  const postsCol = () => boardPostsCol(db, cfg())
+  const postDoc = (id: string) => boardPostDoc(db, cfg(), id)
+  const bodyDoc = (id: string) => boardPostBodyDoc(db, cfg(), id)
+  const commentsCol = (id: string) => boardPostCommentsCol(db, cfg(), id)
 
   function listedForCategory(categoryId: string | undefined): boolean {
     return !isCategoryHidden(categoryId)
@@ -141,7 +146,7 @@ export function useMemiBoardPosts() {
   async function getPosts(opts: {
     pageSize?: number
     cursor?: QueryDocumentSnapshot<DocumentData>
-    /** 지정 시 해당 카테고리 글만 (boardSettings 의 category id) */
+    /** 지정 시 해당 카테고리 글만 (settings categories id) */
     category?: string
     /** true 면 listed==true 만 (비권한 목록). staff 전체 보기는 false */
     publicOnly?: boolean
@@ -382,14 +387,14 @@ export function useMemiBoardPosts() {
     await deleteDoc(bodyDoc(id))
 
     // ── Storage: 최종 id 폴더 전체 (images/**, attachments/**) ──
-    await deleteStorageFolder(storageRef(storage, `${prefix()}/posts/${id}`))
+    await deleteStorageFolder(storageRef(storage, boardPostStorageFolder(cfg(), id)))
 
     // ── 임시 네임스페이스 폴더 (작성 중 new-ts 에 올린 파일) ──
     for (const ns of extraNamespaces) {
-      await deleteStorageFolder(storageRef(storage, `${prefix()}/posts/${ns}`))
+      await deleteStorageFolder(storageRef(storage, boardPostStorageFolder(cfg(), ns)))
     }
 
-    // ── 폴더 삭제에 안 잡힌 개별 path (다른 prefix 등) ──
+    // ── 폴더 삭제에 안 잡힌 개별 path ──
     await deleteStoragePaths(storage, extraPaths)
 
     // ── 메타 마지막 ──
@@ -423,11 +428,10 @@ export function useMemiBoardPostList(
   category?: string | Ref<string | undefined>,
   options: { pageSize?: number, /** staff 등 숨김 글 포함 시 false. 기본 true */ publicOnly?: boolean | Ref<boolean> } = {},
 ) {
-  const config = useMemiBoardConfig()
   const db = useFirestore()
   const { isAdmin, isStaff } = useMemiBoardAuth()
-  const prefix = () => config.collectionPrefix
-  const postsCol = () => collection(db, `${prefix()}Posts`)
+  const cfg = () => useBoardPathConfig()
+  const postsCol = () => boardPostsCol(db, cfg())
   const pageSize = options.pageSize ?? POST_PAGE_SIZE
 
   const categoryValue = computed(() => (
@@ -557,13 +561,12 @@ export function useMemiBoardPostList(
  * 별도 로컬 낙관적 갱신 없이 이 구독이 그대로 반영해 준다.
  */
 export function useMemiBoardPost(postId: string | Ref<string>) {
-  const config = useMemiBoardConfig()
   const db = useFirestore()
-  const prefix = () => config.collectionPrefix
+  const cfg = () => useBoardPathConfig()
 
   const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
-  const postRef = computed(() => doc(db, `${prefix()}Posts`, id.value))
-  const bodyRef = computed(() => doc(db, `${prefix()}Posts`, id.value, 'body', 'main'))
+  const postRef = computed(() => boardPostDoc(db, cfg(), id.value))
+  const bodyRef = computed(() => boardPostBodyDoc(db, cfg(), id.value))
 
   const { data: meta, pending: metaPending } = useDocument<PostModel>(postRef)
   const { data: body, pending: bodyPending } = useDocument<{ content: string }>(bodyRef)

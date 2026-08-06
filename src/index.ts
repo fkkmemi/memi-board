@@ -1,12 +1,34 @@
 /** Runtime API — composables / config / types only. UI SFC는 루트 Nuxt 모듈이 등록. */
 
-export { configureMemiBoard, useMemiBoardConfig } from './config'
+export { configureMemiBoard, useMemiBoardConfig, useBoardPathConfig } from './config'
 export type {
   MemiBoardConfig,
   MemiBoardAuthOptions,
   MemiBoardModerationOptions,
   MemiBoardSeoOptions,
 } from './config'
+
+export {
+  DEFAULT_BOARDS_COLLECTION,
+  DEFAULT_BOARD_ID,
+  resolveBoardPathConfig,
+  boardDocPath,
+  boardStorageRoot,
+  boardPostStorageFolder,
+  boardPostsCol,
+  boardPostDoc,
+  boardPostBodyDoc,
+  boardPostCommentsCol,
+  boardPostCommentDoc,
+  boardPostLikeDoc,
+  boardSettingsDoc,
+  boardCategoriesCol,
+  boardCategoryDoc,
+  boardUsersCol,
+  boardUserDoc,
+  boardSsrKey,
+} from './utils/boardPaths'
+export type { BoardPathConfig } from './utils/boardPaths'
 
 // useMemiBoardPostSeo / useMemiBoardListSeo 는 Nuxt 모듈 auto-import
 // (호스트 파이프라인이 컴파일 — dist 번들 + nuxt/app 이중 로딩 방지)

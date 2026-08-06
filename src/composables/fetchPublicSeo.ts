@@ -5,8 +5,6 @@
  * useFirestore 는 setup 에서 받은 db 를 넘긴다 (async 핸들러 안 use* 금지).
  */
 import {
-  collection,
-  doc,
   getDoc,
   getDocs,
   limit as fbLimit,
@@ -16,7 +14,13 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { useMemiBoardConfig } from '../config'
+import { useBoardPathConfig } from '../config'
+import {
+  boardCategoryDoc,
+  boardPostsCol,
+  resolveBoardPathConfig,
+  type BoardPathConfig,
+} from '../utils/boardPaths'
 import {
   toBoardOgImageUrl,
   type BoardListSeoPayload,
@@ -25,23 +29,23 @@ import {
 
 export type PublicSeoDb = {
   db: Firestore
-  prefix: string
+  paths: BoardPathConfig
 }
 
 /** setup 동기 구간에서만 호출 — useFirestore + config 캡처 */
 export function resolvePublicSeoDb(): PublicSeoDb {
   return {
     db: useFirestore(),
-    prefix: useMemiBoardConfig().collectionPrefix,
+    paths: useBoardPathConfig(),
   }
 }
 
 function postsCol(ctx: PublicSeoDb) {
-  return collection(ctx.db, `${ctx.prefix}Posts`)
+  return boardPostsCol(ctx.db, ctx.paths)
 }
 
 function categoryDoc(ctx: PublicSeoDb, categoryId: string) {
-  return doc(ctx.db, `${ctx.prefix}Settings`, 'config', 'categories', categoryId)
+  return boardCategoryDoc(ctx.db, ctx.paths, categoryId)
 }
 
 async function loadCategoryMeta(ctx: PublicSeoDb, categoryId: string): Promise<{
@@ -90,6 +94,8 @@ export async function fetchPublicPostForSeo(
   if (!cat || !s) return null
 
   const store = ctx ?? resolvePublicSeoDb()
+  // paths 가 옛 prefix 형태 없이 항상 resolve 되게
+  store.paths = resolveBoardPathConfig(store.paths)
   const meta = await loadCategoryMeta(store, cat)
   if (meta.hidden) return null
 
@@ -132,6 +138,7 @@ export async function fetchPublicListForSeo(
 ): Promise<BoardListSeoPayload> {
   const cat = category?.trim() || null
   const store = ctx ?? resolvePublicSeoDb()
+  store.paths = resolveBoardPathConfig(store.paths)
 
   if (cat) {
     const meta = await loadCategoryMeta(store, cat)

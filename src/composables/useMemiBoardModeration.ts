@@ -16,7 +16,7 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
 /**
  * 글쓰기 전 블로킹 검열.
  * 이용 제한 확인 → 로컬 비속어 → Firebase AI Logic(Gemini).
- * 콘텐츠 차단(local/ai) 시 boardUsers 경고 누적.
+ * 콘텐츠 차단(local/ai) 시 board users 경고 누적.
  */
 export function useMemiBoardModeration() {
   const config = useMemiBoardConfig()

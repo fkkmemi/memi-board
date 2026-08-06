@@ -10,7 +10,7 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지
 **서버 / Firebase Admin 불필요** (권한은 Rules, 검열은 브라우저 — 우회 가능, 아래 한계 참고).  
 공개 목록·글 상세만 SSR로 OG를 채우고, 쓰기·설정은 CSR로 두면 된다.
 
-같은 스택(Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase)이면 **다른 호스트 앱에도 그대로 재사용** 가능하다. Firebase 프로젝트는 호스트마다 달라도 되고, 같은 프로젝트를 공유해도 `collectionPrefix`로 컬렉션만 나누면 된다.
+같은 스택(Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase)이면 **다른 호스트 앱에도 그대로 재사용** 가능하다. Firebase 프로젝트는 호스트마다 달라도 되고, 같은 프로젝트에서는 `boardId`로 게시판 인스턴스를 나눈다 (`memiBoards/{boardId}/…`).
 
 ## 플랫폼 요구사항
 
@@ -71,8 +71,9 @@ export default defineNuxtConfig({
   ],
 
   memiBoard: {
-    // Firestore: {prefix}Posts, {prefix}Users, {prefix}Settings
-    collectionPrefix: 'board',
+    // Firestore: memiBoards/{boardId}/posts|settings|users
+    boardsCollection: 'memiBoards', // 기본값
+    boardId: 'main',                // 게시판 인스턴스 ID (필수에 가깝다)
     auth: { providers: ['google', 'apple'] }, // + 'emailPassword'
     moderation: {
       enabled: true,
@@ -134,7 +135,8 @@ export default defineNuxtConfig({
 
 | 키 | 기본 | 설명 |
 |----|------|------|
-| `collectionPrefix` | `'memiBoard'` | Firestore/Storage 접두 (`board` → `boardPosts` …) |
+| `boardsCollection` | `'memiBoards'` | 루트 컬렉션 이름 |
+| `boardId` | `'default'` | `memiBoards/{boardId}/…` 게시판 문서 ID |
 | `auth.providers` | `['google','apple']` | 로그인 공급자 |
 | `moderation.*` | (아래 AI 절) | 로컬·Gemini 검열 |
 | `seo.enabled` | `true` | `false`면 SEO composable no-op |
@@ -211,7 +213,7 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 ### 3. 부모 설정 체크리스트
 
 - [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
-- [ ] `memiBoard.collectionPrefix` · `auth` · `moderation` · **`seo`**
+- [ ] `memiBoard.boardId` · `auth` · `moderation` · **`seo`**
 - [ ] `seo.siteUrl` / `seo.siteName` / `seo.defaultOgImage` / `seo.basePath`
 - [ ] 공개 board 경로 **SSR on**, 쓰기·설정만 `ssr: false`
 - [ ] 목록·상세 페이지에 `await useMemiBoard*Seo(…)` 한 줄
@@ -234,7 +236,7 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 ### 5. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
-   (`memiBoard*` 이름을 쓰는 `collectionPrefix`에 맞게 치환)
+   (`memiBoards/{boardId}/…` 경로 — boardId 는 호스트 설정과 동일)
 2. [docs/storage.rules.example](docs/storage.rules.example) → `storage.rules` 병합
 3. 카테고리 필터 목록을 쓰면 복합 인덱스 필요 (아래)
 4. 배포:
@@ -252,7 +254,7 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 {
   "indexes": [
     {
-      "collectionGroup": "boardPosts",
+      "collectionGroup": "posts",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "category", "order": "ASCENDING" },
@@ -270,9 +272,9 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
 
 1. 아래 게시판 페이지를 만든 뒤 Google 또는 Apple로 로그인한다.
-2. Firebase Console → Firestore에서 `{prefix}Users/{uid}` 문서를 찾는다.
+2. Firebase Console → Firestore에서 `memiBoards/{boardId}/users/{uid}` 문서를 찾는다.
 3. 해당 문서의 `role`을 문자열 `admin`으로 변경한다.
-   - `collectionPrefix: 'board'`라면 `boardUsers/{uid}`
+   - 예: `boardId: 'main'` → `memiBoards/main/users/{uid}`
    - UID는 Firebase Console → Authentication → Users에서도 확인할 수 있다.
 4. `/board-settings`에서 첫 카테고리를 만든다. 카테고리가 없으면 글을 작성할 수 없다.
 5. 이후 역할 변경은 `/board-users`의 `MemiBoardUsers`에서 처리한다.
@@ -358,7 +360,7 @@ const router = useRouter()
 
 ### 관리 페이지
 
-기본 Rules는 게시판의 `{prefix}Users/{uid}.role == 'admin'`을 검사한다. 컴포넌트도 같은 role을 확인하므로 기본 설치에서는 `authorized`를 전달하지 않는다.
+기본 Rules는 게시판의 `memiBoards/{boardId}/users/{uid}.role == 'admin'`을 검사한다. 컴포넌트도 같은 role을 확인하므로 기본 설치에서는 `authorized`를 전달하지 않는다.
 
 ```vue
 <!-- app/pages/board-settings.vue -->
@@ -387,7 +389,7 @@ const router = useRouter()
 본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
 **에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
-`{prefix}/posts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
+`memiBoards/{boardId}/posts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
 
 본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
@@ -403,7 +405,7 @@ const router = useRouter()
 
 ### 카테고리
 
-- 문서: `{prefix}Settings/config/categories/{categoryId}` → `{ label, listView, writeRole, order, updatedAt }`
+- 문서: `memiBoards/{boardId}/settings/config/categories/{categoryId}` → `{ label, listView, writeRole, order, updatedAt }`
 - 설정이 없으면 빈 목록이며 기본 카테고리를 자동 생성하지 않음
 - `MemiBoardSettings`에서 관리자가 카테고리별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
 - `categoryId`는 문서 ID이자 게시글의 `category` 참조값이므로 생성 후 변경하지 않는 것을 권장
@@ -430,7 +432,7 @@ const router = useRouter()
 | 글/댓글 읽기 | 공개 |
 | 글 작성 | 로그인 + 카테고리 `writeRole` 충족 + `moderationStatus == 'approved'` |
 | 댓글 작성 | 로그인 + `moderationStatus == 'approved'` (클라가 항상 approved 로 씀 — 검열 통과 후에만 write) |
-| 글 수정·삭제 | 작성자 또는 `{prefix}Users/{uid}.role in ['admin', 'staff']` |
+| 글 수정·삭제 | 작성자 또는 `memiBoards/{boardId}/users/{uid}.role in ['admin', 'staff']` |
 | 댓글 삭제 | 댓글 작성자 · 글 작성자 · admin · staff |
 | 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |
 
@@ -450,7 +452,7 @@ const router = useRouter()
 | `blockBanThreshold` | `3` | 콘텐츠 차단(local/ai) 누적 이상이면 글·댓글 제한. `0` = off |
 | `blockBanDecayMs` | `86400000` | 경고 1회 차감 간격(기본 24h) |
 
-콘텐츠 차단이 누적되면 `{prefix}Users/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
+콘텐츠 차단이 누적되면 `memiBoards/{boardId}/users/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
 3회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
 
 콘솔에서 **AI Logic(Gemini Developer API)** 활성화. 신규 프로젝트는 구형 `gemini-2.5-flash` 가 404 날 수 있음 → 3.x Flash / Flash-Lite 사용.
@@ -488,7 +490,7 @@ export default defineNuxtPlugin(() => {
 - [ ] 동일 스택: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
 - [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs`
 - [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
-- [ ] `memiBoard` (`collectionPrefix` · `auth` · `moderation` · **`seo`**)
+- [ ] `memiBoard` (`boardId` · `auth` · `moderation` · **`seo`**)
 - [ ] 공개 목록·상세 **SSR on**, 쓰기·설정만 `ssr: false` (전 경로 CSR 금지)
 - [ ] 목록·상세 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo`
 - [ ] 호스트 SEO API 없음
@@ -496,12 +498,12 @@ export default defineNuxtPlugin(() => {
 - [ ] Rules 예시 병합 + **deploy**
 - [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
-- [ ] 최초 로그인 후 Firebase Console에서 `{prefix}Users/{uid}.role = 'admin'`
+- [ ] 최초 로그인 후 Firebase Console에서 `memiBoards/{boardId}/users/{uid}.role = 'admin'`
 - [ ] 설정 페이지에서 첫 카테고리 생성
 - [ ] (검열) AI Logic 활성화 + 권장 모델 + App Check
 - [ ] `pnpm why vuefire` 로 이중 인스턴스 없는지 확인
 
-같은 Firebase 프로젝트에 호스트 앱 유저 컬렉션이 있어도 무방 — 게시판 역할은 **`{prefix}Users` 전용**이다.
+같은 Firebase 프로젝트에 호스트 앱 유저 컬렉션이 있어도 무방 — 게시판 역할은 **`memiBoards/{boardId}/users` 전용**이다.
 
 ## 문제 해결
 

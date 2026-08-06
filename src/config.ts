@@ -1,4 +1,10 @@
 import { reactive } from 'vue'
+import {
+  DEFAULT_BOARD_ID,
+  DEFAULT_BOARDS_COLLECTION,
+  resolveBoardPathConfig,
+  type BoardPathConfig,
+} from './utils/boardPaths'
 
 export interface MemiBoardAuthOptions {
   providers?: Array<'google' | 'apple' | 'emailPassword'>
@@ -45,7 +51,16 @@ export interface MemiBoardSeoOptions {
 }
 
 export interface MemiBoardConfig {
-  collectionPrefix: string
+  /**
+   * 루트 컬렉션 이름. 기본 `memiBoards`.
+   * 경로: `{boardsCollection}/{boardId}/posts|settings|users`
+   */
+  boardsCollection: string
+  /**
+   * 게시판 문서 ID (필수에 가깝다 — 미지정 시 `default`).
+   * 한 호스트에 여러 게시판을 두려면 인스턴스마다 다른 boardId 를 쓴다.
+   */
+  boardId: string
   auth: MemiBoardAuthOptions
   moderation: MemiBoardModerationOptions
   seo: MemiBoardSeoOptions
@@ -64,7 +79,8 @@ function getSharedConfig(): MemiBoardConfig {
   }
   if (!g[GLOBAL_KEY]) {
     g[GLOBAL_KEY] = reactive<MemiBoardConfig>({
-      collectionPrefix: 'memiBoard',
+      boardsCollection: DEFAULT_BOARDS_COLLECTION,
+      boardId: DEFAULT_BOARD_ID,
       auth: { providers: ['google', 'apple'] },
       moderation: {
         enabled: true,
@@ -93,7 +109,12 @@ function getSharedConfig(): MemiBoardConfig {
  */
 export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   const config = getSharedConfig()
-  if (options.collectionPrefix) config.collectionPrefix = options.collectionPrefix
+  if (options.boardsCollection != null && options.boardsCollection !== '') {
+    config.boardsCollection = options.boardsCollection.trim()
+  }
+  if (options.boardId != null && options.boardId !== '') {
+    config.boardId = options.boardId.trim()
+  }
   if (options.auth) Object.assign(config.auth, options.auth)
   if (options.moderation) Object.assign(config.moderation, options.moderation)
   if (options.seo) Object.assign(config.seo, options.seo)
@@ -101,4 +122,10 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
 
 export function useMemiBoardConfig(): MemiBoardConfig {
   return getSharedConfig()
+}
+
+/** 현재 config 기준 path 세그먼트 (composables 공용) */
+export function useBoardPathConfig(): BoardPathConfig {
+  const config = useMemiBoardConfig()
+  return resolveBoardPathConfig(config)
 }

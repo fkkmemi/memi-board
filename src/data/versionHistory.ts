@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.20.0',
+    date: '2026-08-06',
+    highlights: [
+      '게시판 데이터를 memiBoards/{게시판ID}/… 아래에 모았어요 (여러 게시판을 같은 프로젝트에 둘 수 있어요)',
+      '설정·글·사용자 경로가 게시판마다 분리돼요 — 호스트는 boardId만 맞추면 돼요',
+    ],
+  },
+  {
     version: '0.19.3',
     date: '2026-08-06',
     highlights: [

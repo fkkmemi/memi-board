@@ -3,10 +3,15 @@
 // 이 모듈은 서버가 없는 클라이언트 전용 아키텍처이므로, 모든 권한 검증은 여기 규칙이 전부다.
 // 호스트 프로젝트의 firestore.rules에 아래 내용을 병합해서 배포해야 게시판이 실제로 안전해진다.
 //
-// collectionPrefix 를 'memiBoard'가 아닌 다른 값(예: board)으로 쓰면
-// 아래 memiBoardPosts / memiBoardUsers / memiBoardSettings 이름을
-// {prefix}Posts / {prefix}Users / {prefix}Settings 로 전부 바꿔야 한다.
-// 예: board → boardPosts, boardUsers, boardSettings
+// 경로 (0.20+):
+//   memiBoards/{boardId}/posts/{postId}
+//   memiBoards/{boardId}/posts/{postId}/body/main
+//   memiBoards/{boardId}/posts/{postId}/comments|likes
+//   memiBoards/{boardId}/settings/config (+ categories)
+//   memiBoards/{boardId}/users/{uid}
+//
+// boardsCollection 을 바꾼 경우 memiBoards 를 그 이름으로 치환한다.
+// boardId 는 호스트 memiBoard.boardId 와 동일해야 한다.
 
 rules_version = '2';
 service cloud.firestore {
@@ -15,41 +20,45 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    function isAdmin() {
-      return isSignedIn() &&
-        get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role == 'admin';
+    function boardUserPath(boardId) {
+      return /databases/$(database)/documents/memiBoards/$(boardId)/users/$(request.auth.uid);
     }
-    function isStaff() {
+    function isAdmin(boardId) {
       return isSignedIn() &&
-        get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
+        get(boardUserPath(boardId)).data.role == 'admin';
+    }
+    function isStaff(boardId) {
+      return isSignedIn() &&
+        get(boardUserPath(boardId)).data.role in ['admin', 'staff'];
+    }
+    function categoryPath(boardId, categoryId) {
+      return /databases/$(database)/documents/memiBoards/$(boardId)/settings/config/categories/$(categoryId);
+    }
+    function postPath(boardId, postId) {
+      return /databases/$(database)/documents/memiBoards/$(boardId)/posts/$(postId);
     }
     // writeRole/commentWriteRole가 'staff'일 때, allowedStaffUids가 비어있지 않으면
-    // 그 목록에 있는 스태프만(관리자는 항상 통과) 이 카테고리에 쓸 수 있다 — 게시판마다
-    // 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3).
-    function isAllowedStaffForCategory(categoryId) {
-      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
-      let allowed = get(categoryPath).data.get('allowedStaffUids', []);
-      return isAdmin() || allowed.size() == 0 || request.auth.uid in allowed;
+    // 그 목록에 있는 스태프만(관리자는 항상 통과) 이 카테고리에 쓸 수 있다.
+    function isAllowedStaffForCategory(boardId, categoryId) {
+      let allowed = get(categoryPath(boardId, categoryId)).data.get('allowedStaffUids', []);
+      return isAdmin(boardId) || allowed.size() == 0 || request.auth.uid in allowed;
     }
-    function canWriteCategory(categoryId) {
-      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
-      let requiredRole = get(categoryPath).data.get('writeRole', 'user');
-      return exists(categoryPath)
+    function canWriteCategory(boardId, categoryId) {
+      let requiredRole = get(categoryPath(boardId, categoryId)).data.get('writeRole', 'user');
+      return exists(categoryPath(boardId, categoryId))
         && (requiredRole == 'user'
-          || (requiredRole == 'staff' && isStaff() && isAllowedStaffForCategory(categoryId))
-          || (requiredRole == 'admin' && isAdmin()));
+          || (requiredRole == 'staff' && isStaff(boardId) && isAllowedStaffForCategory(boardId, categoryId))
+          || (requiredRole == 'admin' && isAdmin(boardId)));
     }
-    // 글쓰기 권한과 같은 구조 — 카테고리별 commentWriteRole(기본 user)로 댓글쓰기 최소 역할을 정한다.
-    function canWriteComment(categoryId) {
-      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
-      let requiredRole = get(categoryPath).data.get('commentWriteRole', 'user');
-      return exists(categoryPath)
+    function canWriteComment(boardId, categoryId) {
+      let requiredRole = get(categoryPath(boardId, categoryId)).data.get('commentWriteRole', 'user');
+      return exists(categoryPath(boardId, categoryId))
         && (requiredRole == 'user'
-          || (requiredRole == 'staff' && isStaff() && isAllowedStaffForCategory(categoryId))
-          || (requiredRole == 'admin' && isAdmin()));
+          || (requiredRole == 'staff' && isStaff(boardId) && isAllowedStaffForCategory(boardId, categoryId))
+          || (requiredRole == 'admin' && isAdmin(boardId)));
     }
-    function canCommentOnPost(postId) {
-      return canWriteComment(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data.category);
+    function canCommentOnPost(boardId, postId) {
+      return canWriteComment(boardId, get(postPath(boardId, postId)).data.category);
     }
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
@@ -62,8 +71,6 @@ service cloud.firestore {
         && (request.resource.data.commentCount == resource.data.get('commentCount', 0) + 1
           || request.resource.data.commentCount == resource.data.get('commentCount', 0) - 1);
     }
-    // commentCount와 동일한 신뢰 수준(클라이언트 편의 카운터, 보안 판단에 안 씀).
-    // 실제 좋아요 여부·중복 방지는 likes/{uid} 서브컬렉션 규칙(문서당 1인 1개, create만 허용)이 담당한다.
     function isLikeCountUpdate() {
       return isSignedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
@@ -72,210 +79,185 @@ service cloud.firestore {
         && (request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
           || request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1);
     }
-    // 조회수: 로그인 불필요. +1 만 허용. 공개(listed) 글만 익명 조회수 증가.
     function isViewCountUpdate() {
       return resource.data.get('listed', true) == true
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
         && request.resource.data.viewCount is int
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
     }
-    // 숨김/일기장 글(listed=false): 작성자·관리자,
-    // 또는 그 카테고리에 글쓰기 권한이 있는 스태프만 (스태프 전체 열람 금지).
-    function canReadPost(data) {
+    function canReadPost(boardId, data) {
       return data.get('listed', true) == true
         || (isSignedIn() && request.auth.uid == data.authorUid)
-        || isAdmin()
-        || (isStaff()
+        || isAdmin(boardId)
+        || (isStaff(boardId)
           && data.keys().hasAny(['category'])
-          && canWriteCategory(data.category));
+          && canWriteCategory(boardId, data.category));
     }
-    function categoryVisibility(categoryId) {
-      return get(/databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId))
-        .data.get('visibility', 'public');
+    function categoryVisibility(boardId, categoryId) {
+      return get(categoryPath(boardId, categoryId)).data.get('visibility', 'public');
     }
-    function expectedListed(categoryId) {
-      return categoryVisibility(categoryId) != 'hidden';
+    function expectedListed(boardId, categoryId) {
+      return categoryVisibility(boardId, categoryId) != 'hidden';
     }
 
-    match /memiBoardPosts/{postId} {
-      allow read: if canReadPost(resource.data);
+    match /memiBoards/{boardId} {
+      // 보드 루트 문서는 선택 사항 — 클라이언트는 보통 쓰지 않는다.
+      allow read: if true;
+      allow write: if isAdmin(boardId);
 
-      allow create: if isSignedIn()
-        && request.resource.data.authorUid == request.auth.uid
-        && request.resource.data.moderationStatus == 'approved'
-        && request.resource.data.category is string
-        && canWriteCategory(request.resource.data.category)
-        && request.resource.data.listed is bool
-        && request.resource.data.listed == expectedListed(request.resource.data.category);
+      match /posts/{postId} {
+        allow read: if canReadPost(boardId, resource.data);
 
-      // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능 (+ 카운터 전용 예외)
-      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
-      allow delete: if isOwner(resource) || isStaff();
-
-      match /body/{docId} {
-        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
-        allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isStaff();
-      }
-
-      // 문서 ID = 좋아요 누른 uid. 존재 여부 자체가 "좋아요함"의 기준.
-      // update를 허용하지 않아, 이미 좋아요한 uid가 같은 문서에 다시 set()을 보내도
-      // (Firestore 관점에서 update로 분류되어) 규칙상 거부된다 — 중복 집계를 막는다.
-      match /likes/{uid} {
-        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
         allow create: if isSignedIn()
-          && request.auth.uid == uid
-          && request.resource.data.uid == uid
-          && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
-        allow delete: if isSignedIn() && request.auth.uid == uid;
-      }
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.moderationStatus == 'approved'
+          && request.resource.data.category is string
+          && canWriteCategory(boardId, request.resource.data.category)
+          && request.resource.data.listed is bool
+          && request.resource.data.listed == expectedListed(boardId, request.resource.data.category);
 
-      match /comments/{commentId} {
-        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
+        allow update: if isOwner(resource) || isStaff(boardId)
+          || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
+        allow delete: if isOwner(resource) || isStaff(boardId);
 
-        function isLegacyTopLevelComment() {
-          return !request.resource.data.keys().hasAny([
-            'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
-          ]);
+        match /body/{docId} {
+          allow read: if canReadPost(boardId, get(postPath(boardId, postId)).data);
+          allow write: if isOwner(get(postPath(boardId, postId))) || isStaff(boardId);
         }
-        function isValidTopLevelComment() {
-          return request.resource.data.parentId == null
-            && request.resource.data.rootId == commentId
-            && request.resource.data.depth == 0
-            && request.resource.data.replyToUid == null
-            && request.resource.data.replyToName == null
-            && request.resource.data.replyCount == 0
-            && request.resource.data.isReply == false;
+
+        match /likes/{uid} {
+          allow read: if canReadPost(boardId, get(postPath(boardId, postId)).data);
+          allow create: if isSignedIn()
+            && request.auth.uid == uid
+            && request.resource.data.uid == uid
+            && request.resource.data.keys().hasOnly(['uid', 'createdAt']);
+          allow delete: if isSignedIn() && request.auth.uid == uid;
         }
-        function isValidReply() {
-          let parentPath = /databases/$(database)/documents/memiBoardPosts/$(postId)/comments/$(request.resource.data.parentId);
-          let rootPath = /databases/$(database)/documents/memiBoardPosts/$(postId)/comments/$(request.resource.data.rootId);
-          let parent = get(parentPath).data;
-          return request.resource.data.parentId is string
-            && request.resource.data.rootId is string
-            && request.resource.data.parentId != commentId
-            && exists(parentPath)
-            && exists(rootPath)
-            && get(rootPath).data.get('parentId', null) == null
-            && request.resource.data.replyToUid == parent.authorUid
-            && request.resource.data.replyCount == 0
-            && request.resource.data.isReply == true
-            && ((parent.get('parentId', null) == null
-                  && request.resource.data.rootId == request.resource.data.parentId)
-              || (parent.get('parentId', null) != null
-                  && request.resource.data.rootId == parent.rootId))
-            && ((parent.get('depth', 0) < 2
-                  && request.resource.data.depth == parent.get('depth', 0) + 1)
-              || (parent.get('depth', 0) >= 2
-                  && request.resource.data.depth == 2));
-        }
-        function isReplyCountUpdate() {
-          return isSignedIn()
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
-            && request.resource.data.replyCount is int
-            && request.resource.data.replyCount >= 0
-            && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
-              || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
-        }
-        function isCommentBodyUpdate() {
-          return isOwner(resource)
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt'])
+
+        match /comments/{commentId} {
+          allow read: if canReadPost(boardId, get(postPath(boardId, postId)).data);
+
+          function isLegacyTopLevelComment() {
+            return !request.resource.data.keys().hasAny([
+              'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
+            ]);
+          }
+          function isValidTopLevelComment() {
+            return request.resource.data.parentId == null
+              && request.resource.data.rootId == commentId
+              && request.resource.data.depth == 0
+              && request.resource.data.replyToUid == null
+              && request.resource.data.replyToName == null
+              && request.resource.data.replyCount == 0
+              && request.resource.data.isReply == false;
+          }
+          function isValidReply() {
+            let parentPath = /databases/$(database)/documents/memiBoards/$(boardId)/posts/$(postId)/comments/$(request.resource.data.parentId);
+            let rootPath = /databases/$(database)/documents/memiBoards/$(boardId)/posts/$(postId)/comments/$(request.resource.data.rootId);
+            let parent = get(parentPath).data;
+            return request.resource.data.parentId is string
+              && request.resource.data.rootId is string
+              && request.resource.data.parentId != commentId
+              && exists(parentPath)
+              && exists(rootPath)
+              && get(rootPath).data.get('parentId', null) == null
+              && request.resource.data.replyToUid == parent.authorUid
+              && request.resource.data.replyCount == 0
+              && request.resource.data.isReply == true
+              && ((parent.get('parentId', null) == null
+                    && request.resource.data.rootId == request.resource.data.parentId)
+                || (parent.get('parentId', null) != null
+                    && request.resource.data.rootId == parent.rootId))
+              && ((parent.get('depth', 0) < 2
+                    && request.resource.data.depth == parent.get('depth', 0) + 1)
+                || (parent.get('depth', 0) >= 2
+                    && request.resource.data.depth == 2));
+          }
+          function isReplyCountUpdate() {
+            return isSignedIn()
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
+              && request.resource.data.replyCount is int
+              && request.resource.data.replyCount >= 0
+              && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
+                || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
+          }
+          function isCommentBodyUpdate() {
+            return isOwner(resource)
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt'])
+              && request.resource.data.body is string
+              && request.resource.data.body.size() > 0
+              && request.resource.data.body.size() <= 1000
+              && request.resource.data.updatedAt == request.time;
+          }
+          function isCommentBlindUpdate() {
+            return isStaff(boardId)
+              && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['isBlinded', 'moderatedAt', 'moderatedBy'])
+              && request.resource.data.isBlinded is bool
+              && request.resource.data.moderatedAt == request.time
+              && request.resource.data.moderatedBy == request.auth.uid;
+          }
+
+          allow create: if isSignedIn()
+            && canCommentOnPost(boardId, postId)
+            && request.resource.data.authorUid == request.auth.uid
+            && request.resource.data.postId == postId
             && request.resource.data.body is string
             && request.resource.data.body.size() > 0
             && request.resource.data.body.size() <= 1000
-            && request.resource.data.updatedAt == request.time;
+            && request.resource.data.moderationStatus == 'approved'
+            && (isLegacyTopLevelComment()
+              || (request.resource.data.keys().hasAll([
+                  'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
+                ])
+                && (isValidTopLevelComment() || isValidReply())));
+
+          allow delete: if isOwner(resource)
+            || isOwner(get(postPath(boardId, postId)))
+            || isStaff(boardId);
+
+          allow update: if isCommentBodyUpdate() || isCommentBlindUpdate() || isReplyCountUpdate();
         }
-        function isCommentBlindUpdate() {
-          return isStaff()
-            && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['isBlinded', 'moderatedAt', 'moderatedBy'])
-            && request.resource.data.isBlinded is bool
-            && request.resource.data.moderatedAt == request.time
-            && request.resource.data.moderatedBy == request.auth.uid;
-        }
-
-        allow create: if isSignedIn()
-          && canCommentOnPost(postId)
-          && request.resource.data.authorUid == request.auth.uid
-          && request.resource.data.postId == postId
-          && request.resource.data.body is string
-          && request.resource.data.body.size() > 0
-          && request.resource.data.body.size() <= 1000
-          && request.resource.data.moderationStatus == 'approved'
-          && (isLegacyTopLevelComment()
-            || (request.resource.data.keys().hasAll([
-                'parentId', 'rootId', 'depth', 'replyToUid', 'replyToName', 'replyCount', 'isReply'
-              ])
-              && (isValidTopLevelComment() || isValidReply())));
-
-        // 댓글 작성자·부모 게시글 작성자·게시판 관리자 모두 삭제 가능.
-        // 부모 글을 삭제할 때 작성자가 다른 사용자의 댓글도 함께 정리할 수 있어야 한다.
-        allow delete: if isOwner(resource)
-          || isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId)))
-          || isStaff();
-
-        // 작성자 본인만 본문과 수정시간을 변경할 수 있다.
-        // 관리자·스태프는 본문 대신 블라인드 상태만 변경할 수 있다.
-        // 답글 batch에서는 최상위 댓글의 replyCount ±1만 별도로 허용한다.
-        allow update: if isCommentBodyUpdate() || isCommentBlindUpdate() || isReplyCountUpdate();
       }
-    }
 
-    // 게시판 역할 문서.
-    // 본인은 role:'user'로만 생성하며, admin은 Users UI에서 admin/staff/user를 변경한다.
-    // moderationBlockCount/At: 검열 차단 누적(+1만). 감소·리셋은 admin.
-    match /memiBoardUsers/{uid} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
-      allow create: if isSignedIn()
-        && request.auth.uid == uid
-        && request.resource.data.role == 'user'
-        && (!('moderationBlockCount' in request.resource.data)
-            || request.resource.data.moderationBlockCount == 0
-            || request.resource.data.moderationBlockCount == 1);
-      allow update: if (isAdmin() && request.resource.data.role in ['admin', 'staff', 'user'])
-        || (isSignedIn()
+      match /users/{uid} {
+        allow read: if isAdmin(boardId) || (isSignedIn() && request.auth.uid == uid);
+        allow create: if isSignedIn()
           && request.auth.uid == uid
-          && request.resource.data.role == resource.data.role
-          && (
-            !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['moderationBlockCount', 'moderationBlockAt'])
-            || (
-              request.resource.data.diff(resource.data).affectedKeys()
-                .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
-              && request.resource.data.moderationBlockCount
-                == resource.data.get('moderationBlockCount', 0) + 1
-            )
-          ));
-    }
+          && request.resource.data.role == 'user'
+          && (!('moderationBlockCount' in request.resource.data)
+              || request.resource.data.moderationBlockCount == 0
+              || request.resource.data.moderationBlockCount == 1);
+        allow update: if (isAdmin(boardId) && request.resource.data.role in ['admin', 'staff', 'user'])
+          || (isSignedIn()
+            && request.auth.uid == uid
+            && request.resource.data.role == resource.data.role
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['moderationBlockCount', 'moderationBlockAt'])
+              || (
+                request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
+                && request.resource.data.moderationBlockCount
+                  == resource.data.get('moderationBlockCount', 0) + 1
+              )
+            ));
+      }
 
-    // 게시판 설정 + 카테고리 개별 문서 — 읽기 전체 공개.
-    // 스태프는 기존 카테고리만 수정하고 생성·삭제는 관리자만 가능하다.
-    match /memiBoardSettings/{docId} {
-      allow read: if true;
-      allow create: if isAdmin()
-        && request.resource.data.keys().hasOnly(['updatedAt']);
-      allow update: if (isAdmin()
-          && request.resource.data.keys().hasOnly(['updatedAt']))
-        || (isStaff()
-          && request.resource.data.keys().hasOnly(['updatedAt'])
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
-
-      match /categories/{categoryId} {
+      // 기존 boardSettings 역할 — settings/config + categories
+      match /settings/{docId} {
         allow read: if true;
-        allow create: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
-          && request.resource.data.label is string
-          && (!('description' in request.resource.data) || request.resource.data.description is string)
-          && (!('visibility' in request.resource.data) || request.resource.data.visibility in ['public', 'hidden'])
-          && request.resource.data.listView in ['default', 'dense', 'image', 'video']
-          && request.resource.data.writeRole in ['user', 'staff', 'admin']
-          // memi-board 0.11.x 이하는 이 필드들을 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
-          && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
-          && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
-          && request.resource.data.order is number;
-        // 스태프는 라벨·설명·리스트뷰·권한 등급은 바꿀 수 있지만 allowedStaffUids(자기 접근 범위)는
-        // 못 바꾼다 — 이 필드는 관리자만. hasOnly에는 있어도(클라이언트가 항상 같은 값을
-        // 되돌려 보내므로), 값 자체가 기존과 같아야만(diff 없음) 통과한다.
-        allow update: if (isAdmin()
+        allow create: if isAdmin(boardId)
+          && request.resource.data.keys().hasOnly(['updatedAt']);
+        allow update: if (isAdmin(boardId)
+            && request.resource.data.keys().hasOnly(['updatedAt']))
+          || (isStaff(boardId)
+            && request.resource.data.keys().hasOnly(['updatedAt'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAt']));
+
+        match /categories/{categoryId} {
+          allow read: if true;
+          allow create: if isAdmin(boardId)
             && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
             && request.resource.data.label is string
             && (!('description' in request.resource.data) || request.resource.data.description is string)
@@ -284,18 +266,29 @@ service cloud.firestore {
             && request.resource.data.writeRole in ['user', 'staff', 'admin']
             && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
             && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
-            && request.resource.data.order is number)
-          || (isStaff()
-            && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
-            && request.resource.data.label is string
-            && (!('description' in request.resource.data) || request.resource.data.description is string)
-            && request.resource.data.get('visibility', 'public') == resource.data.get('visibility', 'public')
-            && request.resource.data.listView in ['default', 'dense', 'image', 'video']
-            && request.resource.data.writeRole in ['user', 'staff', 'admin']
-            && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
-            && request.resource.data.get('allowedStaffUids', []) == resource.data.get('allowedStaffUids', [])
-            && request.resource.data.order is number);
-        allow delete: if isAdmin();
+            && request.resource.data.order is number;
+          allow update: if (isAdmin(boardId)
+              && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+              && request.resource.data.label is string
+              && (!('description' in request.resource.data) || request.resource.data.description is string)
+              && (!('visibility' in request.resource.data) || request.resource.data.visibility in ['public', 'hidden'])
+              && request.resource.data.listView in ['default', 'dense', 'image', 'video']
+              && request.resource.data.writeRole in ['user', 'staff', 'admin']
+              && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
+              && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
+              && request.resource.data.order is number)
+            || (isStaff(boardId)
+              && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+              && request.resource.data.label is string
+              && (!('description' in request.resource.data) || request.resource.data.description is string)
+              && request.resource.data.get('visibility', 'public') == resource.data.get('visibility', 'public')
+              && request.resource.data.listView in ['default', 'dense', 'image', 'video']
+              && request.resource.data.writeRole in ['user', 'staff', 'admin']
+              && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
+              && request.resource.data.get('allowedStaffUids', []) == resource.data.get('allowedStaffUids', [])
+              && request.resource.data.order is number);
+          allow delete: if isAdmin(boardId);
+        }
       }
     }
   }

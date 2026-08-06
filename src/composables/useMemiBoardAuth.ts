@@ -1,7 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import { useFirestore, useFirebaseAuth, useCurrentUser } from 'vuefire'
-import { doc, getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore'
+import { getDoc, setDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore'
 import {
   GoogleAuthProvider,
   OAuthProvider,
@@ -12,7 +12,8 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
-import { useMemiBoardConfig } from '../config'
+import { useMemiBoardConfig, useBoardPathConfig } from '../config'
+import { boardUserDoc } from '../utils/boardPaths'
 import type { PostModel, CommentModel, BoardUserRole } from '../types'
 import {
   DEFAULT_BLOCK_BAN_DECAY_MS,
@@ -104,7 +105,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
   }
 
   function roleDocRef(uid: string) {
-    return doc(db, `${config.collectionPrefix}Users`, uid)
+    return boardUserDoc(db, useBoardPathConfig(), uid)
   }
 
   function applyUserData(data: Record<string, unknown> | undefined) {

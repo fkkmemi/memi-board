@@ -18,7 +18,8 @@ export default defineNuxtConfig({
   ],
 
   memiBoard: {
-    collectionPrefix: 'memiBoard',
+    boardsCollection: 'memiBoards',
+    boardId: 'default',
     auth: { providers: ['google', 'apple'] },
   },
 

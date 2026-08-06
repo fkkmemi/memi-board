@@ -1,7 +1,6 @@
 import { computed } from 'vue'
 import { useCollection, useFirestore } from 'vuefire'
 import {
-  collection,
   deleteDoc,
   doc,
   getDocs,
@@ -15,7 +14,13 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import type { QueryDocumentSnapshot } from 'firebase/firestore'
-import { useMemiBoardConfig } from '../config'
+import { useBoardPathConfig } from '../config'
+import {
+  boardCategoriesCol,
+  boardPostsCol,
+  boardSettingsDoc,
+  boardSsrKey,
+} from '../utils/boardPaths'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import { slugify } from '../utils/slugify'
 import type { BoardCategory, BoardVisibility } from '../types'
@@ -31,19 +36,17 @@ function normalizeVisibility(value: unknown): BoardVisibility {
   return value === 'hidden' ? 'hidden' : 'public'
 }
 
-/** 게시판 카테고리 — `{prefix}Settings/config/categories/{categoryId}` 개별 문서. */
+/** 게시판 카테고리 — memiBoards/{boardId}/settings/config/categories/{categoryId} */
 export function useMemiBoardSettings() {
-  const config = useMemiBoardConfig()
+  const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const { isSignedIn } = useMemiBoardAuth()
 
-  const settingsRef = computed(() => doc(db, `${config.collectionPrefix}Settings`, 'config'))
-  const categoriesRef = computed(() =>
-    collection(db, `${config.collectionPrefix}Settings`, 'config', 'categories'),
-  )
+  const settingsRef = computed(() => boardSettingsDoc(db, cfg()))
+  const categoriesRef = computed(() => boardCategoriesCol(db, cfg()))
   const categoriesQuery = computed(() => query(categoriesRef.value, orderBy('order', 'asc')))
   const { data: categoryDocs, pending: settingsPending } = useCollection<BoardCategory>(categoriesQuery, {
-    ssrKey: `${config.collectionPrefix}Settings/config/categories`,
+    ssrKey: boardSsrKey(cfg(), 'settings/config/categories'),
   })
   const categories = computed<BoardCategory[]>(() => categoryDocs.value.map((item, index) => ({
     ...item,
@@ -84,7 +87,7 @@ export function useMemiBoardSettings() {
 
   /** 숨김 전환 시 해당 카테고리 글의 listed 를 일괄 맞춤 (rules·목록 쿼리용). */
   async function syncPostsListedForCategory(categoryId: string, listed: boolean): Promise<void> {
-    const postsCol = collection(db, `${config.collectionPrefix}Posts`)
+    const postsCol = boardPostsCol(db, cfg())
     let cursor: QueryDocumentSnapshot | undefined
     for (;;) {
       const page = await getDocs(query(
