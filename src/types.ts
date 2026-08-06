@@ -107,6 +107,8 @@ export interface BoardCategory {
   listView?: BoardListView
   /** 글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
   writeRole?: BoardWriteRole
+  /** 댓글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
+  commentWriteRole?: BoardWriteRole
   /** 목록 노출 순서. 서브컬렉션 문서의 정렬 필드. */
   order?: number
 }

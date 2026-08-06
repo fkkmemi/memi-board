@@ -35,7 +35,12 @@ const error = ref('')
 
 watch([source, () => props.categoryId], ([category]) => {
   draft.value = category
-    ? { ...category, listView: category.listView ?? 'default', writeRole: category.writeRole ?? 'user' }
+    ? {
+        ...category,
+        listView: category.listView ?? 'default',
+        writeRole: category.writeRole ?? 'user',
+        commentWriteRole: category.commentWriteRole ?? 'user',
+      }
     : null
   saved.value = false
   error.value = ''
@@ -72,6 +77,10 @@ async function save() {
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">글을 쓸 수 있는 최소 역할</p></div>
       <USelect v-model="draft.writeRole" :items="writeRoleOptions" value-key="value" label-key="label" @update:model-value="saved = false" />
+    </div>
+    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+      <div><p class="text-sm font-medium">댓글쓰기 권한</p><p class="text-xs text-muted">댓글을 쓸 수 있는 최소 역할</p></div>
+      <USelect v-model="draft.commentWriteRole" :items="writeRoleOptions" value-key="value" label-key="label" @update:model-value="saved = false" />
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>

@@ -2,6 +2,12 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.12.0] - 2026-08-06
+
+### Added
+- 카테고리별 댓글쓰기 권한(`BoardCategory.commentWriteRole`) — 글쓰기 권한(`writeRole`)과 동일한 등급(일반/스태프/관리자)으로 댓글·답글 작성 최소 역할을 설정. `Settings`/`CategorySettings`에 "댓글쓰기 권한" 필드 추가, `docs/firestore.rules.example`에 `canWriteComment`/`canCommentOnPost` 규칙 추가(댓글의 부모 글 카테고리를 조회해 검증)
+- `CommentForm`이 이제 `category` prop을 받아 클라이언트에서도 권한 없는 카테고리면 폼 대신 안내 문구를 보여준다(서버 쪽 실제 검증은 rules가 담당, UI는 편의 기능) — `Detail`/`CommentList`/`CommentThread`가 `category`를 전달하도록 함께 수정
+
 ## [0.11.1] - 2026-08-05
 
 ### Changed

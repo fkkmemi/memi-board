@@ -6,7 +6,7 @@ import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentItem from './CommentItem.vue'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 
-const props = defineProps<{ postId: string, root: CommentModel, now: number }>()
+const props = defineProps<{ postId: string, category?: string, root: CommentModel, now: number }>()
 
 const { deleteComment } = useMemiBoardComments(props.postId, { subscribe: false })
 const { replies, loading, loaded, hasMore, loadMore, refresh } = useMemiBoardReplies(props.postId, props.root.id!)
@@ -113,6 +113,7 @@ async function handleDelete(comment: CommentModel) {
     <MemiBoardCommentForm
       v-if="replyingTo"
       :post-id="postId"
+      :category="category"
       :parent="replyingTo"
       class="ml-10"
       @saved="handleSaved"

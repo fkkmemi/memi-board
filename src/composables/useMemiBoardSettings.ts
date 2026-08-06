@@ -8,9 +8,9 @@ import type { BoardCategory } from '../types'
 
 /** 필요할 때 호스트가 명시적으로 사용할 수 있는 예시 카테고리. 자동 적용하지 않는다. */
 export const DEFAULT_CATEGORIES: BoardCategory[] = [
-  { id: 'free', label: '자유', listView: 'default', writeRole: 'user', order: 0 },
-  { id: 'notice', label: '공지', listView: 'default', writeRole: 'admin', order: 1 },
-  { id: 'question', label: '질문', listView: 'default', writeRole: 'user', order: 2 },
+  { id: 'free', label: '자유', listView: 'default', writeRole: 'user', commentWriteRole: 'user', order: 0 },
+  { id: 'notice', label: '공지', listView: 'default', writeRole: 'admin', commentWriteRole: 'user', order: 1 },
+  { id: 'question', label: '질문', listView: 'default', writeRole: 'user', commentWriteRole: 'user', order: 2 },
 ]
 
 /** 게시판 카테고리 — `{prefix}Settings/config/categories/{categoryId}` 개별 문서. */
@@ -35,6 +35,7 @@ export function useMemiBoardSettings() {
     order: typeof item.order === 'number' ? item.order : index,
     listView: item.listView ?? 'default',
     writeRole: item.writeRole ?? 'user',
+    commentWriteRole: item.commentWriteRole ?? 'user',
   })))
 
   function categoryLabel(id: string | undefined): string | undefined {
@@ -52,6 +53,7 @@ export function useMemiBoardSettings() {
       label,
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
+      commentWriteRole: category.commentWriteRole ?? 'user',
       order,
       updatedAt: serverTimestamp(),
     }, { merge: true })
@@ -70,6 +72,7 @@ export function useMemiBoardSettings() {
         label,
         listView: category.listView ?? 'default',
         writeRole: category.writeRole ?? 'user',
+        commentWriteRole: category.commentWriteRole ?? 'user',
         order,
         updatedAt: serverTimestamp(),
       }, { merge: true })
@@ -98,7 +101,7 @@ export function useMemiBoardSettings() {
     let suffix = 2
     const used = new Set(categories.value.map(category => category.id))
     while (used.has(id)) id = `${base}-${suffix++}`
-    await saveCategory({ id, label: trimmed, listView: 'default', writeRole: 'user', order: categories.value.length })
+    await saveCategory({ id, label: trimmed, listView: 'default', writeRole: 'user', commentWriteRole: 'user', order: categories.value.length })
     return id
   }
 

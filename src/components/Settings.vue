@@ -58,6 +58,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       ...category,
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
+      commentWriteRole: category.commentWriteRole ?? 'user',
     }))
   }
 }, { immediate: true })
@@ -69,7 +70,7 @@ function addCategory() {
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({ id, label, listView: 'default', writeRole: 'user' })
+  draft.value.push({ id, label, listView: 'default', writeRole: 'user', commentWriteRole: 'user' })
   newLabel.value = ''
 }
 
@@ -190,6 +191,16 @@ async function runDeleteAll() {
           <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 글을 쓸 수 있는 최소 역할</p></div>
           <USelect
             v-model="category.writeRole"
+            :items="writeRoleOptions"
+            value-key="value"
+            label-key="label"
+            @update:model-value="savedId = null"
+          />
+        </div>
+        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+          <div><p class="text-sm font-medium">댓글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 댓글을 쓸 수 있는 최소 역할</p></div>
+          <USelect
+            v-model="category.commentWriteRole"
             :items="writeRoleOptions"
             value-key="value"
             label-key="label"

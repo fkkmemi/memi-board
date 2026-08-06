@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.12.0',
+    date: '2026-08-06',
+    highlights: [
+      '카테고리마다 댓글쓰기 권한을 일반 이상·스태프 이상·관리자만으로 설정할 수 있어요',
+    ],
+  },
+  {
     version: '0.11.1',
     date: '2026-08-05',
     highlights: [

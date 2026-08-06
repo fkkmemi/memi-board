@@ -234,8 +234,8 @@ const contentHtml = computed(() => {
       <h2 class="text-sm font-medium text-muted">
         댓글
       </h2>
-      <MemiBoardCommentList :post-id="postId" />
-      <MemiBoardCommentForm :post-id="postId" />
+      <MemiBoardCommentList :post-id="postId" :category="post.category" />
+      <MemiBoardCommentForm :post-id="postId" :category="post.category" />
     </section>
   </div>
 </template>

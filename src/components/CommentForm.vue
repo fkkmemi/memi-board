@@ -1,17 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
 import { useMemiBoardModeration } from 'memi-board/runtime'
+import { useMemiBoardSettings } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
-const props = defineProps<{ postId: string, parent?: CommentModel | null }>()
+const props = defineProps<{ postId: string, category?: string, parent?: CommentModel | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()
 
-const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, isAdmin, isStaff, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
 const { addComment, addReply } = useMemiBoardComments(props.postId, { subscribe: false })
 const { checkText } = useMemiBoardModeration()
+const { categories } = useMemiBoardSettings()
+
+// 카테고리별 댓글쓰기 권한 — 글쓰기 권한과 같은 등급 체계(user/staff/admin)를 그대로 재사용한다.
+const canComment = computed(() => {
+  if (!isSignedIn.value) return false
+  const required = categories.value.find(item => item.id === props.category)?.commentWriteRole ?? 'user'
+  if (required === 'admin') return isAdmin.value
+  if (required === 'staff') return isAdmin.value || isStaff.value
+  return true
+})
 
 const body = ref('')
 const submitting = ref(false)
@@ -22,6 +33,10 @@ async function handleSubmit() {
   if (!body.value.trim()) return
   if (!user.value) {
     error.value = '로그인이 필요합니다.'
+    return
+  }
+  if (!canComment.value) {
+    error.value = '댓글쓰기 권한이 없습니다.'
     return
   }
   if (isWriteRestricted.value) {
@@ -59,7 +74,7 @@ async function handleSubmit() {
 
 <template>
   <form
-    v-if="isSignedIn"
+    v-if="isSignedIn && canComment"
     class="flex flex-col gap-2"
     @submit.prevent="handleSubmit"
   >
@@ -103,9 +118,15 @@ async function handleSubmit() {
     </div>
   </form>
   <p
-    v-else
+    v-else-if="!isSignedIn"
     class="text-sm text-muted"
   >
     댓글을 작성하려면 로그인이 필요합니다.
+  </p>
+  <p
+    v-else
+    class="text-sm text-muted"
+  >
+    이 게시판에는 댓글쓰기 권한이 없습니다.
   </p>
 </template>

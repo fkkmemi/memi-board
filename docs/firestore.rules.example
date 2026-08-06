@@ -31,6 +31,18 @@ service cloud.firestore {
           || (requiredRole == 'staff' && isStaff())
           || (requiredRole == 'admin' && isAdmin()));
     }
+    // 글쓰기 권한과 같은 구조 — 카테고리별 commentWriteRole(기본 user)로 댓글쓰기 최소 역할을 정한다.
+    function canWriteComment(categoryId) {
+      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
+      let requiredRole = get(categoryPath).data.get('commentWriteRole', 'user');
+      return exists(categoryPath)
+        && (requiredRole == 'user'
+          || (requiredRole == 'staff' && isStaff())
+          || (requiredRole == 'admin' && isAdmin()));
+    }
+    function canCommentOnPost(postId) {
+      return canWriteComment(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data.category);
+    }
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
     }
@@ -148,6 +160,7 @@ service cloud.firestore {
         }
 
         allow create: if isSignedIn()
+          && canCommentOnPost(postId)
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.postId == postId
           && request.resource.data.body is string
@@ -215,16 +228,18 @@ service cloud.firestore {
       match /categories/{categoryId} {
         allow read: if true;
         allow create: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
+          && request.resource.data.commentWriteRole in ['user', 'staff', 'admin']
           && request.resource.data.order is number;
         allow update: if isStaff()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
+          && request.resource.data.commentWriteRole in ['user', 'staff', 'admin']
           && request.resource.data.order is number;
         allow delete: if isAdmin();
       }

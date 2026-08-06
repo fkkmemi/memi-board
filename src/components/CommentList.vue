@@ -4,7 +4,7 @@ import { useMemiBoardComments } from 'memi-board/runtime'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 
-const props = defineProps<{ postId: string }>()
+const props = defineProps<{ postId: string, category?: string }>()
 
 const { comments, commentsPending, hasMore, loadingMore, loadMore } = useMemiBoardComments(props.postId)
 const now = ref(Date.now())
@@ -83,6 +83,7 @@ onUnmounted(() => {
       :key="comment.id"
       :root="comment"
       :post-id="postId"
+      :category="category"
       :now="now"
     />
 
