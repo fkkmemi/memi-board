@@ -5,8 +5,8 @@ import type { BoardUserRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
 const { isAdmin, rolePending } = useMemiBoardAuth()
-const { users, usersPending, updateUserRole } = useMemiBoardUsers()
 const canManage = computed(() => isAdmin.value || props.authorized)
+const { users, usersPending, updateUserRole } = useMemiBoardUsers({ enabled: canManage })
 const savingUid = ref<string | null>(null)
 const savedUid = ref<string | null>(null)
 const error = ref('')

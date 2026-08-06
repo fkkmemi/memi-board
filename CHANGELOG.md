@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.13.1] - 2026-08-06
+
+### Fixed
+- `useMemiBoardUsers()`가 호출되는 즉시 `boardUsers` 컬렉션 전체를 필터 없이 구독해서, 관리자가 아니거나 role을 아직 확인 중인 사용자가 `Users`/`Settings`/`CategorySettings`를 열면 `permission-denied`로 화면이 죽었다(로컬 테스트로 직접 재현·확인함). `enabled` 옵션을 추가해 실제로 볼 권한이 있을 때만 쿼리를 시작하도록 수정 — 세 컴포넌트 모두 자신의 `canManage`/`canManageStaff` 값을 넘기게 함
+
 ## [0.13.0] - 2026-08-06
 
 ### Added

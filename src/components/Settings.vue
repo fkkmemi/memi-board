@@ -39,13 +39,16 @@ const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, saveCategories, deleteCategory } = useMemiBoardSettings()
-const { users } = useMemiBoardUsers()
 const canManage = computed(() => isAdmin.value || props.authorized)
+// boardUsers 전체 목록은 rules상 board-role 관리자만 읽을 수 있다 — "허용 스태프" 지정 권한이
+// 있을 때만(기본은 board-role 관리자) 쿼리를 시작한다. canManage(호스트 authorized 포함)로
+// 그냥 열면 스태프도 authorized=true라 여기서 다시 permission-denied가 난다.
+const canManageStaffAssignment = computed(() => props.canManageStaff ?? isAdmin.value)
+const { users } = useMemiBoardUsers({ enabled: canManageStaffAssignment })
 // 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
 const staffOptions = computed(() => users.value
   .filter(item => item.role === 'staff')
   .map(item => ({ label: item.displayName || item.email || item.id, value: item.id })))
-const canManageStaffAssignment = computed(() => props.canManageStaff ?? isAdmin.value)
 function needsStaffPicker(category: BoardCategory) {
   return (category.writeRole === 'staff' || category.commentWriteRole === 'staff')
     && canManageStaffAssignment.value
