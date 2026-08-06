@@ -232,14 +232,16 @@ service cloud.firestore {
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
-          && request.resource.data.commentWriteRole in ['user', 'staff', 'admin']
+          // memi-board 0.11.x 이하는 이 필드를 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
+          && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
           && request.resource.data.order is number;
         allow update: if isStaff()
           && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
-          && request.resource.data.commentWriteRole in ['user', 'staff', 'admin']
+          // memi-board 0.11.x 이하는 이 필드를 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
+          && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
           && request.resource.data.order is number;
         allow delete: if isAdmin();
       }
