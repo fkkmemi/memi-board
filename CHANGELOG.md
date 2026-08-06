@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.13.3] - 2026-08-06
+
+### Fixed
+- `Detail`/`Editor`의 유튜브 반응형 `iframe` 스타일이 실제로는 `youtube.com` 도메인에만 적용되고 `youtube-nocookie.com`/`youtu.be`에는 적용되지 않던 문제 — Vue `:deep()`은 콤마로 구분한 여러 셀렉터를 한 번에 받지 못해 첫 셀렉터만 유효했다. 셀렉터별로 `:deep()`을 각각 감싸도록 수정
+
 ## [0.13.2] - 2026-08-06
 
 ### Fixed

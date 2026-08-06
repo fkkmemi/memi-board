@@ -11,6 +11,27 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.13.3',
+    date: '2026-08-06',
+    highlights: [
+      '유튜브 영상이 도메인(youtube.com·youtube-nocookie.com·youtu.be)에 상관없이 화면 크기에 맞게 나와요',
+    ],
+  },
+  {
+    version: '0.13.2',
+    date: '2026-08-06',
+    highlights: [
+      '글쓰기 화면에 넣은 유튜브 영상이 모바일에서 화면 밖으로 넘치지 않아요',
+    ],
+  },
+  {
+    version: '0.13.1',
+    date: '2026-08-06',
+    highlights: [
+      '스태프가 아니거나 권한 확인 중인 사용자가 사용자·게시판 설정 화면을 열어도 더 이상 오류로 멈추지 않아요',
+    ],
+  },
+  {
     version: '0.13.0',
     date: '2026-08-06',
     highlights: [

@@ -560,7 +560,9 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.board-content :deep(iframe[src*="youtube.com"], iframe[src*="youtube-nocookie.com"], iframe[src*="youtu.be"]) {
+.board-content :deep(iframe[src*="youtube.com"]),
+.board-content :deep(iframe[src*="youtube-nocookie.com"]),
+.board-content :deep(iframe[src*="youtu.be"]) {
   width: 100%;
   max-width: 640px;
   aspect-ratio: 16 / 9;
