@@ -41,9 +41,9 @@ const props = withDefaults(defineProps<{
   settingsTo?: string
   /** '게시판 설정' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
   canManageSettings?: boolean
-  /** '새 글쓰기' 버튼 링크. 지정하면(그리고 canWrite가 true면) 헤더에 버튼을 보여준다. */
+  /** '글쓰기' 버튼 링크. 지정하면(그리고 canWrite가 true면) 헤더에 버튼을 보여준다. */
   writeTo?: string
-  /** '새 글쓰기' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
+  /** '글쓰기' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
   canWrite?: boolean
 }>(), {
   pageSize: 10,
@@ -222,17 +222,19 @@ function postTo(post: PostModel): string | undefined {
         <UButton
           v-if="settingsTo && canManageSettings"
           :to="settingsTo"
-          label="게시판 설정"
+          label="설정"
           icon="i-lucide-settings"
           color="neutral"
           variant="outline"
+          size="sm"
         />
         <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />
         <UButton
           v-if="writeTo && canWrite"
           :to="writeTo"
-          label="새 글쓰기"
+          label="글쓰기"
           icon="i-lucide-pencil"
+          size="sm"
         />
       </div>
     </div>
