@@ -76,6 +76,7 @@ function image(post: PostModel): string | undefined {
           <div class="flex w-[4.75rem] shrink-0 flex-col items-end justify-center gap-1 overflow-hidden py-2 pr-3 text-right">
             <span class="w-full truncate text-xs leading-snug text-muted">{{ post.authorName ?? '익명' }}</span>
             <UTooltip
+              :delay-duration="0"
               :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
               :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
             >

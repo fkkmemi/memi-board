@@ -29,6 +29,7 @@ const emit = defineEmits<{
 
 const listViewOptions: Array<{ label: string, value: BoardListView }> = [
   { label: '일반', value: 'default' },
+  { label: '조밀', value: 'dense' },
   { label: '이미지', value: 'image' },
   { label: '영상', value: 'video' },
 ]

@@ -95,7 +95,7 @@ export interface BoardUserModel {
   updatedAt?: Timestamp
 }
 
-export type BoardListView = 'default' | 'image' | 'video'
+export type BoardListView = 'default' | 'dense' | 'image' | 'video'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'
 
 export interface BoardCategory {

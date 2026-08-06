@@ -160,6 +160,7 @@ const contentHtml = computed(() => {
         />
         <span>{{ post.authorName ?? '익명' }}</span>
         <UTooltip
+          :delay-duration="0"
           :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
           :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
         >

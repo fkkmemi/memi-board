@@ -8,6 +8,7 @@ const emit = defineEmits<{ 'update:modelValue': [value: BoardListView] }>()
 
 const options: Array<{ label: string, value: BoardListView, icon: string }> = [
   { label: '일반', value: 'default', icon: 'i-lucide-list' },
+  { label: '조밀', value: 'dense', icon: 'i-lucide-rows-3' },
   { label: '이미지', value: 'image', icon: 'i-lucide-image' },
   { label: '영상', value: 'video', icon: 'i-lucide-play-circle' },
 ]

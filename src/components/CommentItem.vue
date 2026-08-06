@@ -126,6 +126,7 @@ async function toggleBlind() {
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">{{ comment.authorName ?? '익명' }}</span>
         <UTooltip
+          :delay-duration="0"
           :text="timestampDetails"
           :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
         >

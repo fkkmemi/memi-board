@@ -47,6 +47,7 @@ export type {
 export { compressImage } from './utils/compressImage'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
+export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'
 export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './utils/storagePath'
 export { EDITOR_IMAGE_MAX_BYTES, EDITOR_IMAGE_SOURCE_MAX_BYTES } from './composables/useMemiBoardStorage'
 // createPasteImageExtension 은 components/editor 에 두고 SFC 가 상대경로 import —

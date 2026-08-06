@@ -4,6 +4,7 @@ import { useMemiBoardPostList } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import type { BoardListView, PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
+import MemiBoardListDense from './ListDense.vue'
 import MemiBoardListImage from './ListImage.vue'
 import MemiBoardListVideo from './ListVideo.vue'
 import MemiBoardListViewSwitch from './ListViewSwitch.vue'
@@ -183,9 +184,10 @@ function setViewMode(value: BoardListView) {
 }
 const listComponent = computed(() => ({
   default: MemiBoardListDefault,
+  dense: MemiBoardListDense,
   image: MemiBoardListImage,
   video: MemiBoardListVideo,
-})[viewMode.value])
+})[viewMode.value] ?? MemiBoardListDefault)
 const hasHeader = computed(() => !!(props.title || (props.settingsTo && props.canManageSettings) || (props.writeTo && props.canWrite)))
 
 function postTo(post: PostModel): string | undefined {
@@ -202,6 +204,7 @@ function postTo(post: PostModel): string | undefined {
     <div v-if="hasHeader" class="flex items-center justify-between gap-4">
       <UTooltip
         v-if="title && listDescription"
+        :delay-duration="0"
         :text="listDescription"
         :ui="{ content: 'h-auto max-w-xs py-2', text: 'whitespace-pre-line overflow-visible' }"
       >

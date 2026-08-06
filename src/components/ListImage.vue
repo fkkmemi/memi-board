@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatRelativeDate, formatTimestampDetails } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
@@ -23,31 +22,37 @@ function image(post: PostModel): string | undefined {
       v-for="post in posts"
       :key="post.id"
       :to="postTo(post)"
-      class="overflow-hidden rounded-xl border border-default bg-default text-left transition hover:bg-elevated/50"
+      class="group relative aspect-[4/3] overflow-hidden rounded-xl border border-default bg-elevated text-left"
       @click="!postTo(post) && emit('select', post)"
     >
-      <div class="aspect-[4/3] overflow-hidden bg-elevated">
-        <img v-if="image(post)" :src="image(post)" :alt="post.title" class="size-full object-cover transition duration-300 hover:scale-105">
-        <div v-else class="flex size-full items-center justify-center text-muted"><UIcon name="i-lucide-image" class="size-10" /></div>
+      <img
+        v-if="image(post)"
+        :src="image(post)"
+        :alt="post.title"
+        class="size-full object-cover transition duration-300 group-hover:scale-105"
+      >
+      <div
+        v-else
+        class="flex size-full items-center justify-center text-muted"
+      >
+        <UIcon name="i-lucide-image" class="size-10" />
       </div>
-      <div class="p-4">
-        <h3 class="font-medium line-clamp-2">{{ post.title }}</h3>
-        <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
-        <div class="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
-          <span class="truncate">{{ post.authorName ?? '익명' }}</span>
-          <UTooltip
-            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
-          >
-            <time
-              :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="shrink-0 cursor-help"
-            >
-              {{ formatRelativeDate(post.createdAt, now) }}
-            </time>
-          </UTooltip>
-        </div>
-      </div>
+
+      <!-- 가독성용 상단 그라데이션 -->
+      <div
+        class="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent"
+      />
+
+      <!-- 좌측 상단: 제목 -->
+      <h3 class="absolute left-2.5 top-2.5 right-14 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm sm:left-3 sm:top-3">
+        {{ post.title }}
+      </h3>
+
+      <!-- 우측 상단: 좋아요 개수만 -->
+      <span class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-xs tabular-nums text-white sm:right-3 sm:top-3">
+        <UIcon name="i-lucide-heart" class="size-3" />
+        {{ post.likeCount ?? 0 }}
+      </span>
     </component>
   </div>
 </template>

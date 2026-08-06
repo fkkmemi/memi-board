@@ -2,6 +2,16 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.16.0] - 2026-08-06
+
+### Added
+- 조밀(`dense`) 리스트뷰 — 카드 간격 없는 한 줄 행(좋아요·카테고리·제목·이미지 아이콘·댓글수·작성자·시간)
+- 영상 목록 YouTube 커버 우선(`videoListCoverUrl`) — `videoUrl`이 있으면 썸네일을 본문/첨부 이미지보다 먼저 사용
+
+### Changed
+- 이미지 리스트뷰 — 카드 전체가 이미지, 좌측 상단 제목·우측 상단 좋아요 오버레이
+- 모든 `UTooltip`에 `:delay-duration="0"` — 호버 즉시 표시
+
 ## [0.15.0] - 2026-08-06
 
 ### Added
