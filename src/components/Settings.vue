@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { slugify, useMemiBoardAuth, useMemiBoardSettings } from 'memi-board/runtime'
+import { slugify, useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{
@@ -12,6 +12,11 @@ const props = withDefaults(defineProps<{
   categoryId?: string
   /** 호스트 서버에서 게시판 전체 데이터를 삭제하는 관리자 전용 작업. */
   deleteAll?: () => Promise<void>
+  /**
+   * "허용 스태프" 필드를 보여줄지 — 스태프 본인이 자기 접근 범위를 직접 넓히지 못하게
+   * 기본은 board-role 관리자만이다. 호스트에 별도 관리자 개념이 있으면 명시적으로 넘긴다.
+   */
+  canManageStaff?: boolean
 }>(), {
   authorized: false,
   categoryBase: '/board',
@@ -34,7 +39,17 @@ const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, saveCategories, deleteCategory } = useMemiBoardSettings()
+const { users } = useMemiBoardUsers()
 const canManage = computed(() => isAdmin.value || props.authorized)
+// 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
+const staffOptions = computed(() => users.value
+  .filter(item => item.role === 'staff')
+  .map(item => ({ label: item.displayName || item.email || item.id, value: item.id })))
+const canManageStaffAssignment = computed(() => props.canManageStaff ?? isAdmin.value)
+function needsStaffPicker(category: BoardCategory) {
+  return (category.writeRole === 'staff' || category.commentWriteRole === 'staff')
+    && canManageStaffAssignment.value
+}
 // Firebase의 SSR pending 값과 클라이언트 첫 값이 달라질 수 있다. 최초 hydration은
 // 양쪽 모두 로딩 화면으로 맞춘 뒤 mounted 이후 실제 상태를 렌더링한다.
 const mounted = ref(false)
@@ -59,6 +74,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
+      allowedStaffUids: category.allowedStaffUids ?? [],
     }))
   }
 }, { immediate: true })
@@ -70,7 +86,7 @@ function addCategory() {
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({ id, label, listView: 'default', writeRole: 'user', commentWriteRole: 'user' })
+  draft.value.push({ id, label, listView: 'default', writeRole: 'user', commentWriteRole: 'user', allowedStaffUids: [] })
   newLabel.value = ''
 }
 
@@ -204,6 +220,18 @@ async function runDeleteAll() {
             :items="writeRoleOptions"
             value-key="value"
             label-key="label"
+            @update:model-value="savedId = null"
+          />
+        </div>
+        <div v-if="needsStaffPicker(category)" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+          <div><p class="text-sm font-medium">허용 스태프</p><p class="text-xs text-muted">비워두면 스태프 전체 허용, 지정하면 이 사람들만</p></div>
+          <USelectMenu
+            v-model="category.allowedStaffUids"
+            :items="staffOptions"
+            value-key="value"
+            label-key="label"
+            multiple
+            placeholder="스태프 전체 허용"
             @update:model-value="savedId = null"
           />
         </div>

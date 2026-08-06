@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.13.0] - 2026-08-06
+
+### Added
+- 카테고리별 "허용 스태프" 지정(`BoardCategory.allowedStaffUids`) — `writeRole`/`commentWriteRole`가 'staff'일 때, 지정하면 그 uid 목록에 있는 스태프만 해당 카테고리에 글/댓글을 쓸 수 있다(비어있으면 지금처럼 스태프 전체 허용). 게시판마다 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3). `Settings`/`CategorySettings`에 스태프 멀티선택 UI 추가(`useMemiBoardUsers`로 스태프 목록 조회)
+- `docs/firestore.rules.example`에 `isAllowedStaffForCategory` 추가 — `canWriteCategory`/`canWriteComment`의 'staff' 분기에서 함께 검증(관리자는 항상 통과)
+
+### Fixed
+- 스태프 본인이 `allowedStaffUids`(자기 접근 범위)를 직접 넓히지 못하도록 카테고리 문서 `update` 규칙을 관리자/스태프로 분리 — 스태프는 이 필드 값을 실제로 바꿀 수 없다(값이 기존과 같아야만 통과). `Settings`/`CategorySettings`도 `canManageStaff` prop(기본값은 board-role 관리자 여부)이 없으면 스태프에게 이 필드 자체를 숨긴다
+
 ## [0.12.0] - 2026-08-06
 
 ### Added

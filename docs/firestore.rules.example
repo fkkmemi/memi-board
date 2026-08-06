@@ -23,12 +23,20 @@ service cloud.firestore {
       return isSignedIn() &&
         get(/databases/$(database)/documents/memiBoardUsers/$(request.auth.uid)).data.role in ['admin', 'staff'];
     }
+    // writeRole/commentWriteRole가 'staff'일 때, allowedStaffUids가 비어있지 않으면
+    // 그 목록에 있는 스태프만(관리자는 항상 통과) 이 카테고리에 쓸 수 있다 — 게시판마다
+    // 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3).
+    function isAllowedStaffForCategory(categoryId) {
+      let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
+      let allowed = get(categoryPath).data.get('allowedStaffUids', []);
+      return isAdmin() || allowed.size() == 0 || request.auth.uid in allowed;
+    }
     function canWriteCategory(categoryId) {
       let categoryPath = /databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId);
       let requiredRole = get(categoryPath).data.get('writeRole', 'user');
       return exists(categoryPath)
         && (requiredRole == 'user'
-          || (requiredRole == 'staff' && isStaff())
+          || (requiredRole == 'staff' && isStaff() && isAllowedStaffForCategory(categoryId))
           || (requiredRole == 'admin' && isAdmin()));
     }
     // 글쓰기 권한과 같은 구조 — 카테고리별 commentWriteRole(기본 user)로 댓글쓰기 최소 역할을 정한다.
@@ -37,7 +45,7 @@ service cloud.firestore {
       let requiredRole = get(categoryPath).data.get('commentWriteRole', 'user');
       return exists(categoryPath)
         && (requiredRole == 'user'
-          || (requiredRole == 'staff' && isStaff())
+          || (requiredRole == 'staff' && isStaff() && isAllowedStaffForCategory(categoryId))
           || (requiredRole == 'admin' && isAdmin()));
     }
     function canCommentOnPost(postId) {
@@ -228,21 +236,33 @@ service cloud.firestore {
       match /categories/{categoryId} {
         allow read: if true;
         allow create: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && request.resource.data.listView in ['default', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
-          // memi-board 0.11.x 이하는 이 필드를 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
+          // memi-board 0.11.x 이하는 이 필드들을 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
           && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
+          && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
           && request.resource.data.order is number;
-        allow update: if isStaff()
-          && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'order', 'updatedAt'])
-          && request.resource.data.label is string
-          && request.resource.data.listView in ['default', 'image', 'video']
-          && request.resource.data.writeRole in ['user', 'staff', 'admin']
-          // memi-board 0.11.x 이하는 이 필드를 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
-          && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
-          && request.resource.data.order is number;
+        // 스태프는 라벨·리스트뷰·권한 등급은 바꿀 수 있지만 allowedStaffUids(자기 접근 범위)는
+        // 못 바꾼다 — 이 필드는 관리자만. hasOnly에는 있어도(클라이언트가 항상 같은 값을
+        // 되돌려 보내므로), 값 자체가 기존과 같아야만(diff 없음) 통과한다.
+        allow update: if (isAdmin()
+            && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.label is string
+            && request.resource.data.listView in ['default', 'image', 'video']
+            && request.resource.data.writeRole in ['user', 'staff', 'admin']
+            && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
+            && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
+            && request.resource.data.order is number)
+          || (isStaff()
+            && request.resource.data.keys().hasOnly(['label', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.label is string
+            && request.resource.data.listView in ['default', 'image', 'video']
+            && request.resource.data.writeRole in ['user', 'staff', 'admin']
+            && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
+            && request.resource.data.get('allowedStaffUids', []) == resource.data.get('allowedStaffUids', [])
+            && request.resource.data.order is number);
         allow delete: if isAdmin();
       }
     }

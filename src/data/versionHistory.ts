@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.13.0',
+    date: '2026-08-06',
+    highlights: [
+      '게시판마다 특정 스태프만 지정해서 글·댓글을 쓰게 할 수 있어요 (게시판별로 다른 담당자를 둘 수 있어요)',
+    ],
+  },
+  {
     version: '0.12.0',
     date: '2026-08-06',
     highlights: [

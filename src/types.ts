@@ -109,6 +109,12 @@ export interface BoardCategory {
   writeRole?: BoardWriteRole
   /** 댓글쓰기 최소 역할. 미지정된 기존 데이터는 user. */
   commentWriteRole?: BoardWriteRole
+  /**
+   * writeRole/commentWriteRole가 'staff'일 때만 의미가 있다. 비어있으면(또는 미지정)
+   * 스태프 전체 허용, 지정하면 이 uid 목록에 있는 스태프만 이 카테고리에 쓸 수 있다.
+   * 게시판마다 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3).
+   */
+  allowedStaffUids?: string[]
   /** 목록 노출 순서. 서브컬렉션 문서의 정렬 필드. */
   order?: number
 }

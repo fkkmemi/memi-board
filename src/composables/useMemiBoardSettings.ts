@@ -36,6 +36,7 @@ export function useMemiBoardSettings() {
     listView: item.listView ?? 'default',
     writeRole: item.writeRole ?? 'user',
     commentWriteRole: item.commentWriteRole ?? 'user',
+    allowedStaffUids: item.allowedStaffUids ?? [],
   })))
 
   function categoryLabel(id: string | undefined): string | undefined {
@@ -54,6 +55,7 @@ export function useMemiBoardSettings() {
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
+      allowedStaffUids: category.allowedStaffUids ?? [],
       order,
       updatedAt: serverTimestamp(),
     }, { merge: true })
@@ -73,6 +75,7 @@ export function useMemiBoardSettings() {
         listView: category.listView ?? 'default',
         writeRole: category.writeRole ?? 'user',
         commentWriteRole: category.commentWriteRole ?? 'user',
+        allowedStaffUids: category.allowedStaffUids ?? [],
         order,
         updatedAt: serverTimestamp(),
       }, { merge: true })
