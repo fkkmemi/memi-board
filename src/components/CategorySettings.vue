@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
+import type { BoardCategory, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
@@ -28,6 +28,10 @@ const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
   { label: '일반 이상', value: 'user' },
   { label: '스태프 이상', value: 'staff' },
   { label: '관리자만', value: 'admin' },
+]
+const visibilityOptions: Array<{ label: string, value: BoardVisibility, description?: string }> = [
+  { label: '보임', value: 'public', description: '전체 목록·필터에 표시' },
+  { label: '숨김', value: 'hidden', description: '일기장·비공개. 주소로 와도 안내만' },
 ]
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
@@ -59,6 +63,7 @@ function toDraft(category: BoardCategory): BoardCategory {
   return {
     ...category,
     description: category.description ?? '',
+    visibility: category.visibility === 'hidden' ? 'hidden' : 'public',
     listView: category.listView ?? 'default',
     writeRole: category.writeRole ?? 'user',
     commentWriteRole: category.commentWriteRole ?? 'user',
@@ -160,6 +165,13 @@ async function save() {
         placeholder="이 게시판에 대한 짧은 설명 (선택)"
         @update:model-value="saved = false"
       />
+    </div>
+    <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
+      <div>
+        <p class="text-sm font-medium">공개 범위</p>
+        <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고, 글은 관리자·스태프·작성자만 읽을 수 있습니다</p>
+      </div>
+      <MemiBoardOptionCards v-model="draft.visibility" :options="visibilityOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>

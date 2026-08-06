@@ -31,6 +31,8 @@ import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
 import { useMemiBoardConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
+import { useMemiBoardSettings } from './useMemiBoardSettings'
+import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { Attachment, PostDetail, PostModel } from '../types'
 
 async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
@@ -70,11 +72,25 @@ export interface UpdatePostInput {
   attachments?: Attachment[]
 }
 
+/** getPostBySlug 결과 — not-found 와 permission-denied 를 UI 에서 구분한다. */
+export type GetPostBySlugResult =
+  | { status: 'ok', post: PostDetail }
+  | { status: 'not-found' }
+  | { status: 'permission-denied' }
+  | { status: 'error', message: string }
+
+export function isFirestorePermissionDenied(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+  const code = 'code' in error ? String((error as { code?: string }).code) : ''
+  return code === 'permission-denied' || code === 'firestore/permission-denied'
+}
+
 /** 목록 조회는 posts/{id} 메타만 읽고, 본문(body/main)은 상세 조회 시에만 읽는다. */
 export function useMemiBoardPosts() {
   const config = useMemiBoardConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
+  const { isCategoryHidden } = useMemiBoardSettings()
   // prefix 는 setup 시점에 고정하지 않는다 (configure 이전 호출·이중 인스턴스 대비)
   const prefix = () => config.collectionPrefix
 
@@ -82,6 +98,10 @@ export function useMemiBoardPosts() {
   const postDoc = (id: string) => doc(db, `${prefix()}Posts`, id)
   const bodyDoc = (id: string) => doc(db, `${prefix()}Posts`, id, 'body', 'main')
   const commentsCol = (id: string) => collection(db, `${prefix()}Posts`, id, 'comments')
+
+  function listedForCategory(categoryId: string | undefined): boolean {
+    return !isCategoryHidden(categoryId)
+  }
 
   /** 문서를 쓰지 않고 Firestore 자동 ID만 미리 만든다. */
   function createPostId(): string {
@@ -93,12 +113,17 @@ export function useMemiBoardPosts() {
     cursor?: QueryDocumentSnapshot<DocumentData>
     /** 지정 시 해당 카테고리 글만 (boardSettings 의 category id) */
     category?: string
+    /** true 면 listed==true 만 (비권한 목록). staff 전체 보기는 false */
+    publicOnly?: boolean
   } = {}) {
     const pageSize = opts.pageSize ?? 20
     const constraints: QueryConstraint[] = []
     if (opts.category) {
       // 복합 인덱스: category ASC + createdAt DESC (호스트 firestore.indexes.json)
       constraints.push(where('category', '==', opts.category))
+    }
+    if (opts.publicOnly !== false) {
+      constraints.push(where('listed', '==', true))
     }
     constraints.push(orderBy('createdAt', 'desc'))
     if (opts.cursor) constraints.push(startAfter(opts.cursor))
@@ -123,16 +148,31 @@ export function useMemiBoardPosts() {
     } as PostDetail
   }
 
-  /** 공개 URL의 category + slug로 내부 Firestore 문서를 찾는다. */
-  async function getPostBySlug(category: string, slug: string): Promise<PostDetail | null> {
-    const snapshot = await getDocs(query(
-      postsCol(),
-      where('category', '==', category),
-      where('slug', '==', slug),
-      fbLimit(1),
-    ))
-    const meta = snapshot.docs[0]
-    return meta ? getPost(meta.id) : null
+  /** 공개 URL의 category + slug로 내부 Firestore 문서를 찾는다. 권한 없음/없음 구분. */
+  async function getPostBySlug(category: string, slug: string): Promise<GetPostBySlugResult> {
+    try {
+      const snapshot = await getDocs(query(
+        postsCol(),
+        where('category', '==', category),
+        where('slug', '==', slug),
+        fbLimit(1),
+      ))
+      const meta = snapshot.docs[0]
+      if (!meta) return { status: 'not-found' }
+      try {
+        const post = await getPost(meta.id)
+        if (!post) return { status: 'not-found' }
+        return { status: 'ok', post }
+      }
+      catch (cause) {
+        if (isFirestorePermissionDenied(cause)) return { status: 'permission-denied' }
+        return { status: 'error', message: cause instanceof Error ? cause.message : String(cause) }
+      }
+    }
+    catch (cause) {
+      if (isFirestorePermissionDenied(cause)) return { status: 'permission-denied' }
+      return { status: 'error', message: cause instanceof Error ? cause.message : String(cause) }
+    }
   }
 
   /** 현재 카테고리의 최신순 목록을 기준으로 인접한 이전(오래된)·다음(최신) 글을 조회한다. */
@@ -141,21 +181,30 @@ export function useMemiBoardPosts() {
     next: PostModel | null
   }> {
     if (!current.category || !current.createdAt) return { previous: null, next: null }
-    const base: QueryConstraint[] = [
-      where('category', '==', current.category),
-      orderBy('createdAt', 'desc'),
-    ]
-    const [previousSnapshot, nextSnapshot] = await Promise.all([
-      getDocs(query(postsCol(), ...base, startAfter(current.createdAt), fbLimit(1))),
-      getDocs(query(postsCol(), ...base, endBefore(current.createdAt), limitToLast(1))),
-    ])
-    const mapPost = (snapshot: typeof previousSnapshot): PostModel | null => {
-      const item = snapshot.docs[0]
-      return item ? ({ id: item.id, ...item.data() } as PostModel) : null
+    try {
+      const base: QueryConstraint[] = [
+        where('category', '==', current.category),
+        // 공개 글 사이만 이동 (숨김 글은 staff 전용 목록에서만 인접 탐색)
+        ...((current.listed !== false) ? [where('listed', '==', true)] : []),
+        orderBy('createdAt', 'desc'),
+      ]
+      const [previousSnapshot, nextSnapshot] = await Promise.all([
+        getDocs(query(postsCol(), ...base, startAfter(current.createdAt), fbLimit(1))),
+        getDocs(query(postsCol(), ...base, endBefore(current.createdAt), limitToLast(1))),
+      ])
+      const mapPost = (snapshot: typeof previousSnapshot): PostModel | null => {
+        const item = snapshot.docs[0]
+        return item ? ({ id: item.id, ...item.data() } as PostModel) : null
+      }
+      return {
+        previous: mapPost(previousSnapshot),
+        next: mapPost(nextSnapshot),
+      }
     }
-    return {
-      previous: mapPost(previousSnapshot),
-      next: mapPost(nextSnapshot),
+    catch (cause) {
+      // 숨김 글·권한 부족 시 인접 탐색 실패는 상세를 막지 않는다
+      if (import.meta.dev) console.warn('[memi-board] getAdjacentPosts failed', cause)
+      return { previous: null, next: null }
     }
   }
 
@@ -175,6 +224,7 @@ export function useMemiBoardPosts() {
     const id = input.postId || createPostId()
 
     const preview = buildPostPreview(input.content, input.attachments)
+    const listed = listedForCategory(input.category)
     await setDoc(postDoc(id), {
       slug,
       title: input.title,
@@ -185,6 +235,7 @@ export function useMemiBoardPosts() {
       commentCount: 0,
       likeCount: 0,
       viewCount: 0,
+      listed,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
@@ -202,6 +253,7 @@ export function useMemiBoardPosts() {
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
     // 메타·본문을 같이 갱신. category 미선택 시 필드 제거(부분 갱신으로 예전 값이 남는 것 방지).
     const preview = buildPostPreview(input.content, input.attachments)
+    const listed = listedForCategory(input.category)
     await Promise.all([
       updateDoc(postDoc(id), {
         title: input.title,
@@ -210,6 +262,7 @@ export function useMemiBoardPosts() {
         videoUrl: preview.videoUrl ? preview.videoUrl : deleteField(),
         tags: input.tags ?? [],
         category: input.category ? input.category : deleteField(),
+        listed,
         attachments: input.attachments ?? [],
         updatedAt: serverTimestamp(),
       }),
@@ -322,10 +375,11 @@ const POST_PAGE_SIZE = 10
  */
 export function useMemiBoardPostList(
   category?: string | Ref<string | undefined>,
-  options: { pageSize?: number } = {},
+  options: { pageSize?: number, /** staff 등 숨김 글 포함 시 false. 기본 true */ publicOnly?: boolean | Ref<boolean> } = {},
 ) {
   const config = useMemiBoardConfig()
   const db = useFirestore()
+  const { isAdmin, isStaff } = useMemiBoardAuth()
   const prefix = () => config.collectionPrefix
   const postsCol = () => collection(db, `${prefix()}Posts`)
   const pageSize = options.pageSize ?? POST_PAGE_SIZE
@@ -333,6 +387,13 @@ export function useMemiBoardPostList(
   const categoryValue = computed(() => (
     typeof category === 'string' || category === undefined ? category : category.value
   ))
+  const publicOnlyValue = computed(() => {
+    if (options.publicOnly === undefined) {
+      // 기본: board admin/staff 만 숨김 포함 목록
+      return !(isAdmin.value || isStaff.value)
+    }
+    return typeof options.publicOnly === 'boolean' ? options.publicOnly : options.publicOnly.value
+  })
 
   const headPosts = ref<PostModel[]>([])
   const olderPosts = ref<PostModel[]>([])
@@ -359,8 +420,12 @@ export function useMemiBoardPostList(
   })
 
   function baseConstraints(): QueryConstraint[] {
+    const constraints: QueryConstraint[] = []
     const value = categoryValue.value
-    return value ? [where('category', '==', value)] : []
+    if (value) constraints.push(where('category', '==', value))
+    // rules 와 동일한 공개 집합 — 쿼리에 listed 제약이 있어야 목록이 통과한다
+    if (publicOnlyValue.value) constraints.push(where('listed', '==', true))
+    return constraints
   }
 
   function startHeadSubscription() {
@@ -426,7 +491,7 @@ export function useMemiBoardPostList(
     startHeadSubscription()
   }
 
-  watch(categoryValue, reset, { immediate: true })
+  watch([categoryValue, publicOnlyValue], reset, { immediate: true })
 
   onScopeDispose(() => stopHeadSubscription?.())
 

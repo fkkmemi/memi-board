@@ -47,6 +47,11 @@ export interface PostModel {
    * 세션당 1회로 클라이언트 중복을 줄인다. 기존 문서엔 없을 수 있음(표시 시 0).
    */
   viewCount?: number
+  /**
+   * 공개 목록 노출 여부. 카테고리 visibility 가 hidden 이면 false.
+   * 목록 쿼리·rules 가 이 필드를 본다(미지정 레거시는 true 취급).
+   */
+  listed?: boolean
   authorUid: string
   authorName: string | null
   authorPhoto: string | null
@@ -102,6 +107,8 @@ export interface BoardUserModel {
 
 export type BoardListView = 'default' | 'dense' | 'image' | 'video'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'
+/** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글 listed=false. */
+export type BoardVisibility = 'public' | 'hidden'
 
 export interface BoardCategory {
   /** 글의 category 필드가 참조하는 키 (예: 'notice', 'free') */
@@ -110,6 +117,11 @@ export interface BoardCategory {
   label: string
   /** 게시판 설명 (목록·설정 화면 안내용). 미지정이면 비움. */
   description?: string
+  /**
+   * 보임/숨김. hidden = 일기장·비공개 게시판.
+   * 칩·전체 목록에서 제외, 글에 listed=false 복제(rules). 미지정은 public.
+   */
+  visibility?: BoardVisibility
   /** 목록 표시 방식. 미지정된 기존 데이터는 default. */
   listView?: BoardListView
   /** 글쓰기 최소 역할. 미지정된 기존 데이터는 user. */

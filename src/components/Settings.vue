@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { slugify, useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardCategory, BoardListView, BoardWriteRole } from 'memi-board/runtime'
+import type { BoardCategory, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
@@ -37,6 +37,10 @@ const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
   { label: '일반 이상', value: 'user' },
   { label: '스태프 이상', value: 'staff' },
   { label: '관리자만', value: 'admin' },
+]
+const visibilityOptions: Array<{ label: string, value: BoardVisibility, description?: string }> = [
+  { label: '보임', value: 'public', description: '전체 목록·필터에 표시' },
+  { label: '숨김', value: 'hidden', description: '일기장·비공개' },
 ]
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
@@ -77,6 +81,7 @@ watch([categories, settingsPending], ([list, loading]) => {
     draft.value = visible.map(category => ({
       ...category,
       description: category.description ?? '',
+      visibility: category.visibility === 'hidden' ? 'hidden' : 'public',
       listView: category.listView ?? 'default',
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
@@ -92,7 +97,16 @@ function addCategory() {
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({ id, label, description: '', listView: 'default', writeRole: 'user', commentWriteRole: 'user', allowedStaffUids: [] })
+  draft.value.push({
+    id,
+    label,
+    description: '',
+    visibility: 'public',
+    listView: 'default',
+    writeRole: 'user',
+    commentWriteRole: 'user',
+    allowedStaffUids: [],
+  })
   newLabel.value = ''
 }
 
@@ -249,6 +263,17 @@ async function runDeleteAll() {
             autoresize
             :maxrows="6"
             placeholder="이 게시판에 대한 짧은 설명 (선택)"
+            @update:model-value="savedId = null"
+          />
+        </div>
+        <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
+          <div>
+            <p class="text-sm font-medium">공개 범위</p>
+            <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고 rules 로 글 읽기가 제한됩니다</p>
+          </div>
+          <MemiBoardOptionCards
+            v-model="category.visibility"
+            :options="visibilityOptions"
             @update:model-value="savedId = null"
           />
         </div>

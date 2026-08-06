@@ -72,28 +72,48 @@ service cloud.firestore {
         && (request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
           || request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1);
     }
-    // 조회수: 로그인 불필요. +1 만 허용(감소·다른 필드 변경 불가). 중복 완화는 클라이언트 sessionStorage.
+    // 조회수: 로그인 불필요. +1 만 허용. 공개(listed) 글만 익명 조회수 증가.
     function isViewCountUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+      return resource.data.get('listed', true) == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
         && request.resource.data.viewCount is int
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
     }
+    // 숨김/일기장 글(listed=false): 작성자·관리자,
+    // 또는 그 카테고리에 글쓰기 권한이 있는 스태프만 (스태프 전체 열람 금지).
+    function canReadPost(data) {
+      return data.get('listed', true) == true
+        || (isSignedIn() && request.auth.uid == data.authorUid)
+        || isAdmin()
+        || (isStaff()
+          && data.keys().hasAny(['category'])
+          && canWriteCategory(data.category));
+    }
+    function categoryVisibility(categoryId) {
+      return get(/databases/$(database)/documents/memiBoardSettings/config/categories/$(categoryId))
+        .data.get('visibility', 'public');
+    }
+    function expectedListed(categoryId) {
+      return categoryVisibility(categoryId) != 'hidden';
+    }
 
     match /memiBoardPosts/{postId} {
-      allow read: if true;
+      allow read: if canReadPost(resource.data);
 
       allow create: if isSignedIn()
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.moderationStatus == 'approved'
         && request.resource.data.category is string
-        && canWriteCategory(request.resource.data.category);
+        && canWriteCategory(request.resource.data.category)
+        && request.resource.data.listed is bool
+        && request.resource.data.listed == expectedListed(request.resource.data.category);
 
       // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능 (+ 카운터 전용 예외)
       allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
       allow delete: if isOwner(resource) || isStaff();
 
       match /body/{docId} {
-        allow read: if true;
+        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
         allow write: if isOwner(get(/databases/$(database)/documents/memiBoardPosts/$(postId))) || isStaff();
       }
 
@@ -101,7 +121,7 @@ service cloud.firestore {
       // update를 허용하지 않아, 이미 좋아요한 uid가 같은 문서에 다시 set()을 보내도
       // (Firestore 관점에서 update로 분류되어) 규칙상 거부된다 — 중복 집계를 막는다.
       match /likes/{uid} {
-        allow read: if true;
+        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
         allow create: if isSignedIn()
           && request.auth.uid == uid
           && request.resource.data.uid == uid
@@ -110,7 +130,7 @@ service cloud.firestore {
       }
 
       match /comments/{commentId} {
-        allow read: if true;
+        allow read: if canReadPost(get(/databases/$(database)/documents/memiBoardPosts/$(postId)).data);
 
         function isLegacyTopLevelComment() {
           return !request.resource.data.keys().hasAny([
@@ -242,9 +262,10 @@ service cloud.firestore {
       match /categories/{categoryId} {
         allow read: if true;
         allow create: if isAdmin()
-          && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
           && request.resource.data.label is string
           && (!('description' in request.resource.data) || request.resource.data.description is string)
+          && (!('visibility' in request.resource.data) || request.resource.data.visibility in ['public', 'hidden'])
           && request.resource.data.listView in ['default', 'dense', 'image', 'video']
           && request.resource.data.writeRole in ['user', 'staff', 'admin']
           // memi-board 0.11.x 이하는 이 필드들을 안 보낸다 — 없으면 통과, 있으면 값 검증 (하위 호환)
@@ -255,18 +276,20 @@ service cloud.firestore {
         // 못 바꾼다 — 이 필드는 관리자만. hasOnly에는 있어도(클라이언트가 항상 같은 값을
         // 되돌려 보내므로), 값 자체가 기존과 같아야만(diff 없음) 통과한다.
         allow update: if (isAdmin()
-            && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
             && request.resource.data.label is string
             && (!('description' in request.resource.data) || request.resource.data.description is string)
+            && (!('visibility' in request.resource.data) || request.resource.data.visibility in ['public', 'hidden'])
             && request.resource.data.listView in ['default', 'dense', 'image', 'video']
             && request.resource.data.writeRole in ['user', 'staff', 'admin']
             && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])
             && (!('allowedStaffUids' in request.resource.data) || request.resource.data.allowedStaffUids is list)
             && request.resource.data.order is number)
           || (isStaff()
-            && request.resource.data.keys().hasOnly(['label', 'description', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['label', 'description', 'visibility', 'listView', 'writeRole', 'commentWriteRole', 'allowedStaffUids', 'order', 'updatedAt'])
             && request.resource.data.label is string
             && (!('description' in request.resource.data) || request.resource.data.description is string)
+            && request.resource.data.get('visibility', 'public') == resource.data.get('visibility', 'public')
             && request.resource.data.listView in ['default', 'dense', 'image', 'video']
             && request.resource.data.writeRole in ['user', 'staff', 'admin']
             && (!('commentWriteRole' in request.resource.data) || request.resource.data.commentWriteRole in ['user', 'staff', 'admin'])

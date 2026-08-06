@@ -2,6 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.18.0] - 2026-08-06
+
+### Added
+- 카테고리 공개 범위 `visibility: public | hidden` (일기장·비공개 게시판)
+- 글 `listed` 필드 복제 — 숨김 시 목록 쿼리·rules 로 일반 열람 차단
+- 설정 UI 보임/숨김, `publicCategories` / `isCategoryHidden` 헬퍼
+- `getPostBySlug` 가 `ok | not-found | permission-denied | error` 로 구분 반환
+
+### Security
+- 숨김 글 읽기: 작성자·관리자·해당 카테고리 글쓰기 권한 스태프만 (스태프 전체 열람 금지)
+
 ## [0.17.0] - 2026-08-06
 
 ### Added

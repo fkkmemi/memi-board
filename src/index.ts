@@ -5,7 +5,8 @@ export type { MemiBoardConfig, MemiBoardAuthOptions, MemiBoardModerationOptions 
 
 export { useMemiBoardAuth } from './composables/useMemiBoardAuth'
 export { useMemiBoardPosts, useMemiBoardPostList, useMemiBoardPost } from './composables/useMemiBoardPosts'
-export type { CreatePostInput, UpdatePostInput } from './composables/useMemiBoardPosts'
+export type { CreatePostInput, UpdatePostInput, GetPostBySlugResult } from './composables/useMemiBoardPosts'
+export { isFirestorePermissionDenied } from './composables/useMemiBoardPosts'
 export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
 export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
@@ -41,6 +42,7 @@ export type {
   BoardCategory,
   BoardListView,
   BoardWriteRole,
+  BoardVisibility,
   BoardSettingsModel,
   ModerationResult,
 } from './types'
