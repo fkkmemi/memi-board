@@ -23,6 +23,7 @@ export {
   boardListOgDescription,
   toAbsoluteUrl,
   asHttpUrl,
+  toBoardOgImageUrl,
   normalizeBasePath,
 } from './utils/boardSeo'
 export type { BoardPostSeoPayload, BoardListSeoPayload } from './utils/boardSeo'

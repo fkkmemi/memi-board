@@ -18,7 +18,7 @@ import {
 import { useFirestore } from 'vuefire'
 import { useMemiBoardConfig } from '../config'
 import {
-  asHttpUrl,
+  toBoardOgImageUrl,
   type BoardListSeoPayload,
   type BoardPostSeoPayload,
 } from '../utils/boardSeo'
@@ -113,7 +113,8 @@ export async function fetchPublicPostForSeo(
       categoryLabel: meta.label,
       title,
       summary: typeof d.summary === 'string' ? d.summary.trim().slice(0, 200) : '',
-      previewImage: asHttpUrl(d.previewImage),
+      // OG·공유용 — 원본 대신 400px 썸네일 경로
+      previewImage: toBoardOgImageUrl(d.previewImage),
       authorName: typeof d.authorName === 'string' && d.authorName.trim() ? d.authorName.trim() : null,
       createdAt: createdAtIso(d.createdAt),
     }
@@ -190,7 +191,7 @@ async function loadRecentListed(ctx: PublicSeoDb, category: string | null): Prom
       const d = row.data() ?? {}
       const title = typeof d.title === 'string' ? d.title.trim() : ''
       if (title && recentTitles.length < 5) recentTitles.push(title)
-      if (!ogImage) ogImage = asHttpUrl(d.previewImage)
+      if (!ogImage) ogImage = toBoardOgImageUrl(d.previewImage)
     }
   }
   catch (e) {

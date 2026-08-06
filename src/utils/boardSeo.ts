@@ -27,6 +27,47 @@ export function asHttpUrl(value: unknown): string | null {
   return /^https?:\/\//i.test(s) ? s : null
 }
 
+/**
+ * 게시글 previewImage(원본) → 공유 미리보기용 썸네일 URL.
+ * Storage: `.../images/{file}` → `.../images/thumbnails/{basename}.jpg`
+ * (uploadEditorImage 와 동일 규칙, 공개 read 시 `?alt=media` 만으로 접근)
+ * Firebase 가 아니면 원본 유지. 이미 thumbnails 경로면 토큰만 제거.
+ */
+export function toBoardOgImageUrl(value: unknown): string | null {
+  const s = asHttpUrl(value)
+  if (!s) return null
+  if (!/firebasestorage\.googleapis\.com/i.test(s)) return s
+
+  try {
+    const u = new URL(s)
+    // /v0/b/{bucket}/o/{encodedPath}
+    const parts = u.pathname.split('/')
+    const bucket = parts[3]
+    const oIdx = parts.indexOf('o')
+    if (!bucket || oIdx < 0 || !parts[oIdx + 1]) return s
+
+    const path = decodeURIComponent(parts.slice(oIdx + 1).join('/'))
+    let thumbPath = path
+    if (!path.includes('/images/thumbnails/')) {
+      const next = path.replace(
+        /\/images\/([^/]+)$/,
+        (_full, file: string) => {
+          const base = String(file).replace(/\.[^.]+$/, '')
+          return `/images/thumbnails/${base}.jpg`
+        },
+      )
+      if (next === path) return s
+      thumbPath = next
+    }
+
+    // 토큰 없이 공개 read — 크롤러·카톡 캐시에 유리
+    return `${u.origin}/v0/b/${bucket}/o/${encodeURIComponent(thumbPath)}?alt=media`
+  }
+  catch {
+    return s
+  }
+}
+
 export function toAbsoluteUrl(pathOrUrl: string, origin: string, fallbackPath = ''): string {
   const base = origin.replace(/\/$/, '')
   const s = pathOrUrl.trim()

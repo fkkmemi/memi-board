@@ -2,6 +2,12 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.19.1] - 2026-08-06
+
+### Changed
+- 공유 OG 이미지: 본문 원본 대신 Storage **썸네일** (`images/thumbnails/*`, 약 400px) 사용
+- `toBoardOgImageUrl` — Firebase download URL → 공개 `?alt=media` 썸네일 URL
+
 ## [0.19.0] - 2026-08-06
 
 ### Added

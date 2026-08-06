@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.19.1',
+    date: '2026-08-06',
+    highlights: [
+      '공유 미리보기 이미지를 가벼운 썸네일로 쓰도록 바꿨어요 (카톡 등에 더 잘 맞아요)',
+    ],
+  },
+  {
     version: '0.19.0',
     date: '2026-08-06',
     highlights: [
