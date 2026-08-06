@@ -43,10 +43,18 @@ function image(post: PostModel): string | undefined {
         class="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent"
       />
 
-      <!-- 좌측 상단: 제목 -->
-      <h3 class="absolute left-2.5 top-2.5 right-14 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm sm:left-3 sm:top-3">
-        {{ post.title }}
-      </h3>
+      <!-- 좌측 상단: 제목 + 댓글수 (조밀/일반과 동일 패턴) -->
+      <div class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3">
+        <h3 class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm">
+          {{ post.title }}
+        </h3>
+        <span
+          v-if="(post.commentCount ?? 0) > 0"
+          class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-white/20 px-1.5 py-px text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm"
+        >
+          {{ post.commentCount }}
+        </span>
+      </div>
 
       <!-- 우측 상단: 좋아요 개수만 -->
       <span class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-xs tabular-nums text-white sm:right-3 sm:top-3">

@@ -72,6 +72,12 @@ service cloud.firestore {
         && (request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
           || request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1);
     }
+    // 조회수: 로그인 불필요. +1 만 허용(감소·다른 필드 변경 불가). 중복 완화는 클라이언트 sessionStorage.
+    function isViewCountUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
+        && request.resource.data.viewCount is int
+        && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
+    }
 
     match /memiBoardPosts/{postId} {
       allow read: if true;
@@ -82,8 +88,8 @@ service cloud.firestore {
         && request.resource.data.category is string
         && canWriteCategory(request.resource.data.category);
 
-      // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능
-      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate() || isLikeCountUpdate();
+      // 작성자 본인 또는 관리자·스태프만 수정/삭제 가능 (+ 카운터 전용 예외)
+      allow update: if isOwner(resource) || isStaff() || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
       allow delete: if isOwner(resource) || isStaff();
 
       match /body/{docId} {

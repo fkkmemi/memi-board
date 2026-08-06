@@ -94,6 +94,7 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'useMemiBoardAuth', from },
       { name: 'useMemiBoardPosts', from },
       { name: 'useMemiBoardComments', from },
+      { name: 'useMemiBoardViews', from },
       { name: 'useMemiBoardModeration', from },
       { name: 'useMemiBoardStorage', from },
       { name: 'useMemiBoardSettings', from },

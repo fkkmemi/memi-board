@@ -58,9 +58,17 @@ function image(post: PostModel): string | undefined {
                 variant="subtle"
                 size="sm"
               />
-              <h3 class="min-w-0 flex-1 line-clamp-2 break-words text-sm font-medium leading-snug sm:text-base">
-                {{ post.title }}
-              </h3>
+              <div class="flex min-w-0 flex-1 items-start gap-1.5">
+                <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug sm:text-base">
+                  {{ post.title }}
+                </h3>
+                <span
+                  v-if="(post.commentCount ?? 0) > 0"
+                  class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
+                >
+                  {{ post.commentCount }}
+                </span>
+              </div>
             </div>
             <p
               v-if="post.summary"
@@ -73,7 +81,7 @@ function image(post: PostModel): string | undefined {
             </div>
           </div>
 
-          <div class="flex w-[4.75rem] shrink-0 flex-col items-end justify-center gap-1 overflow-hidden py-2 pr-3 text-right">
+          <div class="flex w-[5.5rem] shrink-0 flex-col items-end justify-center gap-1 py-2 pr-3 text-right sm:w-24">
             <span class="w-full truncate text-xs leading-snug text-muted">{{ post.authorName ?? '익명' }}</span>
             <UTooltip
               :delay-duration="0"
@@ -87,9 +95,13 @@ function image(post: PostModel): string | undefined {
                 {{ formatRelativeDate(post.createdAt, now) }}
               </time>
             </UTooltip>
-            <div class="flex items-center gap-2 text-xs leading-snug text-muted">
-              <span class="flex items-center gap-1"><UIcon name="i-lucide-heart" class="size-3" />{{ post.likeCount ?? 0 }}</span>
-              <span class="flex items-center gap-1"><UIcon name="i-lucide-message-circle" class="size-3" />{{ post.commentCount }}</span>
+            <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
+              <span class="inline-flex items-center gap-0.5 tabular-nums">
+                <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
+              </span>
+              <span class="inline-flex items-center gap-0.5 tabular-nums">
+                <UIcon name="i-lucide-heart" class="size-3 shrink-0" />{{ post.likeCount ?? 0 }}
+              </span>
             </div>
           </div>
         </div>

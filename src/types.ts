@@ -42,6 +42,11 @@ export interface PostModel {
   commentCount: number
   /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. 실제 좋아요 여부는 likes/{uid} 서브컬렉션이 기준. */
   likeCount: number
+  /**
+   * 조회수. 로그인 없이 +1 가능(rules 가 viewCount 단독 증가만 허용).
+   * 세션당 1회로 클라이언트 중복을 줄인다. 기존 문서엔 없을 수 있음(표시 시 0).
+   */
+  viewCount?: number
   authorUid: string
   authorName: string | null
   authorPhoto: string | null

@@ -2,6 +2,13 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.17.0] - 2026-08-06
+
+### Added
+- 게시글 조회수(`viewCount`) — 상세 진입 시 로그인 없이 +1, 세션당 1회(`useMemiBoardViews`)
+- 목록(일반·조밀·영상)·상세에 조회수 표시, 댓글 수는 모든 리스트뷰에서 제목 옆 pill로 통일
+- `docs/firestore.rules.example`에 익명 `viewCount` +1 허용
+
 ## [0.16.0] - 2026-08-06
 
 ### Added

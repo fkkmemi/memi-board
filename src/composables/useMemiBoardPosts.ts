@@ -184,6 +184,7 @@ export function useMemiBoardPosts() {
       attachments: input.attachments ?? [],
       commentCount: 0,
       likeCount: 0,
+      viewCount: 0,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,

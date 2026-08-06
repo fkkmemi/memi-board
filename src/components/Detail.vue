@@ -6,6 +6,7 @@ import { formatRelativeDate, formatTimestampDetails, renderMarkdownToHtml } from
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
+import { useMemiBoardViews } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
@@ -23,6 +24,7 @@ const emit = defineEmits<{
 const { getAdjacentPosts, deletePost } = useMemiBoardPosts()
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { categoryLabel } = useMemiBoardSettings()
+const { recordView } = useMemiBoardViews()
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
 // 좋아요 토글도 이 구독이 그대로 비춰주므로 별도 로컬 낙관적 갱신이 필요 없다.
@@ -44,14 +46,24 @@ const viewerExtensions = [
 
 // 인접 글은 처음 로드될 때 한 번만 조회한다 — post는 좋아요·댓글 수 변경으로도
 // 계속 갱신되므로, 매번 다시 조회하면 그때마다 불필요한 쿼리가 발생한다.
-let adjacentLoaded = false
+let adjacentLoadedForId: string | null = null
 watch(post, async (current) => {
-  if (!current || adjacentLoaded) return
-  adjacentLoaded = true
+  if (!current?.id) return
+  if (adjacentLoadedForId === current.id) return
+  adjacentLoadedForId = current.id
   const adjacent = await getAdjacentPosts(current)
   previousPost.value = adjacent.previous
   nextPost.value = adjacent.next
 }, { immediate: true })
+
+// 상세 진입 시 조회수 +1 (로그인 불필요, 세션당 1회)
+watch(
+  () => props.postId,
+  (id) => {
+    if (id) void recordView(id)
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   clock = setInterval(() => { now.value = Date.now() }, 60_000)
@@ -159,6 +171,10 @@ const contentHtml = computed(() => {
           size="xs"
         />
         <span>{{ post.authorName ?? '익명' }}</span>
+        <span class="inline-flex items-center gap-1 tabular-nums">
+          <UIcon name="i-lucide-eye" class="size-3.5" />
+          {{ post.viewCount ?? 0 }}
+        </span>
         <UTooltip
           :delay-duration="0"
           :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"

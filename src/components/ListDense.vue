@@ -63,7 +63,7 @@ function thumb(post: PostModel): string | undefined {
                 {{ post.title }}
               </h3>
               <span
-                v-if="post.commentCount > 0"
+                v-if="(post.commentCount ?? 0) > 0"
                 class="inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
               >
                 {{ post.commentCount }}
@@ -87,6 +87,11 @@ function thumb(post: PostModel): string | undefined {
                   {{ formatRelativeDate(post.createdAt, now) }}
                 </time>
               </UTooltip>
+              <span class="text-default/40" aria-hidden="true">·</span>
+              <span class="inline-flex items-center gap-0.5 tabular-nums">
+                <UIcon name="i-lucide-eye" class="size-3" />
+                {{ post.viewCount ?? 0 }}
+              </span>
               <template v-if="(post.likeCount ?? 0) > 0">
                 <span class="text-default/40" aria-hidden="true">·</span>
                 <span class="inline-flex items-center gap-0.5 tabular-nums">

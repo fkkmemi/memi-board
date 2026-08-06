@@ -9,6 +9,7 @@ export type { CreatePostInput, UpdatePostInput } from './composables/useMemiBoar
 export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
 export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
+export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
 export { useMemiBoardSettings, DEFAULT_CATEGORIES } from './composables/useMemiBoardSettings'
