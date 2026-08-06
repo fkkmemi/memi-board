@@ -202,23 +202,35 @@ function resolveEditor(): any | null {
   return ed?.value ?? ed ?? null
 }
 
-/** 앱 레벨 paste/drop (TipTap Extension 아님 — shineb 툴바 업로드와 동일 업로드 경로) */
+/**
+ * 이미지 붙여넣기.
+ * capture 단계에서 처리해야 TipTap/ProseMirror 가 파일명·file 노드를 먼저 넣지 않는다.
+ * (webp 등 파일 복사 시 clipboard 에 image/* + 파일명이 같이 들어와 이중 삽입되던 문제)
+ */
 function onEditorRootPaste(e: ClipboardEvent) {
-  const items = Array.from(e.clipboardData?.items ?? [])
-  const imageItem = items.find(i => i.type.startsWith('image/'))
   const editor = resolveEditor()
   if (!editor) return
-  if (imageItem) {
-    const file = imageItem.getAsFile()
-    if (!file) return
+
+  const dt = e.clipboardData
+  if (!dt) return
+
+  const fromFiles = Array.from(dt.files ?? []).find(f => f.type.startsWith('image/'))
+  const imageItem = Array.from(dt.items ?? []).find(
+    i => i.kind === 'file' && i.type.startsWith('image/'),
+  )
+  const imageFile = fromFiles || imageItem?.getAsFile() || null
+
+  if (imageFile) {
     e.preventDefault()
-    void uploadAndSetImage(editor, file)
+    e.stopPropagation()
+    void uploadAndSetImage(editor, imageFile)
     return
   }
 
-  const src = youtubeUrl(e.clipboardData?.getData('text/plain'))
+  const src = youtubeUrl(dt.getData('text/plain'))
   if (!src) return
   e.preventDefault()
+  e.stopPropagation()
   insertYoutube(editor, src)
 }
 
@@ -465,8 +477,8 @@ async function handleSubmit() {
 
     <div
       class="rounded-xl border border-default overflow-hidden"
-      @paste="onEditorRootPaste"
-      @drop="onEditorRootDrop"
+      @paste.capture="onEditorRootPaste"
+      @drop.capture="onEditorRootDrop"
       @dragover="onEditorRootDragOver"
     >
       <UAlert
