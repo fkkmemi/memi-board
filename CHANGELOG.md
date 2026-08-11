@@ -2,6 +2,11 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.21.1] - 2026-08-07
+
+### Fixed
+- `docs/firestore.rules.example`의 댓글 `update` 규칙 회귀 — v0.21.0에서 `isOwner(resource) || isBoardStaff()`로 정리하면서 답글 batch(생성 시 최상위 댓글 `replyCount` +1, 삭제 시 -1)를 허용하던 `isReplyCountUpdate()` 카브아웃이 통째로 빠짐. 최상위 댓글 작성자·스태프가 아닌 사용자가 답글을 달면 그 batch 전체가 거부돼(`permission-denied`) 답글 작성이 막힘 — 관리자가 쓴 최상위 댓글에 일반 사용자가 답글을 달 때 항상 재현. `isReplyCountUpdate()`를 되살려 `allow update`에 다시 OR
+
 ## [0.21.0] - 2026-08-06
 
 ### Breaking

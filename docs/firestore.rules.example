@@ -75,6 +75,16 @@ service cloud.firestore {
         && request.resource.data.viewCount is int
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
     }
+    // 답글 생성/삭제 batch에서는 대상이 최상위(root) 댓글이라 작성자가 아닌 사람도
+    // replyCount만 ±1 갱신할 수 있어야 한다 — 아니면 답글 작성 자체가 배치 전체로 막힌다.
+    function isReplyCountUpdate() {
+      return isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
+        && request.resource.data.replyCount is int
+        && request.resource.data.replyCount >= 0
+        && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
+          || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
+    }
     function canReadPost(boardId, data) {
       return data.get('listed', true) == true
         || (isSignedIn() && request.auth.uid == data.authorUid)
@@ -167,7 +177,7 @@ service cloud.firestore {
           allow delete: if isOwner(resource)
             || isOwner(get(postPath(boardId, postId)))
             || isBoardStaff();
-          allow update: if isOwner(resource) || isBoardStaff();
+          allow update: if isOwner(resource) || isBoardStaff() || isReplyCountUpdate();
         }
       }
     }

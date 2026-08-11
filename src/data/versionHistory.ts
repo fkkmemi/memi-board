@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.21.1',
+    date: '2026-08-07',
+    highlights: [
+      '관리자가 쓴 댓글에 답글을 달 때 오류가 나던 문제를 고쳤어요',
+    ],
+  },
+  {
     version: '0.21.0',
     date: '2026-08-06',
     highlights: [
