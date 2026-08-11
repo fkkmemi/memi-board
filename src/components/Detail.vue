@@ -13,7 +13,12 @@ import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
 import MemiBoardSwipeHint from './SwipeHint.vue'
 
-const props = defineProps<{ boardId: string, postId: string }>()
+const props = defineProps<{
+  boardId: string
+  postId: string
+  /** 작성자 메뉴의 "작성글 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
+  authorPostsTo?: (authorUid: string) => string | undefined
+}>()
 
 const emit = defineEmits<{
   deleted: []
@@ -134,6 +139,18 @@ const contentHtml = computed(() => {
   if (/<[a-z][\s\S]*>/i.test(raw)) return raw
   return renderMarkdownToHtml(raw)
 })
+
+const authorPostsLink = computed(() => {
+  const uid = post.value?.authorUid
+  return uid ? props.authorPostsTo?.(uid) : undefined
+})
+
+/** 프로필·작성한 댓글 보기는 아직 갈 곳이 없어 비활성 — 작성글 보기만 우선 연결. */
+const authorMenuItems = computed(() => [[
+  { label: '프로필 보기', icon: 'i-lucide-user-round', disabled: true },
+  { label: '작성글 보기', icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
+  { label: '작성한 댓글 보기', icon: 'i-lucide-message-square-text', disabled: true },
+]])
 </script>
 
 <template>
@@ -237,12 +254,19 @@ const contentHtml = computed(() => {
 
     <div class="flex flex-col items-end gap-2">
       <div class="flex items-center justify-end gap-3 text-sm text-muted">
-        <UAvatar
-          :src="post.authorPhoto ?? undefined"
-          :alt="post.authorName ?? '익명'"
-          size="xs"
-        />
-        <span>{{ post.authorName ?? '익명' }}</span>
+        <UDropdownMenu :items="authorMenuItems" :content="{ align: 'end' }">
+          <button
+            type="button"
+            class="-mx-1 flex items-center gap-1.5 rounded-md px-1 transition-colors hover:bg-elevated/60"
+          >
+            <UAvatar
+              :src="post.authorPhoto ?? undefined"
+              :alt="post.authorName ?? '익명'"
+              size="xs"
+            />
+            <span>{{ post.authorName ?? '익명' }}</span>
+          </button>
+        </UDropdownMenu>
         <span class="inline-flex items-center gap-1 tabular-nums">
           <UIcon name="i-lucide-eye" class="size-3.5" />
           {{ post.viewCount ?? 0 }}

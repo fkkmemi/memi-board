@@ -75,6 +75,11 @@ export interface PostDetail extends PostModel {
   content: string
 }
 
+/** 보드 경계를 넘는 작성자별 글 목록(예: /board-user/{uid})에서만 쓰는 형태 — 어느 보드 글인지 함께 담는다. */
+export interface UserPostModel extends PostModel {
+  boardId: string
+}
+
 export interface CommentModel {
   id?: string
   postId: string

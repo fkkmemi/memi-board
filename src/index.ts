@@ -53,6 +53,7 @@ export { useMemiBoardAuth } from './composables/useMemiBoardAuth'
 export { useMemiBoardPosts, useMemiBoardPostList, useMemiBoardPost } from './composables/useMemiBoardPosts'
 export type { CreatePostInput, UpdatePostInput, GetPostBySlugResult } from './composables/useMemiBoardPosts'
 export { isFirestorePermissionDenied } from './composables/useMemiBoardPosts'
+export { useMemiBoardUserPosts } from './composables/useMemiBoardUserPosts'
 export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
 export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
@@ -82,6 +83,7 @@ export type {
   ModerationStatus,
   PostModel,
   PostDetail,
+  UserPostModel,
   CommentModel,
   BoardUserRole,
   BoardUserModel,
