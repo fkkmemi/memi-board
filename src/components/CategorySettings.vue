@@ -14,6 +14,11 @@ const props = withDefaults(defineProps<{
    * (규칙도 스태프가 이 필드 값을 바꾸는 건 별도로 막는다 — UI는 편의일 뿐 보안 경계가 아니다).
    */
   canManageStaff?: boolean
+  /**
+   * 존재하지 않는 카테고리 id로 열렸을 때 생성 폼을 보여줄지. 기본은 board-role
+   * 관리자만 — 스태프는 기존 카테고리 편집은 가능해도 새로 만들 수는 없다.
+   */
+  canCreate?: boolean
 }>(), { authorized: false })
 
 const emit = defineEmits<{ saved: [category: BoardCategory] }>()
@@ -46,10 +51,25 @@ const mounted = ref(false)
 onMounted(() => { mounted.value = true })
 const pending = computed(() => !mounted.value || rolePending.value || settingsPending.value)
 const source = computed(() => categories.value.find(item => item.id === props.categoryId))
+const canCreate = computed(() => props.canCreate ?? isAdmin.value)
+const isNew = computed(() => !source.value)
 const draft = ref<BoardCategory | null>(null)
 const saving = ref(false)
 const saved = ref(false)
 const error = ref('')
+
+function emptyDraft(id: string): BoardCategory {
+  return {
+    id,
+    label: '',
+    description: '',
+    visibility: 'public',
+    listView: 'default',
+    writeRole: 'user',
+    commentWriteRole: 'user',
+    allowedStaffUids: [],
+  }
+}
 
 // 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
 const staffOptions = computed(() => users.value
@@ -73,15 +93,19 @@ function toDraft(category: BoardCategory): BoardCategory {
 
 // 카테고리 전환·최초 로드 시에만 draft를 서버 값으로 맞춘다.
 // 저장 직후 onSnapshot 갱신으로 draft.description 이 비워지거나 입력 중이던 값이 덮이지 않게 한다.
-watch(() => props.categoryId, () => {
-  draft.value = source.value ? toDraft(source.value) : null
+watch(() => props.categoryId, (id) => {
+  if (source.value) draft.value = toDraft(source.value)
+  else if (canCreate.value) draft.value = emptyDraft(id)
+  else draft.value = null
   saved.value = false
   error.value = ''
 })
 
 watch(source, (category) => {
   if (!category) {
-    draft.value = null
+    if (!draft.value || draft.value.id !== props.categoryId) {
+      draft.value = canCreate.value ? emptyDraft(props.categoryId) : null
+    }
     return
   }
   if (!draft.value || draft.value.id !== category.id) {
@@ -107,7 +131,9 @@ async function save() {
   error.value = ''
   const snapshot = { ...draft.value }
   try {
-    await saveCategory(snapshot, snapshot.order ?? 0)
+    const order = isNew.value ? categories.value.length : (snapshot.order ?? 0)
+    await saveCategory(snapshot, order)
+    snapshot.order = order
     // 저장 성공 직후 draft 유지 (스냅샷 오기 전에 watch가 비우지 않도록)
     draft.value = toDraft(snapshot)
     saved.value = true
@@ -127,6 +153,14 @@ async function save() {
   <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" title="접근 권한이 없습니다" />
   <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" title="없는 게시판입니다" description="게시판 주소를 다시 확인해 주세요." />
   <div v-else class="flex flex-col gap-5">
+    <UAlert
+      v-if="isNew"
+      color="neutral"
+      variant="subtle"
+      icon="i-lucide-circle-plus"
+      title="아직 없는 게시판입니다"
+      description="아래 정보를 입력하고 저장하면 이 ID로 새로 만들어집니다."
+    />
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
       <UInput :model-value="draft.id" disabled class="font-mono" />
@@ -178,9 +212,9 @@ async function save() {
       <MemiBoardOptionCards v-model="draft.listView" :options="listViewOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex justify-end border-t border-default pt-4">
-      <UButton label="저장" icon="i-lucide-save" :loading="saving" @click="save" />
+      <UButton :label="isNew ? '만들기' : '저장'" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" @click="save" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-    <UAlert v-if="saved" color="success" variant="subtle" description="게시판 설정을 저장했습니다." />
+    <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? '게시판을 만들었습니다.' : '게시판 설정을 저장했습니다.'" />
   </div>
 </template>
