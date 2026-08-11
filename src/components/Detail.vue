@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
 import { formatRelativeDate, formatTimestampDetails, renderMarkdownToHtml } from 'memi-board/runtime'
@@ -26,6 +27,13 @@ const { getAdjacentPosts, deletePost, publishPost } = useMemiBoardPosts(() => pr
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { boardLabel } = useMemiBoardSettings()
 const { recordView } = useMemiBoardViews()
+const router = useRouter()
+
+/** 공유 링크로 바로 들어온 경우처럼 앱 안에서 온 히스토리가 없으면 목록으로. */
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else emit('list')
+}
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
 // 좋아요 토글도 이 구독이 그대로 비춰주므로 별도 로컬 낙관적 갱신이 필요 없다.
@@ -192,6 +200,16 @@ const contentHtml = computed(() => {
             {{ post.title }}
           </h1>
         </div>
+        <UButton
+          icon="i-lucide-arrow-left"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          square
+          class="shrink-0"
+          aria-label="뒤로"
+          @click="goBack"
+        />
       </div>
       <div
         v-if="post.tags?.length"
