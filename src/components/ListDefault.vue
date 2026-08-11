@@ -2,12 +2,14 @@
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { formatRelativeDate, formatTimestampDetails, useMemiBoardSettings } from 'memi-board/runtime'
+import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 withDefaults(defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
   now: number
   showCategory?: boolean
+  authorPostsTo?: (authorUid: string) => string | undefined
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
@@ -20,19 +22,20 @@ function image(post: PostModel): string | undefined {
 
 <template>
   <div class="flex flex-col gap-2">
-    <component
-      :is="postTo(post) ? NuxtLink : 'button'"
+    <UCard
       v-for="post in posts"
       :key="post.id"
-      :to="postTo(post)"
-      class="text-left"
-      @click="!postTo(post) && emit('select', post)"
+      class="overflow-hidden"
+      :ui="{ body: 'p-0 sm:p-0' }"
     >
-      <UCard
-        class="hover:bg-elevated/50 transition-colors overflow-hidden"
-        :ui="{ body: 'p-0 sm:p-0' }"
-      >
-        <div class="flex min-h-[4.5rem]">
+      <div class="flex min-h-[4.5rem]">
+        <!-- 썸네일+제목만 클릭 시 글로 이동 — 작성자 메뉴는 별도 인터랙션이라 링크 밖에 둔다 -->
+        <component
+          :is="postTo(post) ? NuxtLink : 'button'"
+          :to="postTo(post)"
+          class="flex min-w-0 flex-1 text-left transition-colors hover:bg-elevated/50"
+          @click="!postTo(post) && emit('select', post)"
+        >
           <!-- 카드 좌·상·하 밀착, 가로는 고정 / 세로는 행 높이 전체 -->
           <div class="w-[4.5rem] shrink-0 self-stretch bg-elevated">
             <img
@@ -88,32 +91,39 @@ function image(post: PostModel): string | undefined {
               <UIcon name="i-lucide-paperclip" class="size-3" />{{ post.attachments.length }}
             </div>
           </div>
+        </component>
 
-          <div class="flex w-[5.5rem] shrink-0 flex-col items-end justify-center gap-1 py-2 pr-3 text-right sm:w-24">
-            <span class="w-full truncate text-xs leading-snug text-muted">{{ post.authorName ?? '익명' }}</span>
-            <UTooltip
-              :delay-duration="0"
-              :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-              :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+        <div class="flex w-[5.5rem] shrink-0 flex-col items-end justify-center gap-1 py-2 pr-3 text-right text-xs leading-snug text-muted sm:w-24">
+          <MemiBoardAuthorMenu
+            :author-uid="post.authorUid"
+            :author-name="post.authorName"
+            :author-photo="post.authorPhoto"
+            :author-posts-to="authorPostsTo"
+            :show-avatar="false"
+            class="max-w-full"
+          />
+          <UTooltip
+            :delay-duration="0"
+            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+          >
+            <time
+              :datetime="post.createdAt?.toDate?.().toISOString()"
+              class="cursor-help text-xs leading-snug text-muted"
             >
-              <time
-                :datetime="post.createdAt?.toDate?.().toISOString()"
-                class="cursor-help text-xs leading-snug text-muted"
-              >
-                {{ formatRelativeDate(post.createdAt, now) }}
-              </time>
-            </UTooltip>
-            <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
-              <span class="inline-flex items-center gap-0.5 tabular-nums">
-                <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
-              </span>
-              <span class="inline-flex items-center gap-0.5 tabular-nums">
-                <UIcon name="i-lucide-heart" class="size-3 shrink-0" />{{ post.likeCount ?? 0 }}
-              </span>
-            </div>
+              {{ formatRelativeDate(post.createdAt, now) }}
+            </time>
+          </UTooltip>
+          <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
+            <span class="inline-flex items-center gap-0.5 tabular-nums">
+              <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
+            </span>
+            <span class="inline-flex items-center gap-0.5 tabular-nums">
+              <UIcon name="i-lucide-heart" class="size-3 shrink-0" />{{ post.likeCount ?? 0 }}
+            </span>
           </div>
         </div>
-      </UCard>
-    </component>
+      </div>
+    </UCard>
   </div>
 </template>

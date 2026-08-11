@@ -2,11 +2,13 @@
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { formatRelativeDate, formatTimestampDetails, videoListCoverUrl } from 'memi-board/runtime'
+import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
   now: number
+  authorPostsTo?: (authorUid: string) => string | undefined
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
@@ -19,62 +21,74 @@ function cover(post: PostModel): string | undefined {
 
 <template>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-    <component
-      :is="postTo(post) ? NuxtLink : 'button'"
+    <div
       v-for="post in posts"
       :key="post.id"
-      :to="postTo(post)"
-      class="overflow-hidden rounded-xl border border-default bg-default text-left transition hover:bg-elevated/50"
-      @click="!postTo(post) && emit('select', post)"
+      class="overflow-hidden rounded-xl border border-default bg-default"
     >
-      <div class="relative aspect-video overflow-hidden bg-elevated">
-        <img v-if="cover(post)" :src="cover(post)" :alt="post.title" class="size-full object-cover">
-        <div v-else class="flex size-full items-center justify-center text-muted"><UIcon name="i-lucide-video" class="size-10" /></div>
-        <span class="absolute inset-0 flex items-center justify-center bg-black/10">
-          <span class="flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow"><UIcon name="i-lucide-play" class="ml-0.5 size-6 fill-current" /></span>
-        </span>
-      </div>
-      <div class="p-4">
-        <div class="flex min-w-0 items-start gap-1.5">
-          <UBadge
-            v-if="post.isPublished === false"
-            label="초안"
-            color="warning"
-            variant="subtle"
-            size="sm"
-            class="mt-0.5 shrink-0"
-          />
-          <h3 class="min-w-0 line-clamp-2 font-medium">{{ post.title }}</h3>
-          <span
-            v-if="(post.commentCount ?? 0) > 0"
-            class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
-          >
-            {{ post.commentCount }}
+      <!-- 커버+제목+요약만 클릭 시 글로 이동 — 작성자 메뉴는 별도 인터랙션이라 링크 밖에 둔다 -->
+      <component
+        :is="postTo(post) ? NuxtLink : 'button'"
+        :to="postTo(post)"
+        class="block w-full text-left transition hover:bg-elevated/50"
+        @click="!postTo(post) && emit('select', post)"
+      >
+        <div class="relative aspect-video overflow-hidden bg-elevated">
+          <img v-if="cover(post)" :src="cover(post)" :alt="post.title" class="size-full object-cover">
+          <div v-else class="flex size-full items-center justify-center text-muted"><UIcon name="i-lucide-video" class="size-10" /></div>
+          <span class="absolute inset-0 flex items-center justify-center bg-black/10">
+            <span class="flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow"><UIcon name="i-lucide-play" class="ml-0.5 size-6 fill-current" /></span>
           </span>
         </div>
-        <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
-        <div class="mt-3 flex items-center justify-between gap-2 text-xs text-muted">
-          <span class="truncate">{{ post.authorName ?? '익명' }}</span>
-          <div class="flex shrink-0 items-center gap-2">
-            <span class="inline-flex items-center gap-1 tabular-nums">
-              <UIcon name="i-lucide-eye" class="size-3" />
-              {{ post.viewCount ?? 0 }}
-            </span>
-            <UTooltip
-              :delay-duration="0"
-              :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-              :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+        <div class="p-4 pb-0">
+          <div class="flex min-w-0 items-start gap-1.5">
+            <UBadge
+              v-if="post.isPublished === false"
+              label="초안"
+              color="warning"
+              variant="subtle"
+              size="sm"
+              class="mt-0.5 shrink-0"
+            />
+            <h3 class="min-w-0 line-clamp-2 font-medium">{{ post.title }}</h3>
+            <span
+              v-if="(post.commentCount ?? 0) > 0"
+              class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
             >
-              <time
-                :datetime="post.createdAt?.toDate?.().toISOString()"
-                class="cursor-help"
-              >
-                {{ formatRelativeDate(post.createdAt, now) }}
-              </time>
-            </UTooltip>
+              {{ post.commentCount }}
+            </span>
           </div>
+          <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
+        </div>
+      </component>
+
+      <div class="flex items-center justify-between gap-2 px-4 pb-4 pt-3 text-xs text-muted">
+        <MemiBoardAuthorMenu
+          :author-uid="post.authorUid"
+          :author-name="post.authorName"
+          :author-photo="post.authorPhoto"
+          :author-posts-to="authorPostsTo"
+          :show-avatar="false"
+        />
+        <div class="flex shrink-0 items-center gap-2">
+          <span class="inline-flex items-center gap-1 tabular-nums">
+            <UIcon name="i-lucide-eye" class="size-3" />
+            {{ post.viewCount ?? 0 }}
+          </span>
+          <UTooltip
+            :delay-duration="0"
+            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
+            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
+          >
+            <time
+              :datetime="post.createdAt?.toDate?.().toISOString()"
+              class="cursor-help"
+            >
+              {{ formatRelativeDate(post.createdAt, now) }}
+            </time>
+          </UTooltip>
         </div>
       </div>
-    </component>
+    </div>
   </div>
 </template>

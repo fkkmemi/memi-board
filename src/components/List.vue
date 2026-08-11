@@ -47,6 +47,8 @@ const props = withDefaults(defineProps<{
   writeTo?: string
   /** '글쓰기' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
   canWrite?: boolean
+  /** 카드의 작성자 메뉴 중 "작성글 보기" 링크. */
+  authorPostsTo?: (authorUid: string) => string | undefined
 }>(), {
   pageSize: 10,
   introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
@@ -274,6 +276,7 @@ function postTo(post: PostModel): string | undefined {
       :post-to="postTo"
       :now="now"
       :show-category="!category"
+      :author-posts-to="authorPostsTo"
       @select="emit('select', $event)"
     />
 

@@ -12,6 +12,7 @@ import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
 import MemiBoardSwipeHint from './SwipeHint.vue'
+import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 const props = defineProps<{
   boardId: string
@@ -140,17 +141,6 @@ const contentHtml = computed(() => {
   return renderMarkdownToHtml(raw)
 })
 
-const authorPostsLink = computed(() => {
-  const uid = post.value?.authorUid
-  return uid ? props.authorPostsTo?.(uid) : undefined
-})
-
-/** 프로필·작성한 댓글 보기는 아직 갈 곳이 없어 비활성 — 작성글 보기만 우선 연결. */
-const authorMenuItems = computed(() => [[
-  { label: '프로필 보기', icon: 'i-lucide-user-round', disabled: true },
-  { label: '작성글 보기', icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
-  { label: '작성한 댓글 보기', icon: 'i-lucide-message-square-text', disabled: true },
-]])
 </script>
 
 <template>
@@ -254,19 +244,12 @@ const authorMenuItems = computed(() => [[
 
     <div class="flex flex-col items-end gap-2">
       <div class="flex items-center justify-end gap-3 text-sm text-muted">
-        <UDropdownMenu :items="authorMenuItems" :content="{ align: 'end' }">
-          <button
-            type="button"
-            class="-mx-1 flex items-center gap-1.5 rounded-md px-1 transition-colors hover:bg-elevated/60"
-          >
-            <UAvatar
-              :src="post.authorPhoto ?? undefined"
-              :alt="post.authorName ?? '익명'"
-              size="xs"
-            />
-            <span>{{ post.authorName ?? '익명' }}</span>
-          </button>
-        </UDropdownMenu>
+        <MemiBoardAuthorMenu
+          :author-uid="post.authorUid"
+          :author-name="post.authorName"
+          :author-photo="post.authorPhoto"
+          :author-posts-to="authorPostsTo"
+        />
         <span class="inline-flex items-center gap-1 tabular-nums">
           <UIcon name="i-lucide-eye" class="size-3.5" />
           {{ post.viewCount ?? 0 }}

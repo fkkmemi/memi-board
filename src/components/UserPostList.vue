@@ -10,6 +10,8 @@ const props = withDefaults(defineProps<{
   pageSize?: number
   /** 글 상세 링크 생성 — post.boardId로 보드를 구분해야 한다. */
   getPostLink?: (post: UserPostModel) => string | undefined
+  /** 카드의 작성자 메뉴 중 "작성글 보기" 링크. */
+  authorPostsTo?: (authorUid: string) => string | undefined
 }>(), {
   pageSize: 10,
 })
@@ -58,6 +60,7 @@ function postTo(post: PostModel): string | undefined {
       :post-to="postTo"
       :now="now"
       :show-category="false"
+      :author-posts-to="authorPostsTo"
       @select="(post: PostModel) => emit('select', post as UserPostModel)"
     />
 
