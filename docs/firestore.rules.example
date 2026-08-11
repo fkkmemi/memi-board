@@ -182,5 +182,13 @@ service cloud.firestore {
         }
       }
     }
+
+    // collectionGroup('posts') 쿼리(예: useMemiBoardUserPosts로 작성자별 전체 글 목록)용 — 공개 글만.
+    // memiBoards/{boardId}/posts 아래 nested match는 get()엔 충분하지만, collection-group
+    // list 쿼리의 정적 규칙 검증은 boardId 없이 바로 판단 가능한 규칙이 필요하다
+    // (안 그러면 authorUid 필터 유무와 무관하게 permission-denied가 난다).
+    match /{path=**}/posts/{postId} {
+      allow read: if resource.data.get('listed', true) == true && resource.data.isPublished == true;
+    }
   }
 }
