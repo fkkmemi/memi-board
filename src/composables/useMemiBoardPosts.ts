@@ -32,11 +32,11 @@ import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import {
-  boardPostBodyDoc,
-  boardPostCommentsCol,
-  boardPostDoc,
-  boardPostStorageFolder,
-  boardPostsCol,
+  postBodyDoc,
+  commentsCol,
+  postDoc,
+  postStorageFolder,
+  postsCol,
 } from '../utils/boardPaths'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
@@ -102,10 +102,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const cfg = () => useBoardPathConfig()
   const bid = () => resolveBoardId(boardId)
 
-  const postsCol = () => boardPostsCol(db, cfg(), bid())
-  const postDoc = (id: string) => boardPostDoc(db, cfg(), bid(), id)
-  const bodyDoc = (id: string) => boardPostBodyDoc(db, cfg(), bid(), id)
-  const commentsCol = (id: string) => boardPostCommentsCol(db, cfg(), bid(), id)
+  const postsColRef = () => postsCol(db, cfg())
+  const postDocRef = (id: string) => postDoc(db, cfg(), id)
+  const bodyDocRef = (id: string) => postBodyDoc(db, cfg(), id)
+  const commentsColRef = () => commentsCol(db, cfg())
 
   function listedForBoard(): boolean {
     return !isBoardHidden(bid())
@@ -138,7 +138,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   }
 
   function createPostId(): string {
-    return doc(postsCol()).id
+    return doc(postsColRef()).id
   }
 
   async function getPosts(opts: {
@@ -147,7 +147,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     publicOnly?: boolean
   } = {}) {
     const pageSize = opts.pageSize ?? 20
-    const constraints: QueryConstraint[] = [where('isPublished', '==', true)]
+    const constraints: QueryConstraint[] = [
+      where('boardId', '==', bid()),
+      where('isPublished', '==', true),
+    ]
     if (opts.publicOnly !== false) {
       constraints.push(where('listed', '==', true))
     }
@@ -155,7 +158,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     if (opts.cursor) constraints.push(startAfter(opts.cursor))
     constraints.push(fbLimit(pageSize + 1))
 
-    const snapshot = await getDocs(query(postsCol(), ...constraints))
+    const snapshot = await getDocs(query(postsColRef(), ...constraints))
     const docs = snapshot.docs.slice(0, pageSize)
     return {
       posts: docs.map(d => ({ id: d.id, ...d.data() }) as PostModel),
@@ -165,7 +168,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   }
 
   async function getPost(id: string): Promise<PostDetail | null> {
-    const [metaSnap, bodySnap] = await Promise.all([getDoc(postDoc(id)), getDoc(bodyDoc(id))])
+    const [metaSnap, bodySnap] = await Promise.all([getDoc(postDocRef(id)), getDoc(bodyDocRef(id))])
     if (!metaSnap.exists()) return null
     return {
       id: metaSnap.id,
@@ -178,7 +181,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   async function getPostBySlug(slug: string): Promise<GetPostBySlugResult> {
     try {
       const snapshot = await getDocs(query(
-        postsCol(),
+        postsColRef(),
+        where('boardId', '==', bid()),
         where('slug', '==', slug.trim()),
         fbLimit(1),
       ))
@@ -207,13 +211,14 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     if (!current.createdAt) return { previous: null, next: null }
     try {
       const base: QueryConstraint[] = [
+        where('boardId', '==', bid()),
         where('isPublished', '==', true),
         ...((current.listed !== false) ? [where('listed', '==', true)] : []),
         orderBy('createdAt', 'desc'),
       ]
       const [previousSnapshot, nextSnapshot] = await Promise.all([
-        getDocs(query(postsCol(), ...base, startAfter(current.createdAt), fbLimit(1))),
-        getDocs(query(postsCol(), ...base, endBefore(current.createdAt), limitToLast(1))),
+        getDocs(query(postsColRef(), ...base, startAfter(current.createdAt), fbLimit(1))),
+        getDocs(query(postsColRef(), ...base, endBefore(current.createdAt), limitToLast(1))),
       ])
       const mapPost = (snapshot: typeof previousSnapshot): PostModel | null => {
         const item = snapshot.docs[0]
@@ -246,7 +251,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       slug = baseSlug
       let counter = 1
       while (!(await getDocs(query(
-        postsCol(),
+        postsColRef(),
+        where('boardId', '==', bid()),
         where('slug', '==', slug),
         fbLimit(1),
       ))).empty) {
@@ -257,7 +263,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
-    await setDoc(postDoc(id), {
+    await setDoc(postDocRef(id), {
+      boardId: bid(),
       slug,
       title,
       ...preview,
@@ -276,7 +283,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    await setDoc(bodyDoc(id), { content: input.content })
+    await setDoc(bodyDocRef(id), { content: input.content })
     return slug
   }
 
@@ -287,7 +294,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
     await Promise.all([
-      updateDoc(postDoc(id), {
+      updateDoc(postDocRef(id), {
         title,
         ...preview,
         previewImage: preview.previewImage ? preview.previewImage : deleteField(),
@@ -297,12 +304,12 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         attachments: input.attachments ?? [],
         updatedAt: serverTimestamp(),
       }),
-      setDoc(bodyDoc(id), { content: input.content }, { merge: true }),
+      setDoc(bodyDocRef(id), { content: input.content }, { merge: true }),
     ])
   }
 
   async function publishPost(id: string): Promise<void> {
-    await updateDoc(postDoc(id), {
+    await updateDoc(postDocRef(id), {
       isPublished: true,
       publishedAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -311,8 +318,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
   async function deletePost(id: string): Promise<void> {
     const [metaSnap, bodySnap] = await Promise.all([
-      getDoc(postDoc(id)),
-      getDoc(bodyDoc(id)),
+      getDoc(postDocRef(id)),
+      getDoc(bodyDocRef(id)),
     ])
     if (!metaSnap.exists()) return
 
@@ -321,7 +328,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       ? String((bodySnap.data() as { content?: string }).content ?? '')
       : ''
 
-    const commentsSnap = await getDocs(commentsCol(id))
+    const commentsSnap = await getDocs(query(commentsColRef(), where('postId', '==', id)))
     for (let offset = 0; offset < commentsSnap.docs.length; offset += 450) {
       const batch = writeBatch(db)
       commentsSnap.docs.slice(offset, offset + 450).forEach(d => batch.delete(d.ref))
@@ -358,14 +365,13 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       if (ns && ns !== id) extraNamespaces.add(ns)
     }
 
-    await deleteDoc(bodyDoc(id))
-    const board = bid()
-    await deleteStorageFolder(storageRef(storage, boardPostStorageFolder(cfg(), board, id)))
+    await deleteDoc(bodyDocRef(id))
+    await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg(), id)))
     for (const ns of extraNamespaces) {
-      await deleteStorageFolder(storageRef(storage, boardPostStorageFolder(cfg(), board, ns)))
+      await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg(), ns)))
     }
     await deleteStoragePaths(storage, extraPaths)
-    await deleteDoc(postDoc(id))
+    await deleteDoc(postDocRef(id))
   }
 
   return {
@@ -394,7 +400,7 @@ export function useMemiBoardPostList(
   const uidValue = computed(() => user.value?.uid ?? '')
 
   const boardIdValue = computed(() => resolveBoardId(boardId))
-  const postsCol = () => boardPostsCol(db, cfg(), boardIdValue.value)
+  const postsColRef = () => postsCol(db, cfg())
 
   const publicOnlyValue = computed(() => {
     if (options.publicOnly === undefined) {
@@ -431,7 +437,10 @@ export function useMemiBoardPostList(
   })
 
   function baseConstraints(): QueryConstraint[] {
-    const constraints: QueryConstraint[] = [where('isPublished', '==', true)]
+    const constraints: QueryConstraint[] = [
+      where('boardId', '==', boardIdValue.value),
+      where('isPublished', '==', true),
+    ]
     if (publicOnlyValue.value) constraints.push(where('listed', '==', true))
     return constraints
   }
@@ -439,7 +448,7 @@ export function useMemiBoardPostList(
   function startHeadSubscription() {
     stopHeadSubscription?.()
     stopHeadSubscription = onSnapshot(query(
-      postsCol(),
+      postsColRef(),
       ...baseConstraints(),
       orderBy('createdAt', 'desc'),
       orderBy(documentId(), 'desc'),
@@ -464,7 +473,8 @@ export function useMemiBoardPostList(
       return
     }
     stopOwnDraftSubscription = onSnapshot(query(
-      postsCol(),
+      postsColRef(),
+      where('boardId', '==', boardIdValue.value),
       where('authorUid', '==', uid),
       where('isPublished', '==', false),
       orderBy('createdAt', 'desc'),
@@ -489,7 +499,7 @@ export function useMemiBoardPostList(
         ...(cursor ? [startAfter(cursor)] : []),
         fbLimit(pageSize + 1),
       ]
-      const snapshot = await getDocs(query(postsCol(), ...constraints))
+      const snapshot = await getDocs(query(postsColRef(), ...constraints))
       const pageDocs = snapshot.docs.slice(0, pageSize)
       const page = pageDocs.map(item => ({ id: item.id, ...item.data() }) as PostModel)
       const existingIds = new Set([...olderPosts.value, ...headPosts.value].map(post => post.id))
@@ -544,14 +554,16 @@ export function useMemiBoardPost(
 
   const bid = computed(() => resolveBoardId(boardId))
   const id = computed(() => (typeof postId === 'string' ? postId : postId.value))
-  const postRef = computed(() => boardPostDoc(db, cfg(), bid.value, id.value))
-  const bodyRef = computed(() => boardPostBodyDoc(db, cfg(), bid.value, id.value))
+  const postRef = computed(() => postDoc(db, cfg(), id.value))
+  const bodyRef = computed(() => postBodyDoc(db, cfg(), id.value))
 
   const { data: meta, pending: metaPending } = useDocument<PostModel>(postRef)
   const { data: body, pending: bodyPending } = useDocument<{ content: string }>(bodyRef)
 
   const post = computed<PostDetail | null>(() => {
-    if (!meta.value) return null
+    // boardId 는 이제 문서 필드라, URL의 boardId 세그먼트와 실제 글이 다른 보드에
+    // 속하면(잘못된 URL 등) 상세를 보여주지 않는다.
+    if (!meta.value || meta.value.boardId !== bid.value) return null
     return { ...meta.value, id: id.value, content: body.value?.content ?? '' } as PostDetail
   })
   const pending = computed(() => metaPending.value || bodyPending.value)

@@ -21,7 +21,7 @@ export const BOARD_USER_ROLES: Array<{
  * 쿼리 자체를 시작하지 않는다 — 그냥 호출만 하면 권한 확인 전에 구독이 걸려서
  * 관리자가 아니거나 아직 role을 확인 중일 때 permission-denied로 화면이 죽는다.
  *
- * 경로: memiBoards/{boardId}/users/{uid}
+ * 경로: memiBoardUsers/{uid} (flat)
  */
 export function useMemiBoardUsers(options: { enabled?: MaybeRefOrGetter<boolean> } = {}) {
   const cfg = () => useBoardPathConfig()

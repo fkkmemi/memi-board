@@ -11,7 +11,7 @@ import { useFirebaseApp } from 'vuefire'
 import { safeFileName } from '../utils/slugify'
 import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
-import { boardPostStorageFolder } from '../utils/boardPaths'
+import { postStorageFolder } from '../utils/boardPaths'
 import type { Attachment, EditorImageEntry } from '../types'
 
 /** 에디터 이미지 최대 크기 (바이트) */
@@ -106,12 +106,11 @@ export function useMemiBoardStorage() {
   /** postId는 작성 화면 진입 시 미리 생성한 Firestore 자동 ID를 사용한다. */
   function uploadAttachment(
     file: File,
-    boardId: string,
     postId: string,
     onProgress?: (ratio: number) => void,
   ): { promise: Promise<Attachment>, cancel: () => void } {
     const storage = getStorage(app)
-    const path = `${boardPostStorageFolder(cfg(), boardId, postId)}/attachments/${Date.now()}-${safeFileName(file.name)}`
+    const path = `${postStorageFolder(cfg(), postId)}/attachments/${Date.now()}-${safeFileName(file.name)}`
     const fileRef = storageRef(storage, path)
     const task: UploadTask = uploadBytesResumable(fileRef, file, {
       contentType: file.type || 'application/octet-stream',
@@ -145,10 +144,10 @@ export function useMemiBoardStorage() {
   /**
    * 에디터 본문 이미지: 원본 + 400px JPEG 썸네일.
    * Storage:
-   *   `memiBoards/{boardId}/posts/{postId}/images/{ts}-{name}.ext`
-   *   `memiBoards/{boardId}/posts/{postId}/images/thumbnails/{ts}-{name}.jpg`
+   *   `memiBoardPosts/{postId}/images/{ts}-{name}.ext`
+   *   `memiBoardPosts/{postId}/images/thumbnails/{ts}-{name}.jpg`
    */
-  async function uploadEditorImage(file: File, boardId: string, postId: string): Promise<EditorImageEntry> {
+  async function uploadEditorImage(file: File, postId: string): Promise<EditorImageEntry> {
     if (!file.type.startsWith('image/')) {
       throw new Error('이미지 파일만 업로드할 수 있습니다.')
     }
@@ -161,7 +160,7 @@ export function useMemiBoardStorage() {
     const safeName = safeFileName(file.name.replace(/\.[^.]+$/, '') || 'image', 40)
     const baseName = `${Date.now()}-${safeName || 'image'}`
     const ns = postId || `new-${Date.now()}`
-    const folder = boardPostStorageFolder(cfg(), boardId, ns)
+    const folder = postStorageFolder(cfg(), ns)
 
     const originalPath = `${folder}/images/${baseName}.${ext}`
     const originalRef = storageRef(storage, originalPath)

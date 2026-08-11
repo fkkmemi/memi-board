@@ -9,22 +9,25 @@ export type {
 } from './config'
 
 export {
-  DEFAULT_BOARDS_COLLECTION,
+  DEFAULT_POSTS_COLLECTION,
+  DEFAULT_COMMENTS_COLLECTION,
+  DEFAULT_LIKES_COLLECTION,
+  DEFAULT_SETTINGS_COLLECTION,
   DEFAULT_USERS_COLLECTION,
   resolveBoardPathConfig,
-  boardsCol,
-  boardDoc,
-  boardSettingsDoc,
-  boardPostsCol,
-  boardPostDoc,
-  boardPostBodyDoc,
-  boardPostCommentsCol,
-  boardPostCommentDoc,
-  boardPostLikeDoc,
+  settingsCol,
+  settingsDoc,
+  postsCol,
+  postDoc,
+  postBodyDoc,
+  commentsCol,
+  commentDoc,
+  likesCol,
+  likeDoc,
+  likeDocId,
   boardUsersCol,
   boardUserDoc,
-  boardStorageRoot,
-  boardPostStorageFolder,
+  postStorageFolder,
   boardSsrKey,
 } from './utils/boardPaths'
 export type { BoardPathConfig } from './utils/boardPaths'
@@ -93,6 +96,7 @@ export type {
   BoardWriteRole,
   BoardVisibility,
   BoardSettingsModel,
+  BoardLikeModel,
   ModerationResult,
 } from './types'
 

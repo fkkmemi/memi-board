@@ -9,15 +9,15 @@ import {
   serverTimestamp,
   setDoc,
   startAfter,
+  where,
   writeBatch,
 } from 'firebase/firestore'
 import type { QueryDocumentSnapshot } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
 import {
-  boardDoc,
-  boardPostsCol,
-  boardSettingsDoc,
-  boardsCol,
+  postsCol,
+  settingsCol,
+  settingsDoc,
   boardSsrKey,
 } from '../utils/boardPaths'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
@@ -54,15 +54,15 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
 
 /**
  * 보드 목록·설정.
- * - 목록: memiBoards 컬렉션 (부모 문서에 메타 복제)
- * - 설정 원본: memiBoards/{boardId}/settings/config
+ * memiBoardSettings/{boardId} 하나가 목록 렌더링과 권한 검사를 모두 겸한다
+ * (구버전은 부모 문서 + settings/config 이중 문서였다).
  */
 export function useMemiBoardSettings() {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const { isSignedIn } = useMemiBoardAuth()
 
-  const boardsQuery = computed(() => query(boardsCol(db, cfg()), orderBy('order', 'asc')))
+  const boardsQuery = computed(() => query(settingsCol(db, cfg()), orderBy('order', 'asc')))
   const { data: boardDocs, pending: settingsPending } = useCollection(boardsQuery, {
     ssrKey: boardSsrKey(cfg(), 'boards'),
   })
@@ -117,11 +117,11 @@ export function useMemiBoardSettings() {
 
   /** 숨김 전환 시 해당 보드 글 listed 일괄 맞춤 */
   async function syncPostsListedForBoard(boardId: string, listed: boolean): Promise<void> {
-    const postsCol = boardPostsCol(db, cfg(), boardId)
     let cursor: QueryDocumentSnapshot | undefined
     for (;;) {
       const page = await getDocs(query(
-        postsCol,
+        postsCol(db, cfg()),
+        where('boardId', '==', boardId),
         orderBy('__name__'),
         ...(cursor ? [startAfter(cursor)] : []),
         fbLimit(400),
@@ -160,10 +160,7 @@ export function useMemiBoardSettings() {
     const previous = boards.value.find(item => item.id === id)
     const previousVisibility = previous?.visibility ?? 'public'
     const payload = settingsPayload({ ...board, label, visibility }, order)
-    const c = cfg()
-    // 부모 문서(목록) + settings/config(설정 원본)
-    await setDoc(boardDoc(db, c, id), payload, { merge: true })
-    await setDoc(boardSettingsDoc(db, c, id), payload, { merge: true })
+    await setDoc(settingsDoc(db, cfg(), id), payload, { merge: true })
 
     if (previousVisibility !== visibility || visibility === 'public') {
       await syncPostsListedForBoard(id, visibility !== 'hidden')
@@ -177,7 +174,6 @@ export function useMemiBoardSettings() {
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
     const previousById = new Map(boards.value.map(item => [item.id, item.visibility ?? 'public']))
     const batch = writeBatch(db)
-    const c = cfg()
     const visibilityChanges: Array<{ id: string, listed: boolean }> = []
     next.forEach((board, order) => {
       const id = board.id.trim()
@@ -185,8 +181,7 @@ export function useMemiBoardSettings() {
       if (!id || !label) throw new Error('보드 ID와 이름을 입력해 주세요.')
       const visibility = normalizeVisibility(board.visibility)
       const payload = settingsPayload({ ...board, label, visibility }, order)
-      batch.set(boardDoc(db, c, id), payload, { merge: true })
-      batch.set(boardSettingsDoc(db, c, id), payload, { merge: true })
+      batch.set(settingsDoc(db, cfg(), id), payload, { merge: true })
       const prev = previousById.get(id) ?? 'public'
       if (prev !== visibility) visibilityChanges.push({ id, listed: visibility !== 'hidden' })
     })
@@ -201,10 +196,8 @@ export function useMemiBoardSettings() {
 
   async function deleteBoard(id: string): Promise<void> {
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
-    const c = cfg()
-    // 설정·부모 문서만 삭제 (posts 는 호스트/관리 작업으로 별도 정리)
-    await deleteDoc(boardSettingsDoc(db, c, id)).catch(() => {})
-    await deleteDoc(boardDoc(db, c, id))
+    // 설정 문서만 삭제 (posts 는 호스트/관리 작업으로 별도 정리)
+    await deleteDoc(settingsDoc(db, cfg(), id))
   }
 
   /** @deprecated deleteBoard */

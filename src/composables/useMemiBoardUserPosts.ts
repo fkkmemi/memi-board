@@ -1,7 +1,6 @@
 import { computed, onScopeDispose, ref, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import {
-  collectionGroup,
   documentId,
   getDocs,
   limit as fbLimit,
@@ -13,12 +12,16 @@ import {
 } from 'firebase/firestore'
 import type { DocumentData, QueryConstraint, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
+import { useBoardPathConfig } from '../config'
+import { postsCol } from '../utils/boardPaths'
 import type { UserPostModel } from '../types'
 
 const USER_POST_PAGE_SIZE = 10
 
 /**
- * 작성자 uid로 모든 보드를 가로질러 글을 모은다 (collectionGroup 'posts').
+ * 작성자 uid로 모든 보드를 가로질러 글을 모은다.
+ * memiBoardPosts 가 flat 컬렉션이라 일반 where('authorUid',...) 쿼리로 충분 —
+ * collectionGroup 이 필요했던 건 구버전이 보드별 posts 서브컬렉션이었을 때뿐.
  * 공개 글만 — canReadPost rules와 같은 기준(listed && isPublished)이라
  * 본인이 아니면 숨김 보드·미게시 글은 애초에 안 온다.
  */
@@ -27,6 +30,8 @@ export function useMemiBoardUserPosts(
   options: { pageSize?: number } = {},
 ) {
   const db = useFirestore()
+  const cfg = () => useBoardPathConfig()
+  const postsColRef = () => postsCol(db, cfg())
   const pageSize = options.pageSize ?? USER_POST_PAGE_SIZE
   const uidValue = computed(() => toValue(uid)?.trim() || '')
 
@@ -41,8 +46,7 @@ export function useMemiBoardUserPosts(
   let stopHeadSubscription: Unsubscribe | undefined
 
   function mapDoc(item: QueryDocumentSnapshot<DocumentData>): UserPostModel {
-    const boardId = item.ref.parent.parent?.id ?? ''
-    return { id: item.id, boardId, ...item.data() } as UserPostModel
+    return { id: item.id, ...item.data() } as UserPostModel
   }
 
   function createdAtMs(post: UserPostModel): number {
@@ -74,7 +78,7 @@ export function useMemiBoardUserPosts(
       return
     }
     stopHeadSubscription = onSnapshot(query(
-      collectionGroup(db, 'posts'),
+      postsColRef(),
       ...baseConstraints(),
       orderBy('createdAt', 'desc'),
       orderBy(documentId(), 'desc'),
@@ -104,7 +108,7 @@ export function useMemiBoardUserPosts(
         ...(cursor ? [startAfter(cursor)] : []),
         fbLimit(pageSize + 1),
       ]
-      const snapshot = await getDocs(query(collectionGroup(db, 'posts'), ...constraints))
+      const snapshot = await getDocs(query(postsColRef(), ...constraints))
       const pageDocs = snapshot.docs.slice(0, pageSize)
       const page = pageDocs.map(mapDoc)
       const existingIds = new Set([...olderPosts.value, ...headPosts.value].map(post => post.id))

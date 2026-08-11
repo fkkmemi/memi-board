@@ -1,18 +1,18 @@
 import { increment, updateDoc } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
-import { boardPostDoc } from '../utils/boardPaths'
+import { postDoc } from '../utils/boardPaths'
 
 /**
- * 게시글 조회수 (보드 단위 posts).
+ * 게시글 조회수 (memiBoardPosts, flat).
  */
 export function useMemiBoardViews() {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
 
   function sessionKey(boardId: string, postId: string): string {
-    const { boardsCollection } = cfg()
-    return `memi-board:viewed:${boardsCollection}:${boardId}:${postId}`
+    const { postsCollection } = cfg()
+    return `memi-board:viewed:${postsCollection}:${boardId}:${postId}`
   }
 
   function hasRecordedView(boardId: string, postId: string): boolean {
@@ -42,7 +42,7 @@ export function useMemiBoardViews() {
     if (hasRecordedView(b, id)) return
     markRecorded(b, id)
     try {
-      await updateDoc(boardPostDoc(db, cfg(), b, id), {
+      await updateDoc(postDoc(db, cfg(), id), {
         viewCount: increment(1),
       })
     }

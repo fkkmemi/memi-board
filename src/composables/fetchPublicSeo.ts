@@ -14,8 +14,8 @@ import {
 import { useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
 import {
-  boardPostsCol,
-  boardSettingsDoc,
+  postsCol,
+  settingsDoc,
   resolveBoardPathConfig,
   type BoardPathConfig,
 } from '../utils/boardPaths'
@@ -43,16 +43,9 @@ async function loadBoardMeta(ctx: PublicSeoDb, boardId: string): Promise<{
   hidden: boolean
 }> {
   try {
-    const snap = await getDoc(boardSettingsDoc(ctx.db, ctx.paths, boardId))
+    const snap = await getDoc(settingsDoc(ctx.db, ctx.paths, boardId))
     if (!snap.exists()) {
-      // 부모 문서 fallback
-      const parent = await getDoc(
-        // lazy import path via settings only
-        boardSettingsDoc(ctx.db, ctx.paths, boardId),
-      )
-      if (!parent.exists()) {
-        return { label: boardId, description: '', hidden: false }
-      }
+      return { label: boardId, description: '', hidden: false }
     }
     const d = snap.data() ?? {}
     return {
@@ -96,7 +89,8 @@ export async function fetchPublicPostForSeo(
 
   try {
     const snap = await getDocs(query(
-      boardPostsCol(store.db, store.paths, b),
+      postsCol(store.db, store.paths),
+      where('boardId', '==', b),
       where('slug', '==', s),
       where('listed', '==', true),
       where('isPublished', '==', true),
@@ -175,7 +169,8 @@ async function loadRecentListed(ctx: PublicSeoDb, boardId: string): Promise<{
   let ogImage: string | null = null
   try {
     const snap = await getDocs(query(
-      boardPostsCol(ctx.db, ctx.paths, boardId),
+      postsCol(ctx.db, ctx.paths),
+      where('boardId', '==', boardId),
       where('listed', '==', true),
       where('isPublished', '==', true),
       orderBy('createdAt', 'desc'),

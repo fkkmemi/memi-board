@@ -94,13 +94,12 @@ AI Logic / `firebaseml` 이 **Enforce** 이면 App Check 토큰 없이 검열 AP
 4. **프로덕션:** 디버그 토큰 사용 금지. reCAPTCHA 도메인에 실제 호스트 도메인 등록.
 5. (선택) Firestore/Storage Enforce — 켜면 토큰 없는 요청 거부. AI Logic 과 별개 토글이다.
 
-## 9. Firestore 복합 인덱스 (카테고리 필터 사용 시)
+## 9. Firestore 복합 인덱스
 
-`MemiBoardList` 에 `category` prop 을 넘기면 `category + createdAt` 복합 인덱스가 필요하다.  
-콘솔 에러의 인덱스 생성 링크를 따르거나, 호스트 `firestore.indexes.json` 에 추가 후:
+`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes` 는 모두 최상위 flat 컬렉션이고, 보드/글 단위 스코핑은 `boardId`/`postId` 필드에 대한 `where` 동등 필터로 한다. [docs/firestore.indexes.json.example](firestore.indexes.json.example) 를 호스트 `firestore.indexes.json` 에 병합 후:
 
 ```bash
 firebase deploy --only firestore:indexes
 ```
 
-컬렉션 ID: 서브컬렉션 `posts` (collection group `posts`). 경로 예: `memiBoards/{boardId}/posts`.
+콘솔 에러에 인덱스 생성 링크가 뜨면 그걸 따라도 된다 — 위 예시 파일은 패키지가 실제로 실행하는 쿼리 기준으로 미리 정리해 둔 것이다. 컬렉션 이름을 커스터마이즈했다면(`memiBoard.postsCollection` 등) `collectionGroup` 값도 맞춰 바꾼다.

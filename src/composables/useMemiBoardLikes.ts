@@ -8,7 +8,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
-import { boardPostDoc, boardPostLikeDoc } from '../utils/boardPaths'
+import { likeDoc, postDoc } from '../utils/boardPaths'
 
 export function useMemiBoardLikes(boardId: string, postId: string) {
   const cfg = () => useBoardPathConfig()
@@ -20,7 +20,7 @@ export function useMemiBoardLikes(boardId: string, postId: string) {
   let stopSubscription: Unsubscribe | undefined
 
   function likeDocRef(uid: string) {
-    return boardPostLikeDoc(db, cfg(), boardId, postId, uid)
+    return likeDoc(db, cfg(), postId, uid)
   }
 
   watch(user, (current) => {
@@ -46,7 +46,7 @@ export function useMemiBoardLikes(boardId: string, postId: string) {
     likePending.value = true
     try {
       const likeRef = likeDocRef(uid)
-      const postRef = boardPostDoc(db, cfg(), boardId, postId)
+      const postRef = postDoc(db, cfg(), postId)
       return await runTransaction(db, async (tx) => {
         const likeSnap = await tx.get(likeRef)
         if (likeSnap.exists()) {
@@ -54,7 +54,7 @@ export function useMemiBoardLikes(boardId: string, postId: string) {
           tx.update(postRef, { likeCount: increment(-1) })
           return false
         }
-        tx.set(likeRef, { uid, createdAt: serverTimestamp() })
+        tx.set(likeRef, { uid, postId, boardId, createdAt: serverTimestamp() })
         tx.update(postRef, { likeCount: increment(1) })
         return true
       })

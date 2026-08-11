@@ -10,7 +10,7 @@ export interface Attachment {
 
 /**
  * 에디터 본문 이미지 업로드 결과 (원본 + 썸네일).
- * Storage: `memiBoards/{boardId}/posts/{postId}/images/...` · `.../images/thumbnails/...`
+ * Storage: `memiBoardPosts/{postId}/images/...` · `.../images/thumbnails/...`
  * 본문 markdown 에는 originalUrl 만 넣고, 썸네일은 목록 카드 등에 활용 가능.
  * 수정 중 버려진 파일은 호스트 스케줄러로 정리 (본문에 없는 path).
  */
@@ -26,6 +26,8 @@ export type ModerationStatus = 'approved'
 
 export interface PostModel {
   id?: string
+  /** 어느 보드(memiBoardSettings/{boardId})에 속한 글인지 — flat 컬렉션이라 경로 대신 필드로 스코핑한다. */
+  boardId: string
   /** 카테고리 내 URL 식별자. 최초 작성 시 생성되고 제목 수정 시에도 유지된다. */
   slug: string
   title: string
@@ -36,14 +38,14 @@ export interface PostModel {
   videoUrl?: string
   tags?: string[]
   /**
-   * @deprecated 카테고리 개념 제거 — 글은 memiBoards/{boardId}/posts 에만 존재.
+   * @deprecated 카테고리 개념 제거 — boardId 로 대체.
    * 레거시 읽기 호환용으로만 남을 수 있음.
    */
   category?: string
   attachments?: Attachment[]
   /** 클라이언트 batch로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. */
   commentCount: number
-  /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. 실제 좋아요 여부는 likes/{uid} 서브컬렉션이 기준. */
+  /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드 — 보안 판단에 쓰지 않는다. 실제 좋아요 여부는 memiBoardLikes 컬렉션이 기준. */
   likeCount: number
   /**
    * 조회수. 로그인 없이 +1 가능(rules 가 viewCount 단독 증가만 허용).
@@ -75,14 +77,18 @@ export interface PostDetail extends PostModel {
   content: string
 }
 
-/** 보드 경계를 넘는 작성자별 글 목록(예: /board-user/{uid})에서만 쓰는 형태 — 어느 보드 글인지 함께 담는다. */
-export interface UserPostModel extends PostModel {
-  boardId: string
-}
+/**
+ * @deprecated PostModel 에 boardId 가 이미 있어 더 이상 별도 타입이 필요 없다.
+ * 보드 경계를 넘는 작성자별 글 목록(예: /board-user/{uid}) 등에서 PostModel 을 그대로 쓰면 된다.
+ */
+export type UserPostModel = PostModel
 
 export interface CommentModel {
   id?: string
+  /** 속한 글. flat 컬렉션이라 경로 대신 필드로 스코핑한다. */
   postId: string
+  /** 부모 글의 boardId — 생성 시 클라이언트가 채우고, rules 가 부모 글과 일치하는지 검증한다. */
+  boardId: string
   body: string
   authorUid: string
   authorName: string | null
@@ -127,7 +133,7 @@ export type BoardVisibility = 'public' | 'hidden'
 
 /**
  * 보드 1개 메타 (= 예전 BoardCategory).
- * id 가 곧 boardId — memiBoards/{id}/settings/config 에 저장.
+ * id 가 곧 boardId — memiBoardSettings/{id} 에 저장.
  */
 export interface BoardModel {
   /** boardId (예: 'notice', 'free') */
@@ -154,9 +160,18 @@ export interface BoardModel {
 /** @deprecated BoardModel 사용 — 카테고리 개념 제거, id = boardId */
 export type BoardCategory = BoardModel
 
-/** memiBoards/{boardId}/settings/config */
+/** memiBoardSettings/{boardId} */
 export interface BoardSettingsModel extends Omit<BoardModel, 'id'> {
   updatedAt?: Timestamp
+}
+
+/** memiBoardLikes/{postId}_{uid} — "내가 좋아요한 글" 등 uid 기준 교차 조회용 flat 컬렉션. */
+export interface BoardLikeModel {
+  id?: string
+  uid: string
+  postId: string
+  boardId: string
+  createdAt: Timestamp
 }
 
 /** 검열이 어느 단계에서 끝났는지 (호스트/로깅용, UI 노출 없음) */

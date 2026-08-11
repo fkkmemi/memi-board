@@ -3,7 +3,6 @@ import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import {
-  collection,
   doc,
   documentId,
   getDocs,
@@ -20,9 +19,9 @@ import {
 } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
 import {
-  boardPostCommentDoc,
-  boardPostCommentsCol,
-  boardPostDoc,
+  commentDoc,
+  commentsCol,
+  postDoc,
 } from '../utils/boardPaths'
 import type { CommentModel } from '../types'
 
@@ -58,6 +57,7 @@ export function useMemiBoardComments(
 ) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
+  const commentsColRef = () => commentsCol(db, cfg())
 
   const bid = computed(() => toValue(boardId))
   const id = computed(() => toValue(postId))
@@ -106,7 +106,8 @@ export function useMemiBoardComments(
     initialPending.value = true
     try {
       const snapshotPromise = getDocs(query(
-        boardPostCommentsCol(db, cfg(), bid.value, currentId),
+        commentsColRef(),
+        where('postId', '==', currentId),
         orderBy('createdAt', 'desc'),
         orderBy(documentId(), 'desc'),
       ))
@@ -129,7 +130,8 @@ export function useMemiBoardComments(
   function startLiveSubscription() {
     stopLiveSubscription?.()
     stopLiveSubscription = onSnapshot(query(
-      boardPostCommentsCol(db, cfg(), bid.value, id.value),
+      commentsColRef(),
+      where('postId', '==', id.value),
       where('parentId', '==', null),
       orderBy('createdAt', 'desc'),
       orderBy(documentId(), 'desc'),
@@ -151,6 +153,7 @@ export function useMemiBoardComments(
     loadingMore.value = true
     try {
       const constraints = [
+        where('postId', '==', id.value),
         where('parentId', '==', null),
         orderBy('createdAt', 'asc'),
         orderBy(documentId(), 'asc'),
@@ -158,7 +161,7 @@ export function useMemiBoardComments(
         limit(COMMENT_PAGE_SIZE + 1),
       ]
       const snapshot = await getDocs(query(
-        boardPostCommentsCol(db, cfg(), bid.value, id.value),
+        commentsColRef(),
         ...constraints,
       ))
       const pageDocs = snapshot.docs.slice(0, COMMENT_PAGE_SIZE)
@@ -187,9 +190,10 @@ export function useMemiBoardComments(
   async function addComment(input: AddCommentInput): Promise<void> {
     const body = normalizedCommentBody(input.body)
     const batch = writeBatch(db)
-    const commentRef = doc(boardPostCommentsCol(db, cfg(), bid.value, id.value))
+    const commentRef = doc(commentsColRef())
     batch.set(commentRef, {
       postId: id.value,
+      boardId: bid.value,
       body,
       authorUid: input.authorUid,
       authorName: input.authorName,
@@ -205,7 +209,7 @@ export function useMemiBoardComments(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(1) })
+    batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
@@ -213,8 +217,7 @@ export function useMemiBoardComments(
     const body = normalizedCommentBody(input.body)
     if (!input.parent.id) throw new Error('답글 대상 댓글을 찾을 수 없습니다.')
     const batch = writeBatch(db)
-    const commentsCol = boardPostCommentsCol(db, cfg(), bid.value, id.value)
-    const replyRef = doc(commentsCol)
+    const replyRef = doc(commentsColRef())
     const rootId = input.parent.parentId == null
       ? input.parent.id
       : input.parent.rootId
@@ -223,6 +226,7 @@ export function useMemiBoardComments(
 
     batch.set(replyRef, {
       postId: id.value,
+      boardId: bid.value,
       body,
       authorUid: input.authorUid,
       authorName: input.authorName,
@@ -238,8 +242,8 @@ export function useMemiBoardComments(
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    batch.update(doc(commentsCol, rootId), { replyCount: increment(1) })
-    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(1) })
+    batch.update(commentDoc(db, cfg(), rootId), { replyCount: increment(1) })
+    batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
@@ -249,11 +253,11 @@ export function useMemiBoardComments(
       throw new Error('답글이 있는 댓글은 현재 삭제할 수 없습니다.')
     }
     const batch = writeBatch(db)
-    batch.delete(boardPostCommentDoc(db, cfg(), bid.value, id.value, comment.id))
+    batch.delete(commentDoc(db, cfg(), comment.id))
     if (comment.parentId && comment.rootId) {
-      batch.update(boardPostCommentDoc(db, cfg(), bid.value, id.value, comment.rootId), { replyCount: increment(-1) })
+      batch.update(commentDoc(db, cfg(), comment.rootId), { replyCount: increment(-1) })
     }
-    batch.update(boardPostDoc(db, cfg(), bid.value, id.value), { commentCount: increment(-1) })
+    batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(-1) })
     await batch.commit()
     pagedComments.value = pagedComments.value.filter(item => item.id !== comment.id)
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
@@ -262,14 +266,14 @@ export function useMemiBoardComments(
 
   async function updateComment(commentId: string, body: string): Promise<void> {
     const trimmed = normalizedCommentBody(body)
-    await updateDoc(boardPostCommentDoc(db, cfg(), bid.value, id.value, commentId), {
+    await updateDoc(commentDoc(db, cfg(), commentId), {
       body: trimmed,
       updatedAt: serverTimestamp(),
     })
   }
 
   async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {
-    await updateDoc(boardPostCommentDoc(db, cfg(), bid.value, id.value, commentId), {
+    await updateDoc(commentDoc(db, cfg(), commentId), {
       isBlinded,
       moderatedAt: serverTimestamp(),
       moderatedBy: moderatorUid,
@@ -290,10 +294,14 @@ export function useMemiBoardComments(
   }
 }
 
-/** 펼친 스레드의 답글을 5개씩 일회성 조회한다. */
+/**
+ * 펼친 스레드의 답글을 5개씩 일회성 조회한다.
+ * rootId 는 전역 고유(댓글 auto-ID)라 postId 필터 없이도 정확히 한 스레드로 스코핑된다.
+ */
 export function useMemiBoardReplies(boardId: string, postId: string, rootId: string) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
+  const commentsColRef = () => commentsCol(db, cfg())
   const replies = ref<CommentModel[]>([])
   const loading = ref(false)
   const loaded = ref(false)
@@ -311,7 +319,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
   function startLiveSubscription() {
     if (stopLiveSubscription) return
     stopLiveSubscription = onSnapshot(query(
-      boardPostCommentsCol(db, cfg(), boardId, postId),
+      commentsColRef(),
       where('rootId', '==', rootId),
       where('isReply', '==', true),
       orderBy('createdAt', 'desc'),
@@ -342,7 +350,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
         limit(REPLY_PAGE_SIZE + 1),
       ]
       const snapshot = await getDocs(query(
-        boardPostCommentsCol(db, cfg(), boardId, postId),
+        commentsColRef(),
         ...constraints,
       ))
       const existing = new Set(replies.value.map(reply => reply.id))

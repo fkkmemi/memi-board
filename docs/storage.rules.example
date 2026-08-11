@@ -1,5 +1,6 @@
-// memi-board 0.21+ Storage Rules
-// memiBoards/{boardId}/posts/{postId}/attachments|images/...
+// memi-board 0.23+ Storage Rules (flat schema)
+// memiBoardPosts/{postId}/attachments|images/...
+// postId 가 전역 고유이므로 boardId prefix 는 더 이상 필요 없음.
 
 rules_version = '2';
 service firebase.storage {
@@ -14,33 +15,33 @@ service firebase.storage {
         && firestore.exists(userPath)
         && firestore.get(userPath).data.role in ['admin', 'staff'];
     }
-    function postExists(boardId, postId) {
-      return firestore.exists(/databases/(default)/documents/memiBoards/$(boardId)/posts/$(postId));
+    function postExists(postId) {
+      return firestore.exists(/databases/(default)/documents/memiBoardPosts/$(postId));
     }
-    function isPostOwner(boardId, postId) {
-      let postPath = /databases/(default)/documents/memiBoards/$(boardId)/posts/$(postId);
+    function isPostOwner(postId) {
+      let postPath = /databases/(default)/documents/memiBoardPosts/$(postId);
       return isSignedIn()
         && firestore.exists(postPath)
         && firestore.get(postPath).data.authorUid == request.auth.uid;
     }
 
-    match /memiBoards/{boardId}/posts/{postId}/attachments/{fileName} {
+    match /memiBoardPosts/{postId}/attachments/{fileName} {
       allow read: if true;
       allow write: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff())
+        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff())
         && request.resource.size < 20 * 1024 * 1024;
       allow delete: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff());
+        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
     }
 
-    match /memiBoards/{boardId}/posts/{postId}/images/{allPaths=**} {
+    match /memiBoardPosts/{postId}/images/{allPaths=**} {
       allow read: if true;
       allow write: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff())
+        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff())
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg|heic|heif)');
       allow delete: if isSignedIn()
-        && (!postExists(boardId, postId) || isPostOwner(boardId, postId) || isBoardStaff());
+        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
     }
   }
 }

@@ -3,17 +3,18 @@
  *
  * ```
  * memiBoardUsers/{uid}
- *
- * memiBoards/{boardId}                         // 목록용 메타(optional stub + order)
- * memiBoards/{boardId}/settings/config         // 보드 설정 (구 category + boardSettings)
- * memiBoards/{boardId}/posts/{postId}
- * memiBoards/{boardId}/posts/{postId}/body/main
- * memiBoards/{boardId}/posts/{postId}/comments|likes
+ * memiBoardSettings/{boardId}                  // 보드 설정 (구 memiBoards/{id} stub + settings/config 통합)
+ * memiBoardPosts/{postId}                      // boardId 는 문서 필드
+ * memiBoardPosts/{postId}/body/main
+ * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
+ * memiBoardLikes/{postId}_{uid}                // uid, postId, boardId 는 문서 필드
  * ```
  *
- * Storage: `memiBoards/{boardId}/posts/{postId}/...`
+ * Storage: `memiBoardPosts/{postId}/...` (postId 가 전역 고유이므로 boardId 불필요)
  *
- * 카테고리 개념 없음 — 예전 category id 가 곧 boardId.
+ * 카테고리 개념 없음 — 예전 category id 가 곧 boardId. boardId/postId 는 경로가
+ * 아니라 문서 필드이므로, 보드/글 단위로 좁혀야 하는 쿼리는 항상 where 필터로
+ * 스코핑한다 (컬렉션 자체는 항상 최상위 flat 컬렉션).
  */
 import {
   collection,
@@ -23,98 +24,93 @@ import {
   type Firestore,
 } from 'firebase/firestore'
 
-export const DEFAULT_BOARDS_COLLECTION = 'memiBoards'
+export const DEFAULT_POSTS_COLLECTION = 'memiBoardPosts'
+export const DEFAULT_COMMENTS_COLLECTION = 'memiBoardComments'
+export const DEFAULT_LIKES_COLLECTION = 'memiBoardLikes'
+export const DEFAULT_SETTINGS_COLLECTION = 'memiBoardSettings'
 export const DEFAULT_USERS_COLLECTION = 'memiBoardUsers'
 
 export interface BoardPathConfig {
-  boardsCollection: string
+  postsCollection: string
+  commentsCollection: string
+  likesCollection: string
+  settingsCollection: string
   usersCollection: string
 }
 
 export function resolveBoardPathConfig(input: {
-  boardsCollection?: string
+  postsCollection?: string
+  commentsCollection?: string
+  likesCollection?: string
+  settingsCollection?: string
   usersCollection?: string
 }): BoardPathConfig {
   return {
-    boardsCollection: input.boardsCollection?.trim() || DEFAULT_BOARDS_COLLECTION,
+    postsCollection: input.postsCollection?.trim() || DEFAULT_POSTS_COLLECTION,
+    commentsCollection: input.commentsCollection?.trim() || DEFAULT_COMMENTS_COLLECTION,
+    likesCollection: input.likesCollection?.trim() || DEFAULT_LIKES_COLLECTION,
+    settingsCollection: input.settingsCollection?.trim() || DEFAULT_SETTINGS_COLLECTION,
     usersCollection: input.usersCollection?.trim() || DEFAULT_USERS_COLLECTION,
   }
 }
 
-export function boardsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
-  return collection(db, cfg.boardsCollection)
+/** 보드 설정 목록/문서 — 구 memiBoards/{boardId} stub + settings/config 통합 */
+export function settingsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.settingsCollection)
 }
 
-export function boardDoc(
+export function settingsDoc(
   db: Firestore,
   cfg: BoardPathConfig,
   boardId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId)
+  return doc(db, cfg.settingsCollection, boardId)
 }
 
-/** 구 boardSettings — 보드 단위 설정 문서 */
-export function boardSettingsDoc(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  boardId: string,
-): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId, 'settings', 'config')
+export function postsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.postsCollection)
 }
 
-export function boardPostsCol(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  boardId: string,
-): CollectionReference {
-  return collection(db, cfg.boardsCollection, boardId, 'posts')
+export function postDoc(db: Firestore, cfg: BoardPathConfig, postId: string): DocumentReference {
+  return doc(db, cfg.postsCollection, postId)
 }
 
-export function boardPostDoc(
+export function postBodyDoc(
   db: Firestore,
   cfg: BoardPathConfig,
-  boardId: string,
   postId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId, 'posts', postId)
+  return doc(db, cfg.postsCollection, postId, 'body', 'main')
 }
 
-export function boardPostBodyDoc(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  boardId: string,
-  postId: string,
-): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'body', 'main')
+export function commentsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.commentsCollection)
 }
 
-export function boardPostCommentsCol(
+export function commentDoc(
   db: Firestore,
   cfg: BoardPathConfig,
-  boardId: string,
-  postId: string,
-): CollectionReference {
-  return collection(db, cfg.boardsCollection, boardId, 'posts', postId, 'comments')
-}
-
-export function boardPostCommentDoc(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  boardId: string,
-  postId: string,
   commentId: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'comments', commentId)
+  return doc(db, cfg.commentsCollection, commentId)
 }
 
-export function boardPostLikeDoc(
+export function likesCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.likesCollection)
+}
+
+/** 좋아요 문서ID 관례: `${postId}_${uid}` — 유저당 글당 좋아요 1개, 토글은 create-or-delete */
+export function likeDocId(postId: string, uid: string): string {
+  return `${postId}_${uid}`
+}
+
+export function likeDoc(
   db: Firestore,
   cfg: BoardPathConfig,
-  boardId: string,
   postId: string,
   uid: string,
 ): DocumentReference {
-  return doc(db, cfg.boardsCollection, boardId, 'posts', postId, 'likes', uid)
+  return doc(db, cfg.likesCollection, likeDocId(postId, uid))
 }
 
 export function boardUsersCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
@@ -129,18 +125,11 @@ export function boardUserDoc(
   return doc(db, cfg.usersCollection, uid)
 }
 
-export function boardStorageRoot(cfg: BoardPathConfig, boardId: string): string {
-  return `${cfg.boardsCollection}/${boardId}`
-}
-
-export function boardPostStorageFolder(
-  cfg: BoardPathConfig,
-  boardId: string,
-  postId: string,
-): string {
-  return `${boardStorageRoot(cfg, boardId)}/posts/${postId}`
+/** postId 가 전역 고유이므로 boardId 프리픽스 불필요 */
+export function postStorageFolder(cfg: BoardPathConfig, postId: string): string {
+  return `${cfg.postsCollection}/${postId}`
 }
 
 export function boardSsrKey(cfg: BoardPathConfig, suffix: string): string {
-  return `${cfg.boardsCollection}/${cfg.usersCollection}/${suffix}`
+  return `${cfg.postsCollection}/${cfg.usersCollection}/${suffix}`
 }

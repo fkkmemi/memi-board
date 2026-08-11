@@ -2,6 +2,24 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.23.0] - 2026-08-11
+
+### Breaking
+- **Firestore 스키마 완전 평탄화 — `memiBoards/{boardId}/…` 중첩 구조 폐지.** 마이그레이션 없음 — 기존 데이터 삭제 전제.
+  - `memiBoardPosts/{postId}` (+ 서브컬렉션 `body/main`), `memiBoardComments/{commentId}`, `memiBoardLikes/{postId}_{uid}` — 전부 최상위 flat 컬렉션. `memiBoardSettings/{boardId}`가 구 `memiBoards/{boardId}` stub + `settings/config` 이중 문서를 하나로 통합.
+  - `PostModel.boardId`, `CommentModel.boardId` 필드 추가(필수) — 경로 대신 필드로 보드/글을 스코핑한다. 보드/글 단위 조회는 전부 `where('boardId','==',…)` / `where('postId','==',…)` 동등 필터로 바뀜.
+  - `useMemiBoardUserPosts()`가 더 이상 `collectionGroup('posts')`를 쓰지 않는다 — flat 컬렉션이라 일반 `where('authorUid',...)` 쿼리로 충분. `UserPostModel`은 `PostModel`의 deprecated 별칭이 됨(둘 다 이미 `boardId` 필드를 가짐).
+  - `docs/firestore.rules.example`/`docs/storage.rules.example` 전면 재작성 — 구버전의 collectionGroup carve-out(`match /{path=**}/posts/{postId}`)이 완전히 사라짐. 댓글 생성 시 클라이언트가 채우는 `boardId`가 부모 글의 실제 `boardId`와 일치하는지 검증(스푸핑으로 `commentWriteRole` 우회 방지). 좋아요는 문서ID `${postId}_${uid}` 관례를 규칙에서 강제.
+  - 신규 `docs/firestore.indexes.json.example` — 패키지가 실제로 실행하는 쿼리 기준 복합 인덱스 목록. 호스트는 이 파일을 `firestore.indexes.json`에 병합·배포해야 한다.
+  - `MemiBoardConfig`: `boardsCollection` 옵션 제거, `postsCollection`/`commentsCollection`/`likesCollection`/`settingsCollection` 옵션 추가(전부 기본값 있음, 커스터마이즈 선택).
+  - Storage 경로 단순화: `memiBoards/{boardId}/posts/{postId}/…` → `memiBoardPosts/{postId}/…` (postId가 전역 고유라 boardId prefix 불필요). `useMemiBoardStorage().uploadAttachment()`/`uploadEditorImage()` 시그니처에서 `boardId` 인자 제거.
+  - 신규 `memiBoardLikes` flat 컬렉션 — "내가 좋아요한 글" 같은 uid 기준 교차 조회를 위한 것. 인기순 정렬은 여전히 post 문서의 `likeCount` 카운터 필드로 한다(변경 없음).
+  - `docs/firestore.rules.example`: 익명(anonymous) 로그인 계정은 글/댓글/좋아요를 생성할 수 없도록 `isBoardWriter()`(= `isSignedIn() && sign_in_provider != 'anonymous'`) 가드 추가 — 호스트가 다른 기능(예: 손님 대기열)에서 익명 로그인을 켜둔 경우에도 게시판 콘텐츠 생성만 기본 차단된다. 읽기·`isSignedIn()` 전반은 영향 없음.
+  - `docs/firestore.indexes.json.example`: `getAdjacentPosts()`의 "다음 글"(`endBefore`+`limitToLast`) 쿼리에 필요한 오름차순 인덱스 2개 추가 — Firestore는 `limitToLast()`를 정렬을 뒤집어 실행하기 때문에, `orderBy('createdAt','desc')`로 작성된 쿼리라도 실제로는 `createdAt` **오름차순** 인덱스가 필요하다. 기존엔 내림차순만 있어서 실사용 중 `failed-precondition` 에러가 났다.
+
+### Changed
+- 게시물·댓글 날짜 표시의 상세 시각 툴팁을 호버(`UTooltip`)에서 클릭(`UPopover`, mode 기본값 `click`)으로 교체 — 호버가 없는 모바일 터치에서도 탭 한 번으로 동일하게 동작한다. `CommentItem.vue`/`ListVideo.vue`/`ListDense.vue`/`Detail.vue`/`ListDefault.vue` 5곳. 보드 제목 설명 툴팁(`List.vue`)은 별개 기능이라 그대로 둠.
+
 ## [0.22.0] - 2026-08-11
 
 ### Breaking

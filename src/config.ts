@@ -1,6 +1,9 @@
 import { reactive } from 'vue'
 import {
-  DEFAULT_BOARDS_COLLECTION,
+  DEFAULT_COMMENTS_COLLECTION,
+  DEFAULT_LIKES_COLLECTION,
+  DEFAULT_POSTS_COLLECTION,
+  DEFAULT_SETTINGS_COLLECTION,
   DEFAULT_USERS_COLLECTION,
   resolveBoardPathConfig,
   type BoardPathConfig,
@@ -34,8 +37,14 @@ export interface MemiBoardSeoOptions {
 }
 
 export interface MemiBoardConfig {
-  /** 루트 컬렉션. 기본 `memiBoards` */
-  boardsCollection: string
+  /** 글 컬렉션. 기본 `memiBoardPosts` */
+  postsCollection: string
+  /** 댓글 컬렉션. 기본 `memiBoardComments` */
+  commentsCollection: string
+  /** 좋아요 컬렉션. 기본 `memiBoardLikes` */
+  likesCollection: string
+  /** 보드 설정 컬렉션. 기본 `memiBoardSettings` */
+  settingsCollection: string
   /** 역할 문서 컬렉션. 기본 `memiBoardUsers` */
   usersCollection: string
   auth: MemiBoardAuthOptions
@@ -51,7 +60,10 @@ function getSharedConfig(): MemiBoardConfig {
   }
   if (!g[GLOBAL_KEY]) {
     g[GLOBAL_KEY] = reactive<MemiBoardConfig>({
-      boardsCollection: DEFAULT_BOARDS_COLLECTION,
+      postsCollection: DEFAULT_POSTS_COLLECTION,
+      commentsCollection: DEFAULT_COMMENTS_COLLECTION,
+      likesCollection: DEFAULT_LIKES_COLLECTION,
+      settingsCollection: DEFAULT_SETTINGS_COLLECTION,
       usersCollection: DEFAULT_USERS_COLLECTION,
       auth: { providers: ['google', 'apple'] },
       moderation: {
@@ -77,8 +89,17 @@ function getSharedConfig(): MemiBoardConfig {
 
 export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   const config = getSharedConfig()
-  if (options.boardsCollection != null && options.boardsCollection !== '') {
-    config.boardsCollection = options.boardsCollection.trim()
+  if (options.postsCollection != null && options.postsCollection !== '') {
+    config.postsCollection = options.postsCollection.trim()
+  }
+  if (options.commentsCollection != null && options.commentsCollection !== '') {
+    config.commentsCollection = options.commentsCollection.trim()
+  }
+  if (options.likesCollection != null && options.likesCollection !== '') {
+    config.likesCollection = options.likesCollection.trim()
+  }
+  if (options.settingsCollection != null && options.settingsCollection !== '') {
+    config.settingsCollection = options.settingsCollection.trim()
   }
   if (options.usersCollection != null && options.usersCollection !== '') {
     config.usersCollection = options.usersCollection.trim()
