@@ -15,13 +15,14 @@ const stacks = [
 </script>
 
 <template>
-  <footer class="flex justify-center pt-2">
-    <button type="button" class="cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted" @click="open = true">
-      powered by memi
-    </button>
-  </footer>
+  <div>
+    <footer class="flex justify-center pt-2">
+      <button type="button" class="cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted" @click="open = true">
+        powered by memi
+      </button>
+    </footer>
 
-  <UModal v-model:open="open" title="게시판 정보" :ui="{ content: 'sm:max-w-2xl' }">
+    <UModal v-model:open="open" title="게시판 정보" :ui="{ content: 'sm:max-w-2xl' }">
     <template #body>
       <div class="flex flex-col gap-4">
         <div class="flex gap-1 rounded-lg bg-muted p-1">
@@ -41,5 +42,6 @@ const stacks = [
         <div v-else class="max-h-[min(55vh,30rem)] overflow-y-auto px-1"><MemiBoardVersionHistory /></div>
       </div>
     </template>
-  </UModal>
+    </UModal>
+  </div>
 </template>
