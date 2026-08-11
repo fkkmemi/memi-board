@@ -43,11 +43,19 @@ function image(post: PostModel): string | undefined {
         class="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/55 to-transparent"
       />
 
-      <!-- 좌측 상단: 제목(있을 때만) + 댓글수. 이미지 보드는 제목 없이 썸네일 중심 -->
+      <!-- 좌측 상단: 초안 표시 + 제목(있을 때만) + 댓글수. 이미지 보드는 제목 없이 썸네일 중심 -->
       <div
-        v-if="post.title?.trim() || (post.commentCount ?? 0) > 0"
+        v-if="post.isPublished === false || post.title?.trim() || (post.commentCount ?? 0) > 0"
         class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3"
       >
+        <UBadge
+          v-if="post.isPublished === false"
+          label="초안"
+          color="warning"
+          variant="subtle"
+          size="sm"
+          class="shrink-0"
+        />
         <h3
           v-if="post.title?.trim()"
           class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm"

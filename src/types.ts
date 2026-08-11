@@ -55,6 +55,13 @@ export interface PostModel {
    * 목록 쿼리·rules 가 이 필드를 본다(미지정 레거시는 true 취급).
    */
   listed?: boolean
+  /**
+   * 작성 직후엔 false(초안·미리보기)로 생성되고, 작성자가 미리보기에서
+   * "게시하기"를 눌러야 true가 된다. 목록·인접글 쿼리와 rules가 이 필드로
+   * 초안을 걸러낸다.
+   */
+  isPublished: boolean
+  publishedAt?: Timestamp
   authorUid: string
   authorName: string | null
   authorPhoto: string | null

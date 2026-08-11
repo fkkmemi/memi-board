@@ -147,7 +147,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     publicOnly?: boolean
   } = {}) {
     const pageSize = opts.pageSize ?? 20
-    const constraints: QueryConstraint[] = []
+    const constraints: QueryConstraint[] = [where('isPublished', '==', true)]
     if (opts.publicOnly !== false) {
       constraints.push(where('listed', '==', true))
     }
@@ -207,6 +207,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     if (!current.createdAt) return { previous: null, next: null }
     try {
       const base: QueryConstraint[] = [
+        where('isPublished', '==', true),
         ...((current.listed !== false) ? [where('listed', '==', true)] : []),
         orderBy('createdAt', 'desc'),
       ]
@@ -266,6 +267,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       likeCount: 0,
       viewCount: 0,
       listed,
+      isPublished: false,
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
@@ -297,6 +299,14 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       }),
       setDoc(bodyDoc(id), { content: input.content }, { merge: true }),
     ])
+  }
+
+  async function publishPost(id: string): Promise<void> {
+    await updateDoc(postDoc(id), {
+      isPublished: true,
+      publishedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
   }
 
   async function deletePost(id: string): Promise<void> {
@@ -366,6 +376,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     getAdjacentPosts,
     createPost,
     updatePost,
+    publishPost,
     deletePost,
   }
 }
@@ -377,9 +388,10 @@ export function useMemiBoardPostList(
   options: { pageSize?: number, publicOnly?: boolean | Ref<boolean> } = {},
 ) {
   const db = useFirestore()
-  const { isAdmin, isStaff } = useMemiBoardAuth()
+  const { isAdmin, isStaff, user } = useMemiBoardAuth()
   const cfg = () => useBoardPathConfig()
   const pageSize = options.pageSize ?? POST_PAGE_SIZE
+  const uidValue = computed(() => user.value?.uid ?? '')
 
   const boardIdValue = computed(() => resolveBoardId(boardId))
   const postsCol = () => boardPostsCol(db, cfg(), boardIdValue.value)
@@ -393,6 +405,8 @@ export function useMemiBoardPostList(
 
   const headPosts = ref<PostModel[]>([])
   const olderPosts = ref<PostModel[]>([])
+  /** 본인의 미게시 초안 — 목록 쿼리(isPublished==true)엔 안 걸리므로 별도 구독해 얹는다. */
+  const ownDraftPosts = ref<PostModel[]>([])
   const headPending = ref(true)
   const hasMore = ref(true)
   const loadingMore = ref(false)
@@ -400,6 +414,7 @@ export function useMemiBoardPostList(
   let headTailCursor: QueryDocumentSnapshot<DocumentData> | null = null
   let olderCursor: QueryDocumentSnapshot<DocumentData> | null = null
   let stopHeadSubscription: Unsubscribe | undefined
+  let stopOwnDraftSubscription: Unsubscribe | undefined
 
   function createdAtMs(post: PostModel): number {
     return post.createdAt?.toMillis?.() ?? 0
@@ -407,7 +422,7 @@ export function useMemiBoardPostList(
 
   const posts = computed(() => {
     const byId = new Map<string, PostModel>()
-    for (const post of [...olderPosts.value, ...headPosts.value]) {
+    for (const post of [...olderPosts.value, ...headPosts.value, ...ownDraftPosts.value]) {
       if (post.id) byId.set(post.id, post)
     }
     return [...byId.values()].sort((a, b) =>
@@ -416,7 +431,7 @@ export function useMemiBoardPostList(
   })
 
   function baseConstraints(): QueryConstraint[] {
-    const constraints: QueryConstraint[] = []
+    const constraints: QueryConstraint[] = [where('isPublished', '==', true)]
     if (publicOnlyValue.value) constraints.push(where('listed', '==', true))
     return constraints
   }
@@ -438,6 +453,26 @@ export function useMemiBoardPostList(
       console.error('[memi-board:postList] onSnapshot failed', cause)
       loadError.value = (cause as Error).message || String(cause)
       headPending.value = false
+    })
+  }
+
+  function startOwnDraftSubscription() {
+    stopOwnDraftSubscription?.()
+    const uid = uidValue.value
+    if (!uid) {
+      ownDraftPosts.value = []
+      return
+    }
+    stopOwnDraftSubscription = onSnapshot(query(
+      postsCol(),
+      where('authorUid', '==', uid),
+      where('isPublished', '==', false),
+      orderBy('createdAt', 'desc'),
+      fbLimit(20),
+    ), (snapshot) => {
+      ownDraftPosts.value = snapshot.docs.map(item => ({ id: item.id, ...item.data() }) as PostModel)
+    }, (cause) => {
+      console.error('[memi-board:postList] own draft onSnapshot failed', cause)
     })
   }
 
@@ -481,10 +516,14 @@ export function useMemiBoardPostList(
     loadError.value = ''
     headPending.value = true
     startHeadSubscription()
+    startOwnDraftSubscription()
   }
 
-  watch([boardIdValue, publicOnlyValue], reset, { immediate: true })
-  onScopeDispose(() => stopHeadSubscription?.())
+  watch([boardIdValue, publicOnlyValue, uidValue], reset, { immediate: true })
+  onScopeDispose(() => {
+    stopHeadSubscription?.()
+    stopOwnDraftSubscription?.()
+  })
 
   return {
     posts,

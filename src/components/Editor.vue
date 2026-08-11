@@ -936,7 +936,7 @@ async function handleSubmit() {
         type="submit"
         :loading="saving"
         :disabled="isWriteRestricted || imageUploading"
-        :label="isEdit ? '수정 완료' : '게시하기'"
+        :label="isEdit ? '수정 완료' : '다음: 미리보기'"
       />
       <UButton
         type="button"

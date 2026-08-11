@@ -2,6 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.22.0] - 2026-08-11
+
+### Breaking
+- 글 작성 → 초안(미리보기) → 게시 플로우 추가. 마이그레이션 없음 — 기존 데이터 삭제 전제.
+  - `PostModel.isPublished: boolean` 필수 필드 추가 (+ `publishedAt?`). `createPost()`는 항상 `isPublished: false`로 문서를 생성 — 더는 작성 즉시 공개되지 않는다.
+  - 신규 `publishPost(id)` — `isPublished: true`로 전환. `Editor.vue`는 여전히 작성만 담당(라벨 "게시하기" → "다음: 미리보기"), 게시 액션은 `Detail.vue`가 초안일 때 보여주는 미리보기 배너의 "게시하기" 버튼이 담당(작성자만 노출, 좋아요·댓글은 게시 전 숨김).
+  - `getPosts()` / `useMemiBoardPostList()` / `getAdjacentPosts()` 쿼리에 `where('isPublished','==',true)` 추가 — **`isPublished` 필드가 없는 기존 문서는 목록·인접글에서 조회되지 않는다.**
+  - `docs/firestore.rules.example`: `canReadPost`에 `isPublished == true` 조건 추가(비작성자 읽기), `posts` `create`에 `isPublished == false` 강제(생성 시점엔 항상 초안).
+  - 호스트는 `firestore.indexes.json`에 `isPublished` 복합 인덱스(예: `isPublished+listed+createdAt`, `isPublished+createdAt`, `__name__` tie-break 변형 포함) 추가·배포 필요.
+  - `useMemiBoardPostList()`가 로그인한 작성자 본인의 미게시 초안을 별도 구독으로 목록에 함께 얹어준다 — 안 그러면 게시하기 전에 목록으로 나가면 다시 찾을 방법이 없었음. `List*.vue` 4종(Default/Dense/Image/Video)에 "초안" 배지 추가. 호스트는 `authorUid+isPublished+createdAt` 복합 인덱스 추가·배포 필요.
+
 ## [0.21.1] - 2026-08-07
 
 ### Fixed

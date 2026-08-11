@@ -21,7 +21,7 @@ const emit = defineEmits<{
   navigate: [post: PostModel]
 }>()
 
-const { getAdjacentPosts, deletePost } = useMemiBoardPosts(() => props.boardId)
+const { getAdjacentPosts, deletePost, publishPost } = useMemiBoardPosts(() => props.boardId)
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { boardLabel } = useMemiBoardSettings()
 const { recordView } = useMemiBoardViews()
@@ -30,7 +30,9 @@ const { recordView } = useMemiBoardViews()
 // 좋아요 토글도 이 구독이 그대로 비춰주므로 별도 로컬 낙관적 갱신이 필요 없다.
 const { post, pending: loading } = useMemiBoardPost(() => props.boardId, computed(() => props.postId))
 const notFound = computed(() => !loading.value && !post.value)
+const isDraft = computed(() => post.value?.isPublished === false)
 const deleting = ref(false)
+const publishing = ref(false)
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
 const now = ref(Date.now())
@@ -71,6 +73,17 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
+
+async function handlePublish() {
+  if (!post.value) return
+  publishing.value = true
+  try {
+    await publishPost(props.postId)
+  }
+  finally {
+    publishing.value = false
+  }
+}
 
 async function handleDelete() {
   if (!post.value) return
@@ -118,6 +131,25 @@ const contentHtml = computed(() => {
     v-else-if="post"
     class="flex flex-col gap-6"
   >
+    <div v-if="isDraft" class="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-2">
+        <UIcon name="i-lucide-eye-off" class="mt-0.5 size-4 shrink-0 text-warning" />
+        <div>
+          <p class="text-sm font-medium text-highlighted">미공개 미리보기</p>
+          <p class="text-xs text-muted">아직 게시되지 않았습니다. 게시하기 전까지는 작성자만 볼 수 있어요.</p>
+        </div>
+      </div>
+      <UButton
+        v-if="canEdit(post)"
+        label="게시하기"
+        icon="i-lucide-send"
+        size="sm"
+        class="shrink-0"
+        :loading="publishing"
+        @click="handlePublish"
+      />
+    </div>
+
     <header class="flex flex-col gap-2">
       <div class="flex items-start justify-between gap-4">
         <div class="flex items-center gap-2 min-w-0">
@@ -215,7 +247,7 @@ const contentHtml = computed(() => {
       </div>
     </div>
 
-    <div class="flex justify-center">
+    <div v-if="!isDraft" class="flex justify-center">
       <MemiBoardLikeButton
         :board-id="boardId"
         :post-id="postId"
@@ -252,7 +284,7 @@ const contentHtml = computed(() => {
       />
     </nav>
 
-    <section class="flex flex-col gap-4 border-t border-default pt-4">
+    <section v-if="!isDraft" class="flex flex-col gap-4 border-t border-default pt-4">
       <h2 class="text-sm font-medium text-muted">
         댓글
       </h2>

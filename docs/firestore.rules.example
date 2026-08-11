@@ -86,7 +86,7 @@ service cloud.firestore {
           || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
     }
     function canReadPost(boardId, data) {
-      return data.get('listed', true) == true
+      return (data.get('listed', true) == true && data.isPublished == true)
         || (isSignedIn() && request.auth.uid == data.authorUid)
         || isBoardAdmin()
         || (isBoardStaff() && canWriteBoard(boardId));
@@ -144,7 +144,8 @@ service cloud.firestore {
           && request.resource.data.moderationStatus == 'approved'
           && canWriteBoard(boardId)
           && request.resource.data.listed is bool
-          && request.resource.data.listed == expectedListed(boardId);
+          && request.resource.data.listed == expectedListed(boardId)
+          && request.resource.data.isPublished == false;
 
         allow update: if isOwner(resource) || isBoardStaff()
           || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();

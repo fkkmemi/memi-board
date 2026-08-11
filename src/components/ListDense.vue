@@ -59,6 +59,14 @@ function thumb(post: PostModel): string | undefined {
           <!-- 본문 -->
           <div class="min-w-0 flex-1">
             <div class="flex min-w-0 items-center gap-1.5">
+              <UBadge
+                v-if="post.isPublished === false"
+                label="초안"
+                color="warning"
+                variant="subtle"
+                size="sm"
+                class="shrink-0"
+              />
               <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-highlighted transition-colors group-hover:text-primary">
                 {{ post.title?.trim() || post.summary || '사진' }}
               </h3>

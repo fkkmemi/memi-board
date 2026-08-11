@@ -1,6 +1,6 @@
 /**
  * 공개 SEO용 Firestore 직조회.
- * listed === true 만. boardId = 예전 category 경로 세그먼트.
+ * listed === true && isPublished === true 만. boardId = 예전 category 경로 세그먼트.
  */
 import {
   getDoc,
@@ -99,6 +99,7 @@ export async function fetchPublicPostForSeo(
       boardPostsCol(store.db, store.paths, b),
       where('slug', '==', s),
       where('listed', '==', true),
+      where('isPublished', '==', true),
       fbLimit(1),
     ))
     const row = snap.docs[0]
@@ -176,6 +177,7 @@ async function loadRecentListed(ctx: PublicSeoDb, boardId: string): Promise<{
     const snap = await getDocs(query(
       boardPostsCol(ctx.db, ctx.paths, boardId),
       where('listed', '==', true),
+      where('isPublished', '==', true),
       orderBy('createdAt', 'desc'),
       fbLimit(12),
     ))

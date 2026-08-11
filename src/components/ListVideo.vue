@@ -36,6 +36,14 @@ function cover(post: PostModel): string | undefined {
       </div>
       <div class="p-4">
         <div class="flex min-w-0 items-start gap-1.5">
+          <UBadge
+            v-if="post.isPublished === false"
+            label="초안"
+            color="warning"
+            variant="subtle"
+            size="sm"
+            class="mt-0.5 shrink-0"
+          />
           <h3 class="min-w-0 line-clamp-2 font-medium">{{ post.title }}</h3>
           <span
             v-if="(post.commentCount ?? 0) > 0"
