@@ -9,9 +9,12 @@ const props = withDefaults(defineProps<{
   authorPostsTo?: (authorUid: string) => string | undefined
   showAvatar?: boolean
   avatarSize?: 'xs' | 'sm' | 'md'
+  /** 좁은 고정폭 칸에 넣을 때만 true로 — 기본은 줄이지 않고 이름을 그대로 보여준다. */
+  truncate?: boolean
 }>(), {
   showAvatar: true,
   avatarSize: 'xs',
+  truncate: false,
 })
 
 const authorPostsLink = computed(() => props.authorPostsTo?.(props.authorUid))
@@ -28,7 +31,8 @@ const items = computed(() => [[
   <UDropdownMenu :items="items" :content="{ align: 'start' }">
     <button
       type="button"
-      class="-mx-1 flex min-w-0 max-w-full items-center gap-1.5 rounded-md px-1 transition-colors hover:bg-elevated/60"
+      class="-mx-1 flex max-w-full items-center gap-1.5 rounded-md px-1 transition-colors hover:bg-elevated/60"
+      :class="truncate ? 'min-w-0' : ''"
     >
       <UAvatar
         v-if="showAvatar"
@@ -37,7 +41,7 @@ const items = computed(() => [[
         :size="avatarSize"
         class="shrink-0"
       />
-      <span class="min-w-0 truncate">{{ authorName ?? '익명' }}</span>
+      <span :class="truncate ? 'min-w-0 truncate whitespace-nowrap' : 'whitespace-nowrap'">{{ authorName ?? '익명' }}</span>
     </button>
   </UDropdownMenu>
 </template>

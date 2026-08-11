@@ -83,7 +83,7 @@ function thumb(post: PostModel): string | undefined {
 
         <!-- 메타: 썸네일 폭(size-10 + gap-3)만큼 들여서 제목 아래로 맞춤 -->
         <div class="ml-[3.25rem] flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] leading-none text-muted">
-          <span class="inline-block max-w-[7rem] font-medium text-toned">
+          <span class="font-medium text-toned">
             <MemiBoardAuthorMenu
               :author-uid="post.authorUid"
               :author-name="post.authorName"

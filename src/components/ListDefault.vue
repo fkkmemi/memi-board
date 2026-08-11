@@ -100,6 +100,7 @@ function image(post: PostModel): string | undefined {
             :author-photo="post.authorPhoto"
             :author-posts-to="authorPostsTo"
             :show-avatar="false"
+            truncate
             class="max-w-full"
           />
           <UTooltip
