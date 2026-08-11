@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "type": "module",
   "description": "Nuxt 4 + Nuxt UI + VueFire/Firebase 전용 게시판 모듈",
   "license": "MIT",
@@ -36,6 +36,10 @@
     "./runtime": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./storage": {
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.js"
     },
     "./nuxt": {
       "types": "./dist/module.d.ts",

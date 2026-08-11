@@ -14,11 +14,10 @@ import {
   useMemiBoardPosts,
   useMemiBoardModeration,
   useMemiBoardSettings,
-  useMemiBoardStorage,
-  EDITOR_IMAGE_SOURCE_MAX_BYTES,
   hasBodyText,
   plainTextFromHtml,
 } from 'memi-board/runtime'
+import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
 
 const props = defineProps<{

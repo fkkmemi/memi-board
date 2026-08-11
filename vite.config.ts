@@ -11,6 +11,7 @@ export default defineConfig({
     dts({
       include: [
         'src/index.ts',
+        'src/storage.ts',
         'src/config.ts',
         'src/types.ts',
         'src/composables/**/*.ts',
@@ -30,10 +31,14 @@ export default defineConfig({
       entry: {
         index: resolve(import.meta.dirname, 'src/index.ts'),
         module: resolve(import.meta.dirname, 'src/module.ts'),
+        storage: resolve(import.meta.dirname, 'src/storage.ts'),
       },
       formats: ['es'],
-      fileName: (_format, entryName) =>
-        entryName === 'module' ? 'module.mjs' : 'index.js',
+      fileName: (_format, entryName) => {
+        if (entryName === 'module') return 'module.mjs'
+        if (entryName === 'storage') return 'storage.js'
+        return 'index.js'
+      },
     },
     rollupOptions: {
       external: [

@@ -109,7 +109,8 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'useMemiBoardComments', from },
       { name: 'useMemiBoardViews', from },
       { name: 'useMemiBoardModeration', from },
-      { name: 'useMemiBoardStorage', from },
+      // heic2any 등 브라우저 전용 — SSR 서버 번들에 안 섞이도록 별도 서브패스에서 해석
+      { name: 'useMemiBoardStorage', from: 'memi-board/storage' },
       { name: 'useMemiBoardSettings', from },
       { name: 'useMemiBoardUsers', from },
       { name: 'useMemiBoardPostSeo', from: seoFrom },

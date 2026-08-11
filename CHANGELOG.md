@@ -2,6 +2,15 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.24.0] - 2026-08-11
+
+### Breaking
+- **`useMemiBoardStorage`(+ `compressImage`, `EDITOR_IMAGE_MAX_BYTES`, `EDITOR_IMAGE_SOURCE_MAX_BYTES`)를 `memi-board/runtime`에서 신규 `memi-board/storage` 서브패스로 이동.**
+  - 원인: `useMemiBoardStorage`가 동적 `import('heic2any')`를 갖고 있는데, heic2any는 WASM glue 코드가 문자열로 통째로 박혀 있어서 이 청크가 `dist/index.js`(SSR로도 로드됨)에 섞이면 Nitro의 rollup commonjs 파서가 그 청크를 파싱하다 프로덕션 빌드 자체가 깨진다 — 런타임에 실제로 호출되지 않아도 빌드 타임에 파싱을 시도하다 실패한다.
+  - `dist/index.js`는 이제 heic2any/canvas 관련 코드를 전혀 참조하지 않는다(빌드 후 grep으로 확인). 무거운 브라우저 전용 코드(`storage.js`, ~1.36MB)는 `Editor.vue`/`Attachments.vue`가 클라이언트에서만 동적으로 불러온다.
+  - 마이그레이션: `import { useMemiBoardStorage } from 'memi-board/runtime'` → `from 'memi-board/storage'`. 호스트가 직접 이 composable을 쓰고 있었다면(패키지 내부 컴포넌트 전용이라 흔하지 않음) import 경로만 바꾸면 된다.
+  - 호스트에서 Nitro `rollupConfig.external`로 heic2any를 강제로 external 처리하던 임시 우회가 있었다면 이제 제거해도 된다(더 이상 SSR 번들에 섞이지 않으므로).
+
 ## [0.23.0] - 2026-08-11
 
 ### Breaking

@@ -62,7 +62,8 @@ export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardC
 export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
-export { useMemiBoardStorage } from './composables/useMemiBoardStorage'
+// useMemiBoardStorage(heic2any 등 브라우저 전용) — 'memi-board/storage' 서브패스로 분리.
+// 여기(SSR로도 로드되는 dist/index.js)에는 절대 다시 넣지 않는다.
 export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 
@@ -107,11 +108,10 @@ export {
   isContentEmpty,
   titleFromBody,
 } from './utils/postBody'
-export { compressImage } from './utils/compressImage'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'
 export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './utils/storagePath'
-export { EDITOR_IMAGE_MAX_BYTES, EDITOR_IMAGE_SOURCE_MAX_BYTES } from './composables/useMemiBoardStorage'
+// compressImage / EDITOR_IMAGE_*_BYTES — 'memi-board/storage' 서브패스로 이동.
 // createPasteImageExtension 은 components/editor 에 두고 SFC 가 상대경로 import —
 // core 번들에 @tiptap peer 를 넣으면 Vite optional-peer stub 으로 PluginKey 가 깨진다.
