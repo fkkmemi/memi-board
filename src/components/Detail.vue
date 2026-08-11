@@ -11,6 +11,7 @@ import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
+import MemiBoardSwipeHint from './SwipeHint.vue'
 
 const props = defineProps<{ boardId: string, postId: string }>()
 
@@ -74,6 +75,30 @@ onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
 
+/** 모바일 터치 스와이프: 왼쪽→다음 글, 오른쪽→이전 글. */
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const SWIPE_MIN_PX = 70
+
+function onTouchStart(e: TouchEvent) {
+  const t = e.changedTouches[0]
+  if (!t) return
+  touchStartX.value = t.clientX
+  touchStartY.value = t.clientY
+}
+
+function onTouchEnd(e: TouchEvent) {
+  const t = e.changedTouches[0]
+  if (!t) return
+  const dx = t.clientX - touchStartX.value
+  const dy = t.clientY - touchStartY.value
+  if (Math.abs(dx) < SWIPE_MIN_PX) return
+  if (Math.abs(dy) > Math.abs(dx) * 0.65) return
+
+  if (dx < 0 && nextPost.value) emit('navigate', nextPost.value)
+  else if (dx > 0 && previousPost.value) emit('navigate', previousPost.value)
+}
+
 async function handlePublish() {
   if (!post.value) return
   publishing.value = true
@@ -129,7 +154,9 @@ const contentHtml = computed(() => {
 
   <div
     v-else-if="post"
-    class="flex flex-col gap-6"
+    class="flex flex-col gap-6 touch-pan-y"
+    @touchstart.passive="onTouchStart"
+    @touchend.passive="onTouchEnd"
   >
     <div v-if="isDraft" class="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning/10 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex items-start gap-2">
@@ -283,6 +310,8 @@ const contentHtml = computed(() => {
         @click="nextPost?.id && emit('navigate', nextPost)"
       />
     </nav>
+
+    <MemiBoardSwipeHint v-if="previousPost || nextPost" />
 
     <section v-if="!isDraft" class="flex flex-col gap-4 border-t border-default pt-4">
       <h2 class="text-sm font-medium text-muted">
