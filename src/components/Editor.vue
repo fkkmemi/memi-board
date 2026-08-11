@@ -231,7 +231,7 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
     throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
   }
-  const entry = await uploadEditorImage(file, resolvedBoardId.value, imageNamespace())
+  const entry = await uploadEditorImage(file, imageNamespace())
   uploadedEditorImages.value.push(entry)
   return entry
 }
@@ -907,7 +907,6 @@ async function handleSubmit() {
     <MemiBoardAttachments
       v-if="!isImageListView"
       v-model="attachments"
-      :board-id="resolvedBoardId"
       :post-id="attachmentNamespace"
       editable
     />

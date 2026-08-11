@@ -93,18 +93,19 @@ function thumb(post: PostModel): string | undefined {
             />
           </span>
           <span class="text-default/40" aria-hidden="true">·</span>
-          <UTooltip
-            :delay-duration="0"
-            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
-          >
+          <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
             <time
               :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="cursor-help tabular-nums"
+              class="cursor-pointer tabular-nums"
             >
               {{ formatRelativeDate(post.createdAt, now) }}
             </time>
-          </UTooltip>
+            <template #content>
+              <p class="whitespace-pre-line px-3 py-2 text-xs">
+                {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
+              </p>
+            </template>
+          </UPopover>
           <span class="text-default/40" aria-hidden="true">·</span>
           <span class="inline-flex items-center gap-0.5 tabular-nums">
             <UIcon name="i-lucide-eye" class="size-3" />

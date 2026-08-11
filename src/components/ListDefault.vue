@@ -36,8 +36,8 @@ function image(post: PostModel): string | undefined {
           class="flex min-w-0 flex-1 text-left transition-colors hover:bg-elevated/50"
           @click="!postTo(post) && emit('select', post)"
         >
-          <!-- 카드 좌·상·하 밀착, 가로는 고정 / 세로는 행 높이 전체 -->
-          <div class="w-[4.5rem] shrink-0 self-stretch bg-elevated">
+          <!-- 카드 좌·상 밀착, 항상 정사각형 — 텍스트가 길어져도 썸네일 비율은 유지 -->
+          <div class="size-[4.5rem] shrink-0 self-start bg-elevated">
             <img
               v-if="image(post)"
               :src="image(post)"
@@ -46,7 +46,7 @@ function image(post: PostModel): string | undefined {
             >
             <div
               v-else
-              class="flex h-full min-h-[4.5rem] w-full items-center justify-center text-muted"
+              class="flex h-full w-full items-center justify-center text-muted"
             >
               <UIcon name="i-lucide-image" class="size-6" />
             </div>
@@ -103,18 +103,19 @@ function image(post: PostModel): string | undefined {
             truncate
             class="max-w-full"
           />
-          <UTooltip
-            :delay-duration="0"
-            :text="formatTimestampDetails(post.createdAt, post.updatedAt).join('\n')"
-            :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
-          >
+          <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
             <time
               :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="cursor-help text-xs leading-snug text-muted"
+              class="cursor-pointer text-xs leading-snug text-muted"
             >
               {{ formatRelativeDate(post.createdAt, now) }}
             </time>
-          </UTooltip>
+            <template #content>
+              <p class="whitespace-pre-line px-3 py-2 text-xs">
+                {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
+              </p>
+            </template>
+          </UPopover>
           <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
             <span class="inline-flex items-center gap-0.5 tabular-nums">
               <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}

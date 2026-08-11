@@ -130,18 +130,19 @@ async function toggleBlind() {
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
         <span class="text-sm font-medium">{{ comment.authorName ?? '익명' }}</span>
-        <UTooltip
-          :delay-duration="0"
-          :text="timestampDetails"
-          :ui="{ content: 'h-auto w-max py-2', text: 'whitespace-pre-line overflow-visible' }"
-        >
+        <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
           <time
             :datetime="date?.toISOString()"
-            class="cursor-help text-xs text-muted"
+            class="cursor-pointer text-xs text-muted"
           >
             {{ relativeDate }}
           </time>
-        </UTooltip>
+          <template #content>
+            <p class="whitespace-pre-line px-3 py-2 text-xs">
+              {{ timestampDetails }}
+            </p>
+          </template>
+        </UPopover>
       </div>
       <form
         v-if="editing"

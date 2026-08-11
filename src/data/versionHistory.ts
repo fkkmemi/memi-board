@@ -11,6 +11,17 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.23.0',
+    date: '2026-08-11',
+    highlights: [
+      '글·댓글·좋아요를 게시판 아래 중첩시키지 않고 memiBoardPosts/memiBoardComments/memiBoardLikes로 따로 모아요 — 보드 ID는 각 글의 필드로 들어가요',
+      '작성자별 글 모음이 더 가벼워졌어요 — 여러 게시판을 뒤지는 대신 한 번에 찾아요',
+      '"내가 좋아요한 글" 같은 기능을 나중에 붙이기 쉬워졌어요',
+      '날짜에 마우스를 올려야 보이던 작성 시각을 이제 눌러서 볼 수 있어요 — 폰에서도 똑같이 동작해요',
+    ],
+    note: '기존 게시판 데이터와 호환되지 않아요 — 새로 설치하는 것처럼 다시 시작해야 해요.',
+  },
+  {
     version: '0.21.1',
     date: '2026-08-07',
     highlights: [
