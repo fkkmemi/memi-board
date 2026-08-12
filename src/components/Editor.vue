@@ -431,6 +431,11 @@ function resolveEditor(): any | null {
   return ed?.value ?? ed ?? null
 }
 
+// 제목에서 Tab 누르면 툴바 버튼들 건너뛰고 본문으로 바로 이동
+function focusContentFromTitle() {
+  resolveEditor()?.chain().focus().run()
+}
+
 function clipboardImageFile(dt: DataTransfer | null | undefined): File | null {
   if (!dt) return null
   const fromFiles = Array.from(dt.files ?? []).find(f => f.type.startsWith('image/'))
@@ -720,6 +725,7 @@ async function handleSubmit() {
       placeholder="제목"
       size="lg"
       required
+      @keydown.tab.exact.prevent="focusContentFromTitle"
     />
     <!-- 이미지 보드: 여러 장 갤러리 (TipTap 과 분리) -->
     <div
