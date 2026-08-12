@@ -75,5 +75,13 @@ export default defineConfig({
     },
     sourcemap: true,
     emptyOutDir: true,
+    // 라이브러리 빌드는 minify 안 함 — 압축 시 rollup이 내부 변수를 h/e/t 같은
+    // 한 글자로 재명명하는데, 호스트 Nuxt의 auto-import(unimport)가 link:로
+    // 심볼릭 링크된 이 패키지를 node_modules 예외 대상으로 인식하지 못하고
+    // "프로젝트 소스"로 스캔하면서, 우연히 Vue의 전역 auto-import `h`(hyperscript)와
+    // 이름이 겹치면 `import { h } from 'vue'`를 그 청크에 주입해버려 파일 자체에
+    // 이미 있는 `h` 선언과 충돌한다("Identifier 'h' has already been declared").
+    // 최종 소비자 앱이 어차피 자기 번들러로 다시 압축하므로 여기서 압축할 이유도 없다.
+    minify: false,
   },
 })

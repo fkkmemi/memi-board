@@ -50,6 +50,20 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
     nuxt.options.build.transpile.push('memi-board')
 
     nuxt.options.vite ||= {}
+
+    // link:/file: 설치 시 memi-board 패키지 루트(dist/ 등)가 호스트의 node_modules
+    // 밖에 있어서 Vite dev 서버의 fs.allow 기본값(root + node_modules)에 안 걸린다 —
+    // /@fs/ 요청이 403("outside of Vite serving allow list")으로 막히고, 그 403 HTML을
+    // JS로 파싱하려다 알 수 없는 SyntaxError가 난다. 패키지 루트를 명시적으로 허용한다.
+    const packageRoot = resolve('..')
+    nuxt.options.vite.server ||= {}
+    nuxt.options.vite.server.fs ||= {}
+    const fsAllow = new Set([
+      ...(nuxt.options.vite.server.fs.allow || []),
+      packageRoot,
+    ])
+    nuxt.options.vite.server.fs.allow = [...fsAllow]
+
     nuxt.options.vite.resolve ||= {}
     // link:/file: 로 설치 시 패키지 쪽 node_modules 의 vuefire·firebase 가
     // 호스트와 이중으로 잡히면 useFirestore 가 깨져 permission-denied 가 난다.
@@ -70,6 +84,23 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
     const exclude = new Set(nuxt.options.vite.optimizeDeps.exclude || [])
     exclude.add('memi-board')
     nuxt.options.vite.optimizeDeps.exclude = [...exclude]
+
+    // link:/file: 개발 중엔 memi-board의 실제 경로가 host의 node_modules 밖에 있어서
+    // Nuxt auto-import(unimport)의 "node_modules는 건드리지 않는다" 체크(경로에
+    // 'node_modules' 문자열이 있는지로 판단)를 그냥 통과해버린다 — 그러면 memi-board의
+    // dist 청크를 "프로젝트 소스"로 스캔하다가, rollup이 공유 청크의 export를 붙일 때
+    // 우연히 짧은 별칭(a, b, … h …)을 골랐는데 그게 Vue의 전역 auto-import `h`
+    // (hyperscript)와 겹치면 `import { h } from 'vue'`를 그 청크에 주입해버려서
+    // 이미 있는 `h` export 별칭과 충돌한다("Identifier 'h' has already been declared").
+    // 명시적으로 제외해 이 청크는 절대 auto-import 스캔 대상이 되지 않게 한다
+    // (published npm 패키지 설치 시엔 이미 node_modules 안이라 원래도 제외 대상).
+    nuxt.options.imports ||= {}
+    nuxt.options.imports.transform ||= {}
+    const transformExclude = new Set([
+      ...(nuxt.options.imports.transform.exclude || []),
+      /[\\/]memi-board[\\/]dist[\\/]/,
+    ])
+    nuxt.options.imports.transform.exclude = [...transformExclude]
 
     // CommentItem 이 사용하는 dayjs(CommonJS)를 개발 서버에서도 ESM 형태로
     // 사전 번들링한다. 호스트가 같은 설정을 별도로 작성할 필요가 없다.
