@@ -9,6 +9,7 @@ defineProps<{
   postTo: (post: PostModel) => string | undefined
   now: number
   authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
@@ -58,7 +59,7 @@ function cover(post: PostModel): string | undefined {
               {{ post.commentCount }}
             </span>
           </div>
-          <p v-if="post.summary" class="mt-2 line-clamp-2 text-sm text-muted">{{ post.summary }}</p>
+          <p v-if="post.summary" class="mt-2 line-clamp-2 whitespace-pre-line text-sm text-muted">{{ post.summary }}</p>
         </div>
       </component>
 
@@ -68,6 +69,7 @@ function cover(post: PostModel): string | undefined {
           :author-name="post.authorName"
           :author-photo="post.authorPhoto"
           :author-posts-to="authorPostsTo"
+          :author-comments-to="authorCommentsTo"
           :show-avatar="false"
         />
         <div class="flex shrink-0 items-center gap-2">

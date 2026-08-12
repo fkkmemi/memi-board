@@ -48,13 +48,19 @@ export function buildPostPreview(content: string, attachments: Attachment[] = []
   const previewImage = imageMatch
     ? decodeHtmlAttribute(imageMatch[1]!)
     : attachmentImage || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined)
+  // 문단·<br> 경계를 줄바꿈으로 살려둔다 — 안 그러면 두 줄로 쓴 글도 한 줄로 뭉개져서
+  // 목록의 2줄 클램프(line-clamp-2)가 "줄바꿈해서 2줄"이 아니라 "넘쳐서 2줄"에만 반응한다.
   const summary = content
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|blockquote)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{2,}/g, '\n')
     .trim()
     .slice(0, 160)
 

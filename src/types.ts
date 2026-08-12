@@ -126,6 +126,15 @@ export interface BoardUserModel {
   updatedAt?: Timestamp
 }
 
+export type AuthorMemoSentiment = 'good' | 'bad'
+
+/** memiBoardUsers/{내uid}/memos/{targetUid} — 본인만 보는 작성자 메모. targetUid는 문서 ID라 필드로 안 둔다. */
+export interface AuthorMemoModel {
+  text: string
+  sentiment?: AuthorMemoSentiment
+  updatedAt?: Timestamp
+}
+
 export type BoardListView = 'default' | 'dense' | 'image' | 'video'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'
 /** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글 listed=false. */

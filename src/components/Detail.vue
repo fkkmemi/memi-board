@@ -19,6 +19,8 @@ const props = defineProps<{
   postId: string
   /** 작성자 메뉴의 "작성글 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
   authorPostsTo?: (authorUid: string) => string | undefined
+  /** 작성자 메뉴의 "작성한 댓글 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
 
 const emit = defineEmits<{
@@ -249,6 +251,7 @@ const contentHtml = computed(() => {
           :author-name="post.authorName"
           :author-photo="post.authorPhoto"
           :author-posts-to="authorPostsTo"
+          :author-comments-to="authorCommentsTo"
         />
         <span class="inline-flex items-center gap-1 tabular-nums">
           <UIcon name="i-lucide-eye" class="size-3.5" />

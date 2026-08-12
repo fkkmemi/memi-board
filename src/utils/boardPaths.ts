@@ -125,6 +125,16 @@ export function boardUserDoc(
   return doc(db, cfg.usersCollection, uid)
 }
 
+/** 본인만 보는 작성자 메모 — 문서 ID 자체가 targetUid라 대상당 메모가 하나로 고정된다. */
+export function authorMemoDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  viewerUid: string,
+  targetUid: string,
+): DocumentReference {
+  return doc(db, cfg.usersCollection, viewerUid, 'memos', targetUid)
+}
+
 /** postId 가 전역 고유이므로 boardId 프리픽스 불필요 */
 export function postStorageFolder(cfg: BoardPathConfig, postId: string): string {
   return `${cfg.postsCollection}/${postId}`

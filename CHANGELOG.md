@@ -2,6 +2,38 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.27.0] - 2026-08-12
+
+### Breaking
+- **`AuthorMenu`의 `avatarSize` prop 제거.** 트리거를 손으로 만든 `<button>`+`UAvatar`에서 `UButton`(`:avatar`, `size="xs"`)으로 바꾸면서, 아바타 크기를 직접 지정하는 대신 Nuxt UI가 버튼 사이즈에 맞춰 자동으로 정하게 했다(`size="xs"` → `leadingAvatarSize: "3xs"`) — 직접 `size`를 넘기면 이 자동 크기보다 커져서 의미가 없어진다. 내부에서 이 prop을 쓰던 곳은 없었지만, 호스트가 직접 넘기고 있었다면 제거해야 한다.
+
+### Changed
+- **`ListDefault`(일반 뷰) 카드 레이아웃 재구성.** 좌측 고정 정사각 썸네일(글 이미지/플레이스홀더)을 없애고, 글에 이미지가 있으면 제목 블록과 우측 메타 칸 사이에 큰 원형 썸네일(`size-[4.5rem]`)로 배치 — 없으면 그 자리 자체가 안 생긴다. 우측 메타 칸을 `w-[5.5rem]/w-24`(88~96px)에서 `w-[120px]`로 넓혀 아바타+이름이 넉넉히 들어가게 했다. 첨부파일 개수(📎)를 조회수(👁) 바로 옆으로 옮겨 같은 아이콘+숫자 스타일로 통일.
+- **`ListDense`(조밀 뷰) 전면 재설계.** 레일+원형 노드 타임라인 컨셉을 버리고 한국 커뮤니티 게시판 스타일의 한 줄 목록으로: 댓글수는 `ListDefault`와 동일한 초록 pill 배지, 첨부파일 개수도 조회수 옆에 같은 아이콘 스타일, 메타 줄은 `시간 | 작성자 | 조회 | 추천 | [카테고리]` 순서로 파이프 구분자, 글에 이미지가 있으면 우측에 작은 사각 썸네일(`size-12`, `rounded-md`). 행 사이에 `divide-y`로 구분선 추가.
+- **`AuthorMenu` 트리거를 `UButton`으로 교체.** `label`/`avatar` prop을 쓰고 `size="xs"`로 맞춤 — 커스텀 패딩(`px-1 py-1 gap-1.5`) 대신 Nuxt UI 프리셋을 그대로 쓴다. `label` 슬롯에 기본으로 들어있는 `truncate`가 `truncate` prop이 꺼진(넓은 칸) 컨텍스트에서도 항상 적용돼 있길래, 거기서는 `whitespace-normal overflow-visible text-clip`으로 명시적으로 상쇄해서 어제(`f0a348d`)의 "안 잘리고 줄바꿈" 의도를 그대로 유지했다. 이름 정렬은 `<button>`의 기본값(`text-align: center`)이 아니라 `text-left`로 명시.
+- `postPreview.ts`의 `buildPostPreview`가 `</p>`/`<br>`/`</div>` 등 문단 경계를 공백이 아니라 `\n`으로 살린다 — 안 그러면 두 문단으로 쓴 글도 서머리에서 한 줄로 뭉개져서, 목록의 2줄 클램프(`line-clamp-2`)가 "줄바꿈해서 2줄"이 아니라 "글자가 넘쳐야만" 반응했다. `ListDefault`/`ListVideo`의 서머리 `<p>`에 `whitespace-pre-line` 추가해 실제로 줄바꿈이 보이게 함. 기존에 저장된 글의 `summary` 필드는 재저장 전까지 예전 방식 그대로 남아있다.
+
+## [0.26.0] - 2026-08-12
+
+### Added
+- **작성자 개인 메모 + 좋음/나쁨 평가** — 다른 작성자를 보다가 나만 보는 메모를 남기는 기능(한국 커뮤니티 사이트에 흔한 "이 사람 메모" 기능). `useMemiBoardAuthorMemo(targetUid)` 컴포저블 + `AuthorMenu`의 이름 옆에 메모 아이콘(`UPopover`, 열 때 로드) 추가. 별도 "저장" 버튼 없이 "좋음"(`primary`)/"나쁨"(`error`) 버튼이 곧 저장 버튼 — 텍스트+평가를 같이 저장한다. 아이콘 색이 평가를 그대로 반영(좋음=`text-primary`, 나쁨=`text-error`, 없음=`text-muted`). `AuthorMemoModel`에 `sentiment: 'good' | 'bad'` 필드 추가. `memiBoardUsers/{내uid}/memos/{targetUid}` — 문서 ID가 targetUid라 대상당 메모가 항상 하나(재저장 시 덮어씀), 삭제 버튼으로 문서 자체 삭제. 100자 제한(`AUTHOR_MEMO_MAX_LENGTH`), 비속어 필터 없음(본인만 읽으니 불필요). 본인 카드에는 아이콘 자체가 안 보인다.
+  - **마이그레이션**: `docs/firestore.rules.example`에 `memiBoardUsers/{uid}` 안에 `match /memos/{targetUid} { allow read, write: if isSignedIn() && request.auth.uid == uid; }` 추가됨 — 관리자도 못 읽는다(모더레이션용이 아니라 순전히 개인 참고용). 호스트가 배포된 규칙에 반영해야 실제로 저장/조회가 된다.
+  - `useMemiBoardAuthorMemo`는 targetUid(+viewerUid)로 키를 잡은 모듈 스코프 캐시를 공유한다 — 같은 작성자가 목록에 여러 번 나올 때(글을 여러 개 쓴 경우) 각 `AuthorMenu` 인스턴스가 따로 상태를 들고 있으면 한쪽에서 저장해도 다른 카드가 그대로 남는 문제가 있어서다.
+
+### Fixed
+- **`AuthorMenu`가 `truncate` 모드(ListDefault의 좁은 메타 칸)에서 "관리자"→"관…"처럼 실제로 필요한 폭보다 훨씬 짧게 잘리던 문제.** `f0a348d`에서 truncate를 opt-in으로 좁혀놓았지만 근본 원인은 그대로였다: wrapper가 `inline-flex`(shrink-to-fit)인 채로 이름 span에만 `flex-1 basis-0`를 줬는데, `truncate`는 min-content를 거의 0으로 만들어버려서 shrink-to-fit 체인 전체가 실제 콘텐츠보다 훨씬 작게 무너졌다(브라우저에서 직접 측정: wrapper가 31px로 계산됨, "관리자" 자체는 76px 칸에 다 들어가는데도). truncate 모드일 때 wrapper·버튼에 `w-full`/`flex-1`을 줘서 컬럼 폭(76px) 전체를 진짜 사용 가능한 공간으로 만들어 해결 — 재측정으로 `scrollWidth === clientWidth`(잘림 없음) 확인.
+
+## [0.25.0] - 2026-08-12
+
+### Added
+- **`useMemiBoardUserComments(uid)` + `<MemiBoardUserCommentList>`** — "작성글 보기"(`useMemiBoardUserPosts`/`UserPostList`)와 같은 패턴으로, 작성자 uid 하나로 모든 보드를 가로질러 댓글을 모은다. `AuthorMenu`에 `authorCommentsTo` prop을 추가해 "작성한 댓글 보기" 메뉴 항목을 연결할 수 있게 했다(`List`/`ListDefault`/`ListDense`/`ListVideo`/`Detail`/`UserPostList`까지 전부 스레딩).
+- `<MemiBoardUserCommentList>`는 각 댓글에 호스트가 만든 링크(`getPostLink`)를 붙여 원문 글로 이동시키는 구조 — 글의 slug를 들고 있지 않으므로, 호스트가 `boardId`+`postId`로 영구링크를 만들어 클릭 시점에 실제 글의 접근 상태(찾을 수 없음/비공개 등)를 판단하는 걸 권장한다.
+
+### Changed
+- **`docs/firestore.rules.example`: `memiBoardComments`의 `allow read`가 더 이상 부모 글을 `get()`하지 않고 항상 허용(`allow read: if true`).** `useMemiBoardUserComments`가 `where('authorUid','==',uid)`로 여러 글에 걸친 댓글을 한 번에 조회하는데, 예전 규칙(`canReadPost(get(postPath(resource.data.postId)).data)`)은 postId가 동등(`==`) 필터로 고정된 쿼리에서만 성립해서 이 cross-post 쿼리 자체가 permission-denied로 거부됐다. 이제 댓글 본문은 부모 글의 공개 상태와 무관하게 항상 노출되고, 실제 글로 이동했을 때(글 상세 페이지의 기존 not-found/permission-denied 처리) 접근 상태가 대신 표현된다.
+  - **마이그레이션**: 이 기능을 쓰려면 호스트가 배포된 Firestore 규칙을 이 예시대로 갱신해야 한다 — 규칙을 안 바꾸면 새 컴포저블/컴포넌트는 그대로 permission-denied가 난다. 기존 글 상세 페이지의 댓글 스레드 읽기는 그대로 동작(권한이 좁아지지 않고 넓어지는 방향).
+  - `docs/firestore.indexes.json.example`에 `memiBoardComments(authorUid asc, createdAt desc)` 복합 인덱스 추가 — 이것도 배포 안 하면 조회 자체가 "The query requires an index" 에러로 막힌다.
+
 ## [0.24.0] - 2026-08-11
 
 ### Breaking

@@ -137,6 +137,12 @@ service cloud.firestore {
                 == resource.data.get('moderationBlockCount', 0) + 1
             )
           ));
+
+      // 다른 작성자에 대해 나만 보는 개인 메모. 문서 ID가 targetUid라 대상당 하나로
+      // 고정된다. 관리자도 못 읽는다 — 모더레이션용이 아니라 순전히 본인 참고용이다.
+      match /memos/{targetUid} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
     }
 
     // 구 memiBoards/{boardId} stub + memiBoards/{boardId}/settings/config 를 하나로 합친
@@ -182,11 +188,15 @@ service cloud.firestore {
     }
 
     match /memiBoardComments/{commentId} {
-      // 부모 글의 현재 listed/isPublished 상태를 그대로 물려받는다(구버전과 동일한
-      // 동작) — 글이 나중에 비공개 전환되거나 삭제되면 댓글도 함께 숨겨진다.
-      // postId 가 where('postId','==', p) 동등 필터로 고정되는 list 쿼리에서는
-      // get(postPath(resource.data.postId)) 의 인자가 상수로 환원되어 안전하게 평가된다.
-      allow read: if canReadPost(get(postPath(resource.data.postId)).data);
+      // 누구나 읽을 수 있다 — "작성한 댓글 보기"(useMemiBoardUserComments)가
+      // authorUid 하나로 모든 보드를 가로질러 조회하는데, postId는 문서마다
+      // 달라 동등(==) 필터로 고정할 수 없다. 부모 글을 get()해서 판단하는 규칙은
+      // list 쿼리에서 get() 인자가 상수로 환원 가능해야 하는데(postId 고정 쿼리에서만
+      // 성립), authorUid로 고정된 쿼리는 이 조건을 못 만족해 통째로 거부된다.
+      // 부모 글이 비공개·블라인드·삭제 상태여도 댓글 본문 자체는 노출되고,
+      // 실제 글로 이동했을 때 그 글의 접근 상태(찾을 수 없음/권한 없음 등)로
+      // 대신 표현한다 — 댓글 하나가 아니라 글 단위로 이미 존재하는 처리다.
+      allow read: if true;
 
       allow create: if isBoardWriter()
         && request.resource.data.postId is string

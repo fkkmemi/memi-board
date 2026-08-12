@@ -10,6 +10,7 @@ withDefaults(defineProps<{
   now: number
   showCategory?: boolean
   authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
@@ -36,22 +37,6 @@ function image(post: PostModel): string | undefined {
           class="flex min-w-0 flex-1 text-left transition-colors hover:bg-elevated/50"
           @click="!postTo(post) && emit('select', post)"
         >
-          <!-- 카드 좌·상 밀착, 항상 정사각형 — 텍스트가 길어져도 썸네일 비율은 유지 -->
-          <div class="size-[4.5rem] shrink-0 self-start bg-elevated">
-            <img
-              v-if="image(post)"
-              :src="image(post)"
-              :alt="post.title"
-              class="h-full w-full object-cover"
-            >
-            <div
-              v-else
-              class="flex h-full w-full items-center justify-center text-muted"
-            >
-              <UIcon name="i-lucide-image" class="size-6" />
-            </div>
-          </div>
-
           <div class="min-w-0 flex-1 flex flex-col justify-center gap-1 overflow-hidden py-2 pl-3 pr-2">
             <div class="flex min-w-0 items-start gap-2">
               <UBadge
@@ -83,23 +68,32 @@ function image(post: PostModel): string | undefined {
             </div>
             <p
               v-if="post.summary"
-              class="min-w-0 line-clamp-2 break-words text-sm leading-snug text-muted"
+              class="min-w-0 line-clamp-2 break-words whitespace-pre-line text-sm leading-snug text-muted"
             >
               {{ post.summary }}
             </p>
-            <div v-if="post.attachments?.length" class="flex items-center gap-1 text-xs text-muted">
-              <UIcon name="i-lucide-paperclip" class="size-3" />{{ post.attachments.length }}
-            </div>
+          </div>
+
+          <div
+            v-if="image(post)"
+            class="my-2 mr-2 size-[4.5rem] shrink-0 self-center overflow-hidden rounded-full bg-elevated"
+          >
+            <img
+              :src="image(post)"
+              :alt="post.title"
+              class="h-full w-full object-cover"
+            >
           </div>
         </component>
 
-        <div class="flex w-[5.5rem] shrink-0 flex-col items-end justify-center gap-1 py-2 pr-3 text-right text-xs leading-snug text-muted sm:w-24">
+        <div class="flex w-[120px] shrink-0 flex-col items-end justify-center gap-1 py-2 pr-3 text-right text-xs leading-snug text-muted">
           <MemiBoardAuthorMenu
             :author-uid="post.authorUid"
             :author-name="post.authorName"
             :author-photo="post.authorPhoto"
             :author-posts-to="authorPostsTo"
-            :show-avatar="false"
+            :author-comments-to="authorCommentsTo"
+            :show-avatar="true"
             truncate
             class="max-w-full"
           />
@@ -117,6 +111,12 @@ function image(post: PostModel): string | undefined {
             </template>
           </UPopover>
           <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
+            <span
+              v-if="post.attachments?.length"
+              class="inline-flex items-center gap-0.5 tabular-nums"
+            >
+              <UIcon name="i-lucide-paperclip" class="size-3 shrink-0" />{{ post.attachments.length }}
+            </span>
             <span class="inline-flex items-center gap-0.5 tabular-nums">
               <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
             </span>
