@@ -17,9 +17,10 @@ export const BOARD_USER_ROLES: Array<{
 ]
 
 /**
- * 전체 사용자 목록은 관리자만 읽을 수 있다(rules). enabled가 false인 동안은
- * 쿼리 자체를 시작하지 않는다 — 그냥 호출만 하면 권한 확인 전에 구독이 걸려서
- * 관리자가 아니거나 아직 role을 확인 중일 때 permission-denied로 화면이 죽는다.
+ * memiBoardUsers/{uid}는 이메일만 빼면 공개 프로필이라 목록 읽기 자체는 누구나 할 수
+ * 있다(rules) — 이 컴포저블은 관리 화면(역할 변경)에서만 쓰라고 있는 것뿐이다.
+ * enabled가 false인 동안은 쿼리 자체를 시작하지 않는다 — role 확인이 끝나기 전에
+ * 미리 구독을 걸어두면 화면이 불필요하게 로딩 상태로 오래 머문다.
  *
  * 경로: memiBoardUsers/{uid} (flat)
  */

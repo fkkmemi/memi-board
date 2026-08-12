@@ -47,6 +47,8 @@ const props = withDefaults(defineProps<{
   writeTo?: string
   /** '글쓰기' 버튼 노출 여부 — 호스트가 권한을 계산해 넘긴다. */
   canWrite?: boolean
+  /** 카드의 작성자 메뉴 중 "프로필 보기" 링크. */
+  authorProfileTo?: (authorUid: string) => string | undefined
   /** 카드의 작성자 메뉴 중 "작성글 보기" 링크. */
   authorPostsTo?: (authorUid: string) => string | undefined
   /** 카드의 작성자 메뉴 중 "작성한 댓글 보기" 링크. */
@@ -279,6 +281,7 @@ function postTo(post: PostModel): string | undefined {
       :now="now"
       :show-category="!category"
       :author-posts-to="authorPostsTo"
+      :author-profile-to="authorProfileTo"
       :author-comments-to="authorCommentsTo"
       @select="emit('select', $event)"
     />

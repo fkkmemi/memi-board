@@ -8,6 +8,7 @@ defineProps<{
   posts: PostModel[]
   postTo: (post: PostModel) => string | undefined
   now: number
+  authorProfileTo?: (authorUid: string) => string | undefined
   authorPostsTo?: (authorUid: string) => string | undefined
   authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
@@ -69,6 +70,7 @@ function cover(post: PostModel): string | undefined {
           :author-name="post.authorName"
           :author-photo="post.authorPhoto"
           :author-posts-to="authorPostsTo"
+          :author-profile-to="authorProfileTo"
           :author-comments-to="authorCommentsTo"
           :show-avatar="false"
         />

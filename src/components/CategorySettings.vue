@@ -74,7 +74,7 @@ function emptyDraft(id: string): BoardCategory {
 // 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
 const staffOptions = computed(() => users.value
   .filter(item => item.role === 'staff')
-  .map(item => ({ label: item.displayName || item.email || item.id, value: item.id })))
+  .map(item => ({ label: item.displayName || item.id, value: item.id })))
 const needsStaffPicker = computed(() =>
   (draft.value?.writeRole === 'staff' || draft.value?.commentWriteRole === 'staff')
   && canManageStaffAssignment.value)

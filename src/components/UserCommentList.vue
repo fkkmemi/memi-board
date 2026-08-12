@@ -11,8 +11,11 @@ const props = withDefaults(defineProps<{
   pageSize?: number
   /** 댓글이 달린 글로 이동하는 링크 생성 — comment.boardId/postId로 만든다. */
   getPostLink?: (comment: CommentModel) => string | undefined
+  /** 프로필의 미리보기처럼 더 보기 버튼 없이 pageSize만큼만 딱 보여줄 때 true. */
+  hideLoadMore?: boolean
 }>(), {
   pageSize: 10,
+  hideLoadMore: false,
 })
 
 const emit = defineEmits<{ select: [comment: CommentModel] }>()
@@ -88,7 +91,7 @@ function commentLink(comment: CommentModel): string | undefined {
     </ul>
 
     <div
-      v-if="!commentsPending && hasMore"
+      v-if="!commentsPending && hasMore && !hideLoadMore"
       class="flex justify-center py-1"
     >
       <UButton

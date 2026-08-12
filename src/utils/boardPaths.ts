@@ -125,6 +125,15 @@ export function boardUserDoc(
   return doc(db, cfg.usersCollection, uid)
 }
 
+/** 이메일만 담는 비공개 문서 — memiBoardUsers/{uid}는 공개 프로필이라 이메일만 분리한다. */
+export function boardUserPrivateDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  uid: string,
+): DocumentReference {
+  return doc(db, cfg.usersCollection, uid, 'private', 'info')
+}
+
 /** 본인만 보는 작성자 메모 — 문서 ID 자체가 targetUid라 대상당 메모가 하나로 고정된다. */
 export function authorMemoDoc(
   db: Firestore,

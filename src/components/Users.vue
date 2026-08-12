@@ -45,7 +45,7 @@ async function changeRole(uid: string, role: BoardUserRole) {
             <p class="truncate font-medium text-highlighted">{{ boardUser.displayName || '이름 없음' }}</p>
             <UBadge v-if="savedUid === boardUser.id" color="success" variant="subtle" label="저장됨" />
           </div>
-          <p class="truncate text-sm text-muted">{{ boardUser.email || boardUser.id }}</p>
+          <p class="truncate text-sm text-muted">{{ boardUser.id }}</p>
           <p v-if="boardUser.moderationBlockCount" class="mt-1 text-xs text-warning">콘텐츠 경고 {{ boardUser.moderationBlockCount }}회</p>
         </div>
         <USelect

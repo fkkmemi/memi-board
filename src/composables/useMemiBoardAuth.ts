@@ -13,7 +13,7 @@ import {
 } from 'firebase/auth'
 import type { User } from 'firebase/auth'
 import { useMemiBoardConfig, useBoardPathConfig } from '../config'
-import { boardUserDoc } from '../utils/boardPaths'
+import { boardUserDoc, boardUserPrivateDoc } from '../utils/boardPaths'
 import type { PostModel, CommentModel, BoardUserRole } from '../types'
 import {
   DEFAULT_BLOCK_BAN_DECAY_MS,
@@ -120,26 +120,34 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
 
   async function ensureUserDoc(firebaseUser: User): Promise<BoardUserRole> {
     const ref = roleDocRef(firebaseUser.uid)
+    const privateRef = boardUserPrivateDoc(db, useBoardPathConfig(), firebaseUser.uid)
     const snap = await getDoc(ref)
     if (!snap.exists()) {
-      await setDoc(ref, {
-        role: 'user',
-        displayName: firebaseUser.displayName,
-        email: firebaseUser.email,
-        photoURL: firebaseUser.photoURL,
-        updatedAt: serverTimestamp(),
-      })
+      await Promise.all([
+        setDoc(ref, {
+          role: 'user',
+          displayName: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          joinedAt: serverTimestamp(),
+          lastVisitAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }),
+        setDoc(privateRef, { email: firebaseUser.email }),
+      ])
       applyUserData({ moderationBlockCount: 0 })
       return 'user'
     }
     const data = snap.data() as Record<string, unknown>
     applyUserData(data)
-    await updateDoc(ref, {
-      displayName: firebaseUser.displayName,
-      email: firebaseUser.email,
-      photoURL: firebaseUser.photoURL,
-      updatedAt: serverTimestamp(),
-    })
+    await Promise.all([
+      updateDoc(ref, {
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        lastVisitAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }),
+      setDoc(privateRef, { email: firebaseUser.email }, { merge: true }),
+    ])
     return (['admin', 'staff', 'user'].includes(String(data.role)) ? data.role : 'user') as BoardUserRole
   }
 

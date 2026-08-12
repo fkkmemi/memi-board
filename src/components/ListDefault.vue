@@ -9,6 +9,7 @@ withDefaults(defineProps<{
   postTo: (post: PostModel) => string | undefined
   now: number
   showCategory?: boolean
+  authorProfileTo?: (authorUid: string) => string | undefined
   authorPostsTo?: (authorUid: string) => string | undefined
   authorCommentsTo?: (authorUid: string) => string | undefined
 }>(), { showCategory: true })
@@ -92,6 +93,7 @@ function image(post: PostModel): string | undefined {
             :author-name="post.authorName"
             :author-photo="post.authorPhoto"
             :author-posts-to="authorPostsTo"
+            :author-profile-to="authorProfileTo"
             :author-comments-to="authorCommentsTo"
             :show-avatar="true"
             truncate

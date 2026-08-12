@@ -68,6 +68,7 @@ export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 // 여기(SSR로도 로드되는 dist/index.js)에는 절대 다시 넣지 않는다.
 export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
+export { useMemiBoardUserProfile } from './composables/useMemiBoardUserProfile'
 
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
@@ -93,6 +94,7 @@ export type {
   CommentModel,
   BoardUserRole,
   BoardUserModel,
+  BoardUserPrivateModel,
   AuthorMemoModel,
   AuthorMemoSentiment,
   BoardCategory,

@@ -10,12 +10,17 @@ const props = withDefaults(defineProps<{
   pageSize?: number
   /** 글 상세 링크 생성 — post.boardId로 보드를 구분해야 한다. */
   getPostLink?: (post: UserPostModel) => string | undefined
+  /** 카드의 작성자 메뉴 중 "프로필 보기" 링크. */
+  authorProfileTo?: (authorUid: string) => string | undefined
   /** 카드의 작성자 메뉴 중 "작성글 보기" 링크. */
   authorPostsTo?: (authorUid: string) => string | undefined
   /** 카드의 작성자 메뉴 중 "작성한 댓글 보기" 링크. */
   authorCommentsTo?: (authorUid: string) => string | undefined
+  /** 프로필의 미리보기처럼 더 보기 버튼 없이 pageSize만큼만 딱 보여줄 때 true. */
+  hideLoadMore?: boolean
 }>(), {
   pageSize: 10,
+  hideLoadMore: false,
 })
 
 const emit = defineEmits<{ select: [post: UserPostModel] }>()
@@ -63,12 +68,13 @@ function postTo(post: PostModel): string | undefined {
       :now="now"
       :show-category="false"
       :author-posts-to="authorPostsTo"
+      :author-profile-to="authorProfileTo"
       :author-comments-to="authorCommentsTo"
       @select="(post: PostModel) => emit('select', post as UserPostModel)"
     />
 
     <div
-      v-if="!postsPending && hasMore"
+      v-if="!postsPending && hasMore && !hideLoadMore"
       class="flex justify-center py-1"
     >
       <UButton

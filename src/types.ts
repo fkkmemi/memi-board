@@ -116,14 +116,25 @@ export interface CommentModel {
 
 export type BoardUserRole = 'admin' | 'staff' | 'user'
 
+/** memiBoardUsers/{uid} — 이메일만 빼고 전부 공개 프로필 정보다(누구나 읽을 수 있음). */
 export interface BoardUserModel {
   id: string
   role: BoardUserRole
   displayName?: string | null
-  email?: string | null
   photoURL?: string | null
   moderationBlockCount?: number
   updatedAt?: Timestamp
+  /** 최초 가입일. 기존 사용자는 비어 있고, 백필 스크립트나 다음 로그인 시 채운다. */
+  joinedAt?: Timestamp
+  /** 최근 방문일. 기존 사용자는 비어 있고, 백필 스크립트나 다음 로그인 시 채운다. */
+  lastVisitAt?: Timestamp
+  /** 프로필 자기소개. */
+  bio?: string | null
+}
+
+/** memiBoardUsers/{uid}/private/info — 본인·관리자만 읽는 비공개 정보. */
+export interface BoardUserPrivateModel {
+  email?: string | null
 }
 
 export type AuthorMemoSentiment = 'good' | 'bad'

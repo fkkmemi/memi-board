@@ -116,7 +116,8 @@ service cloud.firestore {
     }
 
     match /memiBoardUsers/{uid} {
-      allow read: if isBoardAdmin() || (isSignedIn() && request.auth.uid == uid);
+      // 이메일 말고는 다 공개 프로필 정보다 — 이메일은 private 서브컬렉션에 따로 둔다.
+      allow read: if true;
       allow create: if isSignedIn()
         && request.auth.uid == uid
         && request.resource.data.role == 'user'
@@ -142,6 +143,11 @@ service cloud.firestore {
       // 고정된다. 관리자도 못 읽는다 — 모더레이션용이 아니라 순전히 본인 참고용이다.
       match /memos/{targetUid} {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      // 이메일만 담는 비공개 서브컬렉션. 본인·관리자만 읽고 쓴다.
+      match /private/{docId} {
+        allow read, write: if isBoardAdmin() || (isSignedIn() && request.auth.uid == uid);
       }
     }
 

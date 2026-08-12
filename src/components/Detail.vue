@@ -17,6 +17,8 @@ import MemiBoardAuthorMenu from './AuthorMenu.vue'
 const props = defineProps<{
   boardId: string
   postId: string
+  /** 작성자 메뉴의 "프로필 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
+  authorProfileTo?: (authorUid: string) => string | undefined
   /** 작성자 메뉴의 "작성글 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
   authorPostsTo?: (authorUid: string) => string | undefined
   /** 작성자 메뉴의 "작성한 댓글 보기" 링크. 없으면 해당 항목이 비활성 상태로만 보인다. */
@@ -251,6 +253,7 @@ const contentHtml = computed(() => {
           :author-name="post.authorName"
           :author-photo="post.authorPhoto"
           :author-posts-to="authorPostsTo"
+          :author-profile-to="authorProfileTo"
           :author-comments-to="authorCommentsTo"
         />
         <span class="inline-flex items-center gap-1 tabular-nums">

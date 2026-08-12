@@ -43,5 +43,14 @@ service firebase.storage {
       allow delete: if isSignedIn()
         && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
     }
+
+    // 프로필 사진 — 경로가 uid로 고정돼 있어 본인만 쓸 수 있다. 공개 프로필의 일부라 읽기는 전체 공개.
+    match /memiBoardUsers/{uid}/avatar.jpg {
+      allow read: if true;
+      allow write: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType.matches('image/jpeg');
+    }
   }
 }

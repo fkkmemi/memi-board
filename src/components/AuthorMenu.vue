@@ -6,6 +6,8 @@ const props = withDefaults(defineProps<{
   authorUid: string
   authorName?: string | null
   authorPhoto?: string | null
+  /** "프로필 보기" 링크. 없으면 항목이 비활성 상태로만 보인다. */
+  authorProfileTo?: (authorUid: string) => string | undefined
   /** "작성글 보기" 링크. 없으면 항목이 비활성 상태로만 보인다. */
   authorPostsTo?: (authorUid: string) => string | undefined
   /** "작성한 댓글 보기" 링크. 없으면 항목이 비활성 상태로만 보인다. */
@@ -18,12 +20,12 @@ const props = withDefaults(defineProps<{
   truncate: false,
 })
 
+const authorProfileLink = computed(() => props.authorProfileTo?.(props.authorUid))
 const authorPostsLink = computed(() => props.authorPostsTo?.(props.authorUid))
 const authorCommentsLink = computed(() => props.authorCommentsTo?.(props.authorUid))
 
-/** 프로필·작성한 댓글 보기는 아직 갈 곳이 없어 비활성 — 작성글 보기만 우선 연결. */
 const items = computed(() => [[
-  { label: '프로필 보기', icon: 'i-lucide-user-round', disabled: true },
+  { label: '프로필 보기', icon: 'i-lucide-user-round', to: authorProfileLink.value, disabled: !authorProfileLink.value },
   { label: '작성글 보기', icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
   { label: '작성한 댓글 보기', icon: 'i-lucide-message-square-text', to: authorCommentsLink.value, disabled: !authorCommentsLink.value },
 ]])

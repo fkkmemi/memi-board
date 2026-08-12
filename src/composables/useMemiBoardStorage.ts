@@ -187,10 +187,23 @@ export function useMemiBoardStorage() {
     ])
   }
 
+  /**
+   * 프로필 사진. 경로가 uid로 고정돼 있어 다시 올리면 그냥 덮어쓴다(고아 파일 없음).
+   * 파일은 이미 크롭 단계에서 정사각형 JPEG로 만들어져 오므로 여기선 그대로 업로드한다.
+   */
+  async function uploadAvatar(uid: string, file: File): Promise<string> {
+    const storage = getStorage(app)
+    const path = `${cfg().usersCollection}/${uid}/avatar.jpg`
+    const fileRef = storageRef(storage, path)
+    await uploadBytes(fileRef, file, { contentType: file.type || 'image/jpeg' })
+    return getDownloadURL(fileRef)
+  }
+
   return {
     uploadAttachment,
     deleteAttachment,
     uploadEditorImage,
     deleteEditorImage,
+    uploadAvatar,
   }
 }
