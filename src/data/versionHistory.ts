@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.30.1',
+    date: '2026-08-13',
+    highlights: [
+      '게시물 상단의 목록 버튼을 간결한 왼쪽 화살표로 바꿨어요',
+      '이제 main 브랜치에 push하면 npm 배포가 자동으로 진행돼요',
+    ],
+  },
+  {
     version: '0.30.0',
     date: '2026-08-13',
     highlights: [

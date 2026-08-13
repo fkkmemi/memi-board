@@ -2,6 +2,12 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.30.1] - 2026-08-13
+
+### Changed
+- 게시물 상세 상단의 목록 버튼을 텍스트 없이 왼쪽 화살표 아이콘만 표시하도록 간결하게 바꿨다. 스크린 리더용 `aria-label`은 유지한다.
+- npm 배포 워크플로를 GitHub Release 기반에서 `main` 브랜치 push 기반으로 변경했다. 배포된 버전의 중복 발행은 사전 검사에서 중단한다.
+
 ## [0.30.0] - 2026-08-13
 
 ### Added
