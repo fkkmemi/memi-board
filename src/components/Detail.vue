@@ -205,8 +205,8 @@ const contentHtml = computed(() => {
           </h1>
         </div>
         <UButton
-          label="목록"
-          icon="i-lucide-list"
+          icon="i-lucide-arrow-left"
+          aria-label="목록으로 돌아가기"
           color="neutral"
           variant="ghost"
           size="sm"
