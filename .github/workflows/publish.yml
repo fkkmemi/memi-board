@@ -3,9 +3,15 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (for retrying a failed release workflow)
+        required: true
+        type: string
 
 concurrency:
-  group: npm-publish-${{ github.event.release.tag_name }}
+  group: npm-publish-${{ github.event.release.tag_name || inputs.tag }}
   cancel-in-progress: false
 
 permissions:
@@ -14,7 +20,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish ${{ github.event.release.tag_name }}
+    name: Publish ${{ github.event.release.tag_name || inputs.tag }}
     runs-on: ubuntu-latest
     environment: npm-publish
 
@@ -24,8 +30,6 @@ jobs:
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10.33.0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -41,9 +45,11 @@ jobs:
 
       - name: Verify release tag matches package version
         shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          if [ "${{ github.event.release.tag_name }}" != "v${PACKAGE_VERSION}" ]; then
+          if [ "${RELEASE_TAG}" != "v${PACKAGE_VERSION}" ]; then
             echo "Release tag must be v${PACKAGE_VERSION}."
             exit 1
           fi
