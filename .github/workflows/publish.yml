@@ -57,11 +57,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
-
       - name: Build
         run: pnpm build
+
+      # 컴포넌트의 self-reference(memi-board/runtime, /storage)는 build가 만든
+      # dist 선언 파일을 해석하므로 깨끗한 runner에서는 build 후 검사해야 한다.
+      - name: Typecheck
+        run: pnpm typecheck
 
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts
