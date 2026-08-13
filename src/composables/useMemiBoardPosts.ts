@@ -119,18 +119,16 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     input: { title?: string, content: string, attachments?: Attachment[] },
   ) {
     const imageBoard = isImageListBoard()
-    if (!hasBodyText(input.content)) {
-      throw new Error(
-        imageBoard
-          ? '내용을 입력해 주세요.'
-          : '본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.',
-      )
-    }
+    const hasText = hasBodyText(input.content)
+    const hasImage = hasBodyImage(input.content, input.attachments)
     if (imageBoard) {
-      if (!hasBodyImage(input.content, input.attachments)) {
+      if (!hasImage) {
         throw new Error('사진을 올려 주세요.')
       }
       return
+    }
+    if (!hasText && !hasImage) {
+      throw new Error('본문에 글자를 입력하거나 이미지를 첨부해 주세요.')
     }
     if (!input.title?.trim()) {
       throw new Error('제목을 입력해 주세요.')

@@ -14,6 +14,7 @@ import {
   useMemiBoardPosts,
   useMemiBoardModeration,
   useMemiBoardSettings,
+  hasBodyImage,
   hasBodyText,
   plainTextFromHtml,
 } from 'memi-board/runtime'
@@ -43,7 +44,7 @@ const content = ref('')
 const tags = ref<string[]>([])
 const attachments = ref<Attachment[]>([])
 
-/** 이미지 리스트뷰 보드 — 제목 없음, 이미지+본문 필수 */
+/** 이미지 리스트뷰 보드 — 제목 없음, 이미지만 있어도 작성 가능 */
 const isImageListView = computed(() => getBoard(resolvedBoardId.value)?.listView === 'image')
 const isEdit = computed(() => Boolean(props.postId))
 
@@ -628,15 +629,13 @@ async function handleSubmit() {
     error.value = '제목을 입력해 주세요.'
     return
   }
-  if (!hasBodyText(content.value)) {
-    error.value = imageBoard
-      ? '내용을 입력해 주세요.'
-      : '본문에 글자를 입력해 주세요. 이미지나 첨부만으로는 게시할 수 없습니다.'
-    return
-  }
   // 이미지 보드: 갤러리 1장 이상 (TipTap 본문 이미지 불가)
   if (imageBoard && coverSlots.value.length === 0) {
     error.value = '사진을 한 장 이상 올려 주세요.'
+    return
+  }
+  if (!imageBoard && !hasBodyText(content.value) && !hasBodyImage(content.value, attachments.value)) {
+    error.value = '본문에 글자를 입력하거나 이미지를 첨부해 주세요.'
     return
   }
   if (!user.value) {
