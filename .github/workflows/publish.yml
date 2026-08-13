@@ -1,17 +1,12 @@
 name: Publish to npm
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: Release tag to publish (for retrying a failed release workflow)
-        required: true
-        type: string
 
 concurrency:
-  group: npm-publish-${{ github.event.release.tag_name || inputs.tag }}
+  group: npm-publish-main
   cancel-in-progress: false
 
 permissions:
@@ -20,7 +15,7 @@ permissions:
 
 jobs:
   publish:
-    name: Publish ${{ github.event.release.tag_name || inputs.tag }}
+    name: Publish package
     runs-on: ubuntu-latest
     environment: npm-publish
 
@@ -43,14 +38,13 @@ jobs:
       - name: Set up npm CLI
         run: npm install --global npm@12.0.2
 
-      - name: Verify release tag matches package version
+      - name: Verify package version is not published
         shell: bash
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
           PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          if [ "${RELEASE_TAG}" != "v${PACKAGE_VERSION}" ]; then
-            echo "Release tag must be v${PACKAGE_VERSION}."
+          if npm view "memi-board@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            echo "memi-board@${PACKAGE_VERSION} is already published."
+            echo "Bump package.json version before pushing to main."
             exit 1
           fi
 
