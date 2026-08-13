@@ -11,6 +11,7 @@ import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
+import MemiBoardShareButton from './ShareButton.vue'
 import MemiBoardSwipeHint from './SwipeHint.vue'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
@@ -297,12 +298,13 @@ const contentHtml = computed(() => {
       </div>
     </div>
 
-    <div v-if="!isDraft" class="flex justify-center">
+    <div v-if="!isDraft" class="flex items-center justify-center gap-2">
       <MemiBoardLikeButton
         :board-id="boardId"
         :post-id="postId"
         :like-count="post.likeCount ?? 0"
       />
+      <MemiBoardShareButton :title="post.title" />
     </div>
 
     <nav class="grid grid-cols-3 items-center py-3" aria-label="게시글 이동">

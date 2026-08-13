@@ -40,7 +40,7 @@ const { uploadEditorImage } = useMemiBoardStorage()
 const title = ref('')
 /** UEditor content-type=html (shineb 와 동일) */
 const content = ref('')
-const tagsInput = ref('')
+const tags = ref<string[]>([])
 const attachments = ref<Attachment[]>([])
 
 /** 이미지 리스트뷰 보드 — 제목 없음, 이미지+본문 필수 */
@@ -569,7 +569,7 @@ async function loadPost(id: string) {
       return
     }
     title.value = post.title
-    tagsInput.value = (post.tags ?? []).join(', ')
+    tags.value = post.tags ?? []
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
     // 이미지 보드: 본문 이미지를 갤러리로, 에디터에는 글만
@@ -665,14 +665,13 @@ async function handleSubmit() {
     }
 
     submitHint.value = '저장하는 중…'
-    const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean)
     const bodyContent = imageBoard && coverSlots.value.length
       ? withCoverImagesInContent(content.value, coverUrls())
       : content.value
     const payload = {
       title: imageBoard ? '' : title.value.trim(),
       content: bodyContent,
-      tags,
+      tags: tags.value.map(t => t.trim()).filter(Boolean),
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
       attachments: imageBoard ? [] : attachments.value,
     }
@@ -903,9 +902,11 @@ async function handleSubmit() {
       </p>
     </div>
 
-    <UInput
-      v-model="tagsInput"
-      placeholder="태그 (쉼표로 구분)"
+    <UInputTags
+      v-model="tags"
+      placeholder="태그 입력 후 Enter"
+      :delimiter="','"
+      add-on-paste
     />
 
     <!-- 이미지 보드: 본문 이미지 업로드만 (파일 첨부 없음) -->
