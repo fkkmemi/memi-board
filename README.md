@@ -563,13 +563,13 @@ NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
 
 ## npm 배포
 
-npm의 6자리 OTP를 인자로 전달하면 빌드, 타입 검사, 패키지 dry-run을 모두 통과한 뒤에만 배포한다.
+npm Trusted Publishing(OIDC)을 사용한다. 장기 `NPM_TOKEN`이나 로컬 OTP는 저장하지 않는다.
 
-```bash
-pnpm release 123456
-```
+1. `package.json`, `CHANGELOG.md`, 인앱 `versionHistory`의 버전을 갱신하고 `main`에 푸시한다.
+2. GitHub에서 `v{package.json version}` 태그로 Release를 발행한다(예: `v0.29.1`).
+3. `.github/workflows/publish.yml`이 태그-패키지 버전 일치, 타입 검사, 빌드, 패키지 dry-run을 확인한 뒤 npm에 배포한다.
 
-`pnpm publish 123456`은 pnpm이 `123456`을 OTP가 아닌 폴더 경로로 해석하므로 사용하지 않는다.
+npm 패키지 설정의 Trusted Publisher는 GitHub 저장소 `fkkmemi/memi-board`, workflow `publish.yml`로 등록한다. GitHub Environment `npm-publish`에 승인자를 지정하면 Release 발행 뒤 실제 npm 배포 전에 한 번 더 승인할 수 있다.
 
 ## 버전 · 라이선스
 

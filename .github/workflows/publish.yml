@@ -1,0 +1,64 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: npm-publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish ${{ github.event.release.tag_name }}
+    runs-on: ubuntu-latest
+    environment: npm-publish
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      # Trusted Publishing은 npm CLI 11.5.1+가 필요하다. 버전을 고정해
+      # runner 이미지의 번들 npm 버전 변경이 릴리스 결과에 영향을 주지 않게 한다.
+      - name: Set up npm CLI
+        run: npm install --global npm@12.0.2
+
+      - name: Verify release tag matches package version
+        shell: bash
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          if [ "${{ github.event.release.tag_name }}" != "v${PACKAGE_VERSION}" ]; then
+            echo "Release tag must be v${PACKAGE_VERSION}."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Inspect package
+        run: npm pack --dry-run --ignore-scripts
+
+      - name: Publish with npm Trusted Publishing
+        run: npm publish --access public --ignore-scripts
