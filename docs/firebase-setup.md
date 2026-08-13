@@ -40,11 +40,30 @@ firebase init firestore storage
 // firebase.json
 {
   "firestore": { "rules": "firestore.rules" },
-  "storage": { "rules": "storage.rules" }
+  "storage": {
+    "bucket": "<vuefire.config.storageBucket 과 동일한 값>",
+    "rules": "storage.rules"
+  }
 }
 ```
 
-이미 Firebase CLI를 쓰고 있는 프로젝트라면, `firebase.json`에 `firestore.rules`/`storage.rules` 경로가 이미 지정돼 있는지만 확인하면 된다.
+`storage.bucket`은 호스트 `vuefire.config.storageBucket`과 **같아야** 한다. 예: `my-app.appspot.com`.
+
+이미 Firebase CLI를 쓰고 있는 프로젝트라면, `firebase.json`에 `firestore.rules`/`storage.rules` 경로가 있는지만 보지 말고 **버킷 이름**도 확인한다.
+
+구 프로젝트는 버킷이 두 개일 수 있다.
+
+- `*.appspot.com` — 예전 웹 앱 SDK snippet 의 `storageBucket`
+- `*.firebasestorage.app` — 콘솔/CLI 기본 버킷
+
+`firebase deploy --only storage`에 `bucket`이 없으면 **기본 버킷**에만 규칙이 올라간다. 앱은 `appspot.com`에 올리는데 규칙은 `firebasestorage.app`에만 있으면, 에디터 이미지에서 `storage/unauthorized`가 난다. 둘 다 쓰면 배열로 같은 규칙을 올린다.
+
+```json
+"storage": [
+  { "bucket": "my-app.appspot.com", "rules": "storage.rules" },
+  { "bucket": "my-app.firebasestorage.app", "rules": "storage.rules" }
+]
+```
 
 ## 5. 게시판 Security Rules 병합 + 배포
 

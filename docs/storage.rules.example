@@ -36,10 +36,14 @@ service firebase.storage {
 
     match /memiBoardPosts/{postId}/images/{allPaths=**} {
       allow read: if true;
+      // 글쓰기 화면은 Firestore 문서를 만들기 전에 Storage 경로(미리 딴 postId)로
+      // 올린다. 붙여넣기 이미지는 image/png 등이 오고, firestore.exists()가
+      // Storage 규칙에서 실패하면 조건 전체가 unauthorized 가 된다.
+      // 쓰기는 로그인 + 용량 + image/* 만 본다. 삭제는 소유자/스태프.
       allow write: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff())
+        && request.resource != null
         && request.resource.size < 5 * 1024 * 1024
-        && request.resource.contentType.matches('image/(jpeg|png|webp|gif|jpg|heic|heif)');
+        && request.resource.contentType.matches('image/.*');
       allow delete: if isSignedIn()
         && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
     }

@@ -237,7 +237,9 @@ function postTo(post: PostModel): string | undefined {
           variant="outline"
           size="sm"
         />
+        <!-- 테스트용 목록 뷰 전환 UI — 보드 설정의 listView를 사용하므로 운영 목록에서는 숨김.
         <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />
+        -->
         <UButton
           v-if="writeTo && canWrite"
           :to="writeTo"
@@ -247,9 +249,11 @@ function postTo(post: PostModel): string | undefined {
         />
       </div>
     </div>
+    <!-- 테스트용 목록 뷰 전환 UI.
     <div v-else-if="view === undefined" class="flex justify-end">
       <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />
     </div>
+    -->
 
     <template v-if="postsPending">
       <USkeleton

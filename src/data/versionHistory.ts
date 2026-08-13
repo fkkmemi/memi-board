@@ -11,6 +11,16 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.30.0',
+    date: '2026-08-13',
+    highlights: [
+      '본문 글 없이 사진만 첨부해도 글을 올릴 수 있어요',
+      '목록은 게시판 설정에서 정한 보기 방식을 사용하고, 테스트용 보기 전환 버튼은 숨겼어요',
+      '글쓰기 중 사진 업로드 권한과 Storage 버킷 설정 안내를 보강했어요',
+    ],
+    note: '이미지 업로드가 거부되면 호스트의 Storage 규칙과 firebase.json 버킷 설정을 최신 예시로 확인해 주세요.',
+  },
+  {
     version: '0.29.1',
     date: '2026-08-13',
     highlights: [

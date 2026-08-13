@@ -2,6 +2,16 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.30.0] - 2026-08-13
+
+### Added
+- 제목이 있는 일반 게시판은 본문 글자 없이 이미지 첨부만으로 글을 작성할 수 있다. 이미지 리스트뷰 게시판도 설명 글 없이 갤러리 사진만 올릴 수 있다. 빈 글이나 이미지가 아닌 파일만 첨부한 글은 계속 차단한다.
+
+### Changed
+- 목록 상단의 리스트뷰 전환기는 보드별 표시 방식을 확인하기 위한 테스트 UI였으므로 주석 처리했다. 실제 목록은 보드 설정의 `listView`를 그대로 사용한다.
+- Storage 예시 규칙: 본문 이미지 쓰기는 로그인 + 5MB + `image/*`. 글 문서가 없는 작성 화면·붙여넣기 PNG에서 `firestore.exists()`가 통째로 `unauthorized`가 되던 경우를 피한다.
+- 문서: `firebase.json`의 Storage `bucket`을 앱 `storageBucket`과 맞출 것. 구 프로젝트의 `*.appspot.com` / `*.firebasestorage.app` 불일치와 `storage/unauthorized` 해결 절차를 README·firebase-setup에 추가.
+
 ## [0.29.1] - 2026-08-13
 
 ### Fixed

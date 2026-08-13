@@ -240,13 +240,16 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
    (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
 2. [docs/storage.rules.example](docs/storage.rules.example) → `storage.rules` 병합
-3. 목록/작성자별 쿼리에 필요한 복합 인덱스 배포 (아래)
-4. 배포:
+3. `firebase.json`의 Storage `bucket`이 `vuefire.config.storageBucket`과 같은지 확인
+   (`*.appspot.com` vs `*.firebasestorage.app` — [firebase-setup.md](docs/firebase-setup.md) 참고)
+4. 목록/작성자별 쿼리에 필요한 복합 인덱스 배포 (아래)
+5. 배포:
    ```bash
    firebase deploy --only firestore:rules,storage,firestore:indexes
    ```
 
 **Rules를 파일에만 넣고 배포 안 하면** 글쓰기에서 `permission-denied` — 가장 흔한 설치 실수.
+**Storage 규칙을 앱이 쓰는 버킷이 아닌 곳에 배포하면** 본문 이미지에서 `storage/unauthorized`.
 
 #### 복합 인덱스
 
@@ -376,6 +379,7 @@ const router = useRouter()
 
 **에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
 `memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
+글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MB + `image/*`** 로 본다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
 
 본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
@@ -504,6 +508,15 @@ export default defineNuxtPlugin(() => {
 ### AI 검열 실패 / 글 안 올라감 (`onError: 'block'`)
 
 App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워크. 브라우저 콘솔의 `moderation AI failed` warn 확인.
+
+### 에디터 이미지 `storage/unauthorized`
+
+본문 붙여넣기·업로드가 `User does not have permission to access 'memiBoardPosts/…/images/…'` 로 실패하면:
+
+1. 로그인 상태인지 확인
+2. `vuefire.config.storageBucket`과 `firebase.json` `storage.bucket`이 **같은 이름**인지 확인. 구 프로젝트는 `*.appspot.com`(앱)과 `*.firebasestorage.app`(CLI 기본)이 갈라질 수 있다 — 앱이 쓰는 쪽에 규칙을 배포한다.
+3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
+4. `firebase deploy --only storage` 후 다시 올려 본다.
 
 ### monorepo `link:` / `file:` 로 개발할 때
 
