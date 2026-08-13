@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.29.1',
+    date: '2026-08-13',
+    highlights: [
+      '프로필 이름이나 사진을 바꾸면 예전에 작성한 글과 댓글의 작성자 정보도 함께 바뀌어요',
+      '나를 대상으로 작성된 답글의 표시 이름도 새 프로필 이름으로 맞춰져요',
+    ],
+    note: '이 기능을 쓰려면 호스트가 Firestore 보안 규칙을 최신 예시로 갱신해야 해요.',
+  },
+  {
     version: '0.27.0',
     date: '2026-08-12',
     highlights: [

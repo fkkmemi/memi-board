@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { serverTimestamp, updateDoc } from 'firebase/firestore'
+import { query, serverTimestamp, where, writeBatch, getDocs } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { boardUserDoc, useBoardPathConfig } from 'memi-board/runtime'
+import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig } from 'memi-board/runtime'
 import type { BoardUserModel } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardAvatarCropModal from './AvatarCropModal.vue'
@@ -63,6 +63,58 @@ function onCropConfirm(file: File) {
 
 const avatarPreview = computed(() => photoURL.value ?? undefined)
 
+async function updateProfileReferences(nextName: string, nextPhotoURL: string | null) {
+  const config = useBoardPathConfig()
+  const [postsSnapshot, commentsSnapshot, repliesSnapshot] = await Promise.all([
+    getDocs(query(postsCol(db, config), where('authorUid', '==', props.uid))),
+    getDocs(query(commentsCol(db, config), where('authorUid', '==', props.uid))),
+    getDocs(query(commentsCol(db, config), where('replyToUid', '==', props.uid))),
+  ])
+
+  // 한 댓글이 작성자이면서 답글 대상일 수도 있으므로 같은 문서의 변경을 합친다.
+  const updates = new Map<string, {
+    ref: (typeof commentsSnapshot.docs)[number]['ref']
+    data: Record<string, unknown>
+  }>()
+  for (const doc of postsSnapshot.docs) {
+    updates.set(doc.ref.path, {
+      ref: doc.ref,
+      data: { authorName: nextName, authorPhoto: nextPhotoURL },
+    })
+  }
+  for (const doc of commentsSnapshot.docs) {
+    updates.set(doc.ref.path, {
+      ref: doc.ref,
+      data: { authorName: nextName, authorPhoto: nextPhotoURL },
+    })
+  }
+  for (const doc of repliesSnapshot.docs) {
+    const existing = updates.get(doc.ref.path)
+    updates.set(doc.ref.path, {
+      ref: doc.ref,
+      data: { ...existing?.data, replyToName: nextName },
+    })
+  }
+
+  // Firestore batch 한도(500)보다 여유 있게 나눈다. 프로필 문서는 마지막 batch에
+  // 넣어 전파 도중 실패했을 때 저장 완료로 보이지 않게 하고, 재시도는 멱등이다.
+  const writes = [...updates.values()]
+  for (let offset = 0; offset < writes.length; offset += 450) {
+    const batch = writeBatch(db)
+    for (const update of writes.slice(offset, offset + 450)) batch.update(update.ref, update.data)
+    await batch.commit()
+  }
+
+  const profileBatch = writeBatch(db)
+  profileBatch.update(boardUserDoc(db, config, props.uid), {
+    displayName: nextName,
+    bio: bio.value.trim() || null,
+    photoURL: nextPhotoURL,
+    updatedAt: serverTimestamp(),
+  })
+  await profileBatch.commit()
+}
+
 async function onSave() {
   if (saving.value) return
   const trimmedName = displayName.value.trim()
@@ -80,12 +132,7 @@ async function onSave() {
       avatarUploading.value = false
     }
 
-    await updateDoc(boardUserDoc(db, useBoardPathConfig(), props.uid), {
-      displayName: trimmedName,
-      bio: bio.value.trim() || null,
-      photoURL: nextPhotoURL,
-      updatedAt: serverTimestamp(),
-    })
+    await updateProfileReferences(trimmedName, nextPhotoURL)
 
     pendingAvatarFile = null
     open.value = false

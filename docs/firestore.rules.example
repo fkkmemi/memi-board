@@ -98,6 +98,14 @@ service cloud.firestore {
         && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
           || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
     }
+    // 프로필 이름 변경 시 나를 답글 대상으로 가리키는 다른 사용자의 댓글에
+    // 복제된 replyToName만 동기화할 수 있다. 작성자/본문 등 다른 필드는 불변이다.
+    function isReplyTargetProfileUpdate() {
+      return isSignedIn()
+        && resource.data.replyToUid == request.auth.uid
+        && request.resource.data.replyToUid == resource.data.replyToUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyToName']);
+    }
     // data.boardId 는 이제 문서 필드다. list 쿼리에서 이 함수가 안전하게 평가되려면:
     //  - isBoardAdmin()/isBoardStaff() 만으로 true 가 되는 경우는 항상 OK
     //    (request.auth.uid 기준 get() 이라 문서 내용과 무관하게 항상 평가 가능)
@@ -222,7 +230,8 @@ service cloud.firestore {
       allow delete: if isOwner(resource)
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardStaff();
-      allow update: if isOwner(resource) || isBoardStaff() || isReplyCountUpdate();
+      allow update: if isOwner(resource) || isBoardStaff()
+        || isReplyCountUpdate() || isReplyTargetProfileUpdate();
     }
 
     // 좋아요 토글 전용 flat 컬렉션. 문서ID 관례 = `${postId}_${uid}`.

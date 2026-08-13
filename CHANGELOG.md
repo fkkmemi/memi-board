@@ -2,6 +2,14 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [0.29.1] - 2026-08-13
+
+### Fixed
+- 프로필에서 이름이나 사진을 변경하면 `memiBoardUsers/{uid}`만 바뀌고 기존 글·댓글에는 작성 당시 값이 계속 표시되던 문제를 수정했다. 프로필 저장 시 작성한 `memiBoardPosts`의 `authorName`/`authorPhoto`, 작성한 `memiBoardComments`의 동일 필드, 해당 사용자를 가리키는 답글의 `replyToName`을 450개 단위 Firestore batch로 함께 갱신한다. Firebase Auth 프로필은 호스트 앱의 책임으로 두며 변경하지 않는다.
+
+### Compatibility
+- 타인이 작성한 답글에 복제된 `replyToName`을 본인이 갱신할 수 있도록 `docs/firestore.rules.example`에 해당 필드만 허용하는 좁은 규칙을 추가했다. 호스트 프로젝트의 Firestore Rules에 병합·배포해야 프로필 일괄 갱신이 정상 동작한다.
+
 ## [0.27.0] - 2026-08-12
 
 ### Breaking
