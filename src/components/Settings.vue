@@ -69,6 +69,7 @@ const draft = ref<BoardCategory[]>([])
 const newLabel = ref('')
 const savingId = ref<string | null>(null)
 const savedId = ref<string | null>(null)
+const deletingId = ref<string | null>(null)
 const ordering = ref(false)
 const error = ref('')
 const deleteConfirm = ref('')
@@ -132,14 +133,20 @@ async function moveCategory(index: number, offset: -1 | 1) {
 
 async function removeCategory(index: number) {
   const category = draft.value[index]
-  if (!category || !window.confirm(`‘${category.label}’ 카테고리를 삭제하시겠습니까?`)) return
+  if (!category || !window.confirm(
+    `‘${category.label}’ 게시판을 삭제하시겠습니까?\n\n이 게시판의 모든 게시물, 댓글, 대댓글, 본문 이미지와 첨부파일이 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`,
+  )) return
   error.value = ''
+  deletingId.value = category.id
   try {
     await deleteCategory(category.id)
     draft.value.splice(index, 1)
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '카테고리를 삭제하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : '게시판과 연결 데이터를 삭제하지 못했습니다.'
+  }
+  finally {
+    deletingId.value = null
   }
 }
 
@@ -299,7 +306,17 @@ async function runDeleteAll() {
               size="sm"
               :to="categoryTo(category.id)"
             />
-            <UButton v-if="!categoryId" label="카테고리 삭제" icon="i-lucide-trash-2" color="error" variant="ghost" size="sm" @click="removeCategory(index)" />
+            <UButton
+              v-if="!categoryId"
+              label="게시판 삭제"
+              icon="i-lucide-trash-2"
+              color="error"
+              variant="ghost"
+              size="sm"
+              :loading="deletingId === category.id"
+              :disabled="deletingId !== null"
+              @click="removeCategory(index)"
+            />
             <UButton
               label="저장"
               icon="i-lucide-save"

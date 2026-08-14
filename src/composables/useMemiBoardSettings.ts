@@ -1,5 +1,6 @@
 import { computed } from 'vue'
-import { useCollection, useFirestore } from 'vuefire'
+import { useCollection, useFirebaseApp, useFirestore } from 'vuefire'
+import { getStorage } from 'firebase/storage'
 import {
   deleteDoc,
   getDocs,
@@ -22,6 +23,7 @@ import {
 } from '../utils/boardPaths'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import { slugify } from '../utils/slugify'
+import { deletePostCascade } from '../utils/deletePostCascade'
 import type { BoardModel, BoardVisibility } from '../types'
 
 /** 필요할 때 호스트가 명시적으로 시드할 수 있는 예시 보드. 자동 적용하지 않는다. */
@@ -60,6 +62,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
 export function useMemiBoardSettings() {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
+  const app = useFirebaseApp()
   const { isSignedIn } = useMemiBoardAuth()
 
   const boardsQuery = computed(() => query(settingsCol(db, cfg()), orderBy('order', 'asc')))
@@ -196,7 +199,21 @@ export function useMemiBoardSettings() {
 
   async function deleteBoard(id: string): Promise<void> {
     if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
-    // 설정 문서만 삭제 (posts 는 호스트/관리 작업으로 별도 정리)
+    const boardId = id.trim()
+    if (!boardId) throw new Error('삭제할 게시판 ID가 필요합니다.')
+
+    // 설정은 마지막에 삭제한다. 중간 실패 시 게시판을 남겨 두어 관리자가 재시도할 수 있다.
+    for (;;) {
+      const page = await getDocs(query(
+        postsCol(db, cfg()),
+        where('boardId', '==', boardId),
+        fbLimit(25),
+      ))
+      if (page.empty) break
+      for (const post of page.docs) {
+        await deletePostCascade(db, getStorage(app), cfg(), post.id)
+      }
+    }
     await deleteDoc(settingsDoc(db, cfg(), id))
   }
 

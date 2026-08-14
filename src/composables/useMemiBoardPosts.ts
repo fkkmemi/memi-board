@@ -8,7 +8,6 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
@@ -17,45 +16,25 @@ import {
   startAfter,
   endBefore,
   serverTimestamp,
-  writeBatch,
   deleteField,
 } from 'firebase/firestore'
 import type { QueryConstraint, Unsubscribe } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
-import { getStorage, ref as storageRef, listAll, deleteObject } from 'firebase/storage'
-import type { StorageReference } from 'firebase/storage'
+import { getStorage } from 'firebase/storage'
 import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
-import { extractEditorImageUrls } from '../utils/extractEditorImageUrls'
-import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from '../utils/storagePath'
+import { deletePostCascade } from '../utils/deletePostCascade'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import {
   postBodyDoc,
-  commentsCol,
   postDoc,
-  postStorageFolder,
   postsCol,
 } from '../utils/boardPaths'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { Attachment, PostDetail, PostModel } from '../types'
-
-async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
-  const list = await listAll(folderRef).catch(() => ({ items: [], prefixes: [] }))
-  await Promise.all([
-    ...list.items.map(item => deleteObject(item)),
-    ...list.prefixes.map(prefix => deleteStorageFolder(prefix)),
-  ])
-}
-
-async function deleteStoragePaths(storage: ReturnType<typeof getStorage>, paths: Iterable<string>): Promise<void> {
-  const unique = [...new Set([...paths].filter(Boolean))]
-  await Promise.all(
-    unique.map(path => deleteObject(storageRef(storage, path)).catch(() => {})),
-  )
-}
 
 export interface CreatePostInput {
   postId?: string
@@ -105,7 +84,6 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const postsColRef = () => postsCol(db, cfg())
   const postDocRef = (id: string) => postDoc(db, cfg(), id)
   const bodyDocRef = (id: string) => postBodyDoc(db, cfg(), id)
-  const commentsColRef = () => commentsCol(db, cfg())
 
   function listedForBoard(): boolean {
     return !isBoardHidden(bid())
@@ -315,61 +293,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   }
 
   async function deletePost(id: string): Promise<void> {
-    const [metaSnap, bodySnap] = await Promise.all([
-      getDoc(postDocRef(id)),
-      getDoc(bodyDocRef(id)),
-    ])
-    if (!metaSnap.exists()) return
-
-    const meta = metaSnap.data() as PostModel
-    const bodyContent = bodySnap.exists()
-      ? String((bodySnap.data() as { content?: string }).content ?? '')
-      : ''
-
-    const commentsSnap = await getDocs(query(commentsColRef(), where('postId', '==', id)))
-    for (let offset = 0; offset < commentsSnap.docs.length; offset += 450) {
-      const batch = writeBatch(db)
-      commentsSnap.docs.slice(offset, offset + 450).forEach(d => batch.delete(d.ref))
-      await batch.commit()
-    }
-
-    const storage = getStorage(app)
-    const extraPaths = new Set<string>()
-    const extraNamespaces = new Set<string>()
-
-    for (const att of meta.attachments ?? []) {
-      if (att?.path) {
-        extraPaths.add(att.path)
-        const ns = postNamespaceFromStoragePath(att.path)
-        if (ns && ns !== id) extraNamespaces.add(ns)
-      }
-    }
-
-    for (const url of extractEditorImageUrls(bodyContent)) {
-      const path = storagePathFromDownloadUrl(url)
-      if (!path) continue
-      extraPaths.add(path)
-      const thumbGuess = path
-        .replace(/\/images\/([^/]+)$/, '/images/thumbnails/$1')
-        .replace(/\.[^.]+$/, '.jpg')
-      if (thumbGuess !== path && thumbGuess.includes('/images/thumbnails/')) {
-        extraPaths.add(thumbGuess)
-      }
-      const m = path.match(/^(.*\/images\/)([^/]+)\.[^.]+$/)
-      if (m && !path.includes('/thumbnails/')) {
-        extraPaths.add(`${m[1]}thumbnails/${m[2]}.jpg`)
-      }
-      const ns = postNamespaceFromStoragePath(path)
-      if (ns && ns !== id) extraNamespaces.add(ns)
-    }
-
-    await deleteDoc(bodyDocRef(id))
-    await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg(), id)))
-    for (const ns of extraNamespaces) {
-      await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg(), ns)))
-    }
-    await deleteStoragePaths(storage, extraPaths)
-    await deleteDoc(postDocRef(id))
+    await deletePostCascade(db, getStorage(app), cfg(), id)
   }
 
   return {
