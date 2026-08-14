@@ -2,6 +2,17 @@
 
 이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
 
+## [Unreleased]
+
+## [0.30.2] - 2026-08-14
+
+### Changed
+- `ListDefault`(일반 뷰) 썸네일을 `size-[4.5rem]` 원형에서 `size-[3rem]` 라운드 사각(`rounded-lg`)으로 바꿨다.
+- 에디터 툴바를 좁은 화면에서 잘리지 않게 줄였다. 제목·강조·목록·인용은 `서식` 드롭다운, 막대에는 링크·이미지·유튜브·실행취소만 둔다. 모바일/데스크톱 동일.
+
+### Fixed
+- 로그인할 때마다 `ensureUserDoc`이 Firebase Auth 이름·사진으로 `memiBoardUsers` 프로필을 덮어쓰던 문제를 고쳤다. 이미 있는 값은 유지하고, 비어 있을 때만 Auth 값으로 채운다.
+
 ## [0.30.1] - 2026-08-13
 
 ### Changed

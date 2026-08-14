@@ -139,13 +139,17 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     }
     const data = snap.data() as Record<string, unknown>
     applyUserData(data)
+    const hasName = typeof data.displayName === 'string' && data.displayName.trim()
+    const hasPhoto = typeof data.photoURL === 'string' && data.photoURL.trim()
+    const visit: Record<string, unknown> = {
+      lastVisitAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    }
+    // 이미 있는 이름·사진은 프로필이 주인. Auth(구글/애플) 값으로 되돌리지 않는다.
+    if (!hasName && firebaseUser.displayName) visit.displayName = firebaseUser.displayName
+    if (!hasPhoto && firebaseUser.photoURL) visit.photoURL = firebaseUser.photoURL
     await Promise.all([
-      updateDoc(ref, {
-        displayName: firebaseUser.displayName,
-        photoURL: firebaseUser.photoURL,
-        lastVisitAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }),
+      updateDoc(ref, visit),
       setDoc(privateRef, { email: firebaseUser.email }, { merge: true }),
     ])
     return (['admin', 'staff', 'user'].includes(String(data.role)) ? data.role : 'user') as BoardUserRole

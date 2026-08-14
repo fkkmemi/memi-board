@@ -392,37 +392,49 @@ const handlers = computed(() => ({
 
 const toolbarItems = computed(() => {
   const media = isImageListView.value
-    ? [{ kind: 'link' as const, icon: 'i-lucide-link' }]
+    ? [{ kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } }]
     : [
-        { kind: 'link' as const, icon: 'i-lucide-link' },
-        { kind: 'image' as const, icon: 'i-lucide-image' },
-        { kind: 'youtube' as const, icon: 'i-lucide-youtube', label: 'YouTube' },
+        { kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } },
+        { kind: 'image' as const, icon: 'i-lucide-image', tooltip: { text: '이미지' } },
+        { kind: 'youtube' as const, icon: 'i-lucide-youtube', tooltip: { text: 'YouTube' } },
       ]
   return [
     [
-      { kind: 'heading' as const, level: 1 as const, icon: 'i-lucide-heading-1' },
-      { kind: 'heading' as const, level: 2 as const, icon: 'i-lucide-heading-2' },
-      { kind: 'heading' as const, level: 3 as const, icon: 'i-lucide-heading-3' },
-    ],
-    [
-      { kind: 'mark' as const, mark: 'bold' as const, icon: 'i-lucide-bold' },
-      { kind: 'mark' as const, mark: 'italic' as const, icon: 'i-lucide-italic' },
-      { kind: 'mark' as const, mark: 'underline' as const, icon: 'i-lucide-underline' },
-      { kind: 'mark' as const, mark: 'strike' as const, icon: 'i-lucide-strikethrough' },
-      { kind: 'mark' as const, mark: 'code' as const, icon: 'i-lucide-code' },
-    ],
-    [
-      { kind: 'bulletList' as const, icon: 'i-lucide-list' },
-      { kind: 'orderedList' as const, icon: 'i-lucide-list-ordered' },
-      { kind: 'blockquote' as const, icon: 'i-lucide-quote' },
-      { kind: 'codeBlock' as const, icon: 'i-lucide-square-code' },
+      {
+        icon: 'i-lucide-a-large-small',
+        tooltip: { text: '서식' },
+        content: { align: 'start' as const },
+        items: [
+          [
+            { kind: 'mark' as const, mark: 'bold' as const, icon: 'i-lucide-bold', label: '굵게' },
+            { kind: 'mark' as const, mark: 'italic' as const, icon: 'i-lucide-italic', label: '기울임' },
+            { kind: 'mark' as const, mark: 'underline' as const, icon: 'i-lucide-underline', label: '밑줄' },
+            { kind: 'mark' as const, mark: 'strike' as const, icon: 'i-lucide-strikethrough', label: '취소선' },
+          ],
+          [
+            { kind: 'heading' as const, level: 1 as const, icon: 'i-lucide-heading-1', label: '제목' },
+            { kind: 'heading' as const, level: 2 as const, icon: 'i-lucide-heading-2', label: '머리말' },
+            { kind: 'heading' as const, level: 3 as const, icon: 'i-lucide-heading-3', label: '부머리말' },
+            { kind: 'paragraph' as const, icon: 'i-lucide-text', label: '본문' },
+            { kind: 'mark' as const, mark: 'code' as const, icon: 'i-lucide-code', label: '모노 스타일' },
+          ],
+          [
+            { kind: 'bulletList' as const, icon: 'i-lucide-list', label: '구분점 목록' },
+            { kind: 'orderedList' as const, icon: 'i-lucide-list-ordered', label: '번호 목록' },
+            { kind: 'blockquote' as const, icon: 'i-lucide-quote', label: '블록 인용' },
+            { kind: 'codeBlock' as const, icon: 'i-lucide-square-code', label: '코드 블록' },
+          ],
+          [
+            { kind: 'horizontalRule' as const, icon: 'i-lucide-minus', label: '구분선' },
+            { kind: 'clearFormatting' as const, icon: 'i-lucide-remove-formatting', label: '서식 지우기' },
+          ],
+        ],
+      },
     ],
     media,
     [
-      { kind: 'horizontalRule' as const, icon: 'i-lucide-minus' },
-      { kind: 'undo' as const, icon: 'i-lucide-undo-2' },
-      { kind: 'redo' as const, icon: 'i-lucide-redo-2' },
-      { kind: 'clearFormatting' as const, icon: 'i-lucide-remove-formatting' },
+      { kind: 'undo' as const, icon: 'i-lucide-undo-2', tooltip: { text: '실행 취소' } },
+      { kind: 'redo' as const, icon: 'i-lucide-redo-2', tooltip: { text: '다시 실행' } },
     ],
   ]
 })
@@ -883,7 +895,7 @@ async function handleSubmit() {
           <UEditorToolbar
             :editor="editor"
             :items="toolbarItems"
-            class="border-b border-default p-2"
+            class="border-b border-default p-2 flex-wrap"
           />
           <UEditorDragHandle :editor="editor" />
         </template>

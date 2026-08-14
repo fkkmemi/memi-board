@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.30.2',
+    date: '2026-08-14',
+    highlights: [
+      '일반 목록 썸네일을 조금 작은 라운드 사각으로 바꿨어요',
+      '글쓰기 도구 모음을 서식 메뉴로 줄여 좁은 화면에서도 잘리지 않아요',
+      '다시 로그인해도 바꿔 둔 프로필 이름과 사진이 유지돼요',
+    ],
+  },
+  {
     version: '0.30.1',
     date: '2026-08-13',
     highlights: [

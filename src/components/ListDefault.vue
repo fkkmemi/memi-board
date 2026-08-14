@@ -77,7 +77,7 @@ function image(post: PostModel): string | undefined {
 
           <div
             v-if="image(post)"
-            class="my-2 mr-2 size-[4.5rem] shrink-0 self-center overflow-hidden rounded-full bg-elevated"
+            class="my-2 mr-2 size-[3rem] shrink-0 self-center overflow-hidden rounded-lg bg-elevated"
           >
             <img
               :src="image(post)"
