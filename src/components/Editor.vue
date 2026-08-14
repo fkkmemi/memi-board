@@ -9,6 +9,7 @@
 import { ref, computed, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { Attachment, EditorImageEntry } from 'memi-board/runtime'
+import type { WritingAssistantAction } from 'memi-board/runtime'
 import {
   useMemiBoardAuth,
   useMemiBoardPosts,
@@ -17,6 +18,7 @@ import {
   hasBodyImage,
   hasBodyText,
   plainTextFromHtml,
+  useMemiBoardWritingAssistant,
 } from 'memi-board/runtime'
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
@@ -37,6 +39,7 @@ const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts(reso
 const { checkText } = useMemiBoardModeration()
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 const { uploadEditorImage } = useMemiBoardStorage()
+const { assist } = useMemiBoardWritingAssistant()
 
 const title = ref('')
 /** UEditor content-type=html (shineb 와 동일) */
@@ -54,6 +57,8 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
+const aiRunning = ref(false)
+const aiError = ref('')
 
 const attachmentNamespace = ref(props.postId ?? createPostId())
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
@@ -439,9 +444,70 @@ const toolbarItems = computed(() => {
   ]
 })
 
+const aiMenuItems = computed(() => [
+  [
+    { label: '맞춤법 검사', icon: 'i-lucide-spell-check-2', onSelect: () => runWritingAssistant('proofread') },
+    { label: '문장 다듬기', icon: 'i-lucide-wand-sparkles', onSelect: () => runWritingAssistant('polish') },
+    { label: '자연스럽게 이어쓰기', icon: 'i-lucide-text-cursor-input', onSelect: () => runWritingAssistant('continue') },
+    { label: '짧게 요약하기', icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
+  ],
+  [
+    { label: '영어로 번역', icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-en') },
+    { label: '한국어로 번역', icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-ko') },
+  ],
+  [
+    { label: '본문에서 제목 만들기', icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
+  ],
+])
+
 function resolveEditor(): any | null {
   const ed = (editorRef.value as any)?.editor
   return ed?.value ?? ed ?? null
+}
+
+async function runWritingAssistant(action: WritingAssistantAction) {
+  const editor = resolveEditor()
+  if (!editor || aiRunning.value) return
+  aiError.value = ''
+
+  const { from, to } = editor.state.selection
+  const hasSelection = from !== to
+  const selectedText = hasSelection ? editor.state.doc.textBetween(from, to, '\n') : ''
+  const source = action === 'title'
+    ? plainTextFromHtml(content.value)
+    : hasSelection ? selectedText : content.value
+
+  aiRunning.value = true
+  try {
+    const result = await assist({
+      action,
+      content: source,
+      title: title.value,
+      selection: hasSelection || action === 'title',
+    })
+
+    if (action === 'title') {
+      title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim()
+    }
+    else if (action === 'continue') {
+      const position = hasSelection ? to : editor.state.doc.content.size
+      editor.chain().focus().insertContentAt(position, result).run()
+    }
+    else if (hasSelection) {
+      editor.chain().focus().insertContentAt({ from, to }, result).run()
+    }
+    else {
+      editor.commands.setContent(result, { emitUpdate: true })
+      editor.chain().focus('end').run()
+    }
+  }
+  catch (cause) {
+    console.warn('[memi-board] writing assistant failed', cause)
+    aiError.value = cause instanceof Error ? cause.message : 'AI 작업에 실패했습니다. 다시 시도해 주세요.'
+  }
+  finally {
+    aiRunning.value = false
+  }
 }
 
 // 제목에서 Tab 누르면 툴바 버튼들 건너뛰고 본문으로 바로 이동
@@ -892,14 +958,37 @@ async function handleSubmit() {
         class="board-content w-full"
       >
         <template #default="{ editor }">
-          <UEditorToolbar
-            :editor="editor"
-            :items="toolbarItems"
-            class="border-b border-default p-2 flex-wrap"
-          />
+          <div class="flex items-start border-b border-default">
+            <UEditorToolbar
+              :editor="editor"
+              :items="toolbarItems"
+              class="min-w-0 flex-1 p-2 flex-wrap"
+            />
+            <UDropdownMenu :items="aiMenuItems">
+              <UButton
+                icon="i-lucide-sparkles"
+                label="AI"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="m-2 shrink-0"
+                :loading="aiRunning"
+                :disabled="aiRunning"
+                aria-label="AI 글쓰기 도우미"
+              />
+            </UDropdownMenu>
+          </div>
           <UEditorDragHandle :editor="editor" />
         </template>
       </UEditor>
+
+      <p
+        v-if="aiError"
+        class="flex items-center gap-2 border-t border-default px-4 py-2 text-xs text-error"
+      >
+        <UIcon name="i-lucide-circle-alert" class="size-3.5 shrink-0" />
+        {{ aiError }}
+      </p>
 
       <p
         v-if="imageUploading && !isImageListView"
