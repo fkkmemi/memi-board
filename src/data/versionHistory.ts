@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.31.0',
+    date: '2026-08-14',
+    highlights: [
+      '글쓰기 화면에 AI 도우미가 생겼어요. 맞춤법, 다듬기, 이어서 쓰기, 요약, 번역, 제목을 도와줘요',
+      'AI 도우미는 하루 10번까지 사용할 수 있어요',
+    ],
+    note: '호스트는 Firestore 규칙에 AI 글쓰기 횟수 필드를 병합·배포해야 제한이 지켜져요.',
+  },
+  {
     version: '0.30.2',
     date: '2026-08-14',
     highlights: [

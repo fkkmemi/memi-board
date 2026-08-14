@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.31.0] - 2026-08-14
+
+### Added
+- 에디터에 AI 글쓰기 도우미(맞춤법, 다듬기, 이어서 쓰기, 요약, 번역, 제목).
+- 로그인 사용자별 24시간에 AI 글쓰기 10회 제한 (`aiWritingCount` / `aiWritingWindowAt`). 호스트는 `docs/firestore.rules.example`을 병합·배포해야 한다.
+
 ## [0.30.2] - 2026-08-14
 
 ### Changed

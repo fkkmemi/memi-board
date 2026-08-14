@@ -445,6 +445,13 @@ const router = useRouter()
 콘텐츠 차단이 누적되면 `memiBoardUsers/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
 10회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
 
+### AI 글쓰기 도우미 사용 제한
+
+에디터의 AI 글쓰기 도우미는 로그인 사용자별 24시간 구간에 최대 **10회** 사용할 수 있다.
+`memiBoardUsers/{uid}`의 `aiWritingCount` / `aiWritingWindowAt`을 Firestore 트랜잭션으로 갱신하므로 여러 탭에서 동시에 실행해도 제한을 넘지 않는다.
+
+호스트는 반드시 최신 `docs/firestore.rules.example`의 `memiBoardUsers/{uid}` 규칙을 실제 Firestore Rules에 병합·배포해야 한다. 규칙을 배포하지 않으면 클라이언트가 카운터를 임의로 수정해 제한을 우회할 수 있다.
+
 콘솔에서 **AI Logic(Gemini Developer API)** 활성화. 신규 프로젝트는 구형 `gemini-2.5-flash` 가 404 날 수 있음 → 3.x Flash / Flash-Lite 사용.
 
 ### App Check (AI Enforce 시 사실상 필수)
