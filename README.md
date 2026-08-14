@@ -81,7 +81,7 @@ export default defineNuxtConfig({
       moderateImages: false,
       useLimitedUseAppCheckTokens: false,
       // localBlocklist: ['금칙어'],
-      // blockBanThreshold: 3,
+      // blockBanThreshold: 10,
       // blockBanDecayMs: 24 * 60 * 60 * 1000,
     },
     // 공유 미리보기(OG) — 호스트 API 없이 패키지 composable 사용
@@ -439,11 +439,11 @@ const router = useRouter()
 | `onError` | `'allow'` | AI 실패 시 `'block'` 이면 저장 거부 |
 | `localBlocklist` | `[]` | 기본 목록에 문자열 추가 |
 | `useLimitedUseAppCheckTokens` | `true` | `false`면 일반 App Check 세션 토큰 |
-| `blockBanThreshold` | `3` | 콘텐츠 차단(local/ai) 누적 이상이면 글·댓글 제한. `0` = off |
+| `blockBanThreshold` | `10` | 콘텐츠 차단(local/ai) 누적 이상이면 글·댓글 제한. `0` = off |
 | `blockBanDecayMs` | `86400000` | 경고 1회 차감 간격(기본 24h) |
 
 콘텐츠 차단이 누적되면 `memiBoardUsers/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
-3회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
+10회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
 
 콘솔에서 **AI Logic(Gemini Developer API)** 활성화. 신규 프로젝트는 구형 `gemini-2.5-flash` 가 404 날 수 있음 → 3.x Flash / Flash-Lite 사용.
 

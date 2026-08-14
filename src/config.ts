@@ -72,7 +72,7 @@ function getSharedConfig(): MemiBoardConfig {
         onError: 'allow',
         moderateImages: false,
         localBlocklist: [],
-        blockBanThreshold: 3,
+        blockBanThreshold: 10,
         blockBanDecayMs: 24 * 60 * 60 * 1000,
       },
       seo: {

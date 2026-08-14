@@ -115,7 +115,10 @@ export {
   titleFromBody,
 } from './utils/postBody'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
-export { useMemiBoardWritingAssistant } from './composables/useMemiBoardWritingAssistant'
+export {
+  useMemiBoardWritingAssistant,
+  WRITING_ASSISTANT_DAILY_LIMIT,
+} from './composables/useMemiBoardWritingAssistant'
 export type { WritingAssistantAction } from './composables/useMemiBoardWritingAssistant'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'

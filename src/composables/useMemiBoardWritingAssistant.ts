@@ -1,6 +1,11 @@
 import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai'
-import { useFirebaseApp } from 'vuefire'
-import { useMemiBoardConfig } from '../config'
+import { runTransaction, serverTimestamp } from 'firebase/firestore'
+import { useCurrentUser, useFirebaseApp, useFirestore } from 'vuefire'
+import { useBoardPathConfig, useMemiBoardConfig } from '../config'
+import { boardUserDoc } from '../utils/boardPaths'
+
+export const WRITING_ASSISTANT_DAILY_LIMIT = 10
+const WRITING_ASSISTANT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type WritingAssistantAction =
   | 'proofread'
@@ -35,12 +40,51 @@ function cleanModelOutput(value: string): string {
     .trim()
 }
 
+function timestampMs(value: unknown): number | null {
+  if (!value || typeof value !== 'object') return null
+  if ('toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
+    return (value as { toMillis: () => number }).toMillis()
+  }
+  return null
+}
+
 /** 검열과 동일한 Firebase AI Logic 연결을 사용하는 글쓰기 도우미. */
 export function useMemiBoardWritingAssistant() {
   const app = useFirebaseApp()
+  const db = useFirestore()
+  const user = useCurrentUser()
   const config = useMemiBoardConfig()
 
+  async function reserveDailyUse(): Promise<void> {
+    const uid = user.value?.uid
+    if (!uid) throw new Error('AI 글쓰기 도우미는 로그인 후 사용할 수 있습니다.')
+
+    await runTransaction(db, async (transaction) => {
+      const ref = boardUserDoc(db, useBoardPathConfig(), uid)
+      const snapshot = await transaction.get(ref)
+      if (!snapshot.exists()) throw new Error('사용자 정보를 확인한 뒤 다시 시도해 주세요.')
+
+      const data = snapshot.data() as Record<string, unknown>
+      const previousAt = timestampMs(data.aiWritingWindowAt)
+      const previousCount = Math.max(0, Math.floor(Number(data.aiWritingCount) || 0))
+      const now = Date.now()
+      const activeWindow = previousAt != null && now - previousAt < WRITING_ASSISTANT_WINDOW_MS
+      if (activeWindow && previousCount >= WRITING_ASSISTANT_DAILY_LIMIT) {
+        const resetAt = previousAt + WRITING_ASSISTANT_WINDOW_MS
+        const hours = Math.max(1, Math.ceil((resetAt - now) / (60 * 60 * 1000)))
+        throw new Error(`AI 글쓰기 도우미는 하루 ${WRITING_ASSISTANT_DAILY_LIMIT}회까지 사용할 수 있습니다. 약 ${hours}시간 후 다시 이용해 주세요.`)
+      }
+
+      transaction.update(ref, {
+        aiWritingCount: activeWindow ? previousCount + 1 : 1,
+        aiWritingWindowAt: activeWindow ? data.aiWritingWindowAt : serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      })
+    })
+  }
+
   async function assist(input: WritingAssistantInput): Promise<string> {
+    await reserveDailyUse()
     const moderation = config.moderation ?? {}
     const ai = getAI(app, {
       backend: new GoogleAIBackend(),

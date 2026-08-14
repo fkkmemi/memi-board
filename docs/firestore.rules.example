@@ -138,12 +138,32 @@ service cloud.firestore {
           && request.resource.data.role == resource.data.role
           && (
             !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['moderationBlockCount', 'moderationBlockAt'])
+              .hasAny(['moderationBlockCount', 'moderationBlockAt', 'aiWritingCount', 'aiWritingWindowAt'])
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
               && request.resource.data.moderationBlockCount
                 == resource.data.get('moderationBlockCount', 0) + 1
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiWritingCount', 'aiWritingWindowAt', 'updatedAt'])
+              && request.resource.data.aiWritingCount <= 10
+              && (
+                (
+                  'aiWritingWindowAt' in resource.data
+                  && request.time < resource.data.aiWritingWindowAt + duration.value(24, 'h')
+                  && request.resource.data.aiWritingWindowAt == resource.data.aiWritingWindowAt
+                  && request.resource.data.aiWritingCount
+                    == resource.data.get('aiWritingCount', 0) + 1
+                )
+                || (
+                  (!('aiWritingWindowAt' in resource.data)
+                    || request.time >= resource.data.aiWritingWindowAt + duration.value(24, 'h'))
+                  && request.resource.data.aiWritingWindowAt == request.time
+                  && request.resource.data.aiWritingCount == 1
+                )
+              )
             )
           ));
 

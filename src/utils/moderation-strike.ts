@@ -1,11 +1,11 @@
 /**
  * 게시판 검열 차단 누적 → 일시 이용 제한 (호스트 contentWarning 과 동일 모델).
  * - 콘텐츠 차단(로컬/AI flagged) 시 +1
- * - 유효 경고 ≥ threshold(기본 3) → 글/댓글 작성 불가
+ * - 유효 경고 ≥ threshold(기본 10) → 글/댓글 작성 불가
  * - 24h마다 lazy 차감 (moderationBlockAt 기준)
  */
 
-export const DEFAULT_BLOCK_BAN_THRESHOLD = 3
+export const DEFAULT_BLOCK_BAN_THRESHOLD = 10
 export const DEFAULT_BLOCK_BAN_DECAY_MS = 24 * 60 * 60 * 1000
 
 export function effectiveModerationBlockCount(

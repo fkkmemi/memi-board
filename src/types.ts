@@ -123,6 +123,10 @@ export interface BoardUserModel {
   displayName?: string | null
   photoURL?: string | null
   moderationBlockCount?: number
+  /** AI 글쓰기 도우미 24시간 사용 횟수. */
+  aiWritingCount?: number
+  /** AI 글쓰기 도우미 현재 24시간 구간 시작 시각. */
+  aiWritingWindowAt?: Timestamp
   updatedAt?: Timestamp
   /** 최초 가입일. 기존 사용자는 비어 있고, 백필 스크립트나 다음 로그인 시 채운다. */
   joinedAt?: Timestamp
