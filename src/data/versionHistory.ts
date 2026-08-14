@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.32.0',
+    date: '2026-08-14',
+    highlights: [
+      '글쓰기에서 사진 파일을 올리거나 외부 이미지 주소를 넣을 수 있어요',
+      '게시판을 지우면 그 안의 글·댓글·이미지도 함께 삭제돼요',
+    ],
+  },
+  {
     version: '0.31.0',
     date: '2026-08-14',
     highlights: [

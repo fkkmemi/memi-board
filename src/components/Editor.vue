@@ -57,6 +57,18 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
+const imageDialogOpen = ref(false)
+const imageDialogEditor = ref<any | null>(null)
+const externalImageUrl = ref('')
+const externalImageChecking = ref(false)
+const externalImageCandidate = computed(() => {
+  try {
+    return normalizeExternalImageUrl(externalImageUrl.value)
+  }
+  catch {
+    return ''
+  }
+})
 const aiRunning = ref(false)
 const aiError = ref('')
 
@@ -149,6 +161,87 @@ function appendCoverUrls(urls: string[]) {
   coverSlots.value = next
   if (urls.length && coverSlots.value.length >= COVER_IMAGE_MAX) {
     imageUploadError.value = `사진은 최대 ${COVER_IMAGE_MAX}장까지 올릴 수 있어요.`
+  }
+}
+
+function normalizeExternalImageUrl(value: string): string {
+  const raw = value.trim()
+  if (!raw) throw new Error('이미지 주소를 입력해 주세요.')
+  let url: URL
+  try {
+    url = new URL(raw)
+  }
+  catch {
+    throw new Error('올바른 이미지 주소를 입력해 주세요.')
+  }
+  if (url.protocol !== 'https:') {
+    throw new Error('HTTPS 이미지 주소만 사용할 수 있습니다.')
+  }
+  if (url.username || url.password) {
+    throw new Error('로그인 정보가 포함된 주소는 사용할 수 없습니다.')
+  }
+  return url.toString()
+}
+
+function verifyExternalImage(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    const timeout = window.setTimeout(() => {
+      image.src = ''
+      reject(new Error('이미지를 불러오는 데 시간이 너무 오래 걸립니다.'))
+    }, 10_000)
+    image.onload = () => {
+      window.clearTimeout(timeout)
+      if (!image.naturalWidth || !image.naturalHeight) {
+        reject(new Error('표시할 수 없는 이미지입니다.'))
+        return
+      }
+      resolve(url)
+    }
+    image.onerror = () => {
+      window.clearTimeout(timeout)
+      reject(new Error('이미지를 불러올 수 없습니다. 주소나 외부 링크 허용 여부를 확인해 주세요.'))
+    }
+    image.referrerPolicy = 'no-referrer'
+    image.src = url
+  })
+}
+
+function openImageDialog(editor?: any) {
+  imageDialogEditor.value = editor ?? resolveEditor()
+  externalImageUrl.value = ''
+  imageUploadError.value = ''
+  imageDialogOpen.value = true
+}
+
+function chooseImageFileFromDialog() {
+  const editor = imageDialogEditor.value ?? resolveEditor()
+  imageDialogOpen.value = false
+  if (isImageListView.value) pickCoverImages()
+  else if (editor) pickAndUploadImage(editor)
+}
+
+async function addExternalImage() {
+  if (externalImageChecking.value) return
+  imageUploadError.value = ''
+  externalImageChecking.value = true
+  try {
+    const url = await verifyExternalImage(normalizeExternalImageUrl(externalImageUrl.value))
+    if (isImageListView.value) {
+      appendCoverUrls([url])
+    }
+    else {
+      const editor = imageDialogEditor.value ?? resolveEditor()
+      if (!editor) throw new Error('에디터를 준비하지 못했습니다. 다시 시도해 주세요.')
+      editor.chain().focus().setImage({ src: url }).run()
+    }
+    imageDialogOpen.value = false
+  }
+  catch (cause) {
+    imageUploadError.value = cause instanceof Error ? cause.message : '이미지 링크를 추가하지 못했습니다.'
+  }
+  finally {
+    externalImageChecking.value = false
   }
 }
 
@@ -368,7 +461,7 @@ function insertYoutube(editor: any, value?: string | null): boolean {
   return editor.chain().focus().setYoutubeVideo({ src }).run()
 }
 
-/** 공식 handlers API — 기본 image(URL prompt) 를 파일 업로드로 교체 (shineb) */
+/** 공식 handlers API — 파일 업로드 또는 외부 HTTPS 이미지 링크 */
 const handlers = computed(() => ({
   image: {
     canExecute: (editor: any) =>
@@ -377,7 +470,7 @@ const handlers = computed(() => ({
     isDisabled: () => isImageListView.value,
     execute: (editor: any) => {
       if (isImageListView.value) return editor.chain()
-      pickAndUploadImage(editor)
+      openImageDialog(editor)
       return editor.chain()
     },
   },
@@ -812,17 +905,29 @@ async function handleSubmit() {
         <p class="text-xs text-muted">
           사진 {{ coverSlots.length }}/{{ COVER_IMAGE_MAX }} · 끌어 순서 변경 · 파일 드롭/붙여넣기로 추가
         </p>
-        <UButton
-          v-if="coverSlots.length > 0"
-          type="button"
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          label="사진 추가"
-          icon="i-lucide-plus"
-          :disabled="imageUploading || coverSlots.length >= COVER_IMAGE_MAX"
-          @click="pickCoverImages"
-        />
+        <div class="flex shrink-0 items-center gap-1">
+          <UButton
+            type="button"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            label="이미지 링크"
+            icon="i-lucide-link"
+            :disabled="imageUploading || coverSlots.length >= COVER_IMAGE_MAX"
+            @click="openImageDialog()"
+          />
+          <UButton
+            v-if="coverSlots.length > 0"
+            type="button"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            label="사진 추가"
+            icon="i-lucide-plus"
+            :disabled="imageUploading || coverSlots.length >= COVER_IMAGE_MAX"
+            @click="pickCoverImages"
+          />
+        </div>
       </div>
 
       <div
@@ -1052,6 +1157,91 @@ async function handleSubmit() {
       />
     </div>
   </form>
+
+  <UModal
+    v-model:open="imageDialogOpen"
+    title="이미지 추가"
+    :ui="{ content: 'sm:max-w-lg' }"
+  >
+    <template #body>
+      <div class="flex flex-col gap-4">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-upload"
+          label="내 기기에서 이미지 선택"
+          block
+          :disabled="imageUploading"
+          @click="chooseImageFileFromDialog"
+        />
+
+        <div class="flex items-center gap-3 text-xs text-muted">
+          <span class="h-px flex-1 bg-default" />
+          또는 이미지 링크
+          <span class="h-px flex-1 bg-default" />
+        </div>
+
+        <UFormField
+          label="이미지 URL"
+          help="HTTPS 주소만 사용할 수 있으며 원본 사이트에서 삭제되면 이미지도 표시되지 않습니다."
+        >
+          <UInput
+            v-model="externalImageUrl"
+            type="url"
+            inputmode="url"
+            placeholder="https://example.com/image.jpg"
+            autocomplete="off"
+            class="w-full"
+            @keyup.enter="addExternalImage"
+          />
+        </UFormField>
+
+        <div
+          v-if="externalImageCandidate"
+          class="flex min-h-32 items-center justify-center overflow-hidden rounded-lg border border-default bg-elevated/30"
+        >
+          <img
+            :src="externalImageCandidate"
+            alt="외부 이미지 미리보기"
+            referrerpolicy="no-referrer"
+            class="max-h-64 max-w-full object-contain"
+          >
+        </div>
+
+        <UAlert
+          v-if="imageUploadError"
+          color="error"
+          variant="subtle"
+          icon="i-lucide-circle-alert"
+          :description="imageUploadError"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          :disabled="externalImageChecking"
+          @click="imageDialogOpen = false"
+        >
+          취소
+        </UButton>
+        <UButton
+          type="button"
+          icon="i-lucide-link"
+          :loading="externalImageChecking"
+          :disabled="!externalImageCandidate"
+          @click="addExternalImage"
+        >
+          링크 추가
+        </UButton>
+      </div>
+    </template>
+  </UModal>
 </template>
 
 <style scoped>

@@ -377,7 +377,8 @@ const router = useRouter()
 **Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)  
 본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
-**에디터 이미지:** 툴바 / 붙여넣기 / 드롭 → Firebase Storage  
+**에디터 이미지:** 툴바에서 기기 파일 또는 외부 HTTPS 이미지 URL을 추가할 수 있고, 붙여넣기 / 드롭 파일은 Firebase Storage에 업로드한다. 외부 URL은 Storage에 복사하지 않으며 원본이 삭제되거나 핫링크가 차단되면 표시되지 않는다. 첫 본문 이미지는 업로드·외부 링크 구분 없이 목록과 공유 대표 이미지로 사용한다.
+
 `memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
 글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MB + `image/*`** 로 본다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
 

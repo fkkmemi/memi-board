@@ -4,7 +4,12 @@
  */
 export function storagePathFromDownloadUrl(url: string): string | null {
   try {
-    const m = url.match(/\/o\/([^?]+)/)
+    const parsed = new URL(url)
+    const host = parsed.hostname.toLowerCase()
+    const isFirebaseStorage = host === 'firebasestorage.googleapis.com'
+      || host.endsWith('.firebasestorage.app')
+    if (!isFirebaseStorage) return null
+    const m = parsed.pathname.match(/\/o\/([^?]+)/)
     if (!m?.[1]) return null
     return decodeURIComponent(m[1])
   }
