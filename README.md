@@ -242,10 +242,16 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 
 ```css
 /* app/assets/css/main.css */
-.memi-board-post-link:visited {
-  color: var(--ui-text-muted);
+a.memi-board-post-link:visited {
+  color: #737373;
+}
+
+.dark a.memi-board-post-link:visited {
+  color: #a3a3a3;
 }
 ```
+
+**`:visited`는 `color`만 허용하고, 그마저도 `var()`·알파값은 브라우저가 무시한다** (히스토리 스니핑 방지). 그래서 Nuxt UI 토큰(`var(--ui-text-muted)`)을 그대로 못 쓰고 라이트/다크용 리터럴 색상을 각각 지정해야 한다(위 값은 Tailwind `neutral-500`/`neutral-400`).
 
 브라우저 네이티브 `:visited` 라서 서버·DB 저장이 필요 없다. 단, SPA 클라이언트 라우팅(`NuxtLink`)으로만 이동한 경우 브라우저에 "실제 방문"으로 기록되지 않을 수 있어 완전히 신뢰할 수는 없다 — 정확한 읽음 추적이 필요하면 별도로 방문 글 ID를 저장하는 방식을 구현해야 한다.
 
