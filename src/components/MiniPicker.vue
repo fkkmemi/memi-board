@@ -3,8 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getDocs, limit as fbLimit, orderBy, query, where } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import type { PostModel } from 'memi-board/runtime'
-import { miniPostTitle, useBoardPathConfig, useMemiBoardSettings } from 'memi-board/runtime'
-import { postsCol } from '../utils/boardPaths'
+import { miniPostTitle, postsCol, useBoardPathConfig, useMemiBoardSettings } from 'memi-board/runtime'
 
 const props = defineProps<{
   modelValue: string[]

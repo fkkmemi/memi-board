@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.37.2] - 2026-08-19
+
+### Fixed
+- `MiniPicker.vue`가 `../utils/boardPaths`를 상대 경로로 import해서, dist로 설치한 호스트(레지스트리 버전)에서 빌드가 깨졌다(`link:` 로컬 개발에서만 우연히 통과). `postsCol`을 이미 있는 `memi-board/runtime` export로 바꿨다. 0.35.0(`MiniPicker` 도입)부터 있던 버그.
+
 ## [0.37.1] - 2026-08-19
 
 ### Fixed
