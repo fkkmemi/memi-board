@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.36.0',
+    date: '2026-08-19',
+    highlights: [
+      '게시물을 신고할 수 있어요. 담당 스태프가 내용을 확인해요',
+      '스태프는 지정된 게시판만 관리해요',
+    ],
+    note: '호스트는 Firestore 신고 규칙·인덱스를 배포해야 해요.',
+  },
+  {
     version: '0.35.0',
     date: '2026-08-19',
     highlights: [

@@ -22,6 +22,7 @@ import {
   postBodyDoc,
   postDoc,
   postStorageFolder,
+  reportsCol,
 } from './boardPaths'
 import { extractEditorImageUrls } from './extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from './storagePath'
@@ -60,6 +61,15 @@ export async function deleteLikesForPost(
   await deleteQueryDocs(db, query(likesCol(db, cfg), where('postId', '==', postId)))
 }
 
+/** 글에 달린 신고를 모두 지운다. */
+export async function deleteReportsForPost(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  postId: string,
+): Promise<void> {
+  await deleteQueryDocs(db, query(reportsCol(db, cfg), where('postId', '==', postId)))
+}
+
 /** 댓글 하나에 달린 좋아요만 지운다. */
 export async function deleteLikesForComment(
   db: Firestore,
@@ -89,6 +99,7 @@ export async function deletePostCascade(
   // 답글도 같은 flat 컬렉션에서 같은 postId를 가지므로 함께 삭제된다.
   await deleteQueryDocs(db, query(commentsCol(db, cfg), where('postId', '==', id)))
   await deleteLikesForPost(db, cfg, id)
+  await deleteReportsForPost(db, cfg, id)
 
   const extraPaths = new Set<string>()
   const extraNamespaces = new Set<string>()

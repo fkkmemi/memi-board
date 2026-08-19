@@ -11,6 +11,7 @@ import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
+import MemiBoardReportButton from './ReportButton.vue'
 import MemiBoardShareButton from './ShareButton.vue'
 import MemiBoardSwipeHint from './SwipeHint.vue'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
@@ -305,6 +306,13 @@ const contentHtml = computed(() => {
         :like-count="post.likeCount ?? 0"
       />
       <MemiBoardShareButton :title="post.title" />
+      <MemiBoardReportButton
+        :board-id="boardId"
+        :post-id="postId"
+        :author-uid="post.authorUid"
+        :author-name="post.authorName"
+        :post-title="post.title"
+      />
     </div>
 
     <nav class="grid grid-cols-3 items-center py-3" aria-label="게시글 이동">

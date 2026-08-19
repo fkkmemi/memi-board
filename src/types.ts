@@ -175,8 +175,8 @@ export interface BoardModel {
   writeRole?: BoardWriteRole
   commentWriteRole?: BoardWriteRole
   /**
-   * writeRole/commentWriteRole 가 'staff'일 때 허용 스태프 uid.
-   * 비어있으면 스태프 전체, 관리자는 항상 통과.
+   * 이 보드 담당 스태프 uid. 설정·삭제·신고 처리·staff 글쓰기에 쓴다.
+   * 비어 있으면 담당 없음(관리자만). 관리자는 항상 통과.
    */
   allowedStaffUids?: string[]
   /** 보드 목록 정렬 */
@@ -216,6 +216,28 @@ export interface BoardSectionLayout {
   columns: 12
   blocks: BoardSection[]
   updatedAt?: Timestamp
+}
+
+export type BoardReportReason = 'spam' | 'abuse' | 'adult' | 'illegal' | 'other'
+export type BoardReportStatus = 'open' | 'dismissed' | 'actioned'
+export type BoardReportTarget = 'post'
+
+/** memiBoardReports/{postId}_{uid} — 유저당 글당 신고 1건. */
+export interface BoardReportModel {
+  id?: string
+  uid: string
+  target: BoardReportTarget
+  postId: string
+  boardId: string
+  reason: BoardReportReason
+  detail: string
+  status: BoardReportStatus
+  createdAt: Timestamp
+  postTitle?: string
+  authorUid?: string
+  authorName?: string | null
+  reviewedAt?: Timestamp
+  reviewedBy?: string
 }
 
 export type BoardLikeTarget = 'post' | 'comment'

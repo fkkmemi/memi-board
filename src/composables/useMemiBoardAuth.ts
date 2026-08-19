@@ -15,6 +15,8 @@ import type { User } from 'firebase/auth'
 import { useMemiBoardConfig, useBoardPathConfig } from '../config'
 import { boardUserDoc, boardUserPrivateDoc } from '../utils/boardPaths'
 import type { PostModel, CommentModel, BoardUserRole } from '../types'
+import { canManageBoardByRole } from '../utils/boardAccess'
+import { resolveBoardLookup } from './boardLookup'
 import {
   DEFAULT_BLOCK_BAN_DECAY_MS,
   DEFAULT_BLOCK_BAN_THRESHOLD,
@@ -31,6 +33,7 @@ export interface UseMemiBoardAuthReturn {
   isAdmin: ComputedRef<boolean>
   isStaff: ComputedRef<boolean>
   canManageContent: ComputedRef<boolean>
+  canManageBoard: (boardId: string | undefined | null) => boolean
   rolePending: Ref<boolean>
   /** 유효 검열 차단 누적 (lazy decay 반영) */
   moderationBlockCount: ComputedRef<number>
@@ -43,10 +46,10 @@ export interface UseMemiBoardAuthReturn {
   signInWithEmail: (email: string, password: string) => ReturnType<typeof signInWithEmailAndPassword>
   signUpWithEmail: (email: string, password: string, displayName?: string) => ReturnType<typeof createUserWithEmailAndPassword>
   signOut: () => Promise<void>
-  canEdit: (post: Pick<PostModel, 'authorUid'>) => boolean
-  canDelete: (post: Pick<PostModel, 'authorUid'>) => boolean
+  canEdit: (post: Pick<PostModel, 'authorUid' | 'boardId'>) => boolean
+  canDelete: (post: Pick<PostModel, 'authorUid' | 'boardId'>) => boolean
   canEditComment: (comment: Pick<CommentModel, 'authorUid'>) => boolean
-  canDeleteComment: (comment: Pick<CommentModel, 'authorUid'>) => boolean
+  canDeleteComment: (comment: Pick<CommentModel, 'authorUid' | 'boardId'>) => boolean
   /** 콘텐츠 검열 차단 1회 기록 후 메시지 조각 반환 */
   recordContentModerationBlock: () => Promise<{
     effectiveCount: number
@@ -336,16 +339,25 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     await firebaseSignOut(requireAuth())
   }
 
-  function canEdit(post: Pick<PostModel, 'authorUid'>) {
-    return isSignedIn.value && (user.value?.uid === post.authorUid || canManageContent.value)
+  function canManageBoard(boardId: string | undefined | null) {
+    return canManageBoardByRole(
+      user.value?.uid,
+      isAdmin.value,
+      isStaff.value,
+      boardId ? resolveBoardLookup(boardId) : undefined,
+    )
+  }
+
+  function canEdit(post: Pick<PostModel, 'authorUid' | 'boardId'>) {
+    return isSignedIn.value && (user.value?.uid === post.authorUid || canManageBoard(post.boardId))
   }
 
   function canEditComment(comment: Pick<CommentModel, 'authorUid'>) {
     return isSignedIn.value && user.value?.uid === comment.authorUid
   }
 
-  function canDeleteComment(comment: Pick<CommentModel, 'authorUid'>) {
-    return isSignedIn.value && (user.value?.uid === comment.authorUid || canManageContent.value)
+  function canDeleteComment(comment: Pick<CommentModel, 'authorUid' | 'boardId'>) {
+    return isSignedIn.value && (user.value?.uid === comment.authorUid || canManageBoard(comment.boardId))
   }
 
   return {
@@ -354,6 +366,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     isAdmin,
     isStaff,
     canManageContent,
+    canManageBoard,
     rolePending,
     moderationBlockCount,
     isWriteRestricted,

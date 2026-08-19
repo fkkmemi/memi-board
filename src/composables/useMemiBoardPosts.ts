@@ -316,7 +316,7 @@ export function useMemiBoardPostList(
   options: { pageSize?: number, publicOnly?: boolean | Ref<boolean> } = {},
 ) {
   const db = useFirestore()
-  const { isAdmin, isStaff, user } = useMemiBoardAuth()
+  const { isAdmin, user, canManageBoard } = useMemiBoardAuth()
   const cfg = () => useBoardPathConfig()
   const pageSize = options.pageSize ?? POST_PAGE_SIZE
   const uidValue = computed(() => user.value?.uid ?? '')
@@ -326,7 +326,7 @@ export function useMemiBoardPostList(
 
   const publicOnlyValue = computed(() => {
     if (options.publicOnly === undefined) {
-      return !(isAdmin.value || isStaff.value)
+      return !(isAdmin.value || canManageBoard(boardIdValue.value))
     }
     return typeof options.publicOnly === 'boolean' ? options.publicOnly : options.publicOnly.value
   })

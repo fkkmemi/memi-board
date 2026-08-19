@@ -64,7 +64,10 @@ service cloud.firestore {
     }
     function isAllowedStaffForBoard(boardId) {
       let allowed = get(boardSettingsPath(boardId)).data.get('allowedStaffUids', []);
-      return isBoardAdmin() || allowed.size() == 0 || request.auth.uid in allowed;
+      return isBoardAdmin() || request.auth.uid in allowed;
+    }
+    function isBoardManager(boardId) {
+      return isBoardStaff() && isAllowedStaffForBoard(boardId);
     }
     function canWriteBoard(boardId) {
       let requiredRole = get(boardSettingsPath(boardId)).data.get('writeRole', 'user');
@@ -134,7 +137,7 @@ service cloud.firestore {
       return (data.get('listed', true) == true && data.isPublished == true)
         || (isSignedIn() && request.auth.uid == data.authorUid)
         || isBoardAdmin()
-        || (isBoardStaff() && canWriteBoard(data.boardId));
+        || isBoardManager(data.boardId);
     }
     function expectedListed(boardId) {
       return get(boardSettingsPath(boardId)).data.get('visibility', 'public') != 'hidden';
@@ -205,7 +208,7 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isBoardAdmin();
       allow update: if isBoardAdmin()
-        || (isBoardStaff()
+        || (isBoardManager(boardId)
           && request.resource.data.get('visibility', 'public')
             == resource.data.get('visibility', 'public')
           && request.resource.data.get('allowedStaffUids', [])
@@ -225,16 +228,14 @@ service cloud.firestore {
         && request.resource.data.listed == expectedListed(request.resource.data.boardId)
         && request.resource.data.isPublished == false;
 
-      // 소유자/스태프는 boardId 포함 전체 필드를 수정 가능 — 구버전과 동일하게
-      // canWriteBoard() 로 추가 제한하지 않는다(스태프/관리자는 어느 보드 글이든 조정 가능).
-      // 카운터 필드는 그 외에도 아래 3개 narrow guard 를 통해 예외적으로 허용.
-      allow update: if isOwner(resource) || isBoardStaff()
+      allow update: if isOwner(resource) || isBoardManager(resource.data.boardId)
         || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
-      allow delete: if isOwner(resource) || isBoardStaff();
+      allow delete: if isOwner(resource) || isBoardManager(resource.data.boardId);
 
       match /body/{docId} {
         allow read: if canReadPost(get(postPath(postId)).data);
-        allow write: if isOwner(get(postPath(postId))) || isBoardStaff();
+        allow write: if isOwner(get(postPath(postId)))
+          || isBoardManager(get(postPath(postId)).data.boardId);
       }
     }
 
@@ -266,8 +267,8 @@ service cloud.firestore {
 
       allow delete: if isOwner(resource)
         || isOwner(get(postPath(resource.data.postId)))
-        || isBoardStaff();
-      allow update: if isOwner(resource) || isBoardStaff()
+        || isBoardManager(resource.data.boardId);
+      allow update: if isOwner(resource) || isBoardManager(resource.data.boardId)
         || isReplyCountUpdate() || isReplyTargetProfileUpdate()
         || isLikeCountUpdate();
     }
@@ -292,6 +293,43 @@ service cloud.firestore {
 
       allow delete: if isSignedIn() && request.auth.uid == resource.data.uid;
       // update 는 허용하지 않음 — 토글은 항상 create-or-delete.
+    }
+
+    // 글 신고. 문서ID = `${postId}_{uid}`. 내용은 본인·스태프만 읽는다.
+    match /memiBoardReports/{reportId} {
+      allow read: if (isSignedIn() && resource == null)
+        || (isSignedIn() && request.auth.uid == resource.data.uid)
+        || isBoardStaff();
+
+      allow create: if isBoardWriter()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'target', 'postId', 'boardId', 'reason', 'detail', 'status',
+          'createdAt', 'postTitle', 'authorUid', 'authorName'
+        ])
+        && request.resource.data.target == 'post'
+        && request.resource.data.status == 'open'
+        && request.resource.data.postId is string
+        && request.resource.data.boardId is string
+        && request.resource.data.reason in ['spam', 'abuse', 'adult', 'illegal', 'other']
+        && request.resource.data.detail is string
+        && request.resource.data.detail.size() <= 200
+        && request.resource.data.postTitle is string
+        && request.resource.data.postTitle.size() <= 200
+        && request.resource.data.authorUid is string
+        && (request.resource.data.authorName == null || request.resource.data.authorName is string)
+        && reportId == request.resource.data.postId + '_' + request.auth.uid
+        && exists(postPath(request.resource.data.postId))
+        && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
+        && get(postPath(request.resource.data.postId)).data.authorUid != request.auth.uid;
+
+      allow update: if isBoardManager(resource.data.boardId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'reviewedAt', 'reviewedBy'])
+        && resource.data.status == 'open'
+        && request.resource.data.status in ['dismissed', 'actioned']
+        && request.resource.data.reviewedBy == request.auth.uid;
+      allow delete: if false;
     }
   }
 }

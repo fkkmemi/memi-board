@@ -8,6 +8,7 @@
  * memiBoardPosts/{postId}/body/main
  * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
  * memiBoardLikes/{targetId}_{uid}              // 글: postId_uid / 댓글: commentId_uid
+ * memiBoardReports/{postId}_{uid}              // 글 신고. 유저당 글당 1건
  * ```
  *
  * Storage: `memiBoardPosts/{postId}/...` (postId 가 전역 고유이므로 boardId 불필요)
@@ -27,6 +28,7 @@ import {
 export const DEFAULT_POSTS_COLLECTION = 'memiBoardPosts'
 export const DEFAULT_COMMENTS_COLLECTION = 'memiBoardComments'
 export const DEFAULT_LIKES_COLLECTION = 'memiBoardLikes'
+export const DEFAULT_REPORTS_COLLECTION = 'memiBoardReports'
 export const DEFAULT_SETTINGS_COLLECTION = 'memiBoardSettings'
 export const DEFAULT_USERS_COLLECTION = 'memiBoardUsers'
 
@@ -34,6 +36,7 @@ export interface BoardPathConfig {
   postsCollection: string
   commentsCollection: string
   likesCollection: string
+  reportsCollection: string
   settingsCollection: string
   usersCollection: string
 }
@@ -42,6 +45,7 @@ export function resolveBoardPathConfig(input: {
   postsCollection?: string
   commentsCollection?: string
   likesCollection?: string
+  reportsCollection?: string
   settingsCollection?: string
   usersCollection?: string
 }): BoardPathConfig {
@@ -49,6 +53,7 @@ export function resolveBoardPathConfig(input: {
     postsCollection: input.postsCollection?.trim() || DEFAULT_POSTS_COLLECTION,
     commentsCollection: input.commentsCollection?.trim() || DEFAULT_COMMENTS_COLLECTION,
     likesCollection: input.likesCollection?.trim() || DEFAULT_LIKES_COLLECTION,
+    reportsCollection: input.reportsCollection?.trim() || DEFAULT_REPORTS_COLLECTION,
     settingsCollection: input.settingsCollection?.trim() || DEFAULT_SETTINGS_COLLECTION,
     usersCollection: input.usersCollection?.trim() || DEFAULT_USERS_COLLECTION,
   }
@@ -111,6 +116,24 @@ export function likeDoc(
   uid: string,
 ): DocumentReference {
   return doc(db, cfg.likesCollection, likeDocId(targetId, uid))
+}
+
+export function reportsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {
+  return collection(db, cfg.reportsCollection)
+}
+
+/** 신고 문서ID: `${postId}_{uid}` — 유저당 글당 1건 */
+export function reportDocId(postId: string, uid: string): string {
+  return `${postId}_${uid}`
+}
+
+export function reportDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  postId: string,
+  uid: string,
+): DocumentReference {
+  return doc(db, cfg.reportsCollection, reportDocId(postId, uid))
 }
 
 export function boardUsersCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {

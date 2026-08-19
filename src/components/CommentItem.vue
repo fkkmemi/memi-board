@@ -30,7 +30,7 @@ const emit = defineEmits<{
   reply: [comment: CommentModel]
 }>()
 
-const { user, isSignedIn, canEditComment, canDeleteComment, canManageContent, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, canEditComment, canDeleteComment, canManageBoard, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const { updateComment, setCommentBlinded } = useMemiBoardComments(
   props.boardId,
   props.postId,
@@ -112,7 +112,7 @@ async function saveEdit() {
 }
 
 async function toggleBlind() {
-  if (!props.comment.id || !user.value || !canManageContent.value) return
+  if (!props.comment.id || !user.value || !canManageBoard(props.comment.boardId)) return
   const next = !localBlinded.value
   const confirmed = window.confirm(next
     ? '이 댓글을 블라인드하면 모든 사용자에게 본문 대신 블라인드 안내가 표시됩니다. 원문은 삭제되지 않으며 나중에 다시 해제할 수 있습니다.\n\n블라인드하시겠습니까?'
@@ -263,7 +263,7 @@ async function toggleLike() {
         @click="startEdit"
       />
       <UButton
-        v-if="canManageContent && comment.id"
+        v-if="canManageBoard(comment.boardId) && comment.id"
         :icon="localBlinded ? 'i-lucide-eye' : 'i-lucide-eye-off'"
         size="xs"
         :color="localBlinded ? 'neutral' : 'warning'"

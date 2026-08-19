@@ -22,6 +22,8 @@ import {
   boardSsrKey,
 } from '../utils/boardPaths'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
+import { registerBoardLookup } from './boardLookup'
+import { canManageBoardByRole } from '../utils/boardAccess'
 import { slugify } from '../utils/slugify'
 import { deletePostCascade } from '../utils/deletePostCascade'
 import type { BoardModel, BoardVisibility } from '../types'
@@ -63,7 +65,7 @@ export function useMemiBoardSettings() {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const app = useFirebaseApp()
-  const { isSignedIn } = useMemiBoardAuth()
+  const { isSignedIn, isAdmin, isStaff, user } = useMemiBoardAuth()
 
   const boardsQuery = computed(() => query(settingsCol(db, cfg()), orderBy('order', 'asc')))
   const { data: boardDocs, pending: settingsPending } = useCollection(boardsQuery, {
@@ -117,6 +119,14 @@ export function useMemiBoardSettings() {
     if (!id) return undefined
     return boards.value.find(board => board.id === id)
   }
+
+  registerBoardLookup(id => getBoard(id))
+
+  function canManageBoard(boardId: string | undefined | null) {
+    return canManageBoardByRole(user.value?.uid, isAdmin.value, isStaff.value, boardId ? getBoard(boardId) : undefined)
+  }
+
+  const managedBoards = computed(() => boards.value.filter(board => canManageBoard(board.id)))
 
   /** 숨김 전환 시 해당 보드 글 listed 일괄 맞춤 */
   async function syncPostsListedForBoard(boardId: string, listed: boolean): Promise<void> {
@@ -259,6 +269,8 @@ export function useMemiBoardSettings() {
     boardVisibility,
     isBoardHidden,
     getBoard,
+    canManageBoard,
+    managedBoards,
     categories,
     publicCategories,
     categoryLabel,

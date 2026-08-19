@@ -56,8 +56,7 @@ const staffOptions = computed(() => users.value
   .filter(item => item.role === 'staff')
   .map(item => ({ label: item.displayName || item.id, value: item.id })))
 function needsStaffPicker(category: BoardCategory) {
-  return (category.writeRole === 'staff' || category.commentWriteRole === 'staff')
-    && canManageStaffAssignment.value
+  return canManageStaffAssignment.value
 }
 // Firebase의 SSR pending 값과 클라이언트 첫 값이 달라질 수 있다. 최초 hydration은
 // 양쪽 모두 로딩 화면으로 맞춘 뒤 mounted 이후 실제 상태를 렌더링한다.
@@ -247,14 +246,14 @@ async function runDeleteAll() {
           />
         </div>
         <div v-if="needsStaffPicker(category)" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-          <div><p class="text-sm font-medium">허용 스태프</p><p class="text-xs text-muted">비워두면 스태프 전체 허용, 지정하면 이 사람들만</p></div>
+          <div><p class="text-sm font-medium">담당 스태프</p><p class="text-xs text-muted">지정한 스태프만 이 보드를 설정·관리합니다. 비우면 관리자만</p></div>
           <USelectMenu
             v-model="category.allowedStaffUids"
             :items="staffOptions"
             value-key="value"
             label-key="label"
             multiple
-            placeholder="스태프 전체 허용"
+            placeholder="관리자만 (스태프 미지정)"
             @update:model-value="savedId = null"
           />
         </div>

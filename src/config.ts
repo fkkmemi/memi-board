@@ -2,6 +2,7 @@ import { reactive } from 'vue'
 import {
   DEFAULT_COMMENTS_COLLECTION,
   DEFAULT_LIKES_COLLECTION,
+  DEFAULT_REPORTS_COLLECTION,
   DEFAULT_POSTS_COLLECTION,
   DEFAULT_SETTINGS_COLLECTION,
   DEFAULT_USERS_COLLECTION,
@@ -43,6 +44,8 @@ export interface MemiBoardConfig {
   commentsCollection: string
   /** 좋아요 컬렉션. 기본 `memiBoardLikes` */
   likesCollection: string
+  /** 신고 컬렉션. 기본 `memiBoardReports` */
+  reportsCollection: string
   /** 보드 설정 컬렉션. 기본 `memiBoardSettings` */
   settingsCollection: string
   /** 역할 문서 컬렉션. 기본 `memiBoardUsers` */
@@ -63,6 +66,7 @@ function getSharedConfig(): MemiBoardConfig {
       postsCollection: DEFAULT_POSTS_COLLECTION,
       commentsCollection: DEFAULT_COMMENTS_COLLECTION,
       likesCollection: DEFAULT_LIKES_COLLECTION,
+      reportsCollection: DEFAULT_REPORTS_COLLECTION,
       settingsCollection: DEFAULT_SETTINGS_COLLECTION,
       usersCollection: DEFAULT_USERS_COLLECTION,
       auth: { providers: ['google', 'apple'] },
@@ -97,6 +101,9 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   }
   if (options.likesCollection != null && options.likesCollection !== '') {
     config.likesCollection = options.likesCollection.trim()
+  }
+  if (options.reportsCollection != null && options.reportsCollection !== '') {
+    config.reportsCollection = options.reportsCollection.trim()
   }
   if (options.settingsCollection != null && options.settingsCollection !== '') {
     config.settingsCollection = options.settingsCollection.trim()

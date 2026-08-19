@@ -9,7 +9,7 @@ import type { CommentModel } from 'memi-board/runtime'
 const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()
 
-const { user, isSignedIn, isAdmin, isStaff, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, isAdmin, canManageBoard, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
 const { addComment, addReply } = useMemiBoardComments(
   props.boardId,
@@ -24,7 +24,7 @@ const canComment = computed(() => {
   if (!isSignedIn.value) return false
   const required = getBoard(props.boardId)?.commentWriteRole ?? 'user'
   if (required === 'admin') return isAdmin.value
-  if (required === 'staff') return isAdmin.value || isStaff.value
+  if (required === 'staff') return isAdmin.value || canManageBoard(props.boardId)
   return true
 })
 

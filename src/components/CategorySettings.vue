@@ -75,9 +75,7 @@ function emptyDraft(id: string): BoardCategory {
 const staffOptions = computed(() => users.value
   .filter(item => item.role === 'staff')
   .map(item => ({ label: item.displayName || item.id, value: item.id })))
-const needsStaffPicker = computed(() =>
-  (draft.value?.writeRole === 'staff' || draft.value?.commentWriteRole === 'staff')
-  && canManageStaffAssignment.value)
+const needsStaffPicker = computed(() => canManageStaffAssignment.value)
 
 function toDraft(category: BoardCategory): BoardCategory {
   return {
@@ -174,14 +172,14 @@ async function save() {
       <MemiBoardOptionCards v-model="draft.commentWriteRole" :options="writeRoleOptions" @update:model-value="saved = false" />
     </div>
     <div v-if="needsStaffPicker" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-      <div><p class="text-sm font-medium">허용 스태프</p><p class="text-xs text-muted">비워두면 스태프 전체 허용, 지정하면 이 사람들만</p></div>
+      <div><p class="text-sm font-medium">담당 스태프</p><p class="text-xs text-muted">지정한 스태프만 이 보드를 설정·관리합니다. 비우면 관리자만</p></div>
       <USelectMenu
         v-model="draft.allowedStaffUids"
         :items="staffOptions"
         value-key="value"
         label-key="label"
         multiple
-        placeholder="스태프 전체 허용"
+        placeholder="관리자만 (스태프 미지정)"
         @update:model-value="saved = false"
       />
     </div>

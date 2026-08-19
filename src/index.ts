@@ -12,6 +12,7 @@ export {
   DEFAULT_POSTS_COLLECTION,
   DEFAULT_COMMENTS_COLLECTION,
   DEFAULT_LIKES_COLLECTION,
+  DEFAULT_REPORTS_COLLECTION,
   DEFAULT_SETTINGS_COLLECTION,
   DEFAULT_USERS_COLLECTION,
   resolveBoardPathConfig,
@@ -25,6 +26,9 @@ export {
   likesCol,
   likeDoc,
   likeDocId,
+  reportsCol,
+  reportDoc,
+  reportDocId,
   boardUsersCol,
   boardUserDoc,
   postStorageFolder,
@@ -69,11 +73,19 @@ export {
   memiBoardCommentLikesKey,
 } from './composables/useMemiBoardLikes'
 export type { MemiBoardCommentLikesApi } from './composables/useMemiBoardLikes'
+export {
+  REPORT_DETAIL_MAX_LENGTH,
+  REPORT_REASONS,
+  reportReasonLabel,
+  useMemiBoardReports,
+  useMemiBoardReportQueue,
+} from './composables/useMemiBoardReports'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 // useMemiBoardStorage(heic2any 등 브라우저 전용) — 'memi-board/storage' 서브패스로 분리.
 // 여기(SSR로도 로드되는 dist/index.js)에는 절대 다시 넣지 않는다.
 export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
+export { canManageBoardByRole, isAssignedStaff } from './utils/boardAccess'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 export { useMemiBoardUserProfile } from './composables/useMemiBoardUserProfile'
 export { useMemiBoardSections, normalizeBoardSection } from './composables/useMemiBoardSections'
@@ -114,6 +126,10 @@ export type {
   BoardSettingsModel,
   BoardLikeModel,
   BoardLikeTarget,
+  BoardReportModel,
+  BoardReportReason,
+  BoardReportStatus,
+  BoardReportTarget,
   BoardSection,
   BoardSectionCols,
   BoardSectionHeight,

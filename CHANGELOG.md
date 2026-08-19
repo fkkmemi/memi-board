@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+## [0.36.0] - 2026-08-19
+
+### Added
+- 게시물 신고. `memiBoardReports/{postId}_{uid}`에 사유·메모를 남기고, 글 상세의 신고 버튼과 스태프 `<MemiBoardReportList>`로 처리한다. 내용은 본인·스태프만 읽는다.
+
+### Changed
+- 스태프는 `allowedStaffUids`에 지정된 보드만 담당한다. 목록이 비면 관리자만 관리한다.
+
 ## [0.35.0] - 2026-08-19
 
 ### Added
