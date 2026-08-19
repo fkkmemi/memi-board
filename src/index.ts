@@ -76,6 +76,8 @@ export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 export { useMemiBoardUserProfile } from './composables/useMemiBoardUserProfile'
+export { useMemiBoardSections, normalizeBoardSection } from './composables/useMemiBoardSections'
+export { useMemiBoardMiniLatest, useMemiBoardMiniPicked } from './composables/useMemiBoardMiniPosts'
 
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
@@ -112,6 +114,12 @@ export type {
   BoardSettingsModel,
   BoardLikeModel,
   BoardLikeTarget,
+  BoardSection,
+  BoardSectionCols,
+  BoardSectionHeight,
+  BoardSectionKind,
+  BoardSectionSort,
+  BoardSectionLayout,
   ModerationResult,
 } from './types'
 
@@ -130,6 +138,26 @@ export {
 export type { WritingAssistantAction } from './composables/useMemiBoardWritingAssistant'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'
+export {
+  BOARD_SECTION_COLS,
+  BOARD_SECTION_KINDS,
+  BOARD_SECTION_SORTS,
+  defaultSectionCount,
+  clampSectionCount,
+  pairSectionCols,
+  sectionColClass,
+  sectionMinHeight,
+  miniPostLink,
+  miniCommentLink,
+  miniMoreLink,
+  miniPostImage,
+  miniPostTitle,
+  miniViewGroup,
+  miniViewLabel,
+  miniBoardView,
+  miniPostsView,
+} from './utils/section'
+export type { MiniViewGroup } from './utils/section'
 export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './utils/storagePath'
 // compressImage / EDITOR_IMAGE_*_BYTES — 'memi-board/storage' 서브패스로 이동.
 // createPasteImageExtension 은 components/editor 에 두고 SFC 가 상대경로 import —

@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.35.0',
+    date: '2026-08-19',
+    highlights: [
+      '메인에 게시목록·게시물·댓글모음 섹션을 올릴 수 있어요',
+      '댓글모음은 최신순이나 좋아요순으로 네 개부터 보여요',
+    ],
+  },
+  {
     version: '0.34.0',
     date: '2026-08-19',
     highlights: [

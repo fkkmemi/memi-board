@@ -25,12 +25,15 @@ export type CommentFeedSort = 'latest' | 'likes'
  */
 export function useMemiBoardCommentFeed(
   sort: MaybeRefOrGetter<CommentFeedSort> = 'latest',
-  options: { pageSize?: number } = {},
+  options: { pageSize?: MaybeRefOrGetter<number> } = {},
 ) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
   const commentsColRef = () => commentsCol(db, cfg())
-  const pageSize = options.pageSize ?? COMMENT_FEED_PAGE_SIZE
+  const pageSize = computed(() => {
+    const n = Math.floor(Number(toValue(options.pageSize)))
+    return Number.isFinite(n) && n > 0 ? n : COMMENT_FEED_PAGE_SIZE
+  })
   const sortValue = computed<CommentFeedSort>(() => {
     const value = toValue(sort)
     return value === 'likes' ? 'likes' : 'latest'
@@ -89,11 +92,11 @@ export function useMemiBoardCommentFeed(
     stopHeadSubscription = onSnapshot(query(
       commentsColRef(),
       ...orderConstraints(),
-      fbLimit(pageSize),
+      fbLimit(pageSize.value),
     ), (snapshot) => {
       headComments.value = snapshot.docs.map(mapDoc)
       headTailCursor = snapshot.docs.at(-1) ?? null
-      if (!olderCursor) hasMore.value = snapshot.docs.length >= pageSize
+      if (!olderCursor) hasMore.value = snapshot.docs.length >= pageSize.value
       headPending.value = false
     }, (cause) => {
       console.error('[memi-board:commentFeed] onSnapshot failed', cause)
@@ -112,14 +115,14 @@ export function useMemiBoardCommentFeed(
         commentsColRef(),
         ...orderConstraints(),
         ...(cursor ? [startAfter(cursor)] : []),
-        fbLimit(pageSize + 1),
+        fbLimit(pageSize.value + 1),
       ))
-      const pageDocs = snapshot.docs.slice(0, pageSize)
+      const pageDocs = snapshot.docs.slice(0, pageSize.value)
       const page = pageDocs.map(mapDoc)
       const existingIds = new Set([...olderComments.value, ...headComments.value].map(comment => comment.id))
       olderComments.value.push(...page.filter(comment => !existingIds.has(comment.id)))
       olderCursor = pageDocs.at(-1) ?? olderCursor
-      hasMore.value = snapshot.docs.length > pageSize
+      hasMore.value = snapshot.docs.length > pageSize.value
     }
     catch (e) {
       loadError.value = (e as Error).message || String(e)
@@ -142,7 +145,7 @@ export function useMemiBoardCommentFeed(
     startHeadSubscription()
   }
 
-  watch(sortValue, reset, { immediate: true })
+  watch([sortValue, pageSize], reset, { immediate: true })
   onScopeDispose(() => stopHeadSubscription?.())
 
   return {

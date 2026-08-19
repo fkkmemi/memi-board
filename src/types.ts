@@ -191,6 +191,33 @@ export interface BoardSettingsModel extends Omit<BoardModel, 'id'> {
   updatedAt?: Timestamp
 }
 
+export type BoardSectionCols = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 12
+export type BoardSectionHeight = 'sm' | 'md' | 'lg'
+export type BoardSectionKind = 'list' | 'post' | 'comments'
+export type BoardSectionSort = 'latest' | 'likes'
+
+/** 호스트 메인에 올리는 섹션. Firestore `settings/homeLayout`. */
+export interface BoardSection {
+  id: string
+  title: string
+  showTitle: boolean
+  kind: BoardSectionKind
+  boardId: string | null
+  postIds: string[]
+  /** 댓글모음 정렬. 다른 kind 에서는 쓰지 않는다. */
+  sort?: BoardSectionSort
+  count: number
+  cols: BoardSectionCols
+  height: BoardSectionHeight
+  order: number
+}
+
+export interface BoardSectionLayout {
+  columns: 12
+  blocks: BoardSection[]
+  updatedAt?: Timestamp
+}
+
 export type BoardLikeTarget = 'post' | 'comment'
 
 /** memiBoardLikes/{targetId}_{uid} — 글·댓글 좋아요. 문서ID의 targetId 는 postId 또는 commentId. */

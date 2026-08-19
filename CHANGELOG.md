@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.35.0] - 2026-08-19
+
+### Added
+- 메인 섹션 레이아웃 컴포넌트. `<MemiBoardMini>`가 `settings/homeLayout`을 읽어 `<MemiBoardSection>`을 배치하고, 안쪽은 `<MemiBoardMiniList>` / `<MemiBoardMiniPost>`다. 관리자 글 고르기는 `<MemiBoardMiniPicker>`.
+- 섹션 kind `comments`(댓글모음). 기본 4개, 최신순/좋아요순. 더 보기는 `/boardComments`.
+
 ## [0.34.0] - 2026-08-19
 
 ### Added
