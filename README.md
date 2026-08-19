@@ -221,6 +221,7 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 - [ ] 목록·상세 페이지에 `await useMemiBoard*Seo(…)` 한 줄
 - [ ] 호스트 SEO API **만들지 않음**
 - [ ] CSS `@source` (아래)
+- [ ] (선택) 읽은 글 표시 CSS (아래)
 - [ ] Rules·indexes **deploy**
 - [ ] 최초 admin + 첫 카테고리
 
@@ -235,7 +236,20 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 5. Security Rules + 인덱스 배포
+### 5. 읽은 글 표시 (선택)
+
+목록·미니 컴포넌트의 글 링크는 `.memi-board-post-link` 클래스가 붙어 있고, 제목 텍스트는 `text-inherit`로 링크 색을 따른다. 패키지는 색을 강제하지 않으므로, 방문한 글을 흐리게 보이고 싶으면 호스트 CSS에 `:visited` 스타일만 추가하면 된다.
+
+```css
+/* app/assets/css/main.css */
+.memi-board-post-link:visited {
+  color: var(--ui-text-muted);
+}
+```
+
+브라우저 네이티브 `:visited` 라서 서버·DB 저장이 필요 없다. 단, SPA 클라이언트 라우팅(`NuxtLink`)으로만 이동한 경우 브라우저에 "실제 방문"으로 기록되지 않을 수 있어 완전히 신뢰할 수는 없다 — 정확한 읽음 추적이 필요하면 별도로 방문 글 ID를 저장하는 방식을 구현해야 한다.
+
+### 6. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
    (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
@@ -257,7 +271,7 @@ const { post: postSeo } = await useMemiBoardPostSeo({
 
 > ⚠️ npm 패키지 tarball에도 `docs/` 가 포함된다(0.4.7+). 구버전이면 GitHub의 `docs/`를 보면 된다.
 
-### 6. 최초 관리자와 카테고리 만들기
+### 7. 최초 관리자와 카테고리 만들기
 
 Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
 
@@ -493,6 +507,7 @@ export default defineNuxtPlugin(() => {
 - [ ] 목록·상세 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo`
 - [ ] 호스트 SEO API 없음
 - [ ] CSS `@source` …/memi-board/dist/runtime/components
+- [ ] (선택) `.memi-board-post-link:visited` 읽은 글 표시 CSS
 - [ ] Rules 예시 병합 + **deploy**
 - [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)

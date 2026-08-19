@@ -32,7 +32,7 @@ function cover(post: PostModel): string | undefined {
       <component
         :is="postTo(post) ? NuxtLink : 'button'"
         :to="postTo(post)"
-        class="block w-full text-left transition hover:bg-elevated/50"
+        class="memi-board-post-link block w-full text-left text-highlighted transition hover:bg-elevated/50"
         @click="!postTo(post) && emit('select', post)"
       >
         <div class="relative aspect-video overflow-hidden bg-elevated">
@@ -52,7 +52,7 @@ function cover(post: PostModel): string | undefined {
               size="sm"
               class="mt-0.5 shrink-0"
             />
-            <h3 class="min-w-0 line-clamp-2 font-medium">{{ post.title }}</h3>
+            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit">{{ post.title }}</h3>
             <span
               v-if="(post.commentCount ?? 0) > 0"
               class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"

@@ -31,7 +31,7 @@ function thumb(post: PostModel): string | undefined {
         <component
           :is="postTo(post) ? NuxtLink : 'button'"
           :to="postTo(post)"
-          class="group flex min-w-0 w-full items-baseline gap-1.5 rounded-lg text-left transition-colors hover:bg-elevated/60"
+          class="memi-board-post-link group flex min-w-0 w-full items-baseline gap-1.5 rounded-lg text-left text-highlighted transition-colors hover:bg-elevated/60"
           @click="!postTo(post) && emit('select', post)"
         >
           <UBadge
@@ -42,7 +42,7 @@ function thumb(post: PostModel): string | undefined {
             size="sm"
             class="shrink-0"
           />
-          <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-highlighted transition-colors group-hover:text-primary">
+          <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-inherit transition-colors group-hover:text-primary">
             {{ post.title?.trim() || post.summary || '사진' }}
           </h3>
           <span

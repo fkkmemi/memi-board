@@ -35,7 +35,7 @@ function image(post: PostModel): string | undefined {
         <component
           :is="postTo(post) ? NuxtLink : 'button'"
           :to="postTo(post)"
-          class="flex min-w-0 flex-1 text-left transition-colors hover:bg-elevated/50"
+          class="memi-board-post-link flex min-w-0 flex-1 text-left text-highlighted transition-colors hover:bg-elevated/50"
           @click="!postTo(post) && emit('select', post)"
         >
           <div class="min-w-0 flex-1 flex flex-col justify-center gap-1 overflow-hidden py-2 pl-3 pr-2">
@@ -56,7 +56,7 @@ function image(post: PostModel): string | undefined {
                   size="sm"
                   class="mt-0.5 shrink-0"
                 />
-                <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug sm:text-base">
+                <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug text-inherit sm:text-base">
                   {{ post.title?.trim() || post.summary || '사진' }}
                 </h3>
                 <span

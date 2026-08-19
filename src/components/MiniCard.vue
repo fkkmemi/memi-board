@@ -19,7 +19,7 @@ const to = computed(() => props.getPostLink?.(props.post) ?? miniPostLink(props.
   <component
     :is="to ? NuxtLink : 'div'"
     :to="to"
-    class="group flex h-full min-w-0 flex-col overflow-hidden rounded-lg bg-elevated/40 text-left"
+    class="memi-board-post-link group flex h-full min-w-0 flex-col overflow-hidden rounded-lg bg-elevated/40 text-left text-highlighted"
   >
     <div
       class="overflow-hidden bg-muted"
@@ -39,7 +39,7 @@ const to = computed(() => props.getPostLink?.(props.post) ?? miniPostLink(props.
       </div>
     </div>
     <div class="flex flex-1 flex-col gap-0.5 p-2.5">
-      <p class="line-clamp-2 text-sm font-medium leading-snug text-highlighted group-hover:text-primary">
+      <p class="line-clamp-2 text-sm font-medium leading-snug text-inherit group-hover:text-primary">
         {{ title }}
       </p>
       <span class="mt-1 inline-flex items-center gap-0.5 text-[11px] tabular-nums text-muted">

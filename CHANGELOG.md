@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.37.0] - 2026-08-19
+
+### Added
+- 읽은 글 표시 훅. 목록·미니 컴포넌트(`ListDefault`/`ListDense`/`ListVideo`/`MiniCard`/`MiniPosts`)의 글 링크에 `.memi-board-post-link` 클래스를 붙이고, 제목 텍스트는 `text-inherit`로 부모 색을 따르게 했다. 호스트가 `.memi-board-post-link:visited`에 색을 지정하면 브라우저 네이티브 방문 기록으로 읽은 글이 흐려진다(패키지가 색을 강제하지 않음).
+
 ## [0.36.0] - 2026-08-19
 
 ### Added

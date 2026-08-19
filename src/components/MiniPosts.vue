@@ -80,11 +80,11 @@ function postTo(post: PostModel) {
       <component
         :is="postTo(post) ? NuxtLink : 'div'"
         :to="postTo(post)"
-        class="flex items-center gap-2 px-3 py-2 transition-colors hover:bg-elevated/60"
+        class="memi-board-post-link flex items-center gap-2 px-3 py-2 text-highlighted transition-colors hover:bg-elevated/60"
       >
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 items-start gap-1.5">
-            <p class="min-w-0 flex-1 truncate text-sm font-medium text-highlighted">
+            <p class="min-w-0 flex-1 truncate text-sm font-medium text-inherit">
               {{ miniPostTitle(post) }}
             </p>
             <span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5 text-[11px] tabular-nums text-muted">
