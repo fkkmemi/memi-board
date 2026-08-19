@@ -85,6 +85,9 @@ function commentLink(comment: CommentModel): string | undefined {
           </p>
           <p class="mt-1 text-xs text-muted">
             {{ formatRelativeDate(comment.createdAt, now) }}
+            <template v-if="(comment.likeCount ?? 0) > 0">
+              · 좋아요 {{ comment.likeCount }}
+            </template>
           </p>
         </component>
       </li>

@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.33.0] - 2026-08-19
+
+### Added
+- 댓글·답글 좋아요. 본문과 같이 `memiBoardLikes` flat 컬렉션을 쓰고, 댓글은 문서ID `${commentId}_{uid}` + `target: 'comment'`다. 글 상세에서는 댓글마다 리스너를 달지 않고 `uid + postId + target` 쿼리 한 번으로 내 좋아요를 구독한다.
+- 댓글 문서에 `likeCount`를 두고 트랜잭션으로 ±1 한다. 기존 댓글은 필드가 없어도 0으로 표시된다.
+- 댓글 삭제와 글 cascade 삭제 시 해당 좋아요 문서를 함께 지운다.
+
+### Compatibility
+- 호스트는 `docs/firestore.rules.example`의 댓글 `isLikeCountUpdate`와 댓글 좋아요 create 규칙을 병합·배포해야 한다.
+- 댓글 좋아요 생성은 예전 댓글의 빈 `boardId`에 의존하지 않고 부모 글의 `boardId`를 본다. 없는 좋아요 문서 `get`은 로그인 사용자에게 허용한다.
+- 글에서 내 댓글 좋아요를 보려면 `memiBoardLikes` 복합 인덱스 `uid + postId + target`이 필요하다.
+
 ## [0.32.0] - 2026-08-14
 
 ### Added

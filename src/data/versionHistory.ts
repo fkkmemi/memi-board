@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.33.0',
+    date: '2026-08-19',
+    highlights: [
+      '댓글과 답글에도 좋아요를 누를 수 있어요',
+      '글을 지우면 댓글 좋아요도 함께 삭제돼요',
+    ],
+    note: '호스트는 Firestore 규칙과 좋아요 인덱스를 병합·배포해야 댓글 좋아요가 동작해요.',
+  },
+  {
     version: '0.32.0',
     date: '2026-08-14',
     highlights: [

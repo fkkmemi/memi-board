@@ -4,7 +4,7 @@
 // memiBoardSettings/{boardId}          (구 memiBoards/{id} stub + settings/config 통합)
 // memiBoardPosts/{postId}(+ body/main)  boardId 필드로 보드 스코핑
 // memiBoardComments/{commentId}         postId + boardId 필드로 스코핑
-// memiBoardLikes/{likeId}               문서ID = `${postId}_${uid}`
+// memiBoardLikes/{likeId}               문서ID = `${postId}_${uid}` 또는 `${commentId}_${uid}`
 //
 // 카테고리 없음 — boardId 가 곧 예전 category id.
 // posts/comments/likes 는 모두 최상위 flat 컬렉션이다. boardId(및 postId)가 이제
@@ -44,6 +44,23 @@ service cloud.firestore {
     }
     function postPath(postId) {
       return /databases/$(database)/documents/memiBoardPosts/$(postId);
+    }
+    function commentPath(commentId) {
+      return /databases/$(database)/documents/memiBoardComments/$(commentId);
+    }
+    function isValidPostLike(likeId) {
+      return request.resource.data.keys().hasOnly(['uid', 'postId', 'boardId', 'createdAt'])
+        && likeId == request.resource.data.postId + '_' + request.auth.uid;
+    }
+    function isValidCommentLike(likeId) {
+      // 예전 댓글은 boardId 가 없을 수 있다. 스푸핑 방지는 댓글의 postId + 부모 글 boardId 로 한다.
+      return request.resource.data.keys().hasOnly(['uid', 'postId', 'boardId', 'createdAt', 'commentId', 'target'])
+        && request.resource.data.target == 'comment'
+        && request.resource.data.commentId is string
+        && likeId == request.resource.data.commentId + '_' + request.auth.uid
+        && exists(commentPath(request.resource.data.commentId))
+        && get(commentPath(request.resource.data.commentId)).data.postId == request.resource.data.postId
+        && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId;
     }
     function isAllowedStaffForBoard(boardId) {
       let allowed = get(boardSettingsPath(boardId)).data.get('allowedStaffUids', []);
@@ -251,26 +268,27 @@ service cloud.firestore {
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardStaff();
       allow update: if isOwner(resource) || isBoardStaff()
-        || isReplyCountUpdate() || isReplyTargetProfileUpdate();
+        || isReplyCountUpdate() || isReplyTargetProfileUpdate()
+        || isLikeCountUpdate();
     }
 
-    // 좋아요 토글 전용 flat 컬렉션. 문서ID 관례 = `${postId}_${uid}`.
-    // (한 유저가 여러 글을 좋아요하므로, 구버전처럼 uid 만으로는 문서ID를 못 씀.)
+    // 좋아요 토글 전용 flat 컬렉션. 문서ID 관례 = `${targetId}_{uid}`.
+    // 본문: target 없음(레거시) + 필드 4개. 댓글: target=='comment' + commentId.
     match /memiBoardLikes/{likeId} {
-      // "내가 좋아요한 글" 쿼리(where uid==auth.uid)를 위해 자기 것은 항상 읽을 수
+      // "내가 좋아요한 글/댓글" 쿼리(where uid==auth.uid)를 위해 자기 것은 항상 읽을 수
       // 있다. 그 외에는 구버전과 동일하게, 해당 글을 읽을 수 있는 사람이면 (uid를
       // 정확히 알고 있는 한) 개별 get() 으로 좋아요 여부를 확인할 수 있다.
-      allow read: if (isSignedIn() && request.auth.uid == resource.data.uid)
-        || canReadPost(get(postPath(resource.data.postId)).data);
+      // resource == null: 아직 없는 좋아요 문서를 트랜잭션에서 get 할 때.
+      // 없으면 resource.data 접근이 실패해 일반 사용자의 첫 좋아요가 permission-denied 가 된다.
+      allow read: if (isSignedIn() && resource == null)
+        || (isSignedIn() && request.auth.uid == resource.data.uid)
+        || (resource != null && canReadPost(get(postPath(resource.data.postId)).data));
 
       allow create: if isBoardWriter()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['uid', 'postId', 'boardId', 'createdAt'])
         && request.resource.data.postId is string
         && request.resource.data.boardId is string
-        // 문서ID가 postId_uid 관례를 따르는지 검증 — 안 그러면 한 유저가 같은 글에
-        // 대해 여러 개의 좋아요 문서를 만들어 likeCount 트랜잭션 로직을 깨뜨릴 수 있다.
-        && likeId == request.resource.data.postId + '_' + request.auth.uid;
+        && (isValidPostLike(likeId) || isValidCommentLike(likeId));
 
       allow delete: if isSignedIn() && request.auth.uid == resource.data.uid;
       // update 는 허용하지 않음 — 토글은 항상 create-or-delete.

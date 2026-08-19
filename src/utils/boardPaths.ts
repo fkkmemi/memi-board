@@ -7,7 +7,7 @@
  * memiBoardPosts/{postId}                      // boardId 는 문서 필드
  * memiBoardPosts/{postId}/body/main
  * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
- * memiBoardLikes/{postId}_{uid}                // uid, postId, boardId 는 문서 필드
+ * memiBoardLikes/{targetId}_{uid}              // 글: postId_uid / 댓글: commentId_uid
  * ```
  *
  * Storage: `memiBoardPosts/{postId}/...` (postId 가 전역 고유이므로 boardId 불필요)
@@ -99,18 +99,18 @@ export function likesCol(db: Firestore, cfg: BoardPathConfig): CollectionReferen
   return collection(db, cfg.likesCollection)
 }
 
-/** 좋아요 문서ID 관례: `${postId}_${uid}` — 유저당 글당 좋아요 1개, 토글은 create-or-delete */
-export function likeDocId(postId: string, uid: string): string {
-  return `${postId}_${uid}`
+/** 좋아요 문서ID 관례: `${targetId}_{uid}` — targetId 는 postId 또는 commentId. 토글은 create-or-delete */
+export function likeDocId(targetId: string, uid: string): string {
+  return `${targetId}_${uid}`
 }
 
 export function likeDoc(
   db: Firestore,
   cfg: BoardPathConfig,
-  postId: string,
+  targetId: string,
   uid: string,
 ): DocumentReference {
-  return doc(db, cfg.likesCollection, likeDocId(postId, uid))
+  return doc(db, cfg.likesCollection, likeDocId(targetId, uid))
 }
 
 export function boardUsersCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {

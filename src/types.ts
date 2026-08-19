@@ -112,6 +112,8 @@ export interface CommentModel {
   /** 최상위 댓글에 저장하는 전체 답글 수. */
   replyCount?: number
   isReply?: boolean
+  /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드. 기존 댓글에는 없을 수 있음(표시 시 0). */
+  likeCount?: number
 }
 
 export type BoardUserRole = 'admin' | 'staff' | 'user'
@@ -189,13 +191,19 @@ export interface BoardSettingsModel extends Omit<BoardModel, 'id'> {
   updatedAt?: Timestamp
 }
 
-/** memiBoardLikes/{postId}_{uid} — "내가 좋아요한 글" 등 uid 기준 교차 조회용 flat 컬렉션. */
+export type BoardLikeTarget = 'post' | 'comment'
+
+/** memiBoardLikes/{targetId}_{uid} — 글·댓글 좋아요. 문서ID의 targetId 는 postId 또는 commentId. */
 export interface BoardLikeModel {
   id?: string
   uid: string
   postId: string
   boardId: string
   createdAt: Timestamp
+  /** 없으면 본문 좋아요(레거시). 댓글 좋아요는 항상 'comment'. */
+  target?: BoardLikeTarget
+  /** 댓글 좋아요일 때만. 문서ID는 `${commentId}_${uid}`. */
+  commentId?: string
 }
 
 /** 검열이 어느 단계에서 끝났는지 (호스트/로깅용, UI 노출 없음) */

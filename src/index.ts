@@ -61,7 +61,12 @@ export { useMemiBoardUserComments } from './composables/useMemiBoardUserComments
 export { AUTHOR_MEMO_MAX_LENGTH, useMemiBoardAuthorMemo } from './composables/useMemiBoardAuthorMemo'
 export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
-export { useMemiBoardLikes } from './composables/useMemiBoardLikes'
+export {
+  useMemiBoardLikes,
+  useMemiBoardCommentLikes,
+  memiBoardCommentLikesKey,
+} from './composables/useMemiBoardLikes'
+export type { MemiBoardCommentLikesApi } from './composables/useMemiBoardLikes'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
 // useMemiBoardStorage(heic2any 등 브라우저 전용) — 'memi-board/storage' 서브패스로 분리.
@@ -104,6 +109,7 @@ export type {
   BoardVisibility,
   BoardSettingsModel,
   BoardLikeModel,
+  BoardLikeTarget,
   ModerationResult,
 } from './types'
 

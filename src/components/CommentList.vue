@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, toRef, watch } from 'vue'
-import { useMemiBoardComments } from 'memi-board/runtime'
+import { computed, onMounted, onUnmounted, provide, ref, toRef, watch } from 'vue'
+import {
+  memiBoardCommentLikesKey,
+  useMemiBoardCommentLikes,
+  useMemiBoardComments,
+} from 'memi-board/runtime'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 
@@ -9,6 +13,10 @@ const props = defineProps<{ boardId: string, postId: string }>()
 const { comments, commentsPending, hasMore, loadingMore, loadMore } = useMemiBoardComments(
   toRef(props, 'boardId'),
   toRef(props, 'postId'),
+)
+provide(
+  memiBoardCommentLikesKey,
+  useMemiBoardCommentLikes(toRef(props, 'boardId'), toRef(props, 'postId')),
 )
 const now = ref(Date.now())
 const loadMoreTrigger = ref<HTMLElement | null>(null)

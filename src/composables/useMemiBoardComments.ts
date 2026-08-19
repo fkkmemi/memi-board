@@ -23,6 +23,7 @@ import {
   commentsCol,
   postDoc,
 } from '../utils/boardPaths'
+import { deleteLikesForComment } from '../utils/deletePostCascade'
 import type { CommentModel } from '../types'
 
 export interface AddCommentInput {
@@ -205,6 +206,7 @@ export function useMemiBoardComments(
       replyToUid: null,
       replyToName: null,
       replyCount: 0,
+      likeCount: 0,
       isReply: false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -238,6 +240,7 @@ export function useMemiBoardComments(
       replyToUid: input.parent.authorUid,
       replyToName: input.parent.authorName,
       replyCount: 0,
+      likeCount: 0,
       isReply: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -252,6 +255,7 @@ export function useMemiBoardComments(
     if (comment.parentId == null && (comment.replyCount ?? 0) > 0) {
       throw new Error('답글이 있는 댓글은 현재 삭제할 수 없습니다.')
     }
+    await deleteLikesForComment(db, cfg(), comment.id)
     const batch = writeBatch(db)
     batch.delete(commentDoc(db, cfg(), comment.id))
     if (comment.parentId && comment.rootId) {

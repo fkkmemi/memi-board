@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, inject, ref, watch } from 'vue'
 import { Timestamp } from 'firebase/firestore'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ko'
 import type { CommentModel } from 'memi-board/runtime'
-import { COMMENT_BODY_MAX_LENGTH, formatTimestampDetails, useMemiBoardAuth, useMemiBoardComments, useMemiBoardModeration } from 'memi-board/runtime'
+import {
+  COMMENT_BODY_MAX_LENGTH,
+  formatTimestampDetails,
+  memiBoardCommentLikesKey,
+  useMemiBoardAuth,
+  useMemiBoardComments,
+  useMemiBoardModeration,
+} from 'memi-board/runtime'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ko')
@@ -23,13 +30,14 @@ const emit = defineEmits<{
   reply: [comment: CommentModel]
 }>()
 
-const { user, canEditComment, canDeleteComment, canManageContent, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, canEditComment, canDeleteComment, canManageContent, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const { updateComment, setCommentBlinded } = useMemiBoardComments(
   props.boardId,
   props.postId,
   { subscribe: false },
 )
 const { checkText } = useMemiBoardModeration()
+const commentLikes = inject(memiBoardCommentLikesKey, null)
 
 const editing = ref(false)
 const editBody = ref(props.comment.body)
@@ -38,7 +46,11 @@ const localUpdatedAt = ref(props.comment.updatedAt)
 const localBlinded = ref(props.comment.isBlinded ?? false)
 const saving = ref(false)
 const blindSaving = ref(false)
+const likeError = ref('')
 const editError = ref('')
+const localLikeCount = ref(props.comment.likeCount ?? 0)
+const isLiked = computed(() => commentLikes?.isLiked(props.comment.id) ?? false)
+const likePending = computed(() => commentLikes?.isPending(props.comment.id) ?? false)
 
 watch(() => props.comment.body, (body) => {
   localBody.value = body
@@ -46,6 +58,9 @@ watch(() => props.comment.body, (body) => {
 })
 watch(() => props.comment.updatedAt, (updatedAt) => { localUpdatedAt.value = updatedAt })
 watch(() => props.comment.isBlinded, (isBlinded) => { localBlinded.value = isBlinded ?? false })
+watch(() => props.comment.likeCount, (likeCount) => {
+  if (likeCount != null) localLikeCount.value = likeCount
+})
 
 const date = computed(() => props.comment.createdAt?.toDate?.())
 const relativeDate = computed(() => date.value ? dayjs(date.value).from(dayjs(props.now)) : '방금 전')
@@ -116,6 +131,19 @@ async function toggleBlind() {
   }
   finally {
     blindSaving.value = false
+  }
+}
+
+async function toggleLike() {
+  if (!props.comment.id || !commentLikes || !isSignedIn.value) return
+  likeError.value = ''
+  const wasLiked = isLiked.value
+  try {
+    const next = await commentLikes.toggleLike(props.comment.id)
+    if (next !== wasLiked) localLikeCount.value = Math.max(0, localLikeCount.value + (next ? 1 : -1))
+  }
+  catch (cause) {
+    likeError.value = cause instanceof Error ? cause.message : '좋아요를 처리하지 못했습니다.'
   }
 }
 </script>
@@ -200,8 +228,30 @@ async function toggleBlind() {
           <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
           {{ localBody }}
       </p>
+      <p v-if="likeError" class="mt-1 text-xs text-error">
+        {{ likeError }}
+      </p>
     </div>
     <div class="flex shrink-0 items-center gap-1">
+      <UButton
+        v-if="isSignedIn && commentLikes && comment.id"
+        icon="i-lucide-heart"
+        size="xs"
+        variant="ghost"
+        :color="isLiked ? 'error' : 'neutral'"
+        :label="String(localLikeCount)"
+        :loading="likePending"
+        :aria-label="isLiked ? '좋아요 취소' : '좋아요'"
+        @click="toggleLike"
+      />
+      <span
+        v-else
+        class="flex items-center gap-0.5 px-1 text-xs text-muted"
+        aria-label="좋아요"
+      >
+        <UIcon name="i-lucide-heart" class="size-3.5" />
+        {{ localLikeCount }}
+      </span>
       <UButton
         v-if="canEditComment(comment) && comment.id && !localBlinded"
         icon="i-lucide-pencil"

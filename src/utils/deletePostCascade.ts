@@ -6,6 +6,7 @@ import {
   where,
   writeBatch,
   type Firestore,
+  type Query,
 } from 'firebase/firestore'
 import {
   deleteObject,
@@ -17,6 +18,7 @@ import {
 import type { BoardPathConfig } from './boardPaths'
 import {
   commentsCol,
+  likesCol,
   postBodyDoc,
   postDoc,
   postStorageFolder,
@@ -38,7 +40,36 @@ async function deleteStoragePaths(storage: FirebaseStorage, paths: Iterable<stri
   await Promise.all(unique.map(path => deleteObject(storageRef(storage, path)).catch(() => {})))
 }
 
-/** 글 하나의 댓글(답글 포함), 본문, 첨부 Storage, 메타를 순서대로 삭제한다. */
+const DELETE_BATCH_SIZE = 450
+
+async function deleteQueryDocs(db: Firestore, docsQuery: Query): Promise<void> {
+  const snapshot = await getDocs(docsQuery)
+  for (let offset = 0; offset < snapshot.docs.length; offset += DELETE_BATCH_SIZE) {
+    const batch = writeBatch(db)
+    snapshot.docs.slice(offset, offset + DELETE_BATCH_SIZE).forEach(item => batch.delete(item.ref))
+    await batch.commit()
+  }
+}
+
+/** 글에 달린 본문·댓글 좋아요를 모두 지운다. 둘 다 postId 필드를 가진다. */
+export async function deleteLikesForPost(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  postId: string,
+): Promise<void> {
+  await deleteQueryDocs(db, query(likesCol(db, cfg), where('postId', '==', postId)))
+}
+
+/** 댓글 하나에 달린 좋아요만 지운다. */
+export async function deleteLikesForComment(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  commentId: string,
+): Promise<void> {
+  await deleteQueryDocs(db, query(likesCol(db, cfg), where('commentId', '==', commentId)))
+}
+
+/** 글 하나의 댓글(답글 포함), 좋아요, 본문, 첨부 Storage, 메타를 순서대로 삭제한다. */
 export async function deletePostCascade(
   db: Firestore,
   storage: FirebaseStorage,
@@ -56,12 +87,8 @@ export async function deletePostCascade(
     : ''
 
   // 답글도 같은 flat 컬렉션에서 같은 postId를 가지므로 함께 삭제된다.
-  const commentsSnap = await getDocs(query(commentsCol(db, cfg), where('postId', '==', id)))
-  for (let offset = 0; offset < commentsSnap.docs.length; offset += 450) {
-    const batch = writeBatch(db)
-    commentsSnap.docs.slice(offset, offset + 450).forEach(item => batch.delete(item.ref))
-    await batch.commit()
-  }
+  await deleteQueryDocs(db, query(commentsCol(db, cfg), where('postId', '==', id)))
+  await deleteLikesForPost(db, cfg, id)
 
   const extraPaths = new Set<string>()
   const extraNamespaces = new Set<string>()
