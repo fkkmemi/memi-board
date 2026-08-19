@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.34.0',
+    date: '2026-08-19',
+    highlights: [
+      '댓글을 최신순이나 좋아요순으로 모아 볼 수 있어요',
+    ],
+    note: '호스트는 좋아요순 목록용 Firestore 인덱스(likeCount + createdAt)를 배포해야 해요.',
+  },
+  {
     version: '0.33.0',
     date: '2026-08-19',
     highlights: [

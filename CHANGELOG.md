@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.34.0] - 2026-08-19
+
+### Added
+- 전체 댓글 피드 `useMemiBoardCommentFeed` / `<MemiBoardCommentFeed>`. 최신순(`createdAt`)과 좋아요순(`likeCount`)을 지원한다. 좋아요순은 `likeCount` 필드가 있는 댓글만 나온다.
+
 ## [0.33.0] - 2026-08-19
 
 ### Added

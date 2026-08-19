@@ -123,6 +123,15 @@
       ]
     },
     {
+      "collectionGroup": "memiBoardComments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "likeCount", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "memiBoardLikes",
       "queryScope": "COLLECTION",
       "fields": [
