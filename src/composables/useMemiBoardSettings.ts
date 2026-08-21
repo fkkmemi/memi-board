@@ -16,6 +16,7 @@ import {
 import type { QueryDocumentSnapshot } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
 import {
+  commentsCol,
   postsCol,
   settingsCol,
   settingsDoc,
@@ -128,12 +129,16 @@ export function useMemiBoardSettings() {
 
   const managedBoards = computed(() => boards.value.filter(board => canManageBoard(board.id)))
 
-  /** 숨김 전환 시 해당 보드 글 listed 일괄 맞춤 */
-  async function syncPostsListedForBoard(boardId: string, listed: boolean): Promise<void> {
+  /** 숨김 전환 시 해당 보드 글·댓글 listed 일괄 맞춤. 값이 이미 같으면 건너뛴다. */
+  async function syncListedForCol(
+    col: ReturnType<typeof postsCol>,
+    boardId: string,
+    listed: boolean,
+  ): Promise<void> {
     let cursor: QueryDocumentSnapshot | undefined
     for (;;) {
       const page = await getDocs(query(
-        postsCol(db, cfg()),
+        col,
         where('boardId', '==', boardId),
         orderBy('__name__'),
         ...(cursor ? [startAfter(cursor)] : []),
@@ -141,13 +146,21 @@ export function useMemiBoardSettings() {
       ))
       if (page.empty) break
       const batch = writeBatch(db)
+      let writes = 0
       for (const item of page.docs) {
+        if (item.data().listed === listed) continue
         batch.update(item.ref, { listed })
+        writes++
       }
-      await batch.commit()
+      if (writes) await batch.commit()
       cursor = page.docs[page.docs.length - 1]
       if (page.docs.length < 400) break
     }
+  }
+
+  async function syncListedForBoard(boardId: string, listed: boolean): Promise<void> {
+    await syncListedForCol(postsCol(db, cfg()), boardId, listed)
+    await syncListedForCol(commentsCol(db, cfg()), boardId, listed)
   }
 
   function settingsPayload(board: BoardModel, order: number) {
@@ -170,14 +183,9 @@ export function useMemiBoardSettings() {
     const label = board.label.trim()
     if (!id || !label) throw new Error('보드 ID와 이름을 입력해 주세요.')
     const visibility = normalizeVisibility(board.visibility)
-    const previous = boards.value.find(item => item.id === id)
-    const previousVisibility = previous?.visibility ?? 'public'
     const payload = settingsPayload({ ...board, label, visibility }, order)
     await setDoc(settingsDoc(db, cfg(), id), payload, { merge: true })
-
-    if (previousVisibility !== visibility || visibility === 'public') {
-      await syncPostsListedForBoard(id, visibility !== 'hidden')
-    }
+    await syncListedForBoard(id, visibility !== 'hidden')
   }
 
   /** @deprecated saveBoard */
@@ -196,11 +204,13 @@ export function useMemiBoardSettings() {
       const payload = settingsPayload({ ...board, label, visibility }, order)
       batch.set(settingsDoc(db, cfg(), id), payload, { merge: true })
       const prev = previousById.get(id) ?? 'public'
-      if (prev !== visibility) visibilityChanges.push({ id, listed: visibility !== 'hidden' })
+      if (prev !== visibility || visibility === 'hidden') {
+        visibilityChanges.push({ id, listed: visibility !== 'hidden' })
+      }
     })
     await batch.commit()
     for (const change of visibilityChanges) {
-      await syncPostsListedForBoard(change.id, change.listed)
+      await syncListedForBoard(change.id, change.listed)
     }
   }
 

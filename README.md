@@ -440,11 +440,12 @@ const router = useRouter()
 
 | 동작 | 조건 |
 |------|------|
-| 글/댓글 읽기 | 공개 |
-| 글 작성 | 로그인 + 카테고리 `writeRole` 충족 + `moderationStatus == 'approved'` |
-| 댓글 작성 | 로그인 + `moderationStatus == 'approved'` (클라가 항상 approved 로 씀 — 검열 통과 후에만 write) |
-| 글 수정·삭제 | 작성자 또는 `memiBoardUsers/{uid}.role in ['admin', 'staff']` |
-| 댓글 삭제 | 댓글 작성자 · 글 작성자 · admin · staff |
+| 글 읽기 | 공개(`listed`·게시됨) 또는 작성자·관리자·담당 스태프. 숨김 보드는 작성자·관리자·담당 스태프만 |
+| 댓글 읽기 | 공개(`listed`) 또는 작성자·관리자·담당 스태프·부모 글을 읽을 수 있는 사람 |
+| 글 작성 | 로그인 + 보드 `writeRole` 충족 + `moderationStatus == 'approved'` |
+| 댓글 작성 | 로그인 + 보드 `commentWriteRole` 충족. **숨김 보드는 담당 스태프만** (`commentWriteRole` 무시) |
+| 글 수정·삭제 | 작성자 또는 해당 보드 관리자·담당 스태프 |
+| 댓글 삭제 | 댓글 작성자 · 글 작성자 · 해당 보드 관리자·담당 스태프 |
 | 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |
 
 **알려진 한계:** AI 검열은 클라이언트 전용. SDK로 직접 write 하면 우회 가능. 중요 서비스면 Cloud Functions 검증을 호스트가 추가(패키지 범위 밖).

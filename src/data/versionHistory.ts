@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.38.0',
+    date: '2026-08-21',
+    highlights: [
+      '숨김 게시판에는 댓글을 거의 쓰지 않아요. 필요하면 담당 스태프만 남길 수 있어요',
+      '숨김 게시판 댓글은 공개 댓글 모음에 나오지 않아요',
+    ],
+    note: '호스트는 Firestore 규칙·댓글 listed 인덱스를 다시 배포해야 해요. 공개 보드는 한 번 저장하면 예전 댓글이 목록에 다시 채워져요.',
+  },
+  {
     version: '0.36.0',
     date: '2026-08-19',
     highlights: [

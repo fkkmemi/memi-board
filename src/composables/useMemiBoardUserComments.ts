@@ -19,11 +19,8 @@ import type { CommentModel } from '../types'
 const USER_COMMENT_PAGE_SIZE = 10
 
 /**
- * 작성자 uid로 모든 보드를 가로질러 댓글을 모은다. memiBoardComments 읽기 규칙이
- * 더 이상 부모 글을 get()하지 않고 항상 허용이라(누구나 볼 수 있어야 하는 요구사항),
- * useMemiBoardUserPosts와 동일하게 authorUid 동등 필터만으로 충분하다 — 부모 글이
- * 비공개·삭제·블라인드 상태여도 댓글 자체는 여기서 그대로 보이고, 실제 글로
- * 이동했을 때 그 글의 접근 상태에 따라 표현하는 건 호스트(클릭 시 이동하는 페이지)의 몫이다.
+ * 작성자 uid로 모든 보드를 가로질러 공개(listed) 댓글만 모은다.
+ * 숨김 보드 댓글은 글 상세에서 글 읽기 권한이 있는 사람만 본다.
  */
 export function useMemiBoardUserComments(
   uid: MaybeRefOrGetter<string>,
@@ -64,7 +61,10 @@ export function useMemiBoardUserComments(
   })
 
   function baseConstraints(): QueryConstraint[] {
-    return [where('authorUid', '==', uidValue.value)]
+    return [
+      where('authorUid', '==', uidValue.value),
+      where('listed', '==', true),
+    ]
   }
 
   function startHeadSubscription() {

@@ -24,6 +24,7 @@ import {
   postDoc,
 } from '../utils/boardPaths'
 import { deleteLikesForComment } from '../utils/deletePostCascade'
+import { useMemiBoardSettings } from './useMemiBoardSettings'
 import type { CommentModel } from '../types'
 
 export interface AddCommentInput {
@@ -58,10 +59,12 @@ export function useMemiBoardComments(
 ) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
+  const { isBoardHidden } = useMemiBoardSettings()
   const commentsColRef = () => commentsCol(db, cfg())
 
   const bid = computed(() => toValue(boardId))
   const id = computed(() => toValue(postId))
+  const listedForBoard = () => !isBoardHidden(bid.value)
 
   // limit(1) 리스너는 최신 댓글 알림 용도다. 쿼리 결과 교체로 기존 댓글이
   // 사라지지 않도록 수신 문서를 별도 배열에 누적한다.
@@ -195,6 +198,7 @@ export function useMemiBoardComments(
     batch.set(commentRef, {
       postId: id.value,
       boardId: bid.value,
+      listed: listedForBoard(),
       body,
       authorUid: input.authorUid,
       authorName: input.authorName,
@@ -229,6 +233,7 @@ export function useMemiBoardComments(
     batch.set(replyRef, {
       postId: id.value,
       boardId: bid.value,
+      listed: listedForBoard(),
       body,
       authorUid: input.authorUid,
       authorName: input.authorName,
@@ -306,6 +311,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
   const commentsColRef = () => commentsCol(db, cfg())
+  const pid = postId.trim()
   const replies = ref<CommentModel[]>([])
   const loading = ref(false)
   const loaded = ref(false)
@@ -324,6 +330,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
     if (stopLiveSubscription) return
     stopLiveSubscription = onSnapshot(query(
       commentsColRef(),
+      where('postId', '==', pid),
       where('rootId', '==', rootId),
       where('isReply', '==', true),
       orderBy('createdAt', 'desc'),
@@ -346,6 +353,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
     loading.value = true
     try {
       const constraints = [
+        where('postId', '==', pid),
         where('rootId', '==', rootId),
         where('isReply', '==', true),
         orderBy('createdAt', 'asc'),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useMemiBoardAuth } from 'memi-board/runtime'
+import { canWriteCommentByRole, useMemiBoardAuth } from 'memi-board/runtime'
 import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
 import { useMemiBoardModeration } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -9,7 +9,7 @@ import type { CommentModel } from 'memi-board/runtime'
 const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()
 
-const { user, isSignedIn, isAdmin, canManageBoard, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, isAdmin, isStaff, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
 const { addComment, addReply } = useMemiBoardComments(
   props.boardId,
@@ -19,13 +19,15 @@ const { addComment, addReply } = useMemiBoardComments(
 const { checkText } = useMemiBoardModeration()
 const { getBoard } = useMemiBoardSettings()
 
-// 보드별 댓글쓰기 권한
+const board = computed(() => getBoard(props.boardId))
+const isHiddenBoard = computed(() => board.value?.visibility === 'hidden')
 const canComment = computed(() => {
-  if (!isSignedIn.value) return false
-  const required = getBoard(props.boardId)?.commentWriteRole ?? 'user'
-  if (required === 'admin') return isAdmin.value
-  if (required === 'staff') return isAdmin.value || canManageBoard(props.boardId)
-  return true
+  if (!isSignedIn.value || !user.value?.uid) return false
+  return canWriteCommentByRole(user.value.uid, isAdmin.value, isStaff.value, board.value)
+})
+const deniedMessage = computed(() => {
+  if (isHiddenBoard.value) return '숨김 게시판에는 담당 스태프만 댓글을 남길 수 있습니다.'
+  return '이 게시판에는 댓글쓰기 권한이 없습니다.'
 })
 
 const body = ref('')
@@ -40,7 +42,7 @@ async function handleSubmit() {
     return
   }
   if (!canComment.value) {
-    error.value = '댓글쓰기 권한이 없습니다.'
+    error.value = deniedMessage.value
     return
   }
   if (isWriteRestricted.value) {
@@ -131,6 +133,6 @@ async function handleSubmit() {
     v-else
     class="text-sm text-muted"
   >
-    이 게시판에는 댓글쓰기 권한이 없습니다.
+    {{ deniedMessage }}
   </p>
 </template>

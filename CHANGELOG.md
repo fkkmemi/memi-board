@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.38.0] - 2026-08-21
+
+### Changed
+- **숨김 게시판 댓글은 담당 스태프(또는 관리자)만 작성할 수 있다.** `commentWriteRole`과 무관하게 rules·UI가 막는다. 비밀글에는 댓글이 사실상 없고, 스태프 메모가 필요하면 지정 스태프만 남긴다.
+- **숨김 보드 댓글은 공개 피드·작성자 댓글 목록에서 빠진다.** `memiBoardComments.listed`를 글과 같이 복제하고, `docs/firestore.rules.example`의 댓글 읽기는 `canReadComment`(listed 또는 작성자·관리자·담당 스태프·부모 글 읽기 권한)로 좁혔다. 예전 `allow read: if true`는 숨김 글 댓글이 그대로 새는 구멍이었다.
+- 보드를 저장하면 해당 보드 글·댓글 `listed`를 맞춰 준다(값이 이미 같으면 건너뜀). 공개 보드의 예전 댓글은 `listed`가 없어 피드에서 빠질 수 있으니, 호스트는 공개 보드를 한 번씩 저장해 백필하면 된다.
+
+### Breaking
+- 호스트는 `docs/firestore.rules.example`과 `docs/firestore.indexes.json.example`을 다시 배포해야 한다. 댓글 생성에 `listed` 필수, 공개 피드/작성자 댓글 목록은 `listed==true` 복합 인덱스, 답글 조회는 `postId+rootId+isReply` 인덱스가 추가됐다.
+
 ## [0.37.2] - 2026-08-19
 
 ### Fixed

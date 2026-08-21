@@ -8,6 +8,7 @@ import {
   orderBy,
   query,
   startAfter,
+  where,
 } from 'firebase/firestore'
 import type { DocumentData, QueryConstraint, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
@@ -20,7 +21,8 @@ const COMMENT_FEED_PAGE_SIZE = 10
 export type CommentFeedSort = 'latest' | 'likes'
 
 /**
- * 보드를 가로질러 댓글을 모은다. 최신순은 createdAt, 좋아요순은 likeCount.
+ * 보드를 가로질러 공개(listed) 댓글만 모은다. 숨김 보드 댓글은 제외.
+ * 최신순은 createdAt, 좋아요순은 likeCount.
  * likeCount 가 없는 예전 댓글은 좋아요순 쿼리에 나오지 않는다(표시 시 0).
  */
 export function useMemiBoardCommentFeed(
@@ -76,12 +78,14 @@ export function useMemiBoardCommentFeed(
   function orderConstraints(): QueryConstraint[] {
     if (sortValue.value === 'likes') {
       return [
+        where('listed', '==', true),
         orderBy('likeCount', 'desc'),
         orderBy('createdAt', 'desc'),
         orderBy(documentId(), 'desc'),
       ]
     }
     return [
+      where('listed', '==', true),
       orderBy('createdAt', 'desc'),
       orderBy(documentId(), 'desc'),
     ]

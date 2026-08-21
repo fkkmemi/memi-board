@@ -89,6 +89,11 @@ export interface CommentModel {
   postId: string
   /** 부모 글의 boardId — 생성 시 클라이언트가 채우고, rules 가 부모 글과 일치하는지 검증한다. */
   boardId: string
+  /**
+   * 공개 피드·작성자 댓글 목록 노출 여부. 보드 visibility 가 hidden 이면 false.
+   * 글의 listed 와 같은 복제 필드. 미지정 레거시는 true 취급.
+   */
+  listed?: boolean
   body: string
   authorUid: string
   authorName: string | null
@@ -154,7 +159,7 @@ export interface AuthorMemoModel {
 
 export type BoardListView = 'default' | 'dense' | 'image' | 'video'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'
-/** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글 listed=false. */
+/** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글·댓글 listed=false. 댓글 쓰기는 담당 스태프만. */
 export type BoardVisibility = 'public' | 'hidden'
 
 /**
@@ -168,7 +173,7 @@ export interface BoardModel {
   description?: string
   /**
    * 보임/숨김. hidden = 일기장·비공개.
-   * 보드 목록·칩에서 제외, 글 listed=false. 미지정은 public.
+   * 보드 목록·칩에서 제외, 글·댓글 listed=false, 댓글 쓰기는 담당 스태프만. 미지정은 public.
    */
   visibility?: BoardVisibility
   listView?: BoardListView

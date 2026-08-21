@@ -40,7 +40,7 @@ const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
 ]
 const visibilityOptions: Array<{ label: string, value: BoardVisibility, description?: string }> = [
   { label: '보임', value: 'public', description: '전체 목록·필터에 표시' },
-  { label: '숨김', value: 'hidden', description: '일기장·비공개' },
+  { label: '숨김', value: 'hidden', description: '일기장·비공개. 댓글은 담당 스태프만' },
 ]
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
@@ -238,12 +238,26 @@ async function runDeleteAll() {
           />
         </div>
         <div class="flex flex-col gap-2">
-          <div><p class="text-sm font-medium">댓글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 댓글을 쓸 수 있는 최소 역할</p></div>
+          <div>
+            <p class="text-sm font-medium">댓글쓰기 권한</p>
+            <p class="text-xs text-muted">
+              {{ category.visibility === 'hidden'
+                ? '숨김 게시판은 댓글이 공개 피드에 안 나오고, 담당 스태프만 작성할 수 있습니다'
+                : '이 카테고리에 댓글을 쓸 수 있는 최소 역할' }}
+            </p>
+          </div>
           <MemiBoardOptionCards
+            v-if="category.visibility !== 'hidden'"
             v-model="category.commentWriteRole"
             :options="writeRoleOptions"
             @update:model-value="savedId = null"
           />
+          <p
+            v-else
+            class="rounded-lg border border-default px-3 py-2.5 text-sm text-muted"
+          >
+            담당 스태프만 (숨김 보드 고정)
+          </p>
         </div>
         <div v-if="needsStaffPicker(category)" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">담당 스태프</p><p class="text-xs text-muted">지정한 스태프만 이 보드를 설정·관리합니다. 비우면 관리자만</p></div>
@@ -275,7 +289,7 @@ async function runDeleteAll() {
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
           <div>
             <p class="text-sm font-medium">공개 범위</p>
-            <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고 rules 로 글 읽기가 제한됩니다</p>
+            <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고, 글은 관리자·담당 스태프·작성자만 읽을 수 있습니다. 댓글은 담당 스태프만 쓸 수 있습니다</p>
           </div>
           <MemiBoardOptionCards
             v-model="category.visibility"

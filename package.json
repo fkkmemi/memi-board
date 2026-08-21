@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.37.2",
+  "version": "0.38.0",
   "type": "module",
   "description": "Nuxt 4 + Nuxt UI + VueFire/Firebase 전용 게시판 모듈",
   "license": "MIT",

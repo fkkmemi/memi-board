@@ -77,11 +77,14 @@ service cloud.firestore {
           || (requiredRole == 'admin' && isBoardAdmin()));
     }
     function canWriteBoardComment(boardId) {
+      let hidden = get(boardSettingsPath(boardId)).data.get('visibility', 'public') == 'hidden';
       let requiredRole = get(boardSettingsPath(boardId)).data.get('commentWriteRole', 'user');
       return exists(boardSettingsPath(boardId))
-        && (requiredRole == 'user'
-          || (requiredRole == 'staff' && isBoardStaff() && isAllowedStaffForBoard(boardId))
-          || (requiredRole == 'admin' && isBoardAdmin()));
+        && (hidden
+          ? isBoardManager(boardId)
+          : (requiredRole == 'user'
+            || (requiredRole == 'staff' && isBoardManager(boardId))
+            || (requiredRole == 'admin' && isBoardAdmin())));
     }
     function isOwner(resource) {
       return isSignedIn() && request.auth.uid == resource.data.authorUid;
@@ -138,6 +141,18 @@ service cloud.firestore {
         || (isSignedIn() && request.auth.uid == data.authorUid)
         || isBoardAdmin()
         || isBoardManager(data.boardId);
+    }
+    // 공개 피드·작성자 댓글 목록은 listed==true 동등 필터로 숨김 보드 댓글을 뺀다.
+    // 글 상세(postId == 상수)에서는 부모 글을 읽을 수 있으면 숨김 댓글도 볼 수 있다
+    // (작성자가 담당 스태프 메모를 읽는 경우).
+    function canReadComment(data) {
+      return data.get('listed', true) == true
+        || (isSignedIn() && request.auth.uid == data.authorUid)
+        || isBoardAdmin()
+        || isBoardManager(data.boardId)
+        || (data.postId is string
+          && exists(postPath(data.postId))
+          && canReadPost(get(postPath(data.postId)).data));
     }
     function expectedListed(boardId) {
       return get(boardSettingsPath(boardId)).data.get('visibility', 'public') != 'hidden';
@@ -240,15 +255,9 @@ service cloud.firestore {
     }
 
     match /memiBoardComments/{commentId} {
-      // 누구나 읽을 수 있다 — "작성한 댓글 보기"(useMemiBoardUserComments)가
-      // authorUid 하나로 모든 보드를 가로질러 조회하는데, postId는 문서마다
-      // 달라 동등(==) 필터로 고정할 수 없다. 부모 글을 get()해서 판단하는 규칙은
-      // list 쿼리에서 get() 인자가 상수로 환원 가능해야 하는데(postId 고정 쿼리에서만
-      // 성립), authorUid로 고정된 쿼리는 이 조건을 못 만족해 통째로 거부된다.
-      // 부모 글이 비공개·블라인드·삭제 상태여도 댓글 본문 자체는 노출되고,
-      // 실제 글로 이동했을 때 그 글의 접근 상태(찾을 수 없음/권한 없음 등)로
-      // 대신 표현한다 — 댓글 하나가 아니라 글 단위로 이미 존재하는 처리다.
-      allow read: if true;
+      // 공개 피드·작성자 댓글 목록은 where('listed','==',true) 로 숨김 보드 댓글을 걸러낸다.
+      // 글 상세는 postId 동등 필터라 부모 글 권한(canReadPost)으로 숨김 댓글도 읽을 수 있다.
+      allow read: if canReadComment(resource.data);
 
       allow create: if isBoardWriter()
         && request.resource.data.postId is string
@@ -263,14 +272,25 @@ service cloud.firestore {
         && request.resource.data.body is string
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
-        && request.resource.data.moderationStatus == 'approved';
+        && request.resource.data.moderationStatus == 'approved'
+        && request.resource.data.listed is bool
+        && request.resource.data.listed == expectedListed(request.resource.data.boardId);
 
       allow delete: if isOwner(resource)
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardManager(resource.data.boardId);
-      allow update: if isOwner(resource) || isBoardManager(resource.data.boardId)
-        || isReplyCountUpdate() || isReplyTargetProfileUpdate()
-        || isLikeCountUpdate();
+      allow update: if isReplyCountUpdate() || isReplyTargetProfileUpdate()
+        || isLikeCountUpdate()
+        || (
+          (isOwner(resource) || isBoardManager(resource.data.boardId))
+          && request.resource.data.postId == resource.data.postId
+          && request.resource.data.boardId == resource.data.boardId
+          && request.resource.data.authorUid == resource.data.authorUid
+          && (
+            request.resource.data.get('listed', true) == resource.data.get('listed', true)
+            || isBoardManager(resource.data.boardId)
+          )
+        );
     }
 
     // 좋아요 토글 전용 flat 컬렉션. 문서ID 관례 = `${targetId}_{uid}`.
