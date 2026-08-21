@@ -25,6 +25,18 @@ service firebase.storage {
         && firestore.get(postPath).data.authorUid == request.auth.uid;
     }
 
+    // 글 삭제 시 패키지가 images/·attachments/ 를 listAll 한다(0.38.1+).
+    // 0.38.0 이하는 부모 경로 listAll(memiBoardPosts/{postId}) 를 쓴다.
+    // 요청 접두사는 항상 memiBoardPosts/{postId}/ (끝 슬래시) 이라
+    // match /memiBoardPosts/{postId} { allow list } 만으로는 403 이 난다.
+    // {allPaths=**} 가 0칸 이상을 받아 폴더 목록과 파일 get/delete 에 필요하다.
+    // write 는 여기에 넣지 않는다 — 용량·image/* 제한은 아래 세부 match 가 담당.
+    match /memiBoardPosts/{postId}/{allPaths=**} {
+      allow list, get: if true;
+      allow delete: if isSignedIn()
+        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+    }
+
     match /memiBoardPosts/{postId}/attachments/{fileName} {
       allow read: if true;
       allow write: if isSignedIn()

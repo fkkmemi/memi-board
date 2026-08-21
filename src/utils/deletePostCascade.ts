@@ -29,11 +29,22 @@ import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from './stor
 import type { PostModel } from '../types'
 
 async function deleteStorageFolder(folderRef: StorageReference): Promise<void> {
-  const list = await listAll(folderRef)
-  await Promise.all([
-    ...list.items.map(item => deleteObject(item)),
-    ...list.prefixes.map(prefix => deleteStorageFolder(prefix)),
-  ])
+  try {
+    const list = await listAll(folderRef)
+    await Promise.all([
+      ...list.items.map(item => deleteObject(item).catch(() => {})),
+      ...list.prefixes.map(prefix => deleteStorageFolder(prefix)),
+    ])
+  }
+  catch {
+    // 이 경로에 list 규칙이 없으면 건너뛴다. 호출 쪽에서 하위 폴더를 따로 비운다.
+  }
+}
+
+/** 규칙이 매칭하는 images/·attachments/ 만 비운다. 부모 폴더 listAll 은 호스트 규칙에서 403 이 난다. */
+async function deletePostStorageTree(storage: FirebaseStorage, folder: string): Promise<void> {
+  await deleteStorageFolder(storageRef(storage, `${folder}/images`))
+  await deleteStorageFolder(storageRef(storage, `${folder}/attachments`))
 }
 
 async function deleteStoragePaths(storage: FirebaseStorage, paths: Iterable<string>): Promise<void> {
@@ -124,9 +135,9 @@ export async function deletePostCascade(
   }
 
   await deleteDoc(bodyRef)
-  await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg, id)))
+  await deletePostStorageTree(storage, postStorageFolder(cfg, id))
   for (const namespace of extraNamespaces) {
-    await deleteStorageFolder(storageRef(storage, postStorageFolder(cfg, namespace)))
+    await deletePostStorageTree(storage, postStorageFolder(cfg, namespace))
   }
   await deleteStoragePaths(storage, extraPaths)
   await deleteDoc(metaRef)

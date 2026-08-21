@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.38.1',
+    date: '2026-08-21',
+    highlights: [
+      '내가 쓴 글을 지울 때 첨부 사진 때문에 막히던 문제를 고쳤어요',
+    ],
+    note: '호스트는 Storage 예시 규칙의 memiBoardPosts/{postId}/{allPaths=**} 목록 블록을 넣고 배포해야 해요.',
+  },
+  {
     version: '0.38.0',
     date: '2026-08-21',
     highlights: [

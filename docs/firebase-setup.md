@@ -65,6 +65,8 @@ firebase init firestore storage
 ]
 ```
 
+글 삭제가 `storage/unauthorized` (`access 'memiBoardPosts/{postId}'`) 로 실패하면 버킷이 아니라 **list 경로**다. `listAll` 접두사는 `memiBoardPosts/{postId}/` 이라 `match /memiBoardPosts/{postId} { allow list }` 만으로는 안 된다. `docs/storage.rules.example`의 `{postId}/{allPaths=**}` 블록을 그대로 넣고 `firebase deploy --only storage` 한다.
+
 ## 5. 게시판 Security Rules 병합 + 배포
 
 README의 [Security Model](../README.md#security-model--반드시-읽어야-하는-부분) 섹션대로 `docs/firestore.rules.example`/`docs/storage.rules.example`을 프로젝트 규칙 파일에 병합한 뒤:

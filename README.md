@@ -548,6 +548,22 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
 4. `firebase deploy --only storage` 후 다시 올려 본다.
 
+### 글 삭제 `storage/unauthorized`
+
+작성자 본인 글 삭제가 `User does not have permission to access 'memiBoardPosts/{postId}'` 로 실패하면, 파일 삭제가 아니라 **폴더 목록(`listAll`)** 이 막힌 것이다.
+
+요청은 `prefix=memiBoardPosts/{postId}/`(끝 슬래시)다. `match /memiBoardPosts/{postId} { allow list }` 만 있으면 이 접두사와 안 맞는다. 호스트 `storage.rules`에 예시와 같은 블록이 있어야 한다.
+
+```
+match /memiBoardPosts/{postId}/{allPaths=**} {
+  allow list, get: if true;
+  allow delete: if isSignedIn()
+    && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+}
+```
+
+`write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 0.38.1+ 패키지는 `images/`·`attachments/`만 목록으로 비운다.
+
 ### monorepo `link:` / `file:` 로 개발할 때
 
 링크하기 전에 패키지 의존성과 `dist`를 준비한다.

@@ -4,6 +4,12 @@
 
 ## [Unreleased]
 
+## [0.38.1] - 2026-08-21
+
+### Fixed
+- 글 삭제 시 Storage `listAll(memiBoardPosts/{postId})` 가 `storage/unauthorized` 나던 문제. 패키지는 `images/`·`attachments/`만 비운다.
+- `docs/storage.rules.example`: list 접두사는 `memiBoardPosts/{postId}/` 이라 `{postId}` 한 칸 `allow list` 로는 403 이다. 호스트는 `{postId}/{allPaths=**}` 의 `list`·`get`·`delete` 블록을 복사해 `firebase deploy --only storage` 해야 한다. `write` 는 이 블록에 넣지 않는다.
+
 ## [0.38.0] - 2026-08-21
 
 ### Changed
