@@ -416,7 +416,7 @@ const router = useRouter()
 
 ### 보드 (구 카테고리)
 
-- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, writeRole, commentWriteRole, visibility, allowedStaffUids, order, updatedAt }`
+- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, order, updatedAt }`
 - 설정이 없으면 빈 목록이며 기본 보드를 자동 생성하지 않음
 - `MemiBoardSettings`에서 관리자가 보드별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
 - `boardId`는 문서 ID이자 각 글(`memiBoardPosts`)의 `boardId` 참조값이므로 생성 후 변경하지 않는 것을 권장

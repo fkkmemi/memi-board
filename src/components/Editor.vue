@@ -48,7 +48,7 @@ const tags = ref<string[]>([])
 const attachments = ref<Attachment[]>([])
 
 /** 이미지 리스트뷰 보드 — 제목 없음, 이미지만 있어도 작성 가능 */
-const isImageListView = computed(() => getBoard(resolvedBoardId.value)?.listView === 'image')
+const isImageEditor = computed(() => getBoard(resolvedBoardId.value)?.editorType === 'image')
 const isEdit = computed(() => Boolean(props.postId))
 
 const loading = ref(false)
@@ -217,7 +217,7 @@ function openImageDialog(editor?: any) {
 function chooseImageFileFromDialog() {
   const editor = imageDialogEditor.value ?? resolveEditor()
   imageDialogOpen.value = false
-  if (isImageListView.value) pickCoverImages()
+  if (isImageEditor.value) pickCoverImages()
   else if (editor) pickAndUploadImage(editor)
 }
 
@@ -227,7 +227,7 @@ async function addExternalImage() {
   externalImageChecking.value = true
   try {
     const url = await verifyExternalImage(normalizeExternalImageUrl(externalImageUrl.value))
-    if (isImageListView.value) {
+    if (isImageEditor.value) {
       appendCoverUrls([url])
     }
     else {
@@ -270,6 +270,11 @@ function reorderCover(from: number, to: number) {
   if (!item) return
   list.splice(to, 0, item)
   coverSlots.value = list
+}
+
+function setRepresentativeCover(index: number) {
+  if (index <= 0 || index >= coverSlots.value.length) return
+  reorderCover(index, 0)
 }
 
 function onCoverItemDragStart(e: DragEvent, index: number) {
@@ -336,7 +341,7 @@ async function doUploadImage(file: File): Promise<EditorImageEntry> {
 
 async function uploadAndSetImage(editor: any, file: File) {
   // 이미지 보드: TipTap 삽입 금지 → 갤러리에 추가
-  if (isImageListView.value) {
+  if (isImageEditor.value) {
     await uploadCoverImages([file])
     return
   }
@@ -425,7 +430,7 @@ function onCoverDrop(e: DragEvent) {
 }
 
 function pickAndUploadImage(editor: any) {
-  if (isImageListView.value) {
+  if (isImageEditor.value) {
     pickCoverImages()
     return
   }
@@ -465,23 +470,23 @@ function insertYoutube(editor: any, value?: string | null): boolean {
 const handlers = computed(() => ({
   image: {
     canExecute: (editor: any) =>
-      !isImageListView.value && editor.can().setImage({ src: '' }),
+      !isImageEditor.value && editor.can().setImage({ src: '' }),
     isActive: (editor: any) => editor.isActive('image'),
-    isDisabled: () => isImageListView.value,
+    isDisabled: () => isImageEditor.value,
     execute: (editor: any) => {
-      if (isImageListView.value) return editor.chain()
+      if (isImageEditor.value) return editor.chain()
       openImageDialog(editor)
       return editor.chain()
     },
   },
   youtube: {
     canExecute: (editor: any) =>
-      !isImageListView.value
+      !isImageEditor.value
       && editor.can().setYoutubeVideo({ src: 'https://youtu.be/dQw4w9WgXcQ' }),
     isActive: (editor: any) => editor.isActive('youtube'),
-    isDisabled: () => isImageListView.value,
+    isDisabled: () => isImageEditor.value,
     execute: (editor: any) => {
-      if (isImageListView.value) return editor.chain()
+      if (isImageEditor.value) return editor.chain()
       insertYoutube(editor)
       return editor.chain()
     },
@@ -489,7 +494,7 @@ const handlers = computed(() => ({
 }))
 
 const toolbarItems = computed(() => {
-  const media = isImageListView.value
+  const media = isImageEditor.value
     ? [{ kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } }]
     : [
         { kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } },
@@ -623,7 +628,7 @@ function clipboardImageFile(dt: DataTransfer | null | undefined): File | null {
  * TipTap 까지 이벤트가 내려가지 않도록 stopPropagation.
  */
 function onImageFormPaste(e: ClipboardEvent) {
-  if (!isImageListView.value) return
+  if (!isImageEditor.value) return
   const imageFile = clipboardImageFile(e.clipboardData)
   if (imageFile) {
     e.preventDefault()
@@ -648,7 +653,7 @@ function onImageFormPaste(e: ClipboardEvent) {
 }
 
 function onImageFormDrop(e: DragEvent) {
-  if (!isImageListView.value) return
+  if (!isImageEditor.value) return
   // 갤러리 카드 순서 변경: capture 단계에서 가로채면 복사가 되므로 패스
   if (isCoverReorderDrag(e.dataTransfer)) return
   const images = Array.from(e.dataTransfer?.files ?? []).filter(f => f.type.startsWith('image/'))
@@ -659,7 +664,7 @@ function onImageFormDrop(e: DragEvent) {
 }
 
 function onImageFormDragOver(e: DragEvent) {
-  if (!isImageListView.value) return
+  if (!isImageEditor.value) return
   if (isCoverReorderDrag(e.dataTransfer)) return
   if (Array.from(e.dataTransfer?.types ?? []).includes('Files')) {
     e.preventDefault()
@@ -676,7 +681,7 @@ function onEditorRootPaste(e: ClipboardEvent) {
 
   const imageFile = clipboardImageFile(dt)
 
-  if (isImageListView.value) {
+  if (isImageEditor.value) {
     // 폼에서 못 잡은 경우 대비 — 절대 TipTap 에 이미지 넣지 않음
     if (imageFile || /<img\b/i.test(dt.getData('text/html') || '')) {
       e.preventDefault()
@@ -714,7 +719,7 @@ function onEditorRootDrop(e: DragEvent) {
   if (!image) return
   e.preventDefault()
   e.stopPropagation()
-  if (isImageListView.value) {
+  if (isImageEditor.value) {
     void uploadCoverImages([image])
     return
   }
@@ -745,7 +750,7 @@ async function loadPost(id: string) {
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
     // 이미지 보드: 본문 이미지를 갤러리로, 에디터에는 글만
-    const imageBoard = isImageListView.value
+    const imageBoard = isImageEditor.value
       || Boolean(post.previewImage && !post.title?.trim())
     if (imageBoard) {
       const fromBody = extractAllImageSrcs(post.content)
@@ -795,7 +800,7 @@ function friendlyWriteError(e: unknown): string {
 
 async function handleSubmit() {
   error.value = ''
-  const imageBoard = isImageListView.value
+  const imageBoard = isImageEditor.value
   if (!imageBoard && !title.value.trim()) {
     error.value = '제목을 입력해 주세요.'
     return
@@ -889,7 +894,7 @@ async function handleSubmit() {
     @dragover.capture="onImageFormDragOver"
   >
     <UInput
-      v-if="!isImageListView"
+      v-if="!isImageEditor"
       v-model="title"
       placeholder="제목"
       size="lg"
@@ -898,12 +903,12 @@ async function handleSubmit() {
     />
     <!-- 이미지 보드: 여러 장 갤러리 (TipTap 과 분리) -->
     <div
-      v-if="isImageListView"
+      v-if="isImageEditor"
       class="flex flex-col gap-2"
     >
       <div class="flex items-center justify-between gap-2">
         <p class="text-xs text-muted">
-          사진 {{ coverSlots.length }}/{{ COVER_IMAGE_MAX }} · 끌어 순서 변경 · 파일 드롭/붙여넣기로 추가
+          사진 {{ coverSlots.length }}/{{ COVER_IMAGE_MAX }} · 대표사진 선택 · 끌어 순서 변경 · 파일 드롭/붙여넣기로 추가
         </p>
         <div class="flex shrink-0 items-center gap-1">
           <UButton
@@ -970,6 +975,17 @@ async function handleSubmit() {
             >
               대표
             </span>
+            <button
+              v-else
+              type="button"
+              class="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-100 transition hover:bg-primary sm:opacity-0 sm:group-hover:opacity-100"
+              :disabled="imageUploading"
+              :aria-label="`사진 ${index + 1}을 대표사진으로 설정`"
+              @click.stop="setRepresentativeCover(index)"
+              @dragstart.stop.prevent
+            >
+              대표로
+            </button>
             <span
               class="pointer-events-none absolute bottom-1 left-1 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white/90"
               aria-hidden="true"
@@ -1021,7 +1037,7 @@ async function handleSubmit() {
             {{ imageUploading ? '업로드 중…' : '사진을 놓거나 클릭해서 추가' }}
           </span>
           <span class="text-xs text-muted">
-            여러 장 선택 가능 · 첫 장이 목록 대표 · 끌어 순서 변경
+            여러 장 선택 가능 · 업로드 후 대표사진 선택 · 끌어 순서 변경
           </span>
         </button>
       </div>
@@ -1043,7 +1059,7 @@ async function handleSubmit() {
       @dragover="onEditorRootDragOver"
     >
       <UAlert
-        v-if="imageUploadError && !isImageListView"
+        v-if="imageUploadError && !isImageEditor"
         color="error"
         variant="subtle"
         icon="i-lucide-circle-alert"
@@ -1058,7 +1074,7 @@ async function handleSubmit() {
         content-type="html"
         :extensions="editorExtensions"
         :handlers="handlers"
-        :placeholder="isImageListView ? '내용을 입력하세요…' : '본문을 입력하세요…'"
+        :placeholder="isImageEditor ? '내용을 입력하세요…' : '본문을 입력하세요…'"
         :ui="{ content: 'min-h-64 p-4' }"
         class="board-content w-full"
       >
@@ -1096,7 +1112,7 @@ async function handleSubmit() {
       </p>
 
       <p
-        v-if="imageUploading && !isImageListView"
+        v-if="imageUploading && !isImageEditor"
         class="flex items-center gap-2 border-t border-default px-4 py-2 text-xs text-muted"
       >
         <UIcon
@@ -1116,7 +1132,7 @@ async function handleSubmit() {
 
     <!-- 이미지 보드: 본문 이미지 업로드만 (파일 첨부 없음) -->
     <MemiBoardAttachments
-      v-if="!isImageListView"
+      v-if="!isImageEditor"
       v-model="attachments"
       :post-id="attachmentNamespace"
       editable

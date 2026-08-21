@@ -89,14 +89,14 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     return !isBoardHidden(bid())
   }
 
-  function isImageListBoard(): boolean {
-    return getBoard(bid())?.listView === 'image'
+  function isImageEditorBoard(): boolean {
+    return getBoard(bid())?.editorType === 'image'
   }
 
   function assertPostContent(
     input: { title?: string, content: string, attachments?: Attachment[] },
   ) {
-    const imageBoard = isImageListBoard()
+    const imageBoard = isImageEditorBoard()
     const hasText = hasBodyText(input.content)
     const hasImage = hasBodyImage(input.content, input.attachments)
     if (imageBoard) {
@@ -214,7 +214,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   async function createPost(input: CreatePostInput): Promise<string> {
     assertPostContent(input)
     const id = input.postId || createPostId()
-    const imageBoard = isImageListBoard()
+    const imageBoard = isImageEditorBoard()
     let slug: string
     let title: string
     if (imageBoard) {
@@ -265,7 +265,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
     assertPostContent(input)
-    const imageBoard = isImageListBoard()
+    const imageBoard = isImageEditorBoard()
     const title = imageBoard ? titleFromBody(input.content) : input.title.trim()
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()

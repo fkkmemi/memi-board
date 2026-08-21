@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardCategory, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
+import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
@@ -28,6 +28,10 @@ const listViewOptions: Array<{ label: string, value: BoardListView }> = [
   { label: '조밀', value: 'dense' },
   { label: '이미지', value: 'image' },
   { label: '영상', value: 'video' },
+]
+const editorTypeOptions: Array<{ label: string, value: BoardEditorType, description: string }> = [
+  { label: '일반', value: 'default', description: '제목과 본문을 작성' },
+  { label: '이미지', value: 'image', description: '여러 사진과 대표사진을 작성' },
 ]
 const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
   { label: '일반 이상', value: 'user' },
@@ -65,6 +69,7 @@ function emptyDraft(id: string): BoardCategory {
     description: '',
     visibility: 'public',
     listView: 'default',
+    editorType: 'default',
     writeRole: 'user',
     commentWriteRole: 'user',
     allowedStaffUids: [],
@@ -83,6 +88,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     description: category.description ?? '',
     visibility: category.visibility === 'hidden' ? 'hidden' : 'public',
     listView: category.listView ?? 'default',
+    editorType: category.editorType ?? (category.listView === 'image' ? 'image' : 'default'),
     writeRole: category.writeRole ?? 'user',
     commentWriteRole: category.commentWriteRole ?? 'user',
     allowedStaffUids: category.allowedStaffUids ?? [],
@@ -226,6 +232,10 @@ async function save() {
     <div class="flex flex-col gap-2">
       <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>
       <MemiBoardOptionCards v-model="draft.listView" :options="listViewOptions" @update:model-value="saved = false" />
+    </div>
+    <div class="flex flex-col gap-2">
+      <div><p class="text-sm font-medium">입력 폼</p><p class="text-xs text-muted">글쓰기 화면의 작성 방식</p></div>
+      <MemiBoardOptionCards v-model="draft.editorType" :options="editorTypeOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex justify-end border-t border-default pt-4">
       <UButton :label="isNew ? '만들기' : '저장'" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" @click="save" />

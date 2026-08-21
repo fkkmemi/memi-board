@@ -158,6 +158,8 @@ export interface AuthorMemoModel {
 }
 
 export type BoardListView = 'default' | 'dense' | 'image' | 'video'
+/** 게시글 작성 폼. 목록 표시 방식과 독립적으로 선택한다. */
+export type BoardEditorType = 'default' | 'image'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'
 /** 게시판 공개 범위. hidden 이면 일반 목록·전체 필터에서 제외되고 글·댓글 listed=false. 댓글 쓰기는 담당 스태프만. */
 export type BoardVisibility = 'public' | 'hidden'
@@ -177,6 +179,8 @@ export interface BoardModel {
    */
   visibility?: BoardVisibility
   listView?: BoardListView
+  /** 일반 제목·본문 폼 또는 사진 갤러리 폼. 미지정 레거시는 이미지 리스트뷰일 때 image. */
+  editorType?: BoardEditorType
   writeRole?: BoardWriteRole
   commentWriteRole?: BoardWriteRole
   /**

@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.39.0',
+    date: '2026-08-21',
+    highlights: [
+      '사진 글에서 원하는 사진을 대표로 고를 수 있어요',
+      '목록 모양과 글쓰기 폼을 각각 선택할 수 있어요',
+    ],
+  },
+  {
     version: '0.38.1',
     date: '2026-08-21',
     highlights: [
