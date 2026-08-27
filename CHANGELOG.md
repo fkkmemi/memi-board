@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.39.1] - 2026-08-27
+
+### Added
+- 관리자는 글쓰기 폼 하단에서 "비속어 필터 무시" 스위치를 켜 로컬 금칙어·AI 검열을 건너뛰고 글을 등록할 수 있다. `useMemiBoardModeration().checkText(text, { skipFilter })`로 노출된다.
+
 ## [0.39.0] - 2026-08-21
 
 ### Added

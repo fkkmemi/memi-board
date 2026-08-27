@@ -273,6 +273,7 @@ export type ModerationVia =
   | 'restricted'
   | 'ai-error-allow'
   | 'ai-error-block'
+  | 'admin-override'
 
 export interface ModerationResult {
   flagged: boolean

@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.39.1',
+    date: '2026-08-27',
+    highlights: [
+      '관리자는 글쓰기 하단 스위치로 비속어 필터를 끄고 글을 올릴 수 있어요',
+    ],
+  },
+  {
     version: '0.39.0',
     date: '2026-08-21',
     highlights: [

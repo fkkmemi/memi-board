@@ -114,7 +114,7 @@ export function useMemiBoardModeration() {
     }
   }
 
-  async function checkText(text: string): Promise<ModerationResult> {
+  async function checkText(text: string, opts?: { skipFilter?: boolean }): Promise<ModerationResult> {
     if (isWriteRestricted.value) {
       return {
         flagged: true,
@@ -128,6 +128,10 @@ export function useMemiBoardModeration() {
     const trimmed = text.trim()
     if (!trimmed) {
       return { ...APPROVED, via: 'empty' as ModerationVia }
+    }
+
+    if (opts?.skipFilter) {
+      return { ...APPROVED, via: 'admin-override' }
     }
 
     const local = localCheck(trimmed)

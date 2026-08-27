@@ -33,7 +33,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
-const { user, isSignedIn, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
 const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts(resolvedBoardId)
 const { checkText } = useMemiBoardModeration()
@@ -71,6 +71,8 @@ const externalImageCandidate = computed(() => {
 })
 const aiRunning = ref(false)
 const aiError = ref('')
+/** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
+const adminSkipModeration = ref(false)
 
 const attachmentNamespace = ref(props.postId ?? createPostId())
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
@@ -833,7 +835,7 @@ async function handleSubmit() {
   try {
     const plain = plainTextFromHtml(content.value)
     const moderationText = imageBoard ? plain : `${title.value}\n${plain}`
-    const moderation = await checkText(moderationText)
+    const moderation = await checkText(moderationText, { skipFilter: isAdmin.value && adminSkipModeration.value })
     if (moderation.flagged) {
       error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'
       return
@@ -1156,6 +1158,17 @@ async function handleSubmit() {
     >
       {{ submitHint }}
     </p>
+
+    <div
+      v-if="isAdmin"
+      class="flex items-center gap-2"
+    >
+      <USwitch
+        v-model="adminSkipModeration"
+        size="sm"
+        label="비속어 필터 무시 (관리자)"
+      />
+    </div>
 
     <div class="flex gap-2">
       <UButton
