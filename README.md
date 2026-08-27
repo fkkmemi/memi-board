@@ -467,6 +467,12 @@ const router = useRouter()
 콘텐츠 차단이 누적되면 `memiBoardUsers/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
 10회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
 
+### 관리자 검열 우회
+
+글쓰기 폼(`Editor.vue`) 하단, 제출 버튼 위에 `isAdmin`인 사용자에게만 "비속어 필터 무시" 스위치가 보인다. 켜고 제출하면 로컬 금칙어·AI 검열을 모두 건너뛰고 저장한다(`via: 'admin-override'`, 경고 카운트도 쌓이지 않음). 댓글 폼(`CommentForm.vue`)에는 없다.
+
+직접 호출할 때는 `useMemiBoardModeration().checkText(text, { skipFilter: true })`로 우회한다. `skipFilter`는 호스트가 넘긴 값 그대로 신뢰하므로, admin 여부 판정은 호출부(호스트)의 책임이다.
+
 ### AI 글쓰기 도우미 사용 제한
 
 에디터의 AI 글쓰기 도우미는 로그인 사용자별 24시간 구간에 최대 **10회** 사용할 수 있다.
