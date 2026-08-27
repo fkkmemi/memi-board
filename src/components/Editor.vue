@@ -8,6 +8,8 @@
  */
 import { ref, computed, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
+import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
+import { mapEditorItems } from '@nuxt/ui/utils/editor'
 import type { Attachment, EditorImageEntry } from 'memi-board/runtime'
 import type { WritingAssistantAction } from 'memi-board/runtime'
 import {
@@ -515,7 +517,78 @@ const handlers = computed(() => ({
       return editor.chain()
     },
   },
+  aiContinue: {
+    canExecute: () => !aiRunning.value,
+    isActive: () => false,
+    isDisabled: () => aiRunning.value,
+    execute: (editor: any) => {
+      void runWritingAssistant('continue')
+      return editor.chain()
+    },
+  },
 }))
+
+const selectedNode = ref<{ node: { type?: string }, pos: number }>()
+
+const suggestionItems = computed(() => {
+  const insertItems: EditorSuggestionMenuItem<typeof handlers.value>[] = [
+    { kind: 'horizontalRule', label: '구분선', icon: 'i-lucide-separator-horizontal' },
+  ]
+  if (!isImageEditor.value) {
+    insertItems.unshift(
+      { kind: 'image', label: '이미지', icon: 'i-lucide-image' },
+      { kind: 'youtube', label: 'YouTube', icon: 'i-lucide-youtube' },
+    )
+  }
+  return [
+    [
+      { type: 'label' as const, label: 'AI' },
+      { kind: 'aiContinue' as const, label: 'AI로 이어쓰기', icon: 'i-lucide-sparkles' },
+    ],
+    [
+      { type: 'label' as const, label: '스타일' },
+      { kind: 'paragraph' as const, label: '본문', icon: 'i-lucide-type' },
+      { kind: 'heading' as const, level: 1 as const, label: '제목 1', icon: 'i-lucide-heading-1' },
+      { kind: 'heading' as const, level: 2 as const, label: '제목 2', icon: 'i-lucide-heading-2' },
+      { kind: 'heading' as const, level: 3 as const, label: '제목 3', icon: 'i-lucide-heading-3' },
+      { kind: 'bulletList' as const, label: '글머리표 목록', icon: 'i-lucide-list' },
+      { kind: 'orderedList' as const, label: '번호 목록', icon: 'i-lucide-list-ordered' },
+      { kind: 'blockquote' as const, label: '인용문', icon: 'i-lucide-text-quote' },
+      { kind: 'codeBlock' as const, label: '코드 블록', icon: 'i-lucide-square-code' },
+    ],
+    [{ type: 'label' as const, label: '삽입' }, ...insertItems],
+  ]
+})
+
+const handleItems = (editor: any): DropdownMenuItem[][] => {
+  if (!selectedNode.value?.node?.type) return []
+  return mapEditorItems(editor, [
+    [
+      { type: 'label', label: '블록 메뉴' },
+      {
+        label: '다른 형식으로 변경',
+        icon: 'i-lucide-repeat-2',
+        children: [
+          { kind: 'paragraph', label: '본문', icon: 'i-lucide-type' },
+          { kind: 'heading', level: 1, label: '제목 1', icon: 'i-lucide-heading-1' },
+          { kind: 'heading', level: 2, label: '제목 2', icon: 'i-lucide-heading-2' },
+          { kind: 'heading', level: 3, label: '제목 3', icon: 'i-lucide-heading-3' },
+          { kind: 'bulletList', label: '글머리표 목록', icon: 'i-lucide-list' },
+          { kind: 'orderedList', label: '번호 목록', icon: 'i-lucide-list-ordered' },
+          { kind: 'blockquote', label: '인용문', icon: 'i-lucide-text-quote' },
+          { kind: 'codeBlock', label: '코드 블록', icon: 'i-lucide-square-code' },
+        ],
+      },
+      { kind: 'clearFormatting', pos: selectedNode.value.pos, label: '서식 초기화', icon: 'i-lucide-rotate-ccw' },
+    ],
+    [
+      { kind: 'duplicate', pos: selectedNode.value.pos, label: '복제', icon: 'i-lucide-copy' },
+      { kind: 'moveUp', pos: selectedNode.value.pos, label: '위로 이동', icon: 'i-lucide-arrow-up' },
+      { kind: 'moveDown', pos: selectedNode.value.pos, label: '아래로 이동', icon: 'i-lucide-arrow-down' },
+    ],
+    [{ kind: 'delete', pos: selectedNode.value.pos, label: '삭제', icon: 'i-lucide-trash' }],
+  ], handlers.value) as DropdownMenuItem[][]
+}
 
 const toolbarItems = computed(() => {
   const media = isImageEditor.value
@@ -1134,11 +1207,11 @@ async function handleSubmit() {
         content-type="html"
         :extensions="editorExtensions"
         :handlers="handlers"
-        :placeholder="isImageEditor ? '내용을 입력하세요…' : '본문을 입력하세요…'"
+        :placeholder="isImageEditor ? '내용을 입력하세요…' : '본문을 입력하세요… / 를 입력하면 블록 메뉴가 열립니다.'"
         :ui="{ content: 'min-h-64 p-4' }"
         class="board-content w-full"
       >
-        <template #default="{ editor }">
+        <template #default="{ editor, handlers: editorHandlers }">
           <div class="flex items-start border-b border-default">
             <UEditorToolbar
               :editor="editor"
@@ -1159,7 +1232,42 @@ async function handleSubmit() {
               />
             </UDropdownMenu>
           </div>
-          <UEditorDragHandle :editor="editor" />
+          <UEditorSuggestionMenu :editor="editor" :items="suggestionItems" />
+
+          <UEditorDragHandle v-slot="{ ui, onClick }" :editor="editor" @node-change="selectedNode = $event">
+            <UButton
+              icon="i-lucide-plus"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              :class="ui.handle()"
+              aria-label="블록 삽입"
+              @click="(event: MouseEvent) => {
+                event.stopPropagation()
+                const selected = onClick()
+                editorHandlers.suggestion?.execute(editor, { pos: selected?.pos }).run()
+              }"
+            />
+            <UDropdownMenu
+              v-slot="{ open }"
+              :modal="false"
+              :items="handleItems(editor)"
+              :content="{ side: 'left' }"
+              :ui="{ content: 'w-52', label: 'text-xs' }"
+              @update:open="editor.chain().setMeta('lockDragHandle', $event).run()"
+            >
+              <UButton
+                color="neutral"
+                variant="ghost"
+                active-variant="soft"
+                size="sm"
+                icon="i-lucide-grip-vertical"
+                :active="open"
+                :class="ui.handle()"
+                aria-label="블록 메뉴"
+              />
+            </UDropdownMenu>
+          </UEditorDragHandle>
         </template>
       </UEditor>
 

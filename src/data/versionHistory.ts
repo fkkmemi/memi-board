@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.42.0',
+    date: '2026-08-27',
+    highlights: [
+      '글쓰기에서 문단 옆 + 버튼이나 / 입력으로 제목·목록·이미지 같은 블록을 빠르게 넣을 수 있어요',
+      '문단 메뉴에서 블록을 다른 형식으로 바꾸거나 복제·이동·삭제할 수 있어요',
+    ],
+  },
+  {
     version: '0.41.0',
     date: '2026-08-27',
     highlights: [
