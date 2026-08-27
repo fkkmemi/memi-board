@@ -71,6 +71,8 @@ const externalImageCandidate = computed(() => {
 })
 const aiRunning = ref(false)
 const aiError = ref('')
+const aiCustomDialogOpen = ref(false)
+const aiCustomInstruction = ref('')
 /** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
 const adminSkipModeration = ref(false)
 
@@ -558,6 +560,9 @@ const aiMenuItems = computed(() => [
   [
     { label: '본문에서 제목 만들기', icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
   ],
+  [
+    { label: '커스텀 스타일로 바꾸기…', icon: 'i-lucide-pencil-line', onSelect: () => openCustomAssistantDialog() },
+  ],
 ])
 
 function resolveEditor(): any | null {
@@ -565,7 +570,19 @@ function resolveEditor(): any | null {
   return ed?.value ?? ed ?? null
 }
 
-async function runWritingAssistant(action: WritingAssistantAction) {
+function openCustomAssistantDialog() {
+  aiCustomInstruction.value = ''
+  aiCustomDialogOpen.value = true
+}
+
+async function submitCustomAssistant() {
+  const instruction = aiCustomInstruction.value.trim()
+  if (!instruction) return
+  aiCustomDialogOpen.value = false
+  await runWritingAssistant('custom', instruction)
+}
+
+async function runWritingAssistant(action: WritingAssistantAction, customInstruction?: string) {
   const editor = resolveEditor()
   if (!editor || aiRunning.value) return
   aiError.value = ''
@@ -584,6 +601,7 @@ async function runWritingAssistant(action: WritingAssistantAction) {
       content: source,
       title: title.value,
       selection: hasSelection || action === 'title',
+      customInstruction,
     })
 
     if (action === 'title') {
@@ -1267,6 +1285,50 @@ async function handleSubmit() {
           @click="addExternalImage"
         >
           링크 추가
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="aiCustomDialogOpen"
+    title="커스텀 스타일로 바꾸기"
+    :ui="{ content: 'sm:max-w-lg' }"
+  >
+    <template #body>
+      <UFormField
+        label="어떻게 바꿀까요?"
+        help="예: 경상도 사투리 스타일로 / 정중한 문어체로 / 간결한 개조식으로"
+      >
+        <UTextarea
+          v-model="aiCustomInstruction"
+          placeholder="경상도 사투리 스타일로"
+          autocomplete="off"
+          class="w-full"
+          :rows="2"
+          autofocus
+          @keydown.enter.exact.prevent="submitCustomAssistant"
+        />
+      </UFormField>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          @click="aiCustomDialogOpen = false"
+        >
+          취소
+        </UButton>
+        <UButton
+          type="button"
+          icon="i-lucide-sparkles"
+          :disabled="!aiCustomInstruction.trim()"
+          @click="submitCustomAssistant"
+        >
+          적용
         </UButton>
       </div>
     </template>

@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.40.0',
+    date: '2026-08-27',
+    highlights: [
+      'AI 글쓰기 도우미에서 원하는 문체를 직접 입력해 바꿀 수 있어요 (예: 경상도 사투리 스타일로)',
+    ],
+  },
+  {
     version: '0.39.1',
     date: '2026-08-27',
     highlights: [

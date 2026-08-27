@@ -15,15 +15,20 @@ export type WritingAssistantAction =
   | 'translate-en'
   | 'translate-ko'
   | 'title'
+  | 'custom'
+
+const CUSTOM_INSTRUCTION_MAX_LENGTH = 200
 
 interface WritingAssistantInput {
   action: WritingAssistantAction
   content: string
   title?: string
   selection?: boolean
+  /** action이 'custom'일 때 사용자가 직접 입력한 지시문 (예: "경상도 사투리 스타일로") */
+  customInstruction?: string
 }
 
-const INSTRUCTIONS: Record<WritingAssistantAction, string> = {
+const INSTRUCTIONS: Record<Exclude<WritingAssistantAction, 'custom'>, string> = {
   proofread: '맞춤법, 띄어쓰기, 문법 오류만 고쳐라. 의미와 말투는 바꾸지 마라.',
   polish: '뜻과 작성자의 말투를 유지하면서 더 자연스럽고 읽기 좋은 문장으로 다듬어라.',
   continue: '앞의 맥락과 말투에 맞는 내용을 과장 없이 한두 문단 이어서 작성하라.',
@@ -31,6 +36,13 @@ const INSTRUCTIONS: Record<WritingAssistantAction, string> = {
   'translate-en': '자연스러운 영어로 번역하라. 고유명사와 기술 용어는 정확히 유지하라.',
   'translate-ko': '자연스러운 한국어로 번역하라. 고유명사와 기술 용어는 정확히 유지하라.',
   title: '본문을 대표하는 간결한 한국어 제목 하나를 만들어라. 따옴표나 설명 없이 제목만 출력하라.',
+}
+
+function resolveInstruction(input: WritingAssistantInput): string {
+  if (input.action !== 'custom') return INSTRUCTIONS[input.action]
+  const custom = input.customInstruction?.trim().slice(0, CUSTOM_INSTRUCTION_MAX_LENGTH)
+  if (!custom) throw new Error('어떻게 바꿀지 지시문을 입력해 주세요.')
+  return `뜻은 유지하면서 다음 스타일 지시를 반영해 다시 써라: ${custom}`
 }
 
 function cleanModelOutput(value: string): string {
@@ -84,6 +96,8 @@ export function useMemiBoardWritingAssistant() {
   }
 
   async function assist(input: WritingAssistantInput): Promise<string> {
+    const instruction = resolveInstruction(input)
+    if (!input.content.trim()) throw new Error('AI로 다듬을 내용을 먼저 입력해 주세요.')
     await reserveDailyUse()
     const moderation = config.moderation ?? {}
     const ai = getAI(app, {
@@ -100,14 +114,13 @@ export function useMemiBoardWritingAssistant() {
           : '입력의 HTML 구조와 링크, 이미지 태그를 보존하고 결과도 HTML 조각으로 출력하라.',
       ].join('\n'),
       generationConfig: {
-        temperature: input.action === 'continue' || input.action === 'title' ? 0.6 : 0.2,
+        temperature: input.action === 'continue' || input.action === 'title' || input.action === 'custom' ? 0.6 : 0.2,
         maxOutputTokens: 2048,
       },
     })
     const source = input.content.trim()
-    if (!source) throw new Error('AI로 다듬을 내용을 먼저 입력해 주세요.')
     const prompt = [
-      `작업: ${INSTRUCTIONS[input.action]}`,
+      `작업: ${instruction}`,
       input.title ? `현재 제목: ${input.title}` : '',
       `본문:\n${source.slice(0, 12000)}`,
     ].filter(Boolean).join('\n\n')
