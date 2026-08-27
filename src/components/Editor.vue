@@ -73,6 +73,26 @@ const aiRunning = ref(false)
 const aiError = ref('')
 const aiCustomDialogOpen = ref(false)
 const aiCustomInstruction = ref('')
+
+interface AiPreviewPending {
+  action: WritingAssistantAction
+  result: string
+  hasSelection: boolean
+  from: number
+  to: number
+  /** true면 before/after를 일반 텍스트로, false면 HTML로 렌더링 */
+  isPlainText: boolean
+}
+const aiPreviewOpen = ref(false)
+const aiPreviewBefore = ref('')
+const aiPreviewPending = ref<AiPreviewPending | null>(null)
+const aiPreviewLabels = computed(() => {
+  switch (aiPreviewPending.value?.action) {
+    case 'title': return { before: '현재 제목', after: '새 제목' }
+    case 'continue': return { before: '현재 내용', after: '추가될 내용' }
+    default: return { before: '이전', after: '이후' }
+  }
+})
 /** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
 const adminSkipModeration = ref(false)
 
@@ -594,30 +614,21 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
     ? plainTextFromHtml(content.value)
     : hasSelection ? selectedText : content.value
 
+  const isPlainText = hasSelection || action === 'title'
+
   aiRunning.value = true
   try {
     const result = await assist({
       action,
       content: source,
       title: title.value,
-      selection: hasSelection || action === 'title',
+      selection: isPlainText,
       customInstruction,
     })
 
-    if (action === 'title') {
-      title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim()
-    }
-    else if (action === 'continue') {
-      const position = hasSelection ? to : editor.state.doc.content.size
-      editor.chain().focus().insertContentAt(position, result).run()
-    }
-    else if (hasSelection) {
-      editor.chain().focus().insertContentAt({ from, to }, result).run()
-    }
-    else {
-      editor.commands.setContent(result, { emitUpdate: true })
-      editor.chain().focus('end').run()
-    }
+    aiPreviewBefore.value = action === 'title' ? title.value : source
+    aiPreviewPending.value = { action, result, hasSelection, from, to, isPlainText }
+    aiPreviewOpen.value = true
   }
   catch (cause) {
     console.warn('[memi-board] writing assistant failed', cause)
@@ -626,6 +637,35 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
   finally {
     aiRunning.value = false
   }
+}
+
+function closeAiPreview() {
+  aiPreviewOpen.value = false
+  aiPreviewPending.value = null
+  aiPreviewBefore.value = ''
+}
+
+function applyAiPreview() {
+  const pending = aiPreviewPending.value
+  const editor = resolveEditor()
+  if (!pending || !editor) return
+  const { action, result, hasSelection, from, to } = pending
+
+  if (action === 'title') {
+    title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim()
+  }
+  else if (action === 'continue') {
+    const position = hasSelection ? to : editor.state.doc.content.size
+    editor.chain().focus().insertContentAt(position, result).run()
+  }
+  else if (hasSelection) {
+    editor.chain().focus().insertContentAt({ from, to }, result).run()
+  }
+  else {
+    editor.commands.setContent(result, { emitUpdate: true })
+    editor.chain().focus('end').run()
+  }
+  closeAiPreview()
 }
 
 // 제목에서 Tab 누르면 툴바 버튼들 건너뛰고 본문으로 바로 이동
@@ -1327,6 +1367,63 @@ async function handleSubmit() {
           icon="i-lucide-sparkles"
           :disabled="!aiCustomInstruction.trim()"
           @click="submitCustomAssistant"
+        >
+          적용
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="aiPreviewOpen"
+    title="AI 결과 확인"
+    :ui="{ content: 'sm:max-w-4xl lg:max-w-6xl' }"
+  >
+    <template #body>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-muted">{{ aiPreviewLabels.before }}</span>
+          <div class="overflow-y-auto rounded-lg border border-default bg-elevated/30 p-3 text-sm sm:max-h-96">
+            <p
+              v-if="aiPreviewPending?.isPlainText"
+              class="whitespace-pre-wrap"
+            >{{ aiPreviewBefore }}</p>
+            <div
+              v-else
+              v-html="aiPreviewBefore"
+            />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-primary">{{ aiPreviewLabels.after }}</span>
+          <div class="overflow-y-auto rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm sm:max-h-96">
+            <p
+              v-if="aiPreviewPending?.isPlainText"
+              class="whitespace-pre-wrap"
+            >{{ aiPreviewPending?.result }}</p>
+            <div
+              v-else
+              v-html="aiPreviewPending?.result"
+            />
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          @click="closeAiPreview"
+        >
+          취소
+        </UButton>
+        <UButton
+          type="button"
+          icon="i-lucide-check"
+          @click="applyAiPreview"
         >
           적용
         </UButton>

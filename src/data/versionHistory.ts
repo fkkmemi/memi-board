@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.41.0',
+    date: '2026-08-27',
+    highlights: [
+      'AI 도우미 결과를 바로 적용하지 않고 이전/이후를 비교해보고 적용할 수 있어요',
+    ],
+  },
+  {
     version: '0.40.0',
     date: '2026-08-27',
     highlights: [
