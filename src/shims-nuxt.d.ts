@@ -10,3 +10,5 @@ declare module '#imports' {
   export const useRuntimeConfig: (...args: any[]) => any
   export const useSeoMeta: (...args: any[]) => any
 }
+
+declare module '*.css'

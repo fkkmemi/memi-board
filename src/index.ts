@@ -82,7 +82,7 @@ export {
 } from './composables/useMemiBoardReports'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'
 export { useMemiBoardModeration } from './composables/useMemiBoardModeration'
-// useMemiBoardStorage(heic2any 등 브라우저 전용) — 'memi-board/storage' 서브패스로 분리.
+// useMemiBoardStorage(이미지 압축 등 브라우저 전용) — 'memi-board/storage' 서브패스로 분리.
 // 여기(SSR로도 로드되는 dist/index.js)에는 절대 다시 넣지 않는다.
 export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './composables/useMemiBoardSettings'
 export { canManageBoardByRole, canWriteCommentByRole, isAssignedStaff } from './utils/boardAccess'

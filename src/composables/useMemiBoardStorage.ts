@@ -28,21 +28,6 @@ function isHeicLike(file: File): boolean {
     || name.endsWith('.heif')
 }
 
-/** HEIC/HEIF → JPEG (heic2any, 동적 import) */
-async function heicToJpegBlob(file: File, quality = 0.85): Promise<Blob> {
-  const { default: heic2any } = await import('heic2any')
-  const result = await heic2any({
-    blob: file,
-    toType: 'image/jpeg',
-    quality,
-  })
-  const blob = Array.isArray(result) ? result[0] : result
-  if (!(blob instanceof Blob)) {
-    throw new Error('HEIC 변환 결과가 비어 있습니다.')
-  }
-  return blob
-}
-
 async function resizeJpegIfNeeded(blob: Blob): Promise<Blob> {
   if (blob.size <= EDITOR_IMAGE_MAX_BYTES) return blob
   let next = await compressImage(blob, { maxWidth: 2560, quality: 0.85 })
@@ -58,7 +43,7 @@ async function resizeJpegIfNeeded(blob: Blob): Promise<Blob> {
 /**
  * 에디터 업로드용 정규화.
  * - 5MB 초과 → 리사이즈
- * - HEIC/HEIF → heic2any 로 JPEG 변환 후 필요 시 리사이즈
+ * - HEIC/HEIF 원본 파일 → 호환 형식 안내
  */
 async function optimizeEditorImage(file: File): Promise<{ blob: File | Blob, compressed: boolean }> {
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
@@ -66,23 +51,7 @@ async function optimizeEditorImage(file: File): Promise<{ blob: File | Blob, com
   }
 
   if (isHeicLike(file)) {
-    try {
-      const jpeg = await heicToJpegBlob(file, 0.85)
-      const blob = await resizeJpegIfNeeded(jpeg)
-      return { blob, compressed: true }
-    }
-    catch (cause) {
-      if (cause instanceof Error && cause.message.includes('압축 후에도')) throw cause
-      // Safari 등 canvas 디코드가 되는 환경 폴백
-      try {
-        const blob = await resizeJpegIfNeeded(await compressImage(file, { maxWidth: 2560, quality: 0.85 }))
-        return { blob, compressed: true }
-      }
-      catch {
-        console.error('[memi-board] HEIC convert failed', cause)
-        throw new Error('HEIC 사진을 변환하지 못했습니다. 잠시 후 다시 시도하거나 JPG로 저장해 올려 주세요.')
-      }
-    }
+    throw new Error('HEIC 사진은 바로 올릴 수 없습니다. 사진 앱에서 선택하거나 JPG, PNG 또는 WebP로 변환해 주세요.')
   }
 
   if (file.size <= EDITOR_IMAGE_MAX_BYTES) {

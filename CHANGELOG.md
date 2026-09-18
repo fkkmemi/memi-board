@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+## [0.43.0] - 2026-09-19
+
+### Changed
+- `heic2any` 의존성과 브라우저 번들 변환 코드를 제거했다. iPhone 사진 보관함에서 선택한 사진은 일반적으로 JPEG로 전달되며, 파일 앱 등에서 HEIC/HEIF 원본을 선택한 경우 JPG·PNG·WebP로 변환하라는 안내를 표시한다.
+- Nuxt 4.5.2, Nuxt UI 4.11.1, Firebase 12.19.0, Vite 8.3.0 등 개발·빌드 의존성을 최신 호환 버전으로 갱신했다. TypeScript는 `vue-tsc`가 지원하는 최신 6.0.2를 사용한다.
+
+### Fixed
+- Nuxt 4.5.2의 Nitro 프리렌더 단계가 `heic2any`의 Emscripten 번들을 파싱하다 실패하던 문제를 제거했다.
+
 ## [0.42.1] - 2026-09-18
 
 ### Fixed
