@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+## [0.42.1] - 2026-09-18
+
+### Fixed
+- 미니 목록(`useMemiBoardMiniLatest`/`useMemiBoardMiniPicked`)이 서버에서 쿼리를 건너뛰던 탓에 서버는 빈 상태(`<p>`)를, 클라이언트는 로딩 스켈레톤(`<div>`)을 그려 하이드레이션 mismatch와 `[VueFire SSR]: Could not get the path of the data source` 경고가 나던 문제를 고쳤다. 이제 서버에서도 쿼리를 실행하고 `ssrKey`를 부여해 첫 렌더가 항상 일치한다.
+
 ## [0.42.0] - 2026-08-27
 
 ### Added
