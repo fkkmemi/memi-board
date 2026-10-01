@@ -10,7 +10,7 @@
  *   await useMemiBoardListSeo({ category: 'notice' })
  */
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
-import { useAsyncData, useHead, useRequestURL, useRoute, useRuntimeConfig, useSeoMeta } from '#imports'
+import { useAsyncData, useHead, useNuxtApp, useRequestURL, useRoute, useRuntimeConfig, useSeoMeta } from '#imports'
 import {
   boardListOgDescription,
   boardListOgTitle,
@@ -64,6 +64,7 @@ export async function useMemiBoardPostSeo(opts?: {
   const config = useMemiBoardConfig()
   const seo = config.seo
   const route = useRoute()
+  const nuxtApp = useNuxtApp()
   const siteName = seo.siteName?.trim() || 'Board'
   const origin = resolveOrigin(seo.siteUrl)
   const basePath = normalizeBasePath(seo.basePath)
@@ -153,7 +154,9 @@ export async function useMemiBoardPostSeo(opts?: {
   }))
 
   // SSR/첫 페인트용 데이터 대기 (메타는 computed 로 이미 연결됨)
-  await postAsync
+  // SSR·하이드레이션에서만 기다린다. 클라이언트 이동은 크롤러와 무관하니 화면 전환을 막지 않고
+  // 데이터가 오면 메타만 뒤따라 갱신한다 (Safari 등 왕복이 느린 환경에서 체감 차이가 크다).
+  if (import.meta.server || nuxtApp.isHydrating) await postAsync
 
   return { post }
 }
@@ -167,6 +170,7 @@ export async function useMemiBoardListSeo(opts?: {
   const config = useMemiBoardConfig()
   const seo = config.seo
   const route = useRoute()
+  const nuxtApp = useNuxtApp()
   const siteName = seo.siteName?.trim() || 'Board'
   const origin = resolveOrigin(seo.siteUrl)
   const basePath = normalizeBasePath(seo.basePath)
@@ -246,7 +250,9 @@ export async function useMemiBoardListSeo(opts?: {
     ],
   }))
 
-  await listAsync
+  // SSR·하이드레이션에서만 기다린다. 클라이언트 이동은 크롤러와 무관하니 화면 전환을 막지 않고
+  // 데이터가 오면 메타만 뒤따라 갱신한다 (Safari 등 왕복이 느린 환경에서 체감 차이가 크다).
+  if (import.meta.server || nuxtApp.isHydrating) await listAsync
 
   return { list }
 }

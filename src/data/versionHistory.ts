@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.44.0',
+    date: '2026-10-01',
+    highlights: [
+      '글을 저장하고 미리보기가 뜨기까지 기다리는 시간이 줄었어요 (특히 iPhone·Mac Safari)',
+    ],
+  },
+  {
     version: '0.42.0',
     date: '2026-08-27',
     highlights: [

@@ -58,7 +58,7 @@ export type { BoardPostSeoPayload, BoardListSeoPayload } from './utils/boardSeo'
 
 export { useMemiBoardAuth } from './composables/useMemiBoardAuth'
 export { useMemiBoardPosts, useMemiBoardPostList, useMemiBoardPost } from './composables/useMemiBoardPosts'
-export type { CreatePostInput, UpdatePostInput, GetPostBySlugResult } from './composables/useMemiBoardPosts'
+export type { CreatePostInput, UpdatePostInput, GetPostBySlugResult, ResolvePostIdResult } from './composables/useMemiBoardPosts'
 export { isFirestorePermissionDenied } from './composables/useMemiBoardPosts'
 export { useMemiBoardUserPosts } from './composables/useMemiBoardUserPosts'
 export { useMemiBoardUserComments } from './composables/useMemiBoardUserComments'

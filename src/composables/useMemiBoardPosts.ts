@@ -8,6 +8,7 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
+  writeBatch,
   query,
   where,
   orderBy,
@@ -46,6 +47,8 @@ export interface CreatePostInput {
   authorName: string | null
   authorPhoto: string | null
   moderationModel?: string
+  /** resolveUniqueSlug 로 미리 구한 slug. 없으면 createPost 가 직접 구한다. */
+  slug?: string
 }
 
 export interface UpdatePostInput {
@@ -60,6 +63,18 @@ export type GetPostBySlugResult =
   | { status: 'not-found' }
   | { status: 'permission-denied' }
   | { status: 'error', message: string }
+
+export type ResolvePostIdResult =
+  | { status: 'ok', id: string }
+  | { status: 'not-found' }
+  | { status: 'permission-denied' }
+  | { status: 'error', message: string }
+
+/**
+ * 방금 만든 글의 `boardId/slug` → id.
+ * 저장 직후 상세(미리보기)로 갈 때 slug 재조회 왕복을 건너뛴다. slug 는 바뀌지 않는다.
+ */
+const createdPostIds = new Map<string, string>()
 
 export function isFirestorePermissionDenied(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -180,6 +195,47 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     }
   }
 
+  /**
+   * slug → 글 id 만. 상세·수정 페이지는 id 만 필요하므로 본문까지 읽는 getPostBySlug 보다 왕복이 적다.
+   * 이 탭에서 방금 만든 글이면 조회 없이 바로 돌려준다.
+   */
+  async function resolvePostIdBySlug(slug: string): Promise<ResolvePostIdResult> {
+    const s = slug.trim()
+    const cached = createdPostIds.get(`${bid()}/${s}`)
+    if (cached) return { status: 'ok', id: cached }
+    try {
+      const snapshot = await getDocs(query(
+        postsColRef(),
+        where('boardId', '==', bid()),
+        where('slug', '==', s),
+        fbLimit(1),
+      ))
+      const row = snapshot.docs[0]
+      return row ? { status: 'ok', id: row.id } : { status: 'not-found' }
+    }
+    catch (cause) {
+      if (isFirestorePermissionDenied(cause)) return { status: 'permission-denied' }
+      return { status: 'error', message: cause instanceof Error ? cause.message : String(cause) }
+    }
+  }
+
+  /** 보드 안에서 겹치지 않는 slug. 검열과 동시에 돌릴 수 있게 createPost 밖으로 노출한다. */
+  async function resolveUniqueSlug(title: string): Promise<string> {
+    const baseSlug = slugify(title.trim()) || 'post'
+    let slug = baseSlug
+    let counter = 1
+    while (!(await getDocs(query(
+      postsColRef(),
+      where('boardId', '==', bid()),
+      where('slug', '==', slug),
+      fbLimit(1),
+    ))).empty) {
+      counter++
+      slug = `${baseSlug}-${counter}`
+    }
+    return slug
+  }
+
   async function getAdjacentPosts(current: PostModel): Promise<{
     previous: PostModel | null
     next: PostModel | null
@@ -223,23 +279,14 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     }
     else {
       title = input.title.trim()
-      const baseSlug = slugify(title) || 'post'
-      slug = baseSlug
-      let counter = 1
-      while (!(await getDocs(query(
-        postsColRef(),
-        where('boardId', '==', bid()),
-        where('slug', '==', slug),
-        fbLimit(1),
-      ))).empty) {
-        counter++
-        slug = `${baseSlug}-${counter}`
-      }
+      slug = input.slug?.trim() || await resolveUniqueSlug(title)
     }
 
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
-    await setDoc(postDocRef(id), {
+    // 메타·본문을 한 번에 커밋 — 순차 setDoc 두 번보다 왕복 1회 적다.
+    const batch = writeBatch(db)
+    batch.set(postDocRef(id), {
       boardId: bid(),
       slug,
       title,
@@ -259,7 +306,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
-    await setDoc(bodyDocRef(id), { content: input.content })
+    batch.set(bodyDocRef(id), { content: input.content })
+    await batch.commit()
+    createdPostIds.set(`${bid()}/${slug}`, id)
     return slug
   }
 
@@ -294,6 +343,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
   async function deletePost(id: string): Promise<void> {
     await deletePostCascade(db, getStorage(app), cfg(), id)
+    for (const [key, value] of createdPostIds) {
+      if (value === id) createdPostIds.delete(key)
+    }
   }
 
   return {
@@ -301,6 +353,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     getPosts,
     getPost,
     getPostBySlug,
+    resolvePostIdBySlug,
+    resolveUniqueSlug,
     getAdjacentPosts,
     createPost,
     updatePost,

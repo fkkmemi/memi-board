@@ -196,9 +196,25 @@ const { post: postSeo } = await useMemiBoardPostSeo({
     `/board/${encodeURIComponent(categoryId.value)}/${encodeURIComponent(id.value)}`,
   ),
 })
-// postSeo: id · title · previewImage 등 — 상세 로드와 공유 가능
+// postSeo: id · title · previewImage 등 — SSR 첫 로드에서는 바로 채워진다.
+// 클라이언트 이동에서는 화면 전환을 막지 않으려고 기다리지 않으므로 처음엔 null 일 수 있다.
+
+const { resolvePostIdBySlug } = useMemiBoardPosts(categoryId)
+const internalId = ref('')
+watch([categoryId, id], async ([category, slug]) => {
+  if (postSeo.value?.id && postSeo.value.category === category && postSeo.value.slug === slug) {
+    internalId.value = postSeo.value.id
+    return
+  }
+  if (import.meta.server) return
+  // id 만 조회 (본문은 MemiBoardDetail 이 구독). 방금 작성한 글은 조회 없이 바로 나온다.
+  const result = await resolvePostIdBySlug(slug)
+  internalId.value = result.status === 'ok' ? result.id : ''
+}, { immediate: true })
 </script>
 ```
+
+> 상세·수정 페이지에서 slug → id 는 `getPostBySlug`(본문까지 읽음) 대신 `resolvePostIdBySlug` 를 쓴다. 저장 직후 미리보기 진입이 Firestore 왕복 2회만큼 빨라진다.
 
 | composable | 대상 | OG 요약 |
 |------------|------|---------|

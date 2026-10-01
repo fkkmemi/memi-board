@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [0.44.0] - 2026-10-01
+
+### Added
+- `useMemiBoardPosts().resolvePostIdBySlug(slug)` — slug로 글 id만 조회한다. 상세·수정 페이지처럼 id만 필요한 곳에서 본문까지 읽는 `getPostBySlug`보다 왕복이 적고, 같은 탭에서 방금 만든 글은 조회 없이 바로 돌려준다.
+- `useMemiBoardPosts().resolveUniqueSlug(title)`과 `CreatePostInput.slug` — 미리 구한 slug를 `createPost`에 넘길 수 있다.
+
+### Changed
+- 글쓰기 저장이 빨라졌다. slug 중복 확인을 AI 검열과 동시에 돌리고, 메타·본문 문서를 `writeBatch` 한 번으로 커밋한다.
+- `useMemiBoardPostSeo`/`useMemiBoardListSeo`는 SSR·하이드레이션에서만 데이터를 기다린다. 클라이언트 이동에서는 화면 전환을 막지 않고 메타만 뒤따라 갱신한다. 저장 후 미리보기 진입이 Safari 등 왕복이 느린 환경에서 특히 더디던 문제의 주요 원인이었다.
+
+### 호스트(부모) 작업
+- 패키지 버전 올리기: `pnpm add memi-board@^0.44.0`. 올리기만 해도 저장 속도 개선과 내장 `useMemiBoardPostSeo`/`useMemiBoardListSeo`의 이동 비차단은 적용된다.
+- 글 상세(`[category]/[id]/index.vue`)·수정(`[category]/[id]/edit.vue`) 페이지에서 slug → id를 `getPostBySlug`로 구하고 있다면 `resolvePostIdBySlug`로 바꾼다. 결과는 `result.post.id` 대신 `result.id`. 상태 값(`ok`/`not-found`/`permission-denied`/`error`)은 같다. 저장 직후 미리보기 진입 시 Firestore 왕복이 2회 줄어든다.
+- SEO 컴포저블을 호스트에 복사해 쓰고 있다면(`app/composables/useMemiBoardSeo.ts` 등) 패키지와 똑같이 맞춘다. `const nuxtApp = useNuxtApp()`를 추가하고, 끝의 `await postAsync`/`await listAsync`를 `if (import.meta.server || nuxtApp.isHydrating) await …`로 바꾼다. 안 바꾸면 페이지 이동마다 SEO 조회 왕복 2회가 화면 전환을 막는다.
+- 페이지가 `await useMemiBoardPostSeo()`의 `post`로 id를 단축 조회하고 있었다면, 클라이언트 이동에서는 이 값이 처음에 `null`일 수 있다. `resolvePostIdBySlug` 폴백이 있으면 그대로 동작한다.
+
 ## [0.43.0] - 2026-09-19
 
 ### Changed

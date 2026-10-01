@@ -5,6 +5,7 @@
 declare module '#imports' {
   export const useAsyncData: (...args: any[]) => any
   export const useHead: (...args: any[]) => any
+  export const useNuxtApp: () => { isHydrating?: boolean }
   export const useRequestURL: (...args: any[]) => any
   export const useRoute: (...args: any[]) => any
   export const useRuntimeConfig: (...args: any[]) => any

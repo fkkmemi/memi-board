@@ -37,7 +37,7 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
-const { createPostId, getPost, createPost, updatePost } = useMemiBoardPosts(resolvedBoardId)
+const { createPostId, getPost, createPost, updatePost, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
 const { checkText } = useMemiBoardModeration()
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 const { uploadEditorImage } = useMemiBoardStorage()
@@ -963,6 +963,9 @@ async function handleSubmit() {
 
   saving.value = true
   submitHint.value = '내용을 검토하는 중…'
+  // 새 글 slug 중복 확인을 검열과 동시에 시작 — 검열에 걸리면 결과만 버린다.
+  const slugPromise = !props.postId && !imageBoard ? resolveUniqueSlug(title.value) : null
+  slugPromise?.catch(() => {})
   try {
     const plain = plainTextFromHtml(content.value)
     const moderationText = imageBoard ? plain : `${title.value}\n${plain}`
@@ -991,6 +994,7 @@ async function handleSubmit() {
     else {
       const id = await createPost({
         ...payload,
+        slug: (await slugPromise) ?? undefined,
         postId: attachmentNamespace.value,
         authorUid: user.value.uid,
         authorName: user.value.displayName,
