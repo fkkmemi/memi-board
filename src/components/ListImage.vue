@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
@@ -9,6 +10,7 @@ defineProps<{
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
+const { t } = useMemiBoardI18n()
 
 function image(post: PostModel): string | undefined {
   return post.previewImage || post.attachments?.find(item => item.type.startsWith('image/'))?.url
@@ -28,7 +30,7 @@ function image(post: PostModel): string | undefined {
       <img
         v-if="image(post)"
         :src="image(post)"
-        :alt="post.title?.trim() || post.summary || '이미지'"
+        :alt="post.title?.trim() || post.summary || t('common.label.image')"
         class="size-full object-cover transition duration-300 group-hover:scale-105"
       >
       <div
@@ -50,7 +52,7 @@ function image(post: PostModel): string | undefined {
       >
         <UBadge
           v-if="post.isPublished === false"
-          label="초안"
+          :label="t('common.label.draft')"
           color="warning"
           variant="subtle"
           size="sm"

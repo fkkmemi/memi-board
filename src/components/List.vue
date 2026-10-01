@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMemiBoardPostList } from 'memi-board/runtime'
-import { useMemiBoardSettings } from 'memi-board/runtime'
+import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import type { BoardListView, PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListDense from './ListDense.vue'
@@ -55,7 +55,6 @@ const props = withDefaults(defineProps<{
   authorCommentsTo?: (authorUid: string) => string | undefined
 }>(), {
   pageSize: 10,
-  introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
   canManageSettings: true,
   canWrite: true,
 })
@@ -64,6 +63,9 @@ const emit = defineEmits<{ select: [post: PostModel], 'update:view': [view: Boar
 
 const { boardDescription, getBoard } = useMemiBoardSettings()
 const resolvedBoardId = computed(() => props.boardId || props.category || '')
+// 보드 설정 언어 → 호스트 언어 순. 자식 컴포넌트도 이 언어를 따른다.
+const { t, dir } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
+const introductionText = computed(() => props.introduction ?? t('list.introduction'))
 const listDescription = computed(() => {
   const explicit = props.description?.trim()
   if (explicit) return explicit
@@ -134,43 +136,43 @@ const infoOpen = ref(false)
 const infoTab = ref<'about' | 'history'>('about')
 const now = ref(Date.now())
 let clock: ReturnType<typeof setInterval> | undefined
-const boardStacks = [
+const boardStacks = computed(() => [
   {
-    category: '프레임워크 & 언어',
+    category: t('list.stack.framework'),
     icon: 'i-lucide-layers',
     color: 'text-blue-500',
     panelClass: 'border-blue-100 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/30',
     items: [
-      { name: 'Nuxt 4', desc: 'Vue 기반 SSR 프레임워크', url: 'https://nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
-      { name: 'Vue 3', desc: 'Composition API · script setup', url: 'https://vuejs.org', icon: 'i-simple-icons-vuedotjs', color: '#4FC08D' },
-      { name: 'TypeScript', desc: '안전한 데이터와 컴포넌트 타입', url: 'https://www.typescriptlang.org', icon: 'i-simple-icons-typescript', color: '#3178C6' },
+      { name: 'Nuxt 4', desc: t('list.tech.nuxt'), url: 'https://nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
+      { name: 'Vue 3', desc: t('list.tech.vue'), url: 'https://vuejs.org', icon: 'i-simple-icons-vuedotjs', color: '#4FC08D' },
+      { name: 'TypeScript', desc: t('list.tech.typescript'), url: 'https://www.typescriptlang.org', icon: 'i-simple-icons-typescript', color: '#3178C6' },
     ],
   },
   {
-    category: 'UI & 스타일',
+    category: t('list.stack.ui'),
     icon: 'i-lucide-palette',
     color: 'text-purple-500',
     panelClass: 'border-purple-100 bg-purple-50 dark:border-purple-900/50 dark:bg-purple-950/30',
     items: [
-      { name: 'Nuxt UI v4', desc: '게시판·폼·모달 UI', url: 'https://ui.nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
-      { name: 'Tailwind CSS v4', desc: '반응형 · 라이트/다크 스타일', url: 'https://tailwindcss.com', icon: 'i-simple-icons-tailwindcss', color: '#06B6D4' },
-      { name: 'Lucide Icons', desc: '가볍고 일관된 아이콘', url: 'https://lucide.dev', icon: 'i-lucide-box', color: '#F97316' },
-      { name: 'dayjs', desc: '읽기 편한 날짜와 상대 시각', url: 'https://day.js.org', icon: 'i-lucide-clock', color: '#FF5F4C' },
+      { name: 'Nuxt UI v4', desc: t('list.tech.nuxtUi'), url: 'https://ui.nuxt.com', icon: 'i-simple-icons-nuxtdotjs', color: '#00DC82' },
+      { name: 'Tailwind CSS v4', desc: t('list.tech.tailwind'), url: 'https://tailwindcss.com', icon: 'i-simple-icons-tailwindcss', color: '#06B6D4' },
+      { name: 'Lucide Icons', desc: t('list.tech.lucide'), url: 'https://lucide.dev', icon: 'i-lucide-box', color: '#F97316' },
+      { name: 'Intl API', desc: t('list.tech.dayjs'), url: 'https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Intl', icon: 'i-lucide-clock', color: '#FF5F4C' },
     ],
   },
   {
-    category: '백엔드 & 데이터',
+    category: t('list.stack.backend'),
     icon: 'i-lucide-database',
     color: 'text-orange-500',
     panelClass: 'border-orange-100 bg-orange-50 dark:border-orange-900/50 dark:bg-orange-950/30',
     items: [
-      { name: 'Firebase Firestore', desc: '게시글과 댓글을 위한 실시간 DB', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
-      { name: 'Firebase Auth', desc: '안전한 사용자 로그인과 권한', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
-      { name: 'Firebase Storage', desc: '이미지와 첨부파일 보관', url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
-      { name: 'nuxt-vuefire', desc: 'Nuxt와 Firebase 실시간 연결', url: 'https://vuefire.vuejs.org', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'Firebase Firestore', desc: t('list.tech.firestore'), url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'Firebase Auth', desc: t('list.tech.auth'), url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'Firebase Storage', desc: t('list.tech.storage'), url: 'https://firebase.google.com', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
+      { name: 'nuxt-vuefire', desc: t('list.tech.vuefire'), url: 'https://vuefire.vuejs.org', icon: 'i-simple-icons-firebase', color: '#FFCA28' },
     ],
   },
-]
+])
 
 onMounted(() => {
   clock = setInterval(() => { now.value = Date.now() }, 60_000)
@@ -209,7 +211,7 @@ function postTo(post: PostModel): string | undefined {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
+  <div class="flex flex-col gap-2" :dir="dir">
     <div v-if="hasHeader" class="flex items-center justify-between gap-4">
       <UTooltip
         v-if="title && listDescription"
@@ -231,7 +233,7 @@ function postTo(post: PostModel): string | undefined {
         <UButton
           v-if="settingsTo && canManageSettings"
           :to="settingsTo"
-          label="설정"
+          :label="t('list.settings')"
           icon="i-lucide-settings"
           color="neutral"
           variant="outline"
@@ -243,7 +245,7 @@ function postTo(post: PostModel): string | undefined {
         <UButton
           v-if="writeTo && canWrite"
           :to="writeTo"
-          label="글쓰기"
+          :label="t('common.action.write')"
           icon="i-lucide-pencil"
           size="sm"
         />
@@ -267,14 +269,14 @@ function postTo(post: PostModel): string | undefined {
       v-else-if="loadError"
       class="text-sm text-error text-center py-8"
     >
-      목록을 불러오지 못했습니다: {{ loadError }}
+      {{ t('list.loadFailed', { error: String(loadError) }) }}
     </p>
 
     <p
       v-else-if="!posts.length"
       class="text-sm text-muted text-center py-8"
     >
-      아직 게시글이 없습니다.
+      {{ t('list.empty') }}
     </p>
 
     <component
@@ -298,7 +300,7 @@ function postTo(post: PostModel): string | undefined {
       <UButton
         variant="outline"
         color="neutral"
-        label="더 보기"
+        :label="t('common.action.more')"
         block
         class="w-full"
         :loading="morePending"
@@ -317,7 +319,7 @@ function postTo(post: PostModel): string | undefined {
 
     <UModal
       v-model:open="infoOpen"
-      title="게시판 정보"
+      :title="t('list.info.title')"
       :ui="{ content: 'sm:max-w-2xl' }"
     >
       <template #body>
@@ -330,7 +332,7 @@ function postTo(post: PostModel): string | undefined {
               :variant="infoTab === 'about' ? 'solid' : 'ghost'"
               @click="infoTab = 'about'"
             >
-              이 게시판은
+              {{ t('list.info.about') }}
             </UButton>
             <UButton
               size="sm"
@@ -339,7 +341,7 @@ function postTo(post: PostModel): string | undefined {
               :variant="infoTab === 'history' ? 'solid' : 'ghost'"
               @click="infoTab = 'history'"
             >
-              버전 히스토리
+              {{ t('list.info.history') }}
             </UButton>
           </div>
 
@@ -356,10 +358,10 @@ function postTo(post: PostModel): string | undefined {
               </div>
               <div>
                 <h3 class="font-bold text-highlighted">
-                  이 게시판은
+                  {{ t('list.info.about') }}
                 </h3>
                 <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted">
-                  {{ introduction }}
+                  {{ introductionText }}
                 </p>
               </div>
             </div>

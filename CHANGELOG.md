@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+## [0.45.0] - 2026-10-01
+
+### Added
+- 다국어: 게시판 UI를 10개 언어(`ko` `en` `ja` `de` `fr` `es` `pt` `zh` `ar` `id`)로 보여준다. ko·en은 전체, 나머지는 짧은 화면 문구만 번역하고 긴 안내문은 영어로 폴백한다. 언어별 번역은 별도 청크로 필요할 때만 받는다.
+- 보드 설정에 "게시판 언어"를 추가했다. 자동(사이트 언어 따름) 또는 10개 언어 중 하나로 고정할 수 있다(`BoardModel.locale`, 빈 값 = 자동).
+- 호스트에 `@nuxtjs/i18n`이 있으면 현재 locale을 자동으로 따른다. 없으면 `memiBoard.locale`(기본 `'ko'`).
+- AI 검열·글쓰기 도우미 프롬프트를 보드 언어별로 나눴다. ko는 기존 한국어 프롬프트, 그 외는 영어 프롬프트와 해당 언어 응답.
+- 아랍어 보드는 목록·상세·글쓰기 루트에 `dir="rtl"`을 붙인다.
+- `useMemiBoardAutoTranslate().translateEntries(entries, { targets })` — 메뉴·게시판 이름 같은 짧은 문구를 Firebase AI Logic으로 여러 언어로 번역해 돌려준다(저장은 호출한 쪽이 정한다). `localizedText(i18n, locale, field, fallback)`로 현재 언어 값을 고른다.
+- API: `useMemiBoardI18n()`(`t`, `locale`, `dir`, 날짜·숫자 포맷), `translate`, `loadMemiBoardLocale`, `MEMI_BOARD_LOCALES`, `normalizeMemiBoardLocale`, `boardSectionKinds`/`boardSectionSorts`, `buildModerationPrompt`.
+
+### Changed
+- 날짜 표시를 dayjs 대신 `Intl`로 바꿨다. 한국어 상대 시각이 "하루 전"→"1일 전"처럼 숫자 표기로 조금 달라진다. `dayjs` peer 의존성을 뺐다.
+- `formatDate`/`formatRelativeDate`/`formatFullDate`/`formatTimestampDetails`, `reportReasonLabel`, `formatRestrictedUntilLabel`, `compressImage`, boardSeo 헬퍼, `miniPostTitle`/`miniViewLabel`에 선택 인자 `locale`을 추가했다. 생략하면 한국어로 기존과 같다.
+- `useMemiBoardModeration`·`useMemiBoardWritingAssistant`가 `{ locale }` 옵션을 받는다.
+- 전체 데이터 삭제 확인 문구가 화면 언어를 따른다(영어: "delete board data").
+
+### 호스트(부모) 작업
+- 패키지 버전 올리기: `pnpm add memi-board@^0.45.0`. 이것만 해도 한국어 화면은 그대로다.
+- 다국어를 쓰려면 `pnpm add @nuxtjs/i18n` 후 `nuxt.config.ts`의 `modules`에서 `'@nuxtjs/i18n'`을 `'memi-board'`보다 앞에 두고 `i18n.locales`의 `code`를 `ko`/`en`/`ja`/`de`/`fr`/`es`/`pt`/`zh`/`ar`/`id`로 설정한다(README "다국어" 절).
+- 선택: `app.vue`에서 `<UApp :locale>`과 `<html lang dir>`를 사이트 언어에 맞춘다(README 예시). 사이트 헤더에 언어 전환 메뉴(`useI18n().setLocale`)를 둔다.
+- 선택: `@nuxtjs/i18n` 없이 한 언어로 고정하려면 `memiBoard: { locale: 'en' }`.
+- 호스트가 `dayjs`를 직접 쓰고 있다면 호스트 `package.json`에 그대로 두면 된다(memi-board는 더 이상 설치를 요구하지 않는다).
+- Firestore 규칙 변경 없음(`memiBoardSettings`의 `locale` 필드는 기존 규칙으로 저장된다).
+
 ## [0.44.1] - 2026-10-01
 
 ### Fixed

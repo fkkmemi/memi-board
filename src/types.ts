@@ -188,6 +188,10 @@ export interface BoardModel {
    * 비어 있으면 담당 없음(관리자만). 관리자는 항상 통과.
    */
   allowedStaffUids?: string[]
+  /**
+   * 게시판 화면 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 호스트 언어를 따른다.
+   */
+  locale?: string
   /** 보드 목록 정렬 */
   order?: number
 }

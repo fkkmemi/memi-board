@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
@@ -23,25 +23,35 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ saved: [category: BoardCategory] }>()
 
-const listViewOptions: Array<{ label: string, value: BoardListView }> = [
-  { label: '일반', value: 'default' },
-  { label: '조밀', value: 'dense' },
-  { label: '이미지', value: 'image' },
-  { label: '영상', value: 'video' },
-]
-const editorTypeOptions: Array<{ label: string, value: BoardEditorType, description: string }> = [
-  { label: '일반', value: 'default', description: '제목과 본문을 작성' },
-  { label: '이미지', value: 'image', description: '여러 사진과 대표사진을 작성' },
-]
-const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
-  { label: '일반 이상', value: 'user' },
-  { label: '스태프 이상', value: 'staff' },
-  { label: '관리자만', value: 'admin' },
-]
-const visibilityOptions: Array<{ label: string, value: BoardVisibility, description?: string }> = [
-  { label: '보임', value: 'public', description: '전체 목록·필터에 표시' },
-  { label: '숨김', value: 'hidden', description: '일기장·비공개. 댓글은 담당 스태프만' },
-]
+const { t } = useMemiBoardI18n()
+const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
+  { label: t('settings.option.default'), value: 'default' },
+  { label: t('settings.listView.options.dense'), value: 'dense' },
+  { label: t('common.label.image'), value: 'image' },
+  { label: t('settings.listView.options.video'), value: 'video' },
+])
+const editorTypeOptions = computed<Array<{ label: string, value: BoardEditorType, description: string }>>(() => [
+  { label: t('settings.option.default'), value: 'default', description: t('settings.editorType.options.default') },
+  { label: t('common.label.image'), value: 'image', description: t('settings.editorType.options.image') },
+])
+const writeRoleOptions = computed<Array<{ label: string, value: BoardWriteRole }>>(() => [
+  { label: t('settings.writeRole.options.user'), value: 'user' },
+  { label: t('settings.writeRole.options.staff'), value: 'staff' },
+  { label: t('settings.writeRole.options.admin'), value: 'admin' },
+])
+const visibilityOptions = computed<Array<{ label: string, value: BoardVisibility, description?: string }>>(() => [
+  { label: t('settings.visibility.options.public.label'), value: 'public', description: t('settings.visibility.options.public.description') },
+  { label: t('settings.visibility.options.hidden.label'), value: 'hidden', description: t('settings.visibility.options.hidden.description') },
+])
+// reka-ui Select 는 빈 문자열 값을 허용하지 않아 '자동'을 sentinel 로 두고 저장 시 '' 로 바꾼다.
+const LOCALE_AUTO = 'auto'
+const localeOptions = computed(() => [
+  { label: t('settings.locale.auto'), value: LOCALE_AUTO },
+  ...MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
+])
+function fromLocaleOption(value: string) {
+  return value === LOCALE_AUTO ? '' : value
+}
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory } = useMemiBoardSettings()
@@ -73,6 +83,7 @@ function emptyDraft(id: string): BoardCategory {
     writeRole: 'user',
     commentWriteRole: 'user',
     allowedStaffUids: [],
+    locale: '',
   }
 }
 
@@ -92,6 +103,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     writeRole: category.writeRole ?? 'user',
     commentWriteRole: category.commentWriteRole ?? 'user',
     allowedStaffUids: category.allowedStaffUids ?? [],
+    locale: category.locale ?? '',
   }
 }
 
@@ -144,7 +156,7 @@ async function save() {
     emit('saved', snapshot)
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '게시판 설정을 저장하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
   }
   finally {
     saving.value = false
@@ -153,33 +165,33 @@ async function save() {
 </script>
 
 <template>
-  <div v-if="pending" class="py-16 text-center text-sm text-muted">설정을 불러오고 있습니다.</div>
-  <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" title="접근 권한이 없습니다" />
-  <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" title="없는 게시판입니다" description="게시판 주소를 다시 확인해 주세요." />
+  <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
+  <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" :title="t('settings.noAccess')" />
+  <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" :title="t('settings.notFound.title')" :description="t('settings.notFound.checkBoardAddress')" />
   <div v-else class="flex flex-col gap-5">
     <UAlert
       v-if="isNew"
       color="neutral"
       variant="subtle"
       icon="i-lucide-circle-plus"
-      title="아직 없는 게시판입니다"
-      description="아래 정보를 입력하고 저장하면 이 ID로 새로 만들어집니다."
+      :title="t('settings.newBoard.title')"
+      :description="t('settings.newBoard.description')"
     />
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-      <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.id.label') }}</p><p class="text-xs text-muted">{{ t('settings.id.help') }}</p></div>
       <UInput :model-value="draft.id" disabled class="font-mono" />
     </div>
     <div class="flex flex-col gap-2">
-      <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">글을 쓸 수 있는 최소 역할</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.writeRole.label') }}</p><p class="text-xs text-muted">{{ t('settings.writeRole.helpShort') }}</p></div>
       <MemiBoardOptionCards v-model="draft.writeRole" :options="writeRoleOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex flex-col gap-2">
       <div>
-        <p class="text-sm font-medium">댓글쓰기 권한</p>
+        <p class="text-sm font-medium">{{ t('settings.commentWriteRole.label') }}</p>
         <p class="text-xs text-muted">
           {{ draft.visibility === 'hidden'
-            ? '숨김 게시판은 댓글이 공개 피드에 안 나오고, 담당 스태프만 작성할 수 있습니다'
-            : '댓글을 쓸 수 있는 최소 역할' }}
+            ? t('settings.commentWriteRole.hiddenHelp')
+            : t('settings.commentWriteRole.helpShort') }}
         </p>
       </div>
       <MemiBoardOptionCards
@@ -192,55 +204,65 @@ async function save() {
         v-else
         class="rounded-lg border border-default px-3 py-2.5 text-sm text-muted"
       >
-        담당 스태프만 (숨김 보드 고정)
+        {{ t('settings.commentWriteRole.hiddenFixed') }}
       </p>
     </div>
     <div v-if="needsStaffPicker" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-      <div><p class="text-sm font-medium">담당 스태프</p><p class="text-xs text-muted">지정한 스태프만 이 보드를 설정·관리합니다. 비우면 관리자만</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.staff.label') }}</p><p class="text-xs text-muted">{{ t('settings.staff.help') }}</p></div>
       <USelectMenu
         v-model="draft.allowedStaffUids"
         :items="staffOptions"
         value-key="value"
         label-key="label"
         multiple
-        placeholder="관리자만 (스태프 미지정)"
+        :placeholder="t('settings.staff.placeholder')"
         @update:model-value="saved = false"
       />
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-      <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
       <UInput v-model="draft.label" @update:model-value="saved = false" />
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
-      <div><p class="text-sm font-medium">설명</p><p class="text-xs text-muted">게시판 상단 등에 보이는 안내 문구</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
       <UTextarea
         v-model="draft.description"
         :rows="3"
         autoresize
         :maxrows="6"
-        placeholder="이 게시판에 대한 짧은 설명 (선택)"
+        :placeholder="t('settings.description.placeholder')"
         @update:model-value="saved = false"
       />
     </div>
     <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
       <div>
-        <p class="text-sm font-medium">공개 범위</p>
-        <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고, 글은 관리자·담당 스태프·작성자만 읽을 수 있습니다. 댓글은 담당 스태프만 쓸 수 있습니다</p>
+        <p class="text-sm font-medium">{{ t('settings.visibility.label') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.visibility.help') }}</p>
       </div>
       <MemiBoardOptionCards v-model="draft.visibility" :options="visibilityOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex flex-col gap-2">
-      <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.listView.label') }}</p><p class="text-xs text-muted">{{ t('settings.listView.help') }}</p></div>
       <MemiBoardOptionCards v-model="draft.listView" :options="listViewOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex flex-col gap-2">
-      <div><p class="text-sm font-medium">입력 폼</p><p class="text-xs text-muted">글쓰기 화면의 작성 방식</p></div>
+      <div><p class="text-sm font-medium">{{ t('settings.editorType.label') }}</p><p class="text-xs text-muted">{{ t('settings.editorType.help') }}</p></div>
       <MemiBoardOptionCards v-model="draft.editorType" :options="editorTypeOptions" @update:model-value="saved = false" />
     </div>
+    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+      <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
+      <USelect
+        :model-value="draft.locale || LOCALE_AUTO"
+        :items="localeOptions"
+        value-key="value"
+        label-key="label"
+        @update:model-value="draft.locale = fromLocaleOption($event as string); saved = false"
+      />
+    </div>
     <div class="flex justify-end border-t border-default pt-4">
-      <UButton :label="isNew ? '만들기' : '저장'" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" @click="save" />
+      <UButton :label="isNew ? t('settings.action.create') : t('common.action.save')" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" @click="save" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-    <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? '게시판을 만들었습니다.' : '게시판 설정을 저장했습니다.'" />
+    <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? t('settings.created') : t('settings.savedSettings')" />
   </div>
 </template>

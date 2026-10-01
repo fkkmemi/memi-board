@@ -1,14 +1,20 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useFirebaseApp } from 'vuefire'
 import {
   buildLocalBlockRegex,
   DEFAULT_LOCAL_BLOCKLIST,
+  buildModerationImagePrompt,
+  buildModerationPrompt,
+  buildModerationTextPrompt,
   formatModerationUserReason,
-  MODERATION_SYSTEM,
   parseModerationJson,
 } from '../utils/moderation-prompt'
 import { useMemiBoardConfig } from '../config'
+import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
+import { translate } from '../i18n/translate'
 import type { ModerationResult, ModerationVia } from '../types'
 
 const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '', via: 'empty' }
@@ -18,10 +24,16 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
  * 이용 제한 확인 → 로컬 비속어 → Firebase AI Logic(Gemini).
  * 콘텐츠 차단(local/ai) 시 board users 경고 누적.
  */
-export function useMemiBoardModeration() {
+export function useMemiBoardModeration(options: {
+  /** 보드 언어. 같은 컴포넌트에서 boardLocale 을 provide 했다면 그 locale 을 넘긴다(자기 자신에게 inject 되지 않음). */
+  locale?: MaybeRefOrGetter<string | undefined | null>
+} = {}) {
+  const promptI18n = useMemiBoardI18n()
+  const promptLocale = computed<MemiBoardLocale>(() => normalizeMemiBoardLocale(toValue(options.locale)) ?? promptI18n.locale.value)
   const config = useMemiBoardConfig()
   const moderation = config.moderation ?? {}
   const app = useFirebaseApp()
+  const t = (key: string) => translate(promptLocale.value, key)
   const {
     isWriteRestricted,
     restrictedMessage,
@@ -53,7 +65,7 @@ export function useMemiBoardModeration() {
     })
     return getGenerativeModel(ai, {
       model: modelName,
-      systemInstruction: MODERATION_SYSTEM,
+      systemInstruction: buildModerationPrompt(promptLocale.value),
       generationConfig: {
         temperature: 0,
         maxOutputTokens: 256,
@@ -74,7 +86,7 @@ export function useMemiBoardModeration() {
       return {
         flagged: true,
         category: 'other',
-        reason: '내용 검토에 실패해 글을 등록할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+        reason: t('moderation.reviewFailed'),
         error: true,
         via: 'ai-error-block',
       }
@@ -120,7 +132,7 @@ export function useMemiBoardModeration() {
         flagged: true,
         category: 'other',
         reason: restrictedMessage.value
-          || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
+          || t('moderation.writeRestricted'),
         via: 'restricted',
       }
     }
@@ -143,7 +155,7 @@ export function useMemiBoardModeration() {
 
     try {
       const model = getModerationModel()
-      const result = await model.generateContent(`심사할 텍스트:\n"""${trimmed.slice(0, 4000)}"""`)
+      const result = await model.generateContent(buildModerationTextPrompt(trimmed, promptLocale.value))
       const raw = result.response.text()
       const parsed = parseModerationJson(raw)
       if (!parsed) return errorResult()
@@ -172,7 +184,7 @@ export function useMemiBoardModeration() {
         flagged: true,
         category: 'other',
         reason: restrictedMessage.value
-          || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
+          || t('moderation.writeRestricted'),
         via: 'restricted',
       }
     }
@@ -192,7 +204,7 @@ export function useMemiBoardModeration() {
       const model = getModerationModel()
       const result = await model.generateContent([
         { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
-        '이 이미지를 심사해 주세요.',
+        buildModerationImagePrompt(promptLocale.value),
       ])
       const raw = result.response.text()
       const parsed = parseModerationJson(raw)

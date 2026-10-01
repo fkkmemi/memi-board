@@ -26,6 +26,7 @@ import {
   moderationWriteRestrictedUntilMs,
   toBlockAtMs,
 } from '../utils/moderation-strike'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export interface UseMemiBoardAuthReturn {
   user: ReturnType<typeof useCurrentUser>
@@ -89,6 +90,7 @@ function getSharedAuthState(): BoardAuthShared {
  */
 export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
   const config = useMemiBoardConfig()
+  const { t, locale } = useMemiBoardI18n()
   const shared = getSharedAuthState()
   const db = useFirestore()
   const auth = useFirebaseAuth()
@@ -233,15 +235,15 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       th,
       banDecayMs(),
     )
-    return until != null ? formatRestrictedUntilLabel(until) : null
+    return until != null ? formatRestrictedUntilLabel(until, Date.now(), locale.value) : null
   })
 
   const restrictedMessage = computed(() => {
     if (!isWriteRestricted.value) return null
     const until = restrictedUntilLabel.value
     return until
-      ? `콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요. (${until})`
-      : '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
+      ? t('auth.writeRestrictedUntil', { until })
+      : t('auth.writeRestricted')
   })
 
   async function recordContentModerationBlock() {
@@ -292,7 +294,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       banDecayMs(),
     )
     // 앞 사유 문장과 이어 붙일 접미 (공백·구분자 포함)
-    let messageSuffix = ` (경고 ${effectiveCount}/${threshold})`
+    let messageSuffix = t('auth.strikeSuffix', { count: effectiveCount, threshold })
     if (restricted) {
       const until = moderationWriteRestrictedUntilMs(
         nextCount,
@@ -301,16 +303,16 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
         threshold,
         banDecayMs(),
       )
-      const untilLabel = until != null ? formatRestrictedUntilLabel(until, nextAt) : null
+      const untilLabel = until != null ? formatRestrictedUntilLabel(until, nextAt, locale.value) : null
       messageSuffix = untilLabel
-        ? ` 경고 ${effectiveCount}회가 되어 글·댓글 작성이 제한됩니다 (${untilLabel}).`
-        : ` 경고 ${effectiveCount}회가 되어 글·댓글 작성이 제한됩니다.`
+        ? t('auth.strikeRestrictedUntil', { count: effectiveCount, until: untilLabel })
+        : t('auth.strikeRestricted', { count: effectiveCount })
     }
     return { effectiveCount, restricted, messageSuffix }
   }
 
   function requireAuth() {
-    if (!auth) throw new Error('[memi-board] Firebase Auth가 초기화되지 않았습니다.')
+    if (!auth) throw new Error(t('auth.notInitialized'))
     return auth
   }
 

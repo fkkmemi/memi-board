@@ -24,6 +24,8 @@ import {
   type BoardListSeoPayload,
   type BoardPostSeoPayload,
 } from '../utils/boardSeo'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { loadMemiBoardLocale, translate } from '../i18n/translate'
 
 export type PublicSeoDb = {
   db: Firestore
@@ -123,7 +125,10 @@ export async function fetchPublicPostForSeo(
 export async function fetchPublicListForSeo(
   boardId?: string | null,
   ctx?: PublicSeoDb,
+  /** 기본 문구(설명·'전체' 라벨) 언어. 생략 시 한국어. */
+  locale?: MemiBoardLocale,
 ): Promise<BoardListSeoPayload> {
+  if (locale) await loadMemiBoardLocale(locale)
   const b = boardId?.trim() || null
   const store = ctx ?? resolvePublicSeoDb()
   store.paths = resolveBoardPathConfig(store.paths)
@@ -145,7 +150,7 @@ export async function fetchPublicListForSeo(
       kind: 'category',
       category: b,
       categoryLabel: meta.label,
-      description: meta.description || `${meta.label} 게시판`,
+      description: meta.description || translate(locale, 'seo.boardDescription', { name: meta.label }),
       ogImage,
       recentTitles,
     }
@@ -154,8 +159,8 @@ export async function fetchPublicListForSeo(
   return {
     kind: 'all',
     category: null,
-    categoryLabel: '전체',
-    description: '게시판 — 공지와 커뮤니티 소식을 확인하세요.',
+    categoryLabel: translate(locale, 'seo.allCategory'),
+    description: translate(locale, 'seo.allDescription'),
     ogImage: null,
     recentTitles: [],
   }

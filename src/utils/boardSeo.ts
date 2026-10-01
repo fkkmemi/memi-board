@@ -1,4 +1,12 @@
 /** 게시판 SEO 순수 헬퍼 — Nuxt 의존 없음 */
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+
+/** '전체' 라벨(현재 언어 또는 예전 한국어 값)이면 전체 목록으로 본다. */
+function isAllCategoryLabel(label: string | undefined, locale?: MemiBoardLocale): boolean {
+  if (!label) return true
+  return label === '전체' || label === translate(locale, 'seo.allCategory')
+}
 
 export type BoardPostSeoPayload = {
   id: string
@@ -85,9 +93,10 @@ export function boardPostOgTitle(
   siteName: string,
   /** 제목 없을 때(이미지 보드) 본문 요약 사용 */
   summary?: string,
+  locale?: MemiBoardLocale,
 ): string {
   const fromSummary = summary?.trim().slice(0, 40)
-  const t = title.trim() || fromSummary || '사진'
+  const t = title.trim() || fromSummary || translate(locale, 'seo.photo')
   const cat = categoryLabel?.trim()
   const site = siteName.trim() || 'Board'
   return cat ? `${t} · ${cat} | ${site}` : `${t} | ${site}`
@@ -97,32 +106,36 @@ export function boardPostOgDescription(opts: {
   summary?: string
   categoryLabel?: string
   authorName?: string | null
-}): string {
+}, locale?: MemiBoardLocale): string {
   const bits: string[] = []
   if (opts.summary?.trim()) bits.push(opts.summary.trim().slice(0, 140))
-  else bits.push('게시판 글')
+  else bits.push(translate(locale, 'seo.postDescriptionFallback'))
   if (opts.categoryLabel?.trim()) bits.push(opts.categoryLabel.trim())
   if (opts.authorName?.trim()) bits.push(opts.authorName.trim())
   return bits.join(' · ').slice(0, 200)
 }
 
-export function boardListOgTitle(categoryLabel: string | null | undefined, siteName: string): string {
+export function boardListOgTitle(
+  categoryLabel: string | null | undefined,
+  siteName: string,
+  locale?: MemiBoardLocale,
+): string {
   const site = siteName.trim() || 'Board'
   const cat = categoryLabel?.trim()
-  if (cat && cat !== '전체') return `${cat} 게시판 | ${site}`
-  return `게시판 | ${site}`
+  if (!isAllCategoryLabel(cat, locale)) return translate(locale, 'seo.listTitle', { name: cat, site })
+  return translate(locale, 'seo.listTitleAll', { site })
 }
 
 export function boardListOgDescription(opts: {
   categoryLabel?: string | null
   description?: string
   recentTitles?: string[]
-}): string {
+}, locale?: MemiBoardLocale): string {
   if (opts.description?.trim()) return opts.description.trim().slice(0, 200)
   const cat = opts.categoryLabel?.trim()
-  const head = cat && cat !== '전체'
-    ? `${cat} 게시판 — 소식을 확인하세요.`
-    : '게시판 — 공지와 이야기를 확인하세요.'
+  const head = !isAllCategoryLabel(cat, locale)
+    ? translate(locale, 'seo.listDescription', { name: cat })
+    : translate(locale, 'seo.listDescriptionAll')
   const titles = (opts.recentTitles || []).filter(Boolean).slice(0, 3)
   if (!titles.length) return head.slice(0, 200)
   return `${head} ${titles.map(t => `「${t}」`).join(' ')}`.slice(0, 200)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatRelativeDate, formatTimestampDetails, videoListCoverUrl } from 'memi-board/runtime'
+import { useMemiBoardI18n, videoListCoverUrl } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 defineProps<{
@@ -14,6 +14,7 @@ defineProps<{
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
+const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 
 /** 영상 목록: YouTube URL 이 있으면 썸네일 우선, 그다음 본문/첨부 이미지. */
 function cover(post: PostModel): string | undefined {
@@ -46,7 +47,7 @@ function cover(post: PostModel): string | undefined {
           <div class="flex min-w-0 items-start gap-1.5">
             <UBadge
               v-if="post.isPublished === false"
-              label="초안"
+              :label="t('common.label.draft')"
               color="warning"
               variant="subtle"
               size="sm"

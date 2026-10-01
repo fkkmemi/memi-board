@@ -4,11 +4,14 @@ import {
   memiBoardCommentLikesKey,
   useMemiBoardCommentLikes,
   useMemiBoardComments,
+  useMemiBoardI18n,
 } from 'memi-board/runtime'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 
 const props = defineProps<{ boardId: string, postId: string }>()
+
+const { t } = useMemiBoardI18n()
 
 const { comments, commentsPending, hasMore, loadingMore, loadMore } = useMemiBoardComments(
   toRef(props, 'boardId'),
@@ -79,14 +82,14 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col gap-3">
-    <div v-if="commentsPending" class="flex flex-col gap-3" aria-label="댓글을 불러오고 있습니다">
+    <div v-if="commentsPending" class="flex flex-col gap-3" :aria-label="t('commentList.loading')">
       <MemiBoardCommentSkeleton v-for="index in 10" :key="`initial-${index}`" />
     </div>
     <p
       v-else-if="!comments.length"
       class="text-sm text-muted"
     >
-      아직 댓글이 없습니다.
+      {{ t('commentList.empty') }}
     </p>
 
     <MemiBoardCommentThread
@@ -104,7 +107,7 @@ onUnmounted(() => {
       class="flex justify-center py-3"
     >
       <UButton
-        label="댓글 더보기"
+        :label="t('commentList.loadMore')"
         icon="i-lucide-chevron-down"
         color="neutral"
         variant="soft"
@@ -114,7 +117,7 @@ onUnmounted(() => {
       />
     </div>
 
-    <div v-if="morePending" class="flex flex-col gap-3" aria-label="댓글을 더 불러오고 있습니다">
+    <div v-if="morePending" class="flex flex-col gap-3" :aria-label="t('commentList.loadingMore')">
       <MemiBoardCommentSkeleton v-for="index in 10" :key="`more-${index}`" />
     </div>
   </div>

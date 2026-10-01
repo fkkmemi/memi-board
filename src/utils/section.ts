@@ -1,15 +1,30 @@
 import type { BoardListView, BoardSection, BoardSectionCols, BoardSectionHeight, BoardSectionKind, BoardSectionSort, CommentModel, PostModel } from '../types'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
 
 export const BOARD_SECTION_COLS: BoardSectionCols[] = [3, 4, 5, 6, 7, 8, 9, 12]
-export const BOARD_SECTION_KINDS: { value: BoardSectionKind, label: string }[] = [
-  { value: 'list', label: '게시목록' },
-  { value: 'post', label: '게시물' },
-  { value: 'comments', label: '댓글모음' },
-]
-export const BOARD_SECTION_SORTS: { value: BoardSectionSort, label: string }[] = [
-  { value: 'latest', label: '최신순' },
-  { value: 'likes', label: '좋아요순' },
-]
+
+/** 섹션 종류 선택지. locale 을 넘기면 해당 언어 라벨(기본 ko). */
+export function boardSectionKinds(locale?: MemiBoardLocale): { value: BoardSectionKind, label: string }[] {
+  return [
+    { value: 'list', label: translate(locale, 'sectionUtil.kind.list') },
+    { value: 'post', label: translate(locale, 'sectionUtil.kind.post') },
+    { value: 'comments', label: translate(locale, 'sectionUtil.kind.comments') },
+  ]
+}
+
+/** 섹션 정렬 선택지. locale 을 넘기면 해당 언어 라벨(기본 ko). */
+export function boardSectionSorts(locale?: MemiBoardLocale): { value: BoardSectionSort, label: string }[] {
+  return [
+    { value: 'latest', label: translate(locale, 'sectionUtil.sort.latest') },
+    { value: 'likes', label: translate(locale, 'sectionUtil.sort.likes') },
+  ]
+}
+
+/** @deprecated 한국어 고정 라벨. 언어별 라벨은 boardSectionKinds(locale) 사용 */
+export const BOARD_SECTION_KINDS = boardSectionKinds('ko')
+/** @deprecated 한국어 고정 라벨. 언어별 라벨은 boardSectionSorts(locale) 사용 */
+export const BOARD_SECTION_SORTS = boardSectionSorts('ko')
 
 export function defaultSectionCount(kind: BoardSectionKind) {
   return kind === 'list' ? 5 : 4
@@ -69,8 +84,8 @@ export function miniPostImage(post: PostModel): string | undefined {
     || post.attachments?.find(item => item.type.startsWith('image/'))?.url
 }
 
-export function miniPostTitle(post: PostModel) {
-  return post.title?.trim() || post.summary || '게시물'
+export function miniPostTitle(post: PostModel, locale?: MemiBoardLocale) {
+  return post.title?.trim() || post.summary || translate(locale, 'sectionUtil.untitledPost')
 }
 
 export type MiniViewGroup = 'list' | 'media'
@@ -79,8 +94,8 @@ export function miniViewGroup(view: BoardListView): MiniViewGroup {
   return view === 'image' || view === 'video' ? 'media' : 'list'
 }
 
-export function miniViewLabel(view: BoardListView) {
-  return miniViewGroup(view) === 'media' ? '미디어' : '목록'
+export function miniViewLabel(view: BoardListView, locale?: MemiBoardLocale) {
+  return translate(locale, miniViewGroup(view) === 'media' ? 'sectionUtil.view.media' : 'sectionUtil.view.list')
 }
 
 export function miniBoardView(

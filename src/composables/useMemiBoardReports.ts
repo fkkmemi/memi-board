@@ -19,8 +19,15 @@ import { useBoardPathConfig } from '../config'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
 import { reportDoc, reportsCol } from '../utils/boardPaths'
 import type { BoardReportModel, BoardReportReason, BoardReportStatus } from '../types'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export const REPORT_DETAIL_MAX_LENGTH = 200
+/**
+ * 신고 사유 목록. `label` 은 호환용 한국어 원문이다 — 화면에는 `reportReasonLabel(value, locale)` 로
+ * 현재 언어 문구를 쓴다.
+ */
 export const REPORT_REASONS: { value: BoardReportReason, label: string }[] = [
   { value: 'spam', label: '스팸·광고' },
   { value: 'abuse', label: '욕설·혐오·괴롭힘' },
@@ -29,14 +36,16 @@ export const REPORT_REASONS: { value: BoardReportReason, label: string }[] = [
   { value: 'other', label: '기타' },
 ]
 
-export function reportReasonLabel(reason: BoardReportReason | string | undefined) {
-  return REPORT_REASONS.find(item => item.value === reason)?.label || reason || '신고'
+export function reportReasonLabel(reason: BoardReportReason | string | undefined, locale?: MemiBoardLocale) {
+  if (REPORT_REASONS.some(item => item.value === reason)) return translate(locale, `reports.reason.${reason}`)
+  return reason || translate(locale, 'reports.fallbackLabel')
 }
 
 export function useMemiBoardReports(boardId: string, postId: string) {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const user = useCurrentUser()
+  const { t } = useMemiBoardI18n()
 
   const hasReported = ref(false)
   const pending = ref(false)
@@ -66,14 +75,14 @@ export function useMemiBoardReports(boardId: string, postId: string) {
     authorName?: string | null
   }): Promise<void> {
     const uid = user.value?.uid
-    if (!uid) throw new Error('로그인이 필요합니다.')
+    if (!uid) throw new Error(t('reports.signInRequired'))
     if (pending.value) return
-    if (input.authorUid && input.authorUid === uid) throw new Error('자신의 글은 신고할 수 없습니다.')
+    if (input.authorUid && input.authorUid === uid) throw new Error(t('reports.cannotReportOwn'))
     const reason = REPORT_REASONS.some(item => item.value === input.reason) ? input.reason : null
-    if (!reason) throw new Error('신고 사유를 선택해 주세요.')
+    if (!reason) throw new Error(t('reports.reasonRequired'))
     const detail = (input.detail || '').trim()
     if (detail.length > REPORT_DETAIL_MAX_LENGTH) {
-      throw new Error(`자세한 내용은 ${REPORT_DETAIL_MAX_LENGTH}자까지입니다.`)
+      throw new Error(t('reports.detailTooLong', { max: REPORT_DETAIL_MAX_LENGTH }))
     }
 
     pending.value = true

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, resolveComponent } from 'vue'
-import { formatRelativeDate, useMemiBoardUserComments } from 'memi-board/runtime'
+import { useMemiBoardI18n, useMemiBoardUserComments } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
 const NuxtLink = resolveComponent('NuxtLink')
@@ -19,6 +19,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ select: [comment: CommentModel] }>()
+
+const { t, formatRelativeDate } = useMemiBoardI18n()
 
 const { comments, commentsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardUserComments(
   () => props.uid,
@@ -46,14 +48,14 @@ function commentLink(comment: CommentModel): string | undefined {
       v-else-if="loadError"
       class="text-sm text-error text-center py-8"
     >
-      목록을 불러오지 못했습니다: {{ loadError }}
+      {{ t('userCommentList.loadFailed', { error: String(loadError) }) }}
     </p>
 
     <p
       v-else-if="!comments.length"
       class="text-sm text-muted text-center py-8"
     >
-      작성한 댓글이 없습니다.
+      {{ t('userCommentList.empty') }}
     </p>
 
     <ul
@@ -75,7 +77,7 @@ function commentLink(comment: CommentModel): string | undefined {
             v-if="comment.isBlinded"
             class="text-sm text-muted italic"
           >
-            관리자에 의해 블라인드된 댓글입니다.
+            {{ t('userCommentList.blinded') }}
           </p>
           <p
             v-else
@@ -86,7 +88,7 @@ function commentLink(comment: CommentModel): string | undefined {
           <p class="mt-1 text-xs text-muted">
             {{ formatRelativeDate(comment.createdAt, now) }}
             <template v-if="(comment.likeCount ?? 0) > 0">
-              · 좋아요 {{ comment.likeCount }}
+              · {{ t('userCommentList.likes', { count: comment.likeCount ?? 0 }) }}
             </template>
           </p>
         </component>
@@ -100,7 +102,7 @@ function commentLink(comment: CommentModel): string | undefined {
       <UButton
         variant="outline"
         color="neutral"
-        label="더 보기"
+        :label="t('common.action.more')"
         block
         class="w-full"
         :loading="loadingMore"

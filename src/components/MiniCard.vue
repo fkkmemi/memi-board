@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { miniPostImage, miniPostLink, miniPostTitle } from 'memi-board/runtime'
+import { miniPostImage, miniPostLink, miniPostTitle, useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = defineProps<{
   post: PostModel
@@ -11,7 +11,8 @@ const props = defineProps<{
 
 const NuxtLink = resolveComponent('NuxtLink')
 const image = computed(() => miniPostImage(props.post))
-const title = computed(() => miniPostTitle(props.post))
+const { locale } = useMemiBoardI18n()
+const title = computed(() => miniPostTitle(props.post, locale.value))
 const to = computed(() => props.getPostLink?.(props.post) ?? miniPostLink(props.post))
 </script>
 

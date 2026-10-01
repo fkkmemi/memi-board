@@ -4,10 +4,12 @@
  * 닫으면 localStorage에 타임스탬프 저장 → 24시간 지나면 다시 표시.
  */
 import { onMounted, ref } from 'vue'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const STORAGE_KEY = 'memi-board-post-swipe-hint-dismissed-at'
 const DAY_MS = 24 * 60 * 60 * 1000
 
+const { t } = useMemiBoardI18n()
 const allowed = ref(false)
 
 onMounted(() => {
@@ -61,10 +63,10 @@ function dismiss() {
         </div>
         <div class="min-w-0 flex-1 pt-0.5">
           <p class="text-sm font-medium text-highlighted">
-            좌우로 스와이프해 보세요
+            {{ t('swipeHint.title') }}
           </p>
           <p class="mt-0.5 text-xs leading-relaxed text-muted">
-            왼쪽으로 밀면 다음 글, 오른쪽으로 밀면 이전 글로 이동해요.
+            {{ t('swipeHint.description') }}
           </p>
         </div>
         <UButton
@@ -74,7 +76,7 @@ function dismiss() {
           size="sm"
           square
           class="shrink-0"
-          aria-label="닫기"
+          :aria-label="t('common.action.close')"
           @click="dismiss"
         />
       </div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { BOARD_USER_ROLES, formatRelativeDate, useMemiBoardAuth, useMemiBoardUserProfile } from 'memi-board/runtime'
+import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile } from 'memi-board/runtime'
 import MemiBoardProfileEditModal from './ProfileEditModal.vue'
 
 const props = defineProps<{
@@ -10,7 +10,12 @@ const props = defineProps<{
 const { profile, profilePending } = useMemiBoardUserProfile(() => props.uid)
 const now = ref(Date.now())
 
-const roleLabel = computed(() => BOARD_USER_ROLES.find(item => item.value === profile.value?.role)?.label)
+const { t, formatRelativeDate } = useMemiBoardI18n()
+
+const roleLabel = computed(() => {
+  const role = profile.value?.role
+  return role === 'admin' || role === 'staff' || role === 'user' ? t(`common.role.${role}`) : undefined
+})
 
 const { user } = useMemiBoardAuth()
 const isOwnProfile = computed(() => !!user.value?.uid && user.value.uid === props.uid)
@@ -33,7 +38,7 @@ const editOpen = ref(false)
     v-else-if="!profile"
     class="text-sm text-muted"
   >
-    사용자를 찾을 수 없습니다.
+    {{ t('profile.notFound') }}
   </p>
 
   <div
@@ -43,14 +48,14 @@ const editOpen = ref(false)
     <div class="flex items-center gap-3">
       <UAvatar
         :src="profile.photoURL ?? undefined"
-        :alt="profile.displayName ?? '익명'"
+        :alt="profile.displayName ?? t('common.label.anonymous')"
         size="xl"
         class="shrink-0"
       />
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
         <div class="flex min-w-0 items-center gap-2">
           <h2 class="min-w-0 truncate text-lg font-bold text-highlighted">
-            {{ profile.displayName ?? '이름 없음' }}
+            {{ profile.displayName ?? t('profile.noName') }}
           </h2>
           <UBadge
             v-if="roleLabel && profile.role !== 'user'"
@@ -61,12 +66,12 @@ const editOpen = ref(false)
           />
         </div>
         <p class="text-xs text-muted">
-          가입 {{ formatRelativeDate(profile.joinedAt, now) }} · 최근 방문 {{ formatRelativeDate(profile.lastVisitAt, now) }}
+          {{ t('profile.joined', { time: formatRelativeDate(profile.joinedAt, now) }) }} · {{ t('profile.lastVisit', { time: formatRelativeDate(profile.lastVisitAt, now) }) }}
         </p>
       </div>
       <UButton
         v-if="isOwnProfile"
-        label="수정"
+        :label="t('common.action.edit')"
         icon="i-lucide-pencil"
         color="neutral"
         variant="outline"

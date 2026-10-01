@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatRelativeDate, formatTimestampDetails, useMemiBoardSettings } from 'memi-board/runtime'
+import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 withDefaults(defineProps<{
@@ -15,6 +15,7 @@ withDefaults(defineProps<{
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
+const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 const NuxtLink = resolveComponent('NuxtLink')
 
 function image(post: PostModel): string | undefined {
@@ -50,14 +51,14 @@ function image(post: PostModel): string | undefined {
               <div class="flex min-w-0 flex-1 items-start gap-1.5">
                 <UBadge
                   v-if="post.isPublished === false"
-                  label="초안"
+                  :label="t('common.label.draft')"
                   color="warning"
                   variant="subtle"
                   size="sm"
                   class="mt-0.5 shrink-0"
                 />
                 <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug text-inherit sm:text-base">
-                  {{ post.title?.trim() || post.summary || '사진' }}
+                  {{ post.title?.trim() || post.summary || t('list.photo') }}
                 </h3>
                 <span
                   v-if="(post.commentCount ?? 0) > 0"

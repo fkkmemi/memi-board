@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BoardSection, PostModel } from 'memi-board/runtime'
-import { miniPostsView, miniViewGroup, useMemiBoardMiniPicked, useMemiBoardSettings } from 'memi-board/runtime'
+import { miniPostsView, miniViewGroup, useMemiBoardI18n, useMemiBoardMiniPicked, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardMiniCard from './MiniCard.vue'
 import MemiBoardMiniPosts from './MiniPosts.vue'
 
@@ -12,6 +12,7 @@ const props = defineProps<{
 
 const { posts, pending } = useMemiBoardMiniPicked(() => props.section.postIds)
 const { getBoard } = useMemiBoardSettings()
+const { t } = useMemiBoardI18n()
 const view = computed(() => miniPostsView(posts.value, getBoard))
 const useCarousel = computed(() =>
   miniViewGroup(view.value) === 'list' && posts.value.length >= 2 && posts.value.length !== 4,
@@ -27,7 +28,7 @@ const useCarousel = computed(() =>
       v-else-if="!posts.length"
       class="flex flex-1 items-center justify-center px-3 py-6 text-sm text-muted"
     >
-      고른 게시물이 없습니다.
+      {{ t('miniPost.empty') }}
     </p>
     <UCarousel
       v-else-if="useCarousel"

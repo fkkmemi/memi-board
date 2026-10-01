@@ -2,21 +2,15 @@
 import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, inject, ref, watch } from 'vue'
 import { Timestamp } from 'firebase/firestore'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/ko'
 import type { CommentModel } from 'memi-board/runtime'
 import {
   COMMENT_BODY_MAX_LENGTH,
-  formatTimestampDetails,
   memiBoardCommentLikesKey,
   useMemiBoardAuth,
   useMemiBoardComments,
+  useMemiBoardI18n,
   useMemiBoardModeration,
 } from 'memi-board/runtime'
-
-dayjs.extend(relativeTime)
-dayjs.locale('ko')
 
 const props = defineProps<{
   comment: CommentModel
@@ -38,6 +32,7 @@ const { updateComment, setCommentBlinded } = useMemiBoardComments(
   { subscribe: false },
 )
 const { checkText } = useMemiBoardModeration()
+const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 const commentLikes = inject(memiBoardCommentLikesKey, null)
 
 const editing = ref(false)
@@ -64,7 +59,7 @@ watch(() => props.comment.likeCount, (likeCount) => {
 })
 
 const date = computed(() => props.comment.createdAt?.toDate?.())
-const relativeDate = computed(() => date.value ? dayjs(date.value).from(dayjs(props.now)) : '방금 전')
+const relativeDate = computed(() => formatRelativeDate(props.comment.createdAt, props.now))
 const timestampDetails = computed(() => formatTimestampDetails(props.comment.createdAt, localUpdatedAt.value).join('\n'))
 const blindLines = computed(() => Math.min(3, Math.max(1, Math.ceil(localBody.value.length / 45))))
 
@@ -88,7 +83,7 @@ async function saveEdit() {
     return
   }
   if (isWriteRestricted.value) {
-    editError.value = restrictedMessage.value || '댓글 수정이 잠시 제한됐어요.'
+    editError.value = restrictedMessage.value || t('commentItem.editRestricted')
     return
   }
 
@@ -97,7 +92,7 @@ async function saveEdit() {
   try {
     const moderation = await checkText(body)
     if (moderation.flagged) {
-      editError.value = moderation.reason || '작성할 수 없는 내용이 포함되어 있습니다.'
+      editError.value = moderation.reason || t('commentItem.moderationBlocked')
       return
     }
     await updateComment(props.comment.id, body)
@@ -106,7 +101,7 @@ async function saveEdit() {
     editing.value = false
   }
   catch (cause) {
-    editError.value = cause instanceof Error ? cause.message : '댓글을 수정하지 못했습니다.'
+    editError.value = cause instanceof Error ? cause.message : t('commentItem.editFailed')
   }
   finally {
     saving.value = false
@@ -117,8 +112,8 @@ async function toggleBlind() {
   if (!props.comment.id || !user.value || !canManageBoard(props.comment.boardId)) return
   const next = !localBlinded.value
   const confirmed = window.confirm(next
-    ? '이 댓글을 블라인드하면 모든 사용자에게 본문 대신 블라인드 안내가 표시됩니다. 원문은 삭제되지 않으며 나중에 다시 해제할 수 있습니다.\n\n블라인드하시겠습니까?'
-    : '블라인드를 해제하면 댓글 원문이 모든 사용자에게 다시 표시됩니다.\n\n블라인드를 해제하시겠습니까?')
+    ? t('commentItem.blindConfirm')
+    : t('commentItem.unblindConfirm'))
   if (!confirmed) return
 
   blindSaving.value = true
@@ -129,7 +124,7 @@ async function toggleBlind() {
     if (next) cancelEdit()
   }
   catch (cause) {
-    editError.value = cause instanceof Error ? cause.message : '블라인드 상태를 변경하지 못했습니다.'
+    editError.value = cause instanceof Error ? cause.message : t('commentItem.blindFailed')
   }
   finally {
     blindSaving.value = false
@@ -145,7 +140,7 @@ async function toggleLike() {
     if (next !== wasLiked) localLikeCount.value = Math.max(0, localLikeCount.value + (next ? 1 : -1))
   }
   catch (cause) {
-    likeError.value = cause instanceof Error ? cause.message : '좋아요를 처리하지 못했습니다.'
+    likeError.value = cause instanceof Error ? cause.message : t('commentItem.likeFailed')
   }
 }
 </script>
@@ -154,12 +149,12 @@ async function toggleLike() {
   <div class="flex items-start gap-3">
     <UAvatar
       :src="comment.authorPhoto ?? undefined"
-      :alt="comment.authorName ?? '익명'"
+      :alt="comment.authorName ?? t('common.label.anonymous')"
       size="sm"
     />
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">{{ comment.authorName ?? '익명' }}</span>
+        <span class="text-sm font-medium">{{ comment.authorName ?? t('common.label.anonymous') }}</span>
         <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
           <time
             :datetime="date?.toISOString()"
@@ -194,7 +189,7 @@ async function toggleLike() {
         <div class="flex justify-end gap-1">
           <UButton
             type="button"
-            label="취소"
+            :label="t('common.action.cancel')"
             size="xs"
             color="neutral"
             variant="ghost"
@@ -205,7 +200,7 @@ async function toggleLike() {
             type="submit"
             @pointerdown="imeSafeSubmitPointerDown"
             @click="imeSafeSubmitClick"
-            label="저장"
+            :label="t('common.action.save')"
             size="xs"
             :loading="saving"
             :disabled="!editBody.trim() || editBody.trim() === localBody"
@@ -225,7 +220,7 @@ async function toggleLike() {
           />
         </div>
         <div class="absolute inset-0 flex items-center justify-center px-3 text-center text-xs font-medium text-muted">
-          관리자에 의해 블라인드된 댓글입니다.
+          {{ t('commentItem.blinded') }}
         </div>
       </div>
       <p v-else class="whitespace-pre-wrap break-words text-sm">
@@ -245,13 +240,13 @@ async function toggleLike() {
         :color="isLiked ? 'error' : 'neutral'"
         :label="String(localLikeCount)"
         :loading="likePending"
-        :aria-label="isLiked ? '좋아요 취소' : '좋아요'"
+        :aria-label="isLiked ? t('common.action.unlike') : t('common.action.like')"
         @click="toggleLike"
       />
       <span
         v-else
         class="flex items-center gap-0.5 px-1 text-xs text-muted"
-        aria-label="좋아요"
+        :aria-label="t('common.action.like')"
       >
         <UIcon name="i-lucide-heart" class="size-3.5" />
         {{ localLikeCount }}
@@ -262,7 +257,7 @@ async function toggleLike() {
         size="xs"
         color="neutral"
         variant="ghost"
-        aria-label="댓글 수정"
+        :aria-label="t('commentItem.edit')"
         :disabled="editing"
         @click="startEdit"
       />
@@ -273,7 +268,7 @@ async function toggleLike() {
         :color="localBlinded ? 'neutral' : 'warning'"
         variant="ghost"
         :loading="blindSaving"
-        :aria-label="localBlinded ? '댓글 블라인드 해제' : '댓글 블라인드'"
+        :aria-label="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')"
         @click="toggleBlind"
       />
       <UButton
@@ -281,7 +276,7 @@ async function toggleLike() {
         size="xs"
         color="neutral"
         variant="ghost"
-        aria-label="답글"
+        :aria-label="t('common.action.reply')"
         @click="emit('reply', comment)"
       />
       <UButton
@@ -291,7 +286,7 @@ async function toggleLike() {
         variant="ghost"
         color="error"
         :loading="deleting"
-        aria-label="댓글 삭제"
+        :aria-label="t('commentItem.delete')"
         @click="emit('delete', comment.id)"
       />
     </div>

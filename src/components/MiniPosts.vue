@@ -2,11 +2,11 @@
 import { computed, ref, resolveComponent } from 'vue'
 import type { BoardListView, PostModel } from 'memi-board/runtime'
 import {
-  formatRelativeDate,
   miniPostImage,
   miniPostLink,
   miniPostTitle,
   miniViewGroup,
+  useMemiBoardI18n,
   useMemiBoardSettings,
   videoListCoverUrl,
 } from 'memi-board/runtime'
@@ -21,6 +21,7 @@ const props = defineProps<{
 const NuxtLink = resolveComponent('NuxtLink')
 const now = ref(Date.now())
 const { categoryLabel } = useMemiBoardSettings()
+const { formatRelativeDate, locale } = useMemiBoardI18n()
 const group = computed(() => miniViewGroup(props.view))
 
 function cover(post: PostModel) {
@@ -51,7 +52,7 @@ function postTo(post: PostModel) {
       <img
         v-if="cover(post)"
         :src="cover(post)"
-        :alt="miniPostTitle(post)"
+        :alt="miniPostTitle(post, locale)"
         class="size-full object-cover transition duration-300 group-hover:scale-105"
       >
       <div v-else class="flex size-full items-center justify-center text-muted">
@@ -85,7 +86,7 @@ function postTo(post: PostModel) {
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 items-start gap-1.5">
             <p class="min-w-0 flex-1 truncate text-sm font-medium text-inherit">
-              {{ miniPostTitle(post) }}
+              {{ miniPostTitle(post, locale) }}
             </p>
             <span class="mt-0.5 inline-flex shrink-0 items-center gap-0.5 text-[11px] tabular-nums text-muted">
               <UIcon name="i-lucide-message-square" class="size-3" />
@@ -105,7 +106,7 @@ function postTo(post: PostModel) {
         >
           <img
             :src="miniPostImage(post)!"
-            :alt="miniPostTitle(post)"
+            :alt="miniPostTitle(post, locale)"
             class="size-full object-cover"
           >
         </div>

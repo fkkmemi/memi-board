@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BoardSection, CommentModel, PostModel } from 'memi-board/runtime'
-import { miniMoreLink, sectionColClass, sectionMinHeight } from 'memi-board/runtime'
+import { miniMoreLink, sectionColClass, sectionMinHeight, useMemiBoardI18n } from 'memi-board/runtime'
 import MemiBoardMiniComments from './MiniComments.vue'
 import MemiBoardMiniList from './MiniList.vue'
 import MemiBoardMiniPost from './MiniPost.vue'
@@ -13,6 +13,7 @@ const props = defineProps<{
   getMoreLink?: (section: BoardSection) => string | undefined
 }>()
 
+const { t } = useMemiBoardI18n()
 const moreTo = computed(() => props.getMoreLink?.(props.section) ?? miniMoreLink(props.section))
 </script>
 
@@ -40,7 +41,7 @@ const moreTo = computed(() => props.getMoreLink?.(props.section) ?? miniMoreLink
         size="xs"
         trailing-icon="i-lucide-chevron-right"
         class="shrink-0 px-0"
-        label="더 보기"
+        :label="t('common.action.more')"
       />
     </header>
     <MemiBoardMiniList

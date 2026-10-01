@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.45.0',
+    date: '2026-10-01',
+    highlights: [
+      '게시판을 10개 언어로 볼 수 있어요 (한국어·영어·일본어·독일어·프랑스어·스페인어·포르투갈어·중국어·아랍어·인도네시아어)',
+      '게시판 설정에서 게시판마다 언어를 고정하거나 사이트 언어를 따르게 할 수 있어요',
+    ],
+  },
+  {
     version: '0.44.1',
     date: '2026-10-01',
     highlights: [

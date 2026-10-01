@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, resolveComponent } from 'vue'
 import {
-  formatRelativeDate,
   reportReasonLabel,
   useMemiBoardAuth,
+  useMemiBoardI18n,
   useMemiBoardReportQueue,
 } from 'memi-board/runtime'
 import type { BoardReportModel } from 'memi-board/runtime'
@@ -14,6 +14,7 @@ const props = defineProps<{
 }>()
 
 const NuxtLink = resolveComponent('NuxtLink')
+const { t, locale, formatRelativeDate } = useMemiBoardI18n()
 const { canManageContent } = useMemiBoardAuth()
 const { reports, pending, loadingMore, hasMore, loadError, loadMore, dismissReport, actionReport } = useMemiBoardReportQueue({
   boardId: () => props.boardId || '',
@@ -44,7 +45,7 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
       v-if="!canManageContent"
       class="py-8 text-center text-sm text-muted"
     >
-      스태프만 신고 목록을 볼 수 있습니다.
+      {{ t('reportList.staffOnly') }}
     </p>
     <template v-else-if="pending">
       <USkeleton v-for="i in 4" :key="i" class="h-16 w-full" />
@@ -53,13 +54,13 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
       v-else-if="loadError"
       class="py-8 text-center text-sm text-error"
     >
-      목록을 불러오지 못했습니다: {{ loadError }}
+      {{ t('reportList.loadFailed', { error: String(loadError) }) }}
     </p>
     <p
       v-else-if="!reports.length"
       class="py-8 text-center text-sm text-muted"
     >
-      대기 중인 신고가 없습니다.
+      {{ t('reportList.empty') }}
     </p>
     <ul
       v-else
@@ -77,11 +78,11 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
             class="truncate text-sm font-medium text-highlighted"
             :class="postLink(report) ? 'hover:underline' : ''"
           >
-            {{ report.postTitle || '제목 없는 글' }}
+            {{ report.postTitle || t('reportList.untitled') }}
           </component>
           <p class="mt-0.5 text-xs text-muted">
-            {{ reportReasonLabel(report.reason) }}
-            <span v-if="report.authorName"> · 작성 {{ report.authorName }}</span>
+            {{ reportReasonLabel(report.reason, locale.value) }}
+            <span v-if="report.authorName"> · {{ t('reportList.author', { name: report.authorName }) }}</span>
             · {{ formatRelativeDate(report.createdAt, now) }}
           </p>
           <p
@@ -96,7 +97,7 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
             size="xs"
             color="neutral"
             variant="soft"
-            label="기각"
+            :label="t('reportList.dismiss')"
             :loading="actingId === report.id"
             @click="handle(report, 'dismiss')"
           />
@@ -104,7 +105,7 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
             size="xs"
             color="warning"
             variant="soft"
-            label="확인"
+            :label="t('reportList.confirm')"
             :loading="actingId === report.id"
             @click="handle(report, 'action')"
           />
@@ -115,7 +116,7 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
       v-if="canManageContent && !pending && hasMore"
       variant="outline"
       color="neutral"
-      label="더 보기"
+      :label="t('common.action.more')"
       block
       :loading="loadingMore"
       @click="loadMore"

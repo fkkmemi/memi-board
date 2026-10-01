@@ -26,6 +26,8 @@ import {
 import { deleteLikesForComment } from '../utils/deletePostCascade'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import type { CommentModel } from '../types'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import type { MemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export interface AddCommentInput {
   body: string
@@ -42,11 +44,11 @@ const COMMENT_PAGE_SIZE = 10
 const REPLY_PAGE_SIZE = 5
 export const COMMENT_BODY_MAX_LENGTH = 1_000
 
-function normalizedCommentBody(body: string): string {
+function normalizedCommentBody(body: string, { t, formatNumber }: Pick<MemiBoardI18n, 't' | 'formatNumber'>): string {
   const trimmed = body.trim()
-  if (!trimmed) throw new Error('댓글 내용을 입력해 주세요.')
+  if (!trimmed) throw new Error(t('comments.bodyRequired'))
   if (trimmed.length > COMMENT_BODY_MAX_LENGTH) {
-    throw new Error(`댓글은 ${COMMENT_BODY_MAX_LENGTH.toLocaleString()}자까지 작성할 수 있습니다.`)
+    throw new Error(t('comments.bodyTooLong', { max: formatNumber(COMMENT_BODY_MAX_LENGTH) }))
   }
   return trimmed
 }
@@ -60,6 +62,8 @@ export function useMemiBoardComments(
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
   const { isBoardHidden } = useMemiBoardSettings()
+  const i18n = useMemiBoardI18n()
+  const { t } = i18n
   const commentsColRef = () => commentsCol(db, cfg())
 
   const bid = computed(() => toValue(boardId))
@@ -192,7 +196,7 @@ export function useMemiBoardComments(
   })
 
   async function addComment(input: AddCommentInput): Promise<void> {
-    const body = normalizedCommentBody(input.body)
+    const body = normalizedCommentBody(input.body, i18n)
     const batch = writeBatch(db)
     const commentRef = doc(commentsColRef())
     batch.set(commentRef, {
@@ -220,14 +224,14 @@ export function useMemiBoardComments(
   }
 
   async function addReply(input: AddReplyInput): Promise<void> {
-    const body = normalizedCommentBody(input.body)
-    if (!input.parent.id) throw new Error('답글 대상 댓글을 찾을 수 없습니다.')
+    const body = normalizedCommentBody(input.body, i18n)
+    if (!input.parent.id) throw new Error(t('comments.replyTargetNotFound'))
     const batch = writeBatch(db)
     const replyRef = doc(commentsColRef())
     const rootId = input.parent.parentId == null
       ? input.parent.id
       : input.parent.rootId
-    if (!rootId) throw new Error('댓글 스레드를 찾을 수 없습니다.')
+    if (!rootId) throw new Error(t('comments.threadNotFound'))
     const depth = Math.min((input.parent.depth ?? 0) + 1, 2)
 
     batch.set(replyRef, {
@@ -258,7 +262,7 @@ export function useMemiBoardComments(
   async function deleteComment(comment: CommentModel): Promise<void> {
     if (!comment.id) return
     if (comment.parentId == null && (comment.replyCount ?? 0) > 0) {
-      throw new Error('답글이 있는 댓글은 현재 삭제할 수 없습니다.')
+      throw new Error(t('comments.hasRepliesCannotDelete'))
     }
     await deleteLikesForComment(db, cfg(), comment.id)
     const batch = writeBatch(db)
@@ -274,7 +278,7 @@ export function useMemiBoardComments(
   }
 
   async function updateComment(commentId: string, body: string): Promise<void> {
-    const trimmed = normalizedCommentBody(body)
+    const trimmed = normalizedCommentBody(body, i18n)
     await updateDoc(commentDoc(db, cfg(), commentId), {
       body: trimmed,
       updatedAt: serverTimestamp(),

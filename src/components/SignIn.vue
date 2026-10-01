@@ -3,8 +3,10 @@ import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime
 import { ref, computed } from 'vue'
 import { useMemiBoardConfig } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const config = useMemiBoardConfig()
+const { t } = useMemiBoardI18n()
 const providers = computed(() => config.auth?.providers ?? ['google', 'apple'])
 const hasOAuthProvider = computed(() => providers.value.includes('google') || providers.value.includes('apple'))
 
@@ -73,7 +75,7 @@ async function handleEmailSubmit() {
       icon="i-simple-icons-google"
       color="neutral"
       variant="outline"
-      label="Google로 로그인"
+      :label="t('signIn.withGoogle')"
       block
       :loading="loading"
       @click="handleGoogle"
@@ -84,7 +86,7 @@ async function handleEmailSubmit() {
       icon="i-simple-icons-apple"
       color="neutral"
       variant="outline"
-      label="Apple로 로그인"
+      :label="t('signIn.withApple')"
       block
       :loading="loading"
       @click="handleApple"
@@ -96,7 +98,7 @@ async function handleEmailSubmit() {
         class="flex items-center gap-2 text-xs text-muted"
       >
         <div class="flex-1 border-t border-default" />
-        또는
+        {{ t('signIn.or') }}
         <div class="flex-1 border-t border-default" />
       </div>
 
@@ -107,18 +109,18 @@ async function handleEmailSubmit() {
         <UInput
           v-if="mode === 'signup'"
           v-model="displayName"
-          placeholder="이름"
+          :placeholder="t('signIn.name')"
         />
         <UInput
           v-model="email"
           type="email"
-          placeholder="이메일"
+          :placeholder="t('signIn.email')"
           required
         />
         <UInput
           v-model="password"
           type="password"
-          placeholder="비밀번호"
+          :placeholder="t('signIn.password')"
           required
         />
         <UButton
@@ -127,7 +129,7 @@ async function handleEmailSubmit() {
           @click="imeSafeSubmitClick"
           block
           :loading="loading"
-          :label="mode === 'signin' ? '로그인' : '회원가입'"
+          :label="mode === 'signin' ? t('common.action.signIn') : t('signIn.signUp')"
         />
       </form>
 
@@ -135,7 +137,7 @@ async function handleEmailSubmit() {
         variant="link"
         size="sm"
         color="neutral"
-        :label="mode === 'signin' ? '계정이 없으신가요? 회원가입' : '이미 계정이 있으신가요? 로그인'"
+        :label="mode === 'signin' ? t('signIn.toSignUp') : t('signIn.toSignIn')"
         @click="mode = mode === 'signin' ? 'signup' : 'signin'"
       />
     </template>

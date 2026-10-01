@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { formatRelativeDate, formatTimestampDetails, useMemiBoardSettings } from 'memi-board/runtime'
+import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 withDefaults(defineProps<{
@@ -15,6 +15,7 @@ withDefaults(defineProps<{
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
+const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 const NuxtLink = resolveComponent('NuxtLink')
 
 function thumb(post: PostModel): string | undefined {
@@ -36,14 +37,14 @@ function thumb(post: PostModel): string | undefined {
         >
           <UBadge
             v-if="post.isPublished === false"
-            label="초안"
+            :label="t('common.label.draft')"
             color="warning"
             variant="subtle"
             size="sm"
             class="shrink-0"
           />
           <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-inherit transition-colors group-hover:text-primary">
-            {{ post.title?.trim() || post.summary || '사진' }}
+            {{ post.title?.trim() || post.summary || t('list.photo') }}
           </h3>
           <span
             v-if="(post.commentCount ?? 0) > 0"
@@ -92,7 +93,7 @@ function thumb(post: PostModel): string | undefined {
           <template v-if="(post.likeCount ?? 0) > 0">
             <span class="text-default/40" aria-hidden="true">|</span>
             <span class="inline-flex items-center gap-0.5 tabular-nums">
-              추천 {{ post.likeCount }}
+              {{ t('list.likeCount', { count: post.likeCount }) }}
             </span>
           </template>
           <template v-if="post.category && showCategory">
@@ -112,7 +113,7 @@ function thumb(post: PostModel): string | undefined {
       >
         <img
           :src="thumb(post)"
-          :alt="post.title?.trim() || post.summary || '사진'"
+          :alt="post.title?.trim() || post.summary || t('list.photo')"
           class="size-full object-cover"
         >
       </component>

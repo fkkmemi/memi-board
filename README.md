@@ -146,6 +146,7 @@ export default defineNuxtConfig({
 | `seo.siteUrl` | `''` | 절대 URL origin. 비우면 `runtimeConfig.public.siteUrl` → 요청 origin 순 |
 | `seo.defaultOgImage` | `''` | 대표 이미지 없을 때 (상대경로 또는 `https://…`) |
 | `seo.basePath` | `'/board'` | canonical: `{base}`, `{base}/{category}`, `{base}/{category}/{slug}` |
+| `locale` | `'ko'` | 기본 화면 언어. 호스트에 `@nuxtjs/i18n`이 있으면 그 언어가 우선 (아래 다국어 절) |
 
 #### routeRules 원칙
 
@@ -252,7 +253,57 @@ watch([categoryId, id], async ([category, slug]) => {
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 5. 읽은 글 표시 (선택)
+### 5. 다국어 (@nuxtjs/i18n, 권장)
+
+게시판 UI는 10개 언어를 지원한다: `ko` `en` `ja` `de` `fr` `es` `pt` `zh` `ar` `id` (`MEMI_BOARD_LOCALES`).
+
+- **언어 결정 순서**: 보드 설정의 "게시판 언어" → 호스트 `@nuxtjs/i18n`의 현재 locale → `memiBoard.locale` → `'ko'`.
+- **번역 범위**: ko·en은 모든 문구, 나머지 8개 언어는 짧은 화면 문구만 번역돼 있다. 긴 안내문(삭제 확인 등)은 영어로 폴백된다.
+- **로딩**: 언어별 번역 파일은 별도 청크로 그 언어를 쓸 때만 받는다(언어당 gzip 약 7KB). ko는 기본 번들에 들어 있다.
+- **날짜**: `Intl`로 그 언어 형식에 맞춰 표시한다. dayjs는 더 이상 쓰지 않는다.
+- **AI**: 검열·글쓰기 도우미 프롬프트도 보드 언어를 따른다(ko는 한국어 프롬프트, 그 외는 영어 프롬프트 + 해당 언어로 응답).
+- **아랍어**: 게시판 목록·상세·글쓰기 루트에 `dir="rtl"`이 붙는다.
+
+호스트에 `@nuxtjs/i18n`을 설치하면 사이트 언어 전환에 게시판이 자동으로 따라간다. locale `code`는 위 코드와 같게 둔다(`en-US`처럼 써도 앞 두 글자로 맞춘다).
+
+```bash
+pnpm add @nuxtjs/i18n
+```
+
+```ts
+// nuxt.config.ts — '@nuxtjs/i18n'은 'memi-board'보다 앞에 둔다
+modules: ['@nuxt/ui', '@nuxtjs/i18n', 'nuxt-vuefire', 'memi-board'],
+i18n: {
+  locales: [
+    { code: 'ko', language: 'ko-KR', name: '한국어', file: 'ko.json' },
+    { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
+    // ja, de, fr, es, pt, zh, ar(dir: 'rtl'), id …
+  ],
+  defaultLocale: 'ko',
+  strategy: 'no_prefix',
+  langDir: 'locales/',
+},
+```
+
+Nuxt UI 내부 문구(닫기·검색 등)와 `<html lang dir>`도 맞추려면 `app.vue`에서:
+
+```vue
+<script setup lang="ts">
+import { ar, de, en, es, fr, id, ja, ko, pt_br, zh_cn } from '@nuxt/ui/locale'
+const { locale } = useI18n()
+const uiLocales = { ko, en, ja, de, fr, es, pt: pt_br, zh: zh_cn, ar, id }
+const uiLocale = computed(() => uiLocales[locale.value as keyof typeof uiLocales] ?? ko)
+useHead({ htmlAttrs: { lang: () => uiLocale.value.code, dir: () => uiLocale.value.dir } })
+</script>
+
+<template>
+  <UApp :locale="uiLocale">…</UApp>
+</template>
+```
+
+`@nuxtjs/i18n` 없이 한 언어로만 쓰려면 `memiBoard: { locale: 'en' }`만 지정한다. 호스트 화면에서 같은 번역을 쓰려면 `useMemiBoardI18n()`의 `t`, `formatRelativeDate` 등을 쓴다.
+
+### 6. 읽은 글 표시 (선택)
 
 목록·미니 컴포넌트의 글 링크는 `.memi-board-post-link` 클래스가 붙어 있고, 제목 텍스트는 `text-inherit`로 링크 색을 따른다. 패키지는 색을 강제하지 않으므로, 방문한 글을 흐리게 보이고 싶으면 호스트 CSS에 `:visited` 스타일만 추가하면 된다.
 
@@ -271,7 +322,7 @@ a.memi-board-post-link:visited {
 
 브라우저 네이티브 `:visited` 라서 서버·DB 저장이 필요 없다. 단, SPA 클라이언트 라우팅(`NuxtLink`)으로만 이동한 경우 브라우저에 "실제 방문"으로 기록되지 않을 수 있어 완전히 신뢰할 수는 없다 — 정확한 읽음 추적이 필요하면 별도로 방문 글 ID를 저장하는 방식을 구현해야 한다.
 
-### 6. Security Rules + 인덱스 배포
+### 7. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
    (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
@@ -293,7 +344,7 @@ a.memi-board-post-link:visited {
 
 > ⚠️ npm 패키지 tarball에도 `docs/` 가 포함된다(0.4.7+). 구버전이면 GitHub의 `docs/`를 보면 된다.
 
-### 7. 최초 관리자와 카테고리 만들기
+### 8. 최초 관리자와 카테고리 만들기
 
 Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
 

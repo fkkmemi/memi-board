@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, resolveComponent, toRef } from 'vue'
-import { formatRelativeDate, useMemiBoardCommentFeed } from 'memi-board/runtime'
+import { useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 import type { CommentFeedSort, CommentModel } from 'memi-board/runtime'
 
 const NuxtLink = resolveComponent('NuxtLink')
@@ -17,6 +17,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ select: [comment: CommentModel] }>()
+
+const { t, formatRelativeDate } = useMemiBoardI18n()
 
 const { comments, commentsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardCommentFeed(
   toRef(props, 'sort'),
@@ -39,7 +41,7 @@ function boardName(comment: CommentModel): string {
 }
 
 const emptyMessage = computed(() =>
-  props.sort === 'likes' ? '좋아요를 받은 댓글이 아직 없습니다.' : '아직 댓글이 없습니다.',
+  props.sort === 'likes' ? t('commentFeed.emptyLiked') : t('commentFeed.empty'),
 )
 </script>
 
@@ -57,7 +59,7 @@ const emptyMessage = computed(() =>
       v-else-if="loadError"
       class="py-8 text-center text-sm text-error"
     >
-      목록을 불러오지 못했습니다: {{ loadError }}
+      {{ t('commentFeed.loadFailed', { error: String(loadError) }) }}
     </p>
 
     <p
@@ -83,11 +85,11 @@ const emptyMessage = computed(() =>
             class="truncate font-medium text-highlighted"
             :class="authorLink(comment) ? 'hover:underline' : ''"
           >
-            {{ comment.authorName || '익명' }}
+            {{ comment.authorName || t('common.label.anonymous') }}
           </component>
           <span v-if="boardName(comment)">· {{ boardName(comment) }}</span>
           <span>· {{ formatRelativeDate(comment.createdAt, now) }}</span>
-          <span v-if="comment.parentId || comment.isReply">· 답글</span>
+          <span v-if="comment.parentId || comment.isReply">· {{ t('common.action.reply') }}</span>
         </div>
         <component
           :is="commentLink(comment) ? NuxtLink : 'button'"
@@ -99,7 +101,7 @@ const emptyMessage = computed(() =>
             v-if="comment.isBlinded"
             class="text-sm text-muted italic"
           >
-            관리자에 의해 블라인드된 댓글입니다.
+            {{ t('commentFeed.blinded') }}
           </p>
           <p
             v-else
@@ -129,7 +131,7 @@ const emptyMessage = computed(() =>
       <UButton
         variant="outline"
         color="neutral"
-        label="더 보기"
+        :label="t('common.action.more')"
         block
         class="w-full"
         :loading="loadingMore"

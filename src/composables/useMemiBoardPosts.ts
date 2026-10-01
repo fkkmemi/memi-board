@@ -35,6 +35,9 @@ import {
 } from '../utils/boardPaths'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { Attachment, PostDetail, PostModel } from '../types'
 
 export interface CreatePostInput {
@@ -82,9 +85,9 @@ export function isFirestorePermissionDenied(error: unknown): boolean {
   return code === 'permission-denied' || code === 'firestore/permission-denied'
 }
 
-function resolveBoardId(boardId: MaybeRefOrGetter<string>): string {
+function resolveBoardId(boardId: MaybeRefOrGetter<string>, locale?: MemiBoardLocale): string {
   const id = toValue(boardId)?.trim()
-  if (!id) throw new Error('[memi-board] boardId 가 필요합니다.')
+  if (!id) throw new Error(translate(locale, 'posts.boardIdRequired'))
   return id
 }
 
@@ -93,8 +96,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isBoardHidden, getBoard } = useMemiBoardSettings()
+  const { t, locale } = useMemiBoardI18n()
   const cfg = () => useBoardPathConfig()
-  const bid = () => resolveBoardId(boardId)
+  const bid = () => resolveBoardId(boardId, locale.value)
 
   const postsColRef = () => postsCol(db, cfg())
   const postDocRef = (id: string) => postDoc(db, cfg(), id)
@@ -116,15 +120,15 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     const hasImage = hasBodyImage(input.content, input.attachments)
     if (imageBoard) {
       if (!hasImage) {
-        throw new Error('사진을 올려 주세요.')
+        throw new Error(t('posts.photoRequired'))
       }
       return
     }
     if (!hasText && !hasImage) {
-      throw new Error('본문에 글자를 입력하거나 이미지를 첨부해 주세요.')
+      throw new Error(t('posts.bodyRequired'))
     }
     if (!input.title?.trim()) {
-      throw new Error('제목을 입력해 주세요.')
+      throw new Error(t('posts.titleRequired'))
     }
   }
 

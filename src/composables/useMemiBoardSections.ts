@@ -3,6 +3,9 @@ import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { useDocument, useFirestore } from 'vuefire'
 import type { BoardSection, BoardSectionCols, BoardSectionHeight, BoardSectionKind, BoardSectionLayout, BoardSectionSort } from '../types'
 import { BOARD_SECTION_COLS, clampSectionCount } from '../utils/section'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export const DEFAULT_BOARD_SECTIONS: BoardSection[] = []
 
@@ -47,12 +50,16 @@ function asPostIds(raw: Record<string, unknown>, count: number): string[] {
   return ids
 }
 
-export function normalizeBoardSection(raw: Record<string, unknown>, order: number): BoardSection {
+function defaultSectionTitle(order: number, locale?: MemiBoardLocale) {
+  return translate(locale, 'sections.defaultTitle', { n: order + 1 })
+}
+
+export function normalizeBoardSection(raw: Record<string, unknown>, order: number, locale?: MemiBoardLocale): BoardSection {
   const kind = asKind(raw)
   const count = clampSectionCount(kind, raw.count)
   return {
     id: String(raw.id || `box-${order + 1}`),
-    title: String(raw.title || `섹션 ${order + 1}`),
+    title: String(raw.title || defaultSectionTitle(order, locale)),
     showTitle: raw.showTitle !== false,
     kind,
     boardId: asBoardId(raw),
@@ -67,13 +74,14 @@ export function normalizeBoardSection(raw: Record<string, unknown>, order: numbe
 
 /** 호스트 `settings/homeLayout` 문서를 읽는다. 기존 메인 레이아웃 경로를 유지한다. */
 export function useMemiBoardSections() {
+  const { locale } = useMemiBoardI18n()
   const db = useFirestore()
   const settingsRef = doc(db, 'settings', 'homeLayout')
   const { data: settings, pending } = useDocument<BoardSectionLayout>(settingsRef)
 
   const sections = computed(() => {
     const source = Array.isArray(settings.value?.blocks) ? settings.value.blocks : DEFAULT_BOARD_SECTIONS
-    return source.map((block, index) => normalizeBoardSection(block as unknown as Record<string, unknown>, index))
+    return source.map((block, index) => normalizeBoardSection(block as unknown as Record<string, unknown>, index, locale.value))
   })
 
   async function saveSections(next: BoardSection[]) {
@@ -85,7 +93,7 @@ export function useMemiBoardSections() {
         const count = clampSectionCount(kind, block.count)
         return {
           id: block.id,
-          title: block.title.trim() || `섹션 ${order + 1}`,
+          title: block.title.trim() || defaultSectionTitle(order, locale.value),
           showTitle: block.showTitle !== false,
           kind,
           boardId: asBoardId(raw),

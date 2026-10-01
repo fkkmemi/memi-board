@@ -5,6 +5,7 @@ import { useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
 import { authorMemoDoc } from '../utils/boardPaths'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { AuthorMemoSentiment } from '../types'
 
 export const AUTHOR_MEMO_MAX_LENGTH = 100
@@ -44,6 +45,7 @@ export function useMemiBoardAuthorMemo(targetUid: MaybeRefOrGetter<string>) {
   const db = useFirestore()
   const cfg = () => useBoardPathConfig()
   const { user } = useMemiBoardAuth()
+  const { t, formatNumber } = useMemiBoardI18n()
 
   const targetUidValue = computed(() => toValue(targetUid))
   const cacheKey = computed(() => `${user.value?.uid ?? ''}:${targetUidValue.value}`)
@@ -92,7 +94,7 @@ export function useMemiBoardAuthorMemo(targetUid: MaybeRefOrGetter<string>) {
     if (!ref_) return
     const trimmed = nextText.trim()
     if (trimmed.length > AUTHOR_MEMO_MAX_LENGTH) {
-      throw new Error(`메모는 ${AUTHOR_MEMO_MAX_LENGTH.toLocaleString()}자까지 작성할 수 있습니다.`)
+      throw new Error(t('authorMemo.tooLong', { max: formatNumber(AUTHOR_MEMO_MAX_LENGTH) }))
     }
     const entry = getEntry(cacheKey.value)
     entry.saving = true

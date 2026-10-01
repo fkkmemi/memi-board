@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BoardSection, PostModel } from 'memi-board/runtime'
-import { miniBoardView, useMemiBoardMiniLatest, useMemiBoardSettings } from 'memi-board/runtime'
+import { miniBoardView, useMemiBoardI18n, useMemiBoardMiniLatest, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardMiniPosts from './MiniPosts.vue'
 
 const props = defineProps<{
@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const { posts, pending } = useMemiBoardMiniLatest(() => props.section.boardId, () => props.section.count)
 const { getBoard } = useMemiBoardSettings()
+const { t } = useMemiBoardI18n()
 const view = computed(() => miniBoardView(props.section.boardId, getBoard))
 </script>
 
@@ -23,7 +24,7 @@ const view = computed(() => miniBoardView(props.section.boardId, getBoard))
       v-else-if="!posts.length"
       class="flex flex-1 items-center justify-center px-3 py-6 text-sm text-muted"
     >
-      아직 글이 없습니다.
+      {{ t('miniList.empty') }}
     </p>
     <MemiBoardMiniPosts
       v-else

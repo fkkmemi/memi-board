@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardUsers } from 'memi-board/runtime'
+import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardUserRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const canManage = computed(() => isAdmin.value || props.authorized)
 const { users, usersPending, updateUserRole } = useMemiBoardUsers({ enabled: canManage })
+const { t, formatNumber } = useMemiBoardI18n()
+const roleItems = computed(() => BOARD_USER_ROLES.map(item => ({
+  ...item,
+  label: t(`common.role.${item.value}`),
+  description: t(`boardUsers.roleDescription.${item.value}`),
+})))
 const savingUid = ref<string | null>(null)
 const savedUid = ref<string | null>(null)
 const error = ref('')
@@ -21,7 +27,7 @@ async function changeRole(uid: string, role: BoardUserRole) {
     savedUid.value = uid
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '역할을 변경하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('users.changeRoleFailed')
   }
   finally {
     savingUid.value = null
@@ -32,25 +38,25 @@ async function changeRole(uid: string, role: BoardUserRole) {
 <template>
   <div class="flex flex-col gap-6">
     <div class="grid gap-3 md:grid-cols-3">
-      <UAlert v-for="item in BOARD_USER_ROLES" :key="item.value" color="neutral" variant="subtle" :title="item.label" :description="item.description" />
+      <UAlert v-for="item in roleItems" :key="item.value" color="neutral" variant="subtle" :title="item.label" :description="item.description" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="error" />
-    <div v-if="rolePending || usersPending" class="py-12 text-center text-sm text-muted">사용자 목록을 불러오고 있습니다.</div>
-    <UAlert v-else-if="!canManage" color="error" variant="subtle" icon="i-lucide-shield-alert" title="권한이 없습니다" description="게시판 관리자만 사용자 역할을 관리할 수 있습니다." />
-    <div v-else-if="users.length === 0" class="py-12 text-center text-sm text-muted">게시판에 로그인한 사용자가 없습니다.</div>
+    <div v-if="rolePending || usersPending" class="py-12 text-center text-sm text-muted">{{ t('users.loading') }}</div>
+    <UAlert v-else-if="!canManage" color="error" variant="subtle" icon="i-lucide-shield-alert" :title="t('users.noPermission.title')" :description="t('users.noPermission.description')" />
+    <div v-else-if="users.length === 0" class="py-12 text-center text-sm text-muted">{{ t('users.empty') }}</div>
     <div v-else class="divide-y divide-default rounded-lg border border-default">
       <div v-for="boardUser in users" :key="boardUser.id" class="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_12rem] md:items-center">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <p class="truncate font-medium text-highlighted">{{ boardUser.displayName || '이름 없음' }}</p>
-            <UBadge v-if="savedUid === boardUser.id" color="success" variant="subtle" label="저장됨" />
+            <p class="truncate font-medium text-highlighted">{{ boardUser.displayName || t('users.noName') }}</p>
+            <UBadge v-if="savedUid === boardUser.id" color="success" variant="subtle" :label="t('common.action.saved')" />
           </div>
           <p class="truncate text-sm text-muted">{{ boardUser.id }}</p>
-          <p v-if="boardUser.moderationBlockCount" class="mt-1 text-xs text-warning">콘텐츠 경고 {{ boardUser.moderationBlockCount }}회</p>
+          <p v-if="boardUser.moderationBlockCount" class="mt-1 text-xs text-warning">{{ t('users.moderationWarnings', { count: formatNumber(boardUser.moderationBlockCount) }) }}</p>
         </div>
         <USelect
           :model-value="boardUser.role || 'user'"
-          :items="BOARD_USER_ROLES"
+          :items="roleItems"
           value-key="value"
           label-key="label"
           :loading="savingUid === boardUser.id"

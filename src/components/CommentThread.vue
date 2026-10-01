@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import type { CommentModel } from 'memi-board/runtime'
-import { useMemiBoardComments, useMemiBoardReplies } from 'memi-board/runtime'
+import { useMemiBoardComments, useMemiBoardI18n, useMemiBoardReplies } from 'memi-board/runtime'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentItem from './CommentItem.vue'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 
 const props = defineProps<{ boardId: string, postId: string, root: CommentModel, now: number }>()
+
+const { t } = useMemiBoardI18n()
 
 const { deleteComment } = useMemiBoardComments(
   props.boardId,
@@ -56,7 +58,7 @@ async function handleSaved() {
 }
 
 async function handleDelete(comment: CommentModel) {
-  if (!window.confirm('이 댓글을 삭제하시겠습니까?')) return
+  if (!window.confirm(t('commentThread.deleteConfirm'))) return
   deletingId.value = comment.id ?? null
   error.value = ''
   try {
@@ -64,7 +66,7 @@ async function handleDelete(comment: CommentModel) {
     if (comment.parentId) await refresh()
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '댓글을 삭제하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('commentThread.deleteFailed')
   }
   finally {
     deletingId.value = null
@@ -86,7 +88,7 @@ async function handleDelete(comment: CommentModel) {
 
     <UButton
       v-if="(root.replyCount ?? 0) > 0"
-      :label="expanded ? '답글 숨기기' : `답글 ${root.replyCount}개`"
+      :label="expanded ? t('commentThread.hideReplies') : t('commentThread.showReplies', { count: root.replyCount ?? 0 })"
       :icon="expanded ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
       color="neutral"
       variant="link"
@@ -111,7 +113,7 @@ async function handleDelete(comment: CommentModel) {
       />
       <UButton
         v-if="needsMoreReplies"
-        label="답글 더보기"
+        :label="t('commentThread.loadMoreReplies')"
         color="neutral"
         variant="soft"
         size="sm"

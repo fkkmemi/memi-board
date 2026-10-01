@@ -2,7 +2,7 @@
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { formatRelativeDate, formatTimestampDetails, renderMarkdownToHtml } from 'memi-board/runtime'
+import { renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -36,7 +36,9 @@ const emit = defineEmits<{
 
 const { getAdjacentPosts, deletePost, publishPost } = useMemiBoardPosts(() => props.boardId)
 const { canEdit, canDelete } = useMemiBoardAuth()
-const { boardLabel } = useMemiBoardSettings()
+const { boardLabel, getBoard } = useMemiBoardSettings()
+// 보드 설정 언어 → 호스트 언어 순. 댓글 등 자식 컴포넌트도 이 언어를 따른다.
+const { t, dir, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
 const { recordView } = useMemiBoardViews()
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
@@ -124,7 +126,7 @@ async function handlePublish() {
 
 async function handleDelete() {
   if (!post.value) return
-  if (!window.confirm('이 게시글을 삭제하시겠습니까? 되돌릴 수 없습니다.')) return
+  if (!window.confirm(t('detail.deleteConfirm'))) return
   deleting.value = true
   try {
     await deletePost(props.postId)
@@ -152,6 +154,7 @@ const contentHtml = computed(() => {
 <template>
   <div
     v-if="loading"
+    :dir="dir"
     class="flex flex-col gap-3"
   >
     <USkeleton class="h-8 w-2/3" />
@@ -160,13 +163,15 @@ const contentHtml = computed(() => {
 
   <p
     v-else-if="notFound"
+    :dir="dir"
     class="text-sm text-muted"
   >
-    게시글을 찾을 수 없습니다.
+    {{ t('detail.notFound') }}
   </p>
 
   <div
     v-else-if="post"
+    :dir="dir"
     class="flex flex-col gap-6 touch-pan-y"
     @touchstart.passive="onTouchStart"
     @touchend.passive="onTouchEnd"
@@ -175,13 +180,13 @@ const contentHtml = computed(() => {
       <div class="flex items-start gap-2">
         <UIcon name="i-lucide-eye-off" class="mt-0.5 size-4 shrink-0 text-warning" />
         <div>
-          <p class="text-sm font-medium text-highlighted">미공개 미리보기</p>
-          <p class="text-xs text-muted">아직 게시되지 않았습니다. 게시하기 전까지는 작성자만 볼 수 있어요.</p>
+          <p class="text-sm font-medium text-highlighted">{{ t('detail.draftPreview') }}</p>
+          <p class="text-xs text-muted">{{ t('detail.draftNotice') }}</p>
         </div>
       </div>
       <UButton
         v-if="canEdit(post)"
-        label="게시하기"
+        :label="t('detail.publish')"
         icon="i-lucide-send"
         size="sm"
         class="shrink-0"
@@ -207,7 +212,7 @@ const contentHtml = computed(() => {
         </div>
         <UButton
           icon="i-lucide-arrow-left"
-          aria-label="목록으로 돌아가기"
+          :aria-label="t('detail.backToList')"
           color="neutral"
           variant="ghost"
           size="sm"
@@ -283,7 +288,7 @@ const contentHtml = computed(() => {
           size="sm"
           variant="ghost"
           color="neutral"
-          label="수정"
+          :label="t('common.action.edit')"
           @click="emit('edit', postId)"
         />
         <UButton
@@ -292,7 +297,7 @@ const contentHtml = computed(() => {
           size="sm"
           variant="ghost"
           color="error"
-          label="삭제"
+          :label="t('common.action.delete')"
           :loading="deleting"
           @click="handleDelete"
         />
@@ -315,12 +320,12 @@ const contentHtml = computed(() => {
       />
     </div>
 
-    <nav class="grid grid-cols-3 items-center py-3" aria-label="게시글 이동">
+    <nav class="grid grid-cols-3 items-center py-3" :aria-label="t('detail.postNav')">
       <UButton
         variant="ghost"
         color="neutral"
         icon="i-lucide-chevron-left"
-        label="이전"
+        :label="t('common.action.prev')"
         class="justify-self-start"
         :disabled="!previousPost?.id"
         @click="previousPost?.id && emit('navigate', previousPost)"
@@ -329,7 +334,7 @@ const contentHtml = computed(() => {
         variant="ghost"
         color="neutral"
         icon="i-lucide-list"
-        label="목록"
+        :label="t('detail.list')"
         class="justify-self-center"
         @click="emit('list')"
       />
@@ -337,7 +342,7 @@ const contentHtml = computed(() => {
         variant="ghost"
         color="neutral"
         trailing-icon="i-lucide-chevron-right"
-        label="다음"
+        :label="t('common.action.next')"
         class="justify-self-end"
         :disabled="!nextPost?.id"
         @click="nextPost?.id && emit('navigate', nextPost)"
@@ -348,7 +353,7 @@ const contentHtml = computed(() => {
 
     <section v-if="!isDraft" class="flex flex-col gap-4 border-t border-default pt-4">
       <h2 class="text-sm font-medium text-muted">
-        댓글
+        {{ t('detail.comments') }}
       </h2>
       <MemiBoardCommentList :board-id="boardId" :post-id="postId" />
       <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />

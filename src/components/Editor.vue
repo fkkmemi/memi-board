@@ -17,6 +17,7 @@ import {
   useMemiBoardAuth,
   useMemiBoardPosts,
   useMemiBoardModeration,
+  useMemiBoardI18n,
   useMemiBoardSettings,
   hasBodyImage,
   hasBodyText,
@@ -39,10 +40,13 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
 const { createPostId, getPost, createPost, updatePost, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
-const { checkText } = useMemiBoardModeration()
 const { getBoard, ensureSettings } = useMemiBoardSettings()
+// 보드 설정 언어 → 호스트 언어 순.
+const { t, dir, locale } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
+// provide 한 컴포넌트 자신은 inject 를 못 받으므로 AI 프롬프트 언어를 직접 넘긴다.
+const { checkText } = useMemiBoardModeration({ locale })
 const { uploadEditorImage } = useMemiBoardStorage()
-const { assist } = useMemiBoardWritingAssistant()
+const { assist } = useMemiBoardWritingAssistant({ locale })
 
 const title = ref('')
 /** UEditor content-type=html (shineb 와 동일) */
@@ -91,9 +95,9 @@ const aiPreviewBefore = ref('')
 const aiPreviewPending = ref<AiPreviewPending | null>(null)
 const aiPreviewLabels = computed(() => {
   switch (aiPreviewPending.value?.action) {
-    case 'title': return { before: '현재 제목', after: '새 제목' }
-    case 'continue': return { before: '현재 내용', after: '추가될 내용' }
-    default: return { before: '이전', after: '이후' }
+    case 'title': return { before: t('editor.aiPreview.currentTitle'), after: t('editor.aiPreview.newTitle') }
+    case 'continue': return { before: t('editor.aiPreview.currentContent'), after: t('editor.aiPreview.appendedContent') }
+    default: return { before: t('editor.aiPreview.before'), after: t('editor.aiPreview.after') }
   }
 })
 /** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
@@ -187,25 +191,25 @@ function appendCoverUrls(urls: string[]) {
   }
   coverSlots.value = next
   if (urls.length && coverSlots.value.length >= COVER_IMAGE_MAX) {
-    imageUploadError.value = `사진은 최대 ${COVER_IMAGE_MAX}장까지 올릴 수 있어요.`
+    imageUploadError.value = t('editor.errors.coverMax', { max: COVER_IMAGE_MAX })
   }
 }
 
 function normalizeExternalImageUrl(value: string): string {
   const raw = value.trim()
-  if (!raw) throw new Error('이미지 주소를 입력해 주세요.')
+  if (!raw) throw new Error(t('editor.errors.imageUrlRequired'))
   let url: URL
   try {
     url = new URL(raw)
   }
   catch {
-    throw new Error('올바른 이미지 주소를 입력해 주세요.')
+    throw new Error(t('editor.errors.imageUrlInvalid'))
   }
   if (url.protocol !== 'https:') {
-    throw new Error('HTTPS 이미지 주소만 사용할 수 있습니다.')
+    throw new Error(t('editor.errors.imageUrlHttps'))
   }
   if (url.username || url.password) {
-    throw new Error('로그인 정보가 포함된 주소는 사용할 수 없습니다.')
+    throw new Error(t('editor.errors.imageUrlCredentials'))
   }
   return url.toString()
 }
@@ -215,19 +219,19 @@ function verifyExternalImage(url: string): Promise<string> {
     const image = new Image()
     const timeout = window.setTimeout(() => {
       image.src = ''
-      reject(new Error('이미지를 불러오는 데 시간이 너무 오래 걸립니다.'))
+      reject(new Error(t('editor.errors.imageTimeout')))
     }, 10_000)
     image.onload = () => {
       window.clearTimeout(timeout)
       if (!image.naturalWidth || !image.naturalHeight) {
-        reject(new Error('표시할 수 없는 이미지입니다.'))
+        reject(new Error(t('editor.errors.imageNotDisplayable')))
         return
       }
       resolve(url)
     }
     image.onerror = () => {
       window.clearTimeout(timeout)
-      reject(new Error('이미지를 불러올 수 없습니다. 주소나 외부 링크 허용 여부를 확인해 주세요.'))
+      reject(new Error(t('editor.errors.imageLoadFailed')))
     }
     image.referrerPolicy = 'no-referrer'
     image.src = url
@@ -259,13 +263,13 @@ async function addExternalImage() {
     }
     else {
       const editor = imageDialogEditor.value ?? resolveEditor()
-      if (!editor) throw new Error('에디터를 준비하지 못했습니다. 다시 시도해 주세요.')
+      if (!editor) throw new Error(t('editor.errors.editorNotReady'))
       editor.chain().focus().setImage({ src: url }).run()
     }
     imageDialogOpen.value = false
   }
   catch (cause) {
-    imageUploadError.value = cause instanceof Error ? cause.message : '이미지 링크를 추가하지 못했습니다.'
+    imageUploadError.value = cause instanceof Error ? cause.message : t('editor.errors.imageLinkFailed')
   }
   finally {
     externalImageChecking.value = false
@@ -356,10 +360,10 @@ function onCoverItemDragEnd() {
 
 async function doUploadImage(file: File): Promise<EditorImageEntry> {
   if (!file.type.startsWith('image/')) {
-    throw new Error('이미지 파일만 업로드할 수 있습니다.')
+    throw new Error(t('editor.errors.imageOnly'))
   }
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
-    throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+    throw new Error(t('editor.errors.imageTooLarge', { mb: EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024 }))
   }
   const entry = await uploadEditorImage(file, imageNamespace())
   uploadedEditorImages.value.push(entry)
@@ -379,7 +383,7 @@ async function uploadAndSetImage(editor: any, file: File) {
     editor.chain().focus().setImage({ src: entry.originalUrl }).run()
   }
   catch (e) {
-    imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+    imageUploadError.value = (e as Error).message || t('editor.errors.imageUploadFailed')
   }
   finally {
     imageUploading.value = false
@@ -391,7 +395,7 @@ async function uploadCoverImages(files: File[]) {
   if (!images.length) return
   const room = COVER_IMAGE_MAX - coverSlots.value.length
   if (room <= 0) {
-    imageUploadError.value = `사진은 최대 ${COVER_IMAGE_MAX}장까지 올릴 수 있어요.`
+    imageUploadError.value = t('editor.errors.coverMax', { max: COVER_IMAGE_MAX })
     return
   }
   const batch = images.slice(0, room)
@@ -405,11 +409,11 @@ async function uploadCoverImages(files: File[]) {
     }
     appendCoverUrls(urls)
     if (images.length > batch.length) {
-      imageUploadError.value = `사진은 최대 ${COVER_IMAGE_MAX}장까지 올릴 수 있어요.`
+      imageUploadError.value = t('editor.errors.coverMax', { max: COVER_IMAGE_MAX })
     }
   }
   catch (e) {
-    imageUploadError.value = (e as Error).message || '이미지 업로드에 실패했습니다.'
+    imageUploadError.value = (e as Error).message || t('editor.errors.imageUploadFailed')
   }
   finally {
     imageUploading.value = false
@@ -488,7 +492,7 @@ function youtubeUrl(value: string | null | undefined): string | null {
 }
 
 function insertYoutube(editor: any, value?: string | null): boolean {
-  const src = youtubeUrl(value ?? window.prompt('YouTube 링크를 입력하세요.'))
+  const src = youtubeUrl(value ?? window.prompt(t('editor.youtubePrompt')))
   if (!src) return false
   return editor.chain().focus().setYoutubeVideo({ src }).run()
 }
@@ -533,31 +537,31 @@ const selectedNode = ref<{ node: { type?: string }, pos: number }>()
 
 const suggestionItems = computed(() => {
   const insertItems: EditorSuggestionMenuItem<typeof handlers.value>[] = [
-    { kind: 'horizontalRule', label: '구분선', icon: 'i-lucide-separator-horizontal' },
+    { kind: 'horizontalRule', label: t('editor.menu.horizontalRule'), icon: 'i-lucide-separator-horizontal' },
   ]
   if (!isImageEditor.value) {
     insertItems.unshift(
-      { kind: 'image', label: '이미지', icon: 'i-lucide-image' },
+      { kind: 'image', label: t('editor.menu.image'), icon: 'i-lucide-image' },
       { kind: 'youtube', label: 'YouTube', icon: 'i-lucide-youtube' },
     )
   }
   return [
     [
-      { type: 'label' as const, label: 'AI' },
-      { kind: 'aiContinue' as const, label: 'AI로 이어쓰기', icon: 'i-lucide-sparkles' },
+      { type: 'label' as const, label: t('editor.menu.ai') },
+      { kind: 'aiContinue' as const, label: t('editor.menu.aiContinue'), icon: 'i-lucide-sparkles' },
     ],
     [
-      { type: 'label' as const, label: '스타일' },
-      { kind: 'paragraph' as const, label: '본문', icon: 'i-lucide-type' },
-      { kind: 'heading' as const, level: 1 as const, label: '제목 1', icon: 'i-lucide-heading-1' },
-      { kind: 'heading' as const, level: 2 as const, label: '제목 2', icon: 'i-lucide-heading-2' },
-      { kind: 'heading' as const, level: 3 as const, label: '제목 3', icon: 'i-lucide-heading-3' },
-      { kind: 'bulletList' as const, label: '글머리표 목록', icon: 'i-lucide-list' },
-      { kind: 'orderedList' as const, label: '번호 목록', icon: 'i-lucide-list-ordered' },
-      { kind: 'blockquote' as const, label: '인용문', icon: 'i-lucide-text-quote' },
-      { kind: 'codeBlock' as const, label: '코드 블록', icon: 'i-lucide-square-code' },
+      { type: 'label' as const, label: t('editor.menu.style') },
+      { kind: 'paragraph' as const, label: t('editor.menu.paragraph'), icon: 'i-lucide-type' },
+      { kind: 'heading' as const, level: 1 as const, label: t('editor.menu.heading1'), icon: 'i-lucide-heading-1' },
+      { kind: 'heading' as const, level: 2 as const, label: t('editor.menu.heading2'), icon: 'i-lucide-heading-2' },
+      { kind: 'heading' as const, level: 3 as const, label: t('editor.menu.heading3'), icon: 'i-lucide-heading-3' },
+      { kind: 'bulletList' as const, label: t('editor.menu.bulletList'), icon: 'i-lucide-list' },
+      { kind: 'orderedList' as const, label: t('editor.menu.orderedList'), icon: 'i-lucide-list-ordered' },
+      { kind: 'blockquote' as const, label: t('editor.menu.blockquote'), icon: 'i-lucide-text-quote' },
+      { kind: 'codeBlock' as const, label: t('editor.menu.codeBlock'), icon: 'i-lucide-square-code' },
     ],
-    [{ type: 'label' as const, label: '삽입' }, ...insertItems],
+    [{ type: 'label' as const, label: t('editor.menu.insert') }, ...insertItems],
   ]
 })
 
@@ -565,97 +569,97 @@ const handleItems = (editor: any): DropdownMenuItem[][] => {
   if (!selectedNode.value?.node?.type) return []
   return mapEditorItems(editor, [
     [
-      { type: 'label', label: '블록 메뉴' },
+      { type: 'label', label: t('editor.blockMenu') },
       {
-        label: '다른 형식으로 변경',
+        label: t('editor.menu.turnInto'),
         icon: 'i-lucide-repeat-2',
         children: [
-          { kind: 'paragraph', label: '본문', icon: 'i-lucide-type' },
-          { kind: 'heading', level: 1, label: '제목 1', icon: 'i-lucide-heading-1' },
-          { kind: 'heading', level: 2, label: '제목 2', icon: 'i-lucide-heading-2' },
-          { kind: 'heading', level: 3, label: '제목 3', icon: 'i-lucide-heading-3' },
-          { kind: 'bulletList', label: '글머리표 목록', icon: 'i-lucide-list' },
-          { kind: 'orderedList', label: '번호 목록', icon: 'i-lucide-list-ordered' },
-          { kind: 'blockquote', label: '인용문', icon: 'i-lucide-text-quote' },
-          { kind: 'codeBlock', label: '코드 블록', icon: 'i-lucide-square-code' },
+          { kind: 'paragraph', label: t('editor.menu.paragraph'), icon: 'i-lucide-type' },
+          { kind: 'heading', level: 1, label: t('editor.menu.heading1'), icon: 'i-lucide-heading-1' },
+          { kind: 'heading', level: 2, label: t('editor.menu.heading2'), icon: 'i-lucide-heading-2' },
+          { kind: 'heading', level: 3, label: t('editor.menu.heading3'), icon: 'i-lucide-heading-3' },
+          { kind: 'bulletList', label: t('editor.menu.bulletList'), icon: 'i-lucide-list' },
+          { kind: 'orderedList', label: t('editor.menu.orderedList'), icon: 'i-lucide-list-ordered' },
+          { kind: 'blockquote', label: t('editor.menu.blockquote'), icon: 'i-lucide-text-quote' },
+          { kind: 'codeBlock', label: t('editor.menu.codeBlock'), icon: 'i-lucide-square-code' },
         ],
       },
-      { kind: 'clearFormatting', pos: selectedNode.value.pos, label: '서식 초기화', icon: 'i-lucide-rotate-ccw' },
+      { kind: 'clearFormatting', pos: selectedNode.value.pos, label: t('editor.menu.resetFormatting'), icon: 'i-lucide-rotate-ccw' },
     ],
     [
-      { kind: 'duplicate', pos: selectedNode.value.pos, label: '복제', icon: 'i-lucide-copy' },
-      { kind: 'moveUp', pos: selectedNode.value.pos, label: '위로 이동', icon: 'i-lucide-arrow-up' },
-      { kind: 'moveDown', pos: selectedNode.value.pos, label: '아래로 이동', icon: 'i-lucide-arrow-down' },
+      { kind: 'duplicate', pos: selectedNode.value.pos, label: t('editor.menu.duplicate'), icon: 'i-lucide-copy' },
+      { kind: 'moveUp', pos: selectedNode.value.pos, label: t('editor.menu.moveUp'), icon: 'i-lucide-arrow-up' },
+      { kind: 'moveDown', pos: selectedNode.value.pos, label: t('editor.menu.moveDown'), icon: 'i-lucide-arrow-down' },
     ],
-    [{ kind: 'delete', pos: selectedNode.value.pos, label: '삭제', icon: 'i-lucide-trash' }],
+    [{ kind: 'delete', pos: selectedNode.value.pos, label: t('editor.menu.delete'), icon: 'i-lucide-trash' }],
   ], handlers.value) as DropdownMenuItem[][]
 }
 
 const toolbarItems = computed(() => {
   const media = isImageEditor.value
-    ? [{ kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } }]
+    ? [{ kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: t('editor.toolbar.link') } }]
     : [
-        { kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: '링크' } },
-        { kind: 'image' as const, icon: 'i-lucide-image', tooltip: { text: '이미지' } },
+        { kind: 'link' as const, icon: 'i-lucide-link', tooltip: { text: t('editor.toolbar.link') } },
+        { kind: 'image' as const, icon: 'i-lucide-image', tooltip: { text: t('editor.toolbar.image') } },
         { kind: 'youtube' as const, icon: 'i-lucide-youtube', tooltip: { text: 'YouTube' } },
       ]
   return [
     [
       {
         icon: 'i-lucide-a-large-small',
-        tooltip: { text: '서식' },
+        tooltip: { text: t('editor.toolbar.format') },
         content: { align: 'start' as const },
         items: [
           [
-            { kind: 'mark' as const, mark: 'bold' as const, icon: 'i-lucide-bold', label: '굵게' },
-            { kind: 'mark' as const, mark: 'italic' as const, icon: 'i-lucide-italic', label: '기울임' },
-            { kind: 'mark' as const, mark: 'underline' as const, icon: 'i-lucide-underline', label: '밑줄' },
-            { kind: 'mark' as const, mark: 'strike' as const, icon: 'i-lucide-strikethrough', label: '취소선' },
+            { kind: 'mark' as const, mark: 'bold' as const, icon: 'i-lucide-bold', label: t('editor.toolbar.bold') },
+            { kind: 'mark' as const, mark: 'italic' as const, icon: 'i-lucide-italic', label: t('editor.toolbar.italic') },
+            { kind: 'mark' as const, mark: 'underline' as const, icon: 'i-lucide-underline', label: t('editor.toolbar.underline') },
+            { kind: 'mark' as const, mark: 'strike' as const, icon: 'i-lucide-strikethrough', label: t('editor.toolbar.strike') },
           ],
           [
-            { kind: 'heading' as const, level: 1 as const, icon: 'i-lucide-heading-1', label: '제목' },
-            { kind: 'heading' as const, level: 2 as const, icon: 'i-lucide-heading-2', label: '머리말' },
-            { kind: 'heading' as const, level: 3 as const, icon: 'i-lucide-heading-3', label: '부머리말' },
-            { kind: 'paragraph' as const, icon: 'i-lucide-text', label: '본문' },
-            { kind: 'mark' as const, mark: 'code' as const, icon: 'i-lucide-code', label: '모노 스타일' },
+            { kind: 'heading' as const, level: 1 as const, icon: 'i-lucide-heading-1', label: t('editor.toolbar.title') },
+            { kind: 'heading' as const, level: 2 as const, icon: 'i-lucide-heading-2', label: t('editor.toolbar.heading') },
+            { kind: 'heading' as const, level: 3 as const, icon: 'i-lucide-heading-3', label: t('editor.toolbar.subheading') },
+            { kind: 'paragraph' as const, icon: 'i-lucide-text', label: t('editor.toolbar.body') },
+            { kind: 'mark' as const, mark: 'code' as const, icon: 'i-lucide-code', label: t('editor.toolbar.mono') },
           ],
           [
-            { kind: 'bulletList' as const, icon: 'i-lucide-list', label: '구분점 목록' },
-            { kind: 'orderedList' as const, icon: 'i-lucide-list-ordered', label: '번호 목록' },
-            { kind: 'blockquote' as const, icon: 'i-lucide-quote', label: '블록 인용' },
-            { kind: 'codeBlock' as const, icon: 'i-lucide-square-code', label: '코드 블록' },
+            { kind: 'bulletList' as const, icon: 'i-lucide-list', label: t('editor.toolbar.bulletList') },
+            { kind: 'orderedList' as const, icon: 'i-lucide-list-ordered', label: t('editor.toolbar.orderedList') },
+            { kind: 'blockquote' as const, icon: 'i-lucide-quote', label: t('editor.toolbar.blockquote') },
+            { kind: 'codeBlock' as const, icon: 'i-lucide-square-code', label: t('editor.toolbar.codeBlock') },
           ],
           [
-            { kind: 'horizontalRule' as const, icon: 'i-lucide-minus', label: '구분선' },
-            { kind: 'clearFormatting' as const, icon: 'i-lucide-remove-formatting', label: '서식 지우기' },
+            { kind: 'horizontalRule' as const, icon: 'i-lucide-minus', label: t('editor.toolbar.horizontalRule') },
+            { kind: 'clearFormatting' as const, icon: 'i-lucide-remove-formatting', label: t('editor.toolbar.clearFormatting') },
           ],
         ],
       },
     ],
     media,
     [
-      { kind: 'undo' as const, icon: 'i-lucide-undo-2', tooltip: { text: '실행 취소' } },
-      { kind: 'redo' as const, icon: 'i-lucide-redo-2', tooltip: { text: '다시 실행' } },
+      { kind: 'undo' as const, icon: 'i-lucide-undo-2', tooltip: { text: t('editor.toolbar.undo') } },
+      { kind: 'redo' as const, icon: 'i-lucide-redo-2', tooltip: { text: t('editor.toolbar.redo') } },
     ],
   ]
 })
 
 const aiMenuItems = computed(() => [
   [
-    { label: '맞춤법 검사', icon: 'i-lucide-spell-check-2', onSelect: () => runWritingAssistant('proofread') },
-    { label: '문장 다듬기', icon: 'i-lucide-wand-sparkles', onSelect: () => runWritingAssistant('polish') },
-    { label: '자연스럽게 이어쓰기', icon: 'i-lucide-text-cursor-input', onSelect: () => runWritingAssistant('continue') },
-    { label: '짧게 요약하기', icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
+    { label: t('editor.ai.proofread'), icon: 'i-lucide-spell-check-2', onSelect: () => runWritingAssistant('proofread') },
+    { label: t('editor.ai.polish'), icon: 'i-lucide-wand-sparkles', onSelect: () => runWritingAssistant('polish') },
+    { label: t('editor.ai.continue'), icon: 'i-lucide-text-cursor-input', onSelect: () => runWritingAssistant('continue') },
+    { label: t('editor.ai.summarize'), icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
   ],
   [
-    { label: '영어로 번역', icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-en') },
-    { label: '한국어로 번역', icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-ko') },
+    { label: t('editor.ai.translateEn'), icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-en') },
+    { label: t('editor.ai.translateKo'), icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-ko') },
   ],
   [
-    { label: '본문에서 제목 만들기', icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
+    { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
   ],
   [
-    { label: '커스텀 스타일로 바꾸기…', icon: 'i-lucide-pencil-line', onSelect: () => openCustomAssistantDialog() },
+    { label: t('editor.ai.custom'), icon: 'i-lucide-pencil-line', onSelect: () => openCustomAssistantDialog() },
   ],
 ])
 
@@ -706,7 +710,7 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
   }
   catch (cause) {
     console.warn('[memi-board] writing assistant failed', cause)
-    aiError.value = cause instanceof Error ? cause.message : 'AI 작업에 실패했습니다. 다시 시도해 주세요.'
+    aiError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
   }
   finally {
     aiRunning.value = false
@@ -781,7 +785,7 @@ function onImageFormPaste(e: ClipboardEvent) {
       imageUploadError.value = ''
     }
     else {
-      imageUploadError.value = '사진은 위 영역에 파일로 붙여넣거나 드래그해 주세요.'
+      imageUploadError.value = t('editor.errors.pasteAsFile')
     }
   }
 }
@@ -873,7 +877,7 @@ async function loadPost(id: string) {
     await ensureSettings().catch(() => {})
     const post = await getPost(id)
     if (!post) {
-      error.value = '게시글을 찾을 수 없습니다.'
+      error.value = t('editor.errors.postNotFound')
       title.value = ''
       content.value = ''
       coverSlots.value = []
@@ -902,8 +906,8 @@ async function loadPost(id: string) {
   catch (e) {
     const msg = (e as Error).message || String(e)
     error.value = msg.includes('permission')
-      ? '글을 불러올 권한이 없습니다. 로그인 상태를 확인해 주세요.'
-      : `글을 불러오지 못했습니다: ${msg}`
+      ? t('editor.errors.loadPermission')
+      : t('editor.errors.loadFailed', { message: msg })
   }
   finally {
     loading.value = false
@@ -927,7 +931,7 @@ watch(
 function friendlyWriteError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e)
   if (msg.includes('permission-denied') || msg.includes('Permission denied')) {
-    return '수정 권한이 없습니다. 본인이 작성한 글인지, 로그인이 유지되는지 확인해 주세요.'
+    return t('editor.errors.editPermission')
   }
   return msg
 }
@@ -937,34 +941,34 @@ async function handleSubmit() {
   error.value = ''
   const imageBoard = isImageEditor.value
   if (!imageBoard && !title.value.trim()) {
-    error.value = '제목을 입력해 주세요.'
+    error.value = t('editor.errors.titleRequired')
     return
   }
   // 이미지 보드: 갤러리 1장 이상 (TipTap 본문 이미지 불가)
   if (imageBoard && coverSlots.value.length === 0) {
-    error.value = '사진을 한 장 이상 올려 주세요.'
+    error.value = t('editor.errors.photoRequired')
     return
   }
   if (!imageBoard && !hasBodyText(content.value) && !hasBodyImage(content.value, attachments.value)) {
-    error.value = '본문에 글자를 입력하거나 이미지를 첨부해 주세요.'
+    error.value = t('editor.errors.bodyRequired')
     return
   }
   if (!user.value) {
-    error.value = '로그인이 필요합니다.'
+    error.value = t('editor.errors.signInRequired')
     return
   }
   if (!resolvedBoardId.value) {
-    error.value = '게시판(보드)이 지정되지 않았습니다.'
+    error.value = t('editor.errors.boardMissing')
     return
   }
   if (isWriteRestricted.value) {
     error.value = restrictedMessage.value
-      || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
+      || t('editor.errors.writeRestricted')
     return
   }
 
   saving.value = true
-  submitHint.value = '내용을 검토하는 중…'
+  submitHint.value = t('editor.hint.reviewing')
   // 새 글 slug 중복 확인을 검열과 동시에 시작 — 검열에 걸리면 결과만 버린다.
   const slugPromise = !props.postId && !imageBoard ? resolveUniqueSlug(title.value) : null
   slugPromise?.catch(() => {})
@@ -973,11 +977,11 @@ async function handleSubmit() {
     const moderationText = imageBoard ? plain : `${title.value}\n${plain}`
     const moderation = await checkText(moderationText, { skipFilter: isAdmin.value && adminSkipModeration.value })
     if (moderation.flagged) {
-      error.value = moderation.reason || '게시할 수 없는 내용이 포함되어 있습니다.'
+      error.value = moderation.reason || t('editor.errors.moderationBlocked')
       return
     }
 
-    submitHint.value = '저장하는 중…'
+    submitHint.value = t('editor.hint.saving')
     const bodyContent = imageBoard && coverSlots.value.length
       ? withCoverImagesInContent(content.value, coverUrls())
       : content.value
@@ -1018,6 +1022,7 @@ async function handleSubmit() {
 <template>
   <div
     v-if="loading"
+    :dir="dir"
     class="flex flex-col gap-3"
   >
     <USkeleton class="h-10 w-full" />
@@ -1026,6 +1031,7 @@ async function handleSubmit() {
 
   <form
     v-else
+    :dir="dir"
     class="flex flex-col gap-4"
     @submit.prevent="handleSubmit"
     @paste.capture="onImageFormPaste"
@@ -1035,7 +1041,7 @@ async function handleSubmit() {
     <UInput
       v-if="!isImageEditor"
       v-model="title"
-      placeholder="제목"
+      :placeholder="t('editor.titlePlaceholder')"
       size="lg"
       required
       @keydown.tab.exact.prevent="focusContentFromTitle"
@@ -1047,7 +1053,7 @@ async function handleSubmit() {
     >
       <div class="flex items-center justify-between gap-2">
         <p class="text-xs text-muted">
-          사진 {{ coverSlots.length }}/{{ COVER_IMAGE_MAX }} · 대표사진 선택 · 끌어 순서 변경 · 파일 드롭/붙여넣기로 추가
+          {{ t('editor.cover.hint', { count: coverSlots.length, max: COVER_IMAGE_MAX }) }}
         </p>
         <div class="flex shrink-0 items-center gap-1">
           <UButton
@@ -1055,7 +1061,7 @@ async function handleSubmit() {
             size="xs"
             color="neutral"
             variant="ghost"
-            label="이미지 링크"
+            :label="t('editor.cover.imageLink')"
             icon="i-lucide-link"
             :disabled="imageUploading || coverSlots.length >= COVER_IMAGE_MAX"
             @click="openImageDialog()"
@@ -1066,7 +1072,7 @@ async function handleSubmit() {
             size="xs"
             color="neutral"
             variant="ghost"
-            label="사진 추가"
+            :label="t('editor.cover.addPhoto')"
             icon="i-lucide-plus"
             :disabled="imageUploading || coverSlots.length >= COVER_IMAGE_MAX"
             @click="pickCoverImages"
@@ -1104,7 +1110,7 @@ async function handleSubmit() {
           >
             <img
               :src="slot.url"
-              :alt="`사진 ${index + 1}`"
+              :alt="t('editor.cover.alt', { n: index + 1 })"
               class="pointer-events-none size-full object-cover"
               draggable="false"
             >
@@ -1112,18 +1118,18 @@ async function handleSubmit() {
               v-if="index === 0"
               class="pointer-events-none absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white"
             >
-              대표
+              {{ t('editor.cover.representative') }}
             </span>
             <button
               v-else
               type="button"
               class="absolute left-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white opacity-100 transition hover:bg-primary sm:opacity-0 sm:group-hover:opacity-100"
               :disabled="imageUploading"
-              :aria-label="`사진 ${index + 1}을 대표사진으로 설정`"
+              :aria-label="t('editor.cover.setRepresentativeAria', { n: index + 1 })"
               @click.stop="setRepresentativeCover(index)"
               @dragstart.stop.prevent
             >
-              대표로
+              {{ t('editor.cover.setRepresentative') }}
             </button>
             <span
               class="pointer-events-none absolute bottom-1 left-1 rounded bg-black/50 px-1 py-0.5 text-[10px] text-white/90"
@@ -1135,7 +1141,7 @@ async function handleSubmit() {
               type="button"
               class="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-black/60 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
               :disabled="imageUploading"
-              aria-label="사진 제거"
+              :aria-label="t('editor.cover.remove')"
               @click.stop="removeCoverAt(index)"
               @dragstart.stop.prevent
             >
@@ -1156,7 +1162,7 @@ async function handleSubmit() {
               class="size-6"
               :class="imageUploading ? 'animate-spin' : ''"
             />
-            <span class="text-[11px] font-medium">추가</span>
+            <span class="text-[11px] font-medium">{{ t('editor.cover.add') }}</span>
           </button>
         </div>
 
@@ -1173,10 +1179,10 @@ async function handleSubmit() {
             :class="imageUploading ? 'animate-spin' : ''"
           />
           <span class="text-sm font-medium text-highlighted">
-            {{ imageUploading ? '업로드 중…' : '사진을 놓거나 클릭해서 추가' }}
+            {{ imageUploading ? t('editor.cover.uploading') : t('editor.cover.dropOrClick') }}
           </span>
           <span class="text-xs text-muted">
-            여러 장 선택 가능 · 업로드 후 대표사진 선택 · 끌어 순서 변경
+            {{ t('editor.cover.emptyHint') }}
           </span>
         </button>
       </div>
@@ -1186,7 +1192,7 @@ async function handleSubmit() {
         color="error"
         variant="subtle"
         icon="i-lucide-circle-alert"
-        title="업로드"
+        :title="t('editor.cover.uploadTitle')"
         :description="imageUploadError"
       />
     </div>
@@ -1202,7 +1208,7 @@ async function handleSubmit() {
         color="error"
         variant="subtle"
         icon="i-lucide-circle-alert"
-        title="업로드 실패"
+        :title="t('editor.uploadFailed')"
         :description="imageUploadError"
         class="rounded-none rounded-t-xl"
       />
@@ -1213,7 +1219,7 @@ async function handleSubmit() {
         content-type="html"
         :extensions="editorExtensions"
         :handlers="handlers"
-        :placeholder="isImageEditor ? '내용을 입력하세요…' : '본문을 입력하세요… / 를 입력하면 블록 메뉴가 열립니다.'"
+        :placeholder="isImageEditor ? t('editor.imageContentPlaceholder') : t('editor.contentPlaceholder')"
         :ui="{ content: 'min-h-64 p-4' }"
         class="board-content w-full"
       >
@@ -1234,7 +1240,7 @@ async function handleSubmit() {
                 class="m-2 shrink-0"
                 :loading="aiRunning"
                 :disabled="aiRunning"
-                aria-label="AI 글쓰기 도우미"
+                :aria-label="t('editor.aiAssistant')"
               />
             </UDropdownMenu>
           </div>
@@ -1247,7 +1253,7 @@ async function handleSubmit() {
               variant="ghost"
               size="sm"
               :class="ui.handle()"
-              aria-label="블록 삽입"
+              :aria-label="t('editor.insertBlock')"
               @click="(event: MouseEvent) => {
                 event.stopPropagation()
                 const selected = onClick()
@@ -1270,7 +1276,7 @@ async function handleSubmit() {
                 icon="i-lucide-grip-vertical"
                 :active="open"
                 :class="ui.handle()"
-                aria-label="블록 메뉴"
+                :aria-label="t('editor.blockMenu')"
               />
             </UDropdownMenu>
           </UEditorDragHandle>
@@ -1293,13 +1299,13 @@ async function handleSubmit() {
           name="i-lucide-loader-circle"
           class="size-3.5 animate-spin"
         />
-        이미지 최적화 및 업로드 중…
+        {{ t('editor.imageOptimizing') }}
       </p>
     </div>
 
     <UInputTags
       v-model="tags"
-      placeholder="태그 입력 후 Enter"
+      :placeholder="t('editor.tagsPlaceholder')"
       :delimiter="','"
       add-on-paste
     />
@@ -1338,7 +1344,7 @@ async function handleSubmit() {
       <USwitch
         v-model="adminSkipModeration"
         size="sm"
-        label="비속어 필터 무시 (관리자)"
+        :label="t('editor.skipModeration')"
       />
     </div>
 
@@ -1347,7 +1353,7 @@ async function handleSubmit() {
         type="submit"
         :loading="saving"
         :disabled="isWriteRestricted || imageUploading"
-        :label="isEdit ? '수정 완료' : '다음: 미리보기'"
+        :label="isEdit ? t('editor.submitEdit') : t('editor.submitNext')"
         @pointerdown="imeSafeSubmitPointerDown"
         @click="imeSafeSubmitClick"
       />
@@ -1355,7 +1361,7 @@ async function handleSubmit() {
         type="button"
         variant="ghost"
         color="neutral"
-        label="취소"
+        :label="t('common.action.cancel')"
         @click="emit('cancel')"
       />
     </div>
@@ -1363,7 +1369,7 @@ async function handleSubmit() {
 
   <UModal
     v-model:open="imageDialogOpen"
-    title="이미지 추가"
+    :title="t('editor.imageDialog.title')"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
@@ -1373,7 +1379,7 @@ async function handleSubmit() {
           color="neutral"
           variant="outline"
           icon="i-lucide-upload"
-          label="내 기기에서 이미지 선택"
+          :label="t('editor.imageDialog.chooseFile')"
           block
           :disabled="imageUploading"
           @click="chooseImageFileFromDialog"
@@ -1381,13 +1387,13 @@ async function handleSubmit() {
 
         <div class="flex items-center gap-3 text-xs text-muted">
           <span class="h-px flex-1 bg-default" />
-          또는 이미지 링크
+          {{ t('editor.imageDialog.orLink') }}
           <span class="h-px flex-1 bg-default" />
         </div>
 
         <UFormField
-          label="이미지 URL"
-          help="HTTPS 주소만 사용할 수 있으며 원본 사이트에서 삭제되면 이미지도 표시되지 않습니다."
+          :label="t('editor.imageDialog.urlLabel')"
+          :help="t('editor.imageDialog.urlHelp')"
         >
           <UInput
             v-model="externalImageUrl"
@@ -1406,7 +1412,7 @@ async function handleSubmit() {
         >
           <img
             :src="externalImageCandidate"
-            alt="외부 이미지 미리보기"
+            :alt="t('editor.imageDialog.previewAlt')"
             referrerpolicy="no-referrer"
             class="max-h-64 max-w-full object-contain"
           >
@@ -1431,7 +1437,7 @@ async function handleSubmit() {
           :disabled="externalImageChecking"
           @click="imageDialogOpen = false"
         >
-          취소
+          {{ t('common.action.cancel') }}
         </UButton>
         <UButton
           type="button"
@@ -1440,7 +1446,7 @@ async function handleSubmit() {
           :disabled="!externalImageCandidate"
           @click="addExternalImage"
         >
-          링크 추가
+          {{ t('editor.imageDialog.addLink') }}
         </UButton>
       </div>
     </template>
@@ -1448,17 +1454,17 @@ async function handleSubmit() {
 
   <UModal
     v-model:open="aiCustomDialogOpen"
-    title="커스텀 스타일로 바꾸기"
+    :title="t('editor.customDialog.title')"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
       <UFormField
-        label="어떻게 바꿀까요?"
-        help="예: 경상도 사투리 스타일로 / 정중한 문어체로 / 간결한 개조식으로"
+        :label="t('editor.customDialog.label')"
+        :help="t('editor.customDialog.help')"
       >
         <UTextarea
           v-model="aiCustomInstruction"
-          placeholder="경상도 사투리 스타일로"
+          :placeholder="t('editor.customDialog.placeholder')"
           autocomplete="off"
           class="w-full"
           :rows="2"
@@ -1476,7 +1482,7 @@ async function handleSubmit() {
           variant="ghost"
           @click="aiCustomDialogOpen = false"
         >
-          취소
+          {{ t('common.action.cancel') }}
         </UButton>
         <UButton
           type="button"
@@ -1484,7 +1490,7 @@ async function handleSubmit() {
           :disabled="!aiCustomInstruction.trim()"
           @click="submitCustomAssistant"
         >
-          적용
+          {{ t('editor.apply') }}
         </UButton>
       </div>
     </template>
@@ -1492,7 +1498,7 @@ async function handleSubmit() {
 
   <UModal
     v-model:open="aiPreviewOpen"
-    title="AI 결과 확인"
+    :title="t('editor.aiPreview.title')"
     :ui="{ content: 'sm:max-w-4xl lg:max-w-6xl' }"
   >
     <template #body>
@@ -1534,14 +1540,14 @@ async function handleSubmit() {
           variant="ghost"
           @click="closeAiPreview"
         >
-          취소
+          {{ t('common.action.cancel') }}
         </UButton>
         <UButton
           type="button"
           icon="i-lucide-check"
           @click="applyAiPreview"
         >
-          적용
+          {{ t('editor.apply') }}
         </UButton>
       </div>
     </template>

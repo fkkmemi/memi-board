@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import type { Attachment } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{
   modelValue: Attachment[]
@@ -17,6 +18,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [attachments: Attachment[]] }>()
 
 const { uploadAttachment, deleteAttachment } = useMemiBoardStorage()
+const { t } = useMemiBoardI18n()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
@@ -145,7 +147,7 @@ function formatSize(bytes: number): string {
       >
       <UButton
         icon="i-lucide-paperclip"
-        :label="`파일 첨부 (${modelValue.length} / ${maxFiles})`"
+        :label="t('attachments.attach', { count: modelValue.length, max: maxFiles })"
         variant="outline"
         color="neutral"
         size="sm"
@@ -167,7 +169,7 @@ function formatSize(bytes: number): string {
       v-else-if="editable"
       class="text-xs text-muted"
     >
-      최대 {{ maxFiles }}개까지 첨부할 수 있습니다.
+      {{ t('attachments.maxFiles', { max: maxFiles }) }}
     </p>
   </div>
 </template>

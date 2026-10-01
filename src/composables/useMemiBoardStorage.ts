@@ -13,6 +13,9 @@ import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
 import { postStorageFolder } from '../utils/boardPaths'
 import type { Attachment, EditorImageEntry } from '../types'
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 /** 에디터 이미지 최대 크기 (바이트) */
 export const EDITOR_IMAGE_MAX_BYTES = 5 * 1024 * 1024
@@ -28,14 +31,17 @@ function isHeicLike(file: File): boolean {
     || name.endsWith('.heif')
 }
 
-async function resizeJpegIfNeeded(blob: Blob): Promise<Blob> {
+/** 압축해도 5MB 를 넘는 경우 — 다른 최적화 실패와 구분해 그대로 보여 준다. */
+class ImageTooLargeError extends Error {}
+
+async function resizeJpegIfNeeded(blob: Blob, locale?: MemiBoardLocale): Promise<Blob> {
   if (blob.size <= EDITOR_IMAGE_MAX_BYTES) return blob
-  let next = await compressImage(blob, { maxWidth: 2560, quality: 0.85 })
+  let next = await compressImage(blob, { maxWidth: 2560, quality: 0.85 }, locale)
   if (next.size > EDITOR_IMAGE_MAX_BYTES) {
-    next = await compressImage(blob, { maxWidth: 2048, quality: 0.75 })
+    next = await compressImage(blob, { maxWidth: 2048, quality: 0.75 }, locale)
   }
   if (next.size > EDITOR_IMAGE_MAX_BYTES) {
-    throw new Error('압축 후에도 이미지가 5MB를 초과합니다. 더 작은 이미지를 선택해 주세요.')
+    throw new ImageTooLargeError(translate(locale, 'storage.tooLargeAfterCompress'))
   }
   return next
 }
@@ -45,13 +51,13 @@ async function resizeJpegIfNeeded(blob: Blob): Promise<Blob> {
  * - 5MB 초과 → 리사이즈
  * - HEIC/HEIF 원본 파일 → 호환 형식 안내
  */
-async function optimizeEditorImage(file: File): Promise<{ blob: File | Blob, compressed: boolean }> {
+async function optimizeEditorImage(file: File, locale?: MemiBoardLocale): Promise<{ blob: File | Blob, compressed: boolean }> {
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
-    throw new Error(`원본 이미지는 ${EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024}MB 이하여야 합니다.`)
+    throw new Error(translate(locale, 'storage.sourceTooLarge', { max: EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024 }))
   }
 
   if (isHeicLike(file)) {
-    throw new Error('HEIC 사진은 바로 올릴 수 없습니다. 사진 앱에서 선택하거나 JPG, PNG 또는 WebP로 변환해 주세요.')
+    throw new Error(translate(locale, 'storage.heicUnsupported'))
   }
 
   if (file.size <= EDITOR_IMAGE_MAX_BYTES) {
@@ -59,18 +65,19 @@ async function optimizeEditorImage(file: File): Promise<{ blob: File | Blob, com
   }
 
   try {
-    const blob = await resizeJpegIfNeeded(file)
+    const blob = await resizeJpegIfNeeded(file, locale)
     return { blob, compressed: true }
   }
   catch (cause) {
-    if (cause instanceof Error && cause.message.includes('압축 후에도')) throw cause
-    throw new Error('이 이미지 형식은 브라우저에서 최적화할 수 없습니다. JPG, PNG 또는 WebP로 변환해 주세요.')
+    if (cause instanceof ImageTooLargeError) throw cause
+    throw new Error(translate(locale, 'storage.cannotOptimize'))
   }
 }
 
 export function useMemiBoardStorage() {
   const cfg = () => useBoardPathConfig()
   const app = useFirebaseApp()
+  const { t, locale } = useMemiBoardI18n()
 
   /** postId는 작성 화면 진입 시 미리 생성한 Firestore 자동 ID를 사용한다. */
   function uploadAttachment(
@@ -118,9 +125,9 @@ export function useMemiBoardStorage() {
    */
   async function uploadEditorImage(file: File, postId: string): Promise<EditorImageEntry> {
     if (!file.type.startsWith('image/')) {
-      throw new Error('이미지 파일만 업로드할 수 있습니다.')
+      throw new Error(t('storage.imageOnly'))
     }
-    const optimized = await optimizeEditorImage(file)
+    const optimized = await optimizeEditorImage(file, locale.value)
 
     const storage = getStorage(app)
     const ext = (optimized.compressed ? 'jpg' : (file.name.split('.').pop() || file.type.split('/')[1] || 'png'))
@@ -138,7 +145,7 @@ export function useMemiBoardStorage() {
     })
     const originalUrl = await getDownloadURL(originalRef)
 
-    const thumbBlob = await compressImage(optimized.blob, { maxWidth: 400, quality: 0.8 })
+    const thumbBlob = await compressImage(optimized.blob, { maxWidth: 400, quality: 0.8 }, locale.value)
     const thumbnailPath = `${folder}/images/thumbnails/${baseName}.jpg`
     const thumbRef = storageRef(storage, thumbnailPath)
     await uploadBytes(thumbRef, thumbBlob, { contentType: 'image/jpeg' })

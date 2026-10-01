@@ -27,6 +27,8 @@ import { registerBoardLookup } from './boardLookup'
 import { canManageBoardByRole } from '../utils/boardAccess'
 import { slugify } from '../utils/slugify'
 import { deletePostCascade } from '../utils/deletePostCascade'
+import { normalizeMemiBoardLocale } from '../i18n/locales'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { BoardModel, BoardVisibility } from '../types'
 
 /** 필요할 때 호스트가 명시적으로 시드할 수 있는 예시 보드. 자동 적용하지 않는다. */
@@ -56,6 +58,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     writeRole: (data.writeRole as BoardModel['writeRole']) ?? 'user',
     commentWriteRole: (data.commentWriteRole as BoardModel['commentWriteRole']) ?? 'user',
     allowedStaffUids: Array.isArray(data.allowedStaffUids) ? data.allowedStaffUids as string[] : [],
+    locale: normalizeMemiBoardLocale(data.locale) ?? '',
   }
 }
 
@@ -69,6 +72,7 @@ export function useMemiBoardSettings() {
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isSignedIn, isAdmin, isStaff, user } = useMemiBoardAuth()
+  const { t } = useMemiBoardI18n()
 
   const boardsQuery = computed(() => query(settingsCol(db, cfg()), orderBy('order', 'asc')))
   const { data: boardDocs, pending: settingsPending } = useCollection(boardsQuery, {
@@ -175,16 +179,17 @@ export function useMemiBoardSettings() {
       writeRole: board.writeRole ?? 'user',
       commentWriteRole: board.commentWriteRole ?? 'user',
       allowedStaffUids: board.allowedStaffUids ?? [],
+      locale: normalizeMemiBoardLocale(board.locale) ?? '',
       order,
       updatedAt: serverTimestamp(),
     }
   }
 
   async function saveBoard(board: BoardModel, order = board.order ?? 0): Promise<void> {
-    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
     const id = board.id.trim()
     const label = board.label.trim()
-    if (!id || !label) throw new Error('보드 ID와 이름을 입력해 주세요.')
+    if (!id || !label) throw new Error(t('boardSettings.idAndNameRequired'))
     const visibility = normalizeVisibility(board.visibility)
     const payload = settingsPayload({ ...board, label, visibility }, order)
     await setDoc(settingsDoc(db, cfg(), id), payload, { merge: true })
@@ -195,14 +200,14 @@ export function useMemiBoardSettings() {
   const saveCategory = saveBoard
 
   async function saveBoards(next: BoardModel[]): Promise<void> {
-    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
     const previousById = new Map(boards.value.map(item => [item.id, item.visibility ?? 'public']))
     const batch = writeBatch(db)
     const visibilityChanges: Array<{ id: string, listed: boolean }> = []
     next.forEach((board, order) => {
       const id = board.id.trim()
       const label = board.label.trim()
-      if (!id || !label) throw new Error('보드 ID와 이름을 입력해 주세요.')
+      if (!id || !label) throw new Error(t('boardSettings.idAndNameRequired'))
       const visibility = normalizeVisibility(board.visibility)
       const payload = settingsPayload({ ...board, label, visibility }, order)
       batch.set(settingsDoc(db, cfg(), id), payload, { merge: true })
@@ -221,9 +226,9 @@ export function useMemiBoardSettings() {
   const saveCategories = saveBoards
 
   async function deleteBoard(id: string): Promise<void> {
-    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
     const boardId = id.trim()
-    if (!boardId) throw new Error('삭제할 게시판 ID가 필요합니다.')
+    if (!boardId) throw new Error(t('boardSettings.deleteIdRequired'))
 
     // 설정은 마지막에 삭제한다. 중간 실패 시 게시판을 남겨 두어 관리자가 재시도할 수 있다.
     for (;;) {
@@ -249,8 +254,8 @@ export function useMemiBoardSettings() {
 
   async function addBoard(label: string): Promise<string> {
     const trimmed = label.trim()
-    if (!trimmed) throw new Error('보드 이름을 입력해 주세요.')
-    if (!isSignedIn.value) throw new Error('로그인이 필요합니다.')
+    if (!trimmed) throw new Error(t('boardSettings.nameRequired'))
+    if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
     const existing = boards.value.find(board => board.label === trimmed)
     if (existing) return existing.id
 

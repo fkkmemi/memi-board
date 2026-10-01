@@ -5,6 +5,7 @@ import { canWriteCommentByRole, useMemiBoardAuth } from 'memi-board/runtime'
 import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
 import { useMemiBoardModeration } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
 const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
@@ -18,6 +19,7 @@ const { addComment, addReply } = useMemiBoardComments(
   { subscribe: false },
 )
 const { checkText } = useMemiBoardModeration()
+const { t, formatNumber } = useMemiBoardI18n()
 const { getBoard } = useMemiBoardSettings()
 
 const board = computed(() => getBoard(props.boardId))
@@ -27,8 +29,8 @@ const canComment = computed(() => {
   return canWriteCommentByRole(user.value.uid, isAdmin.value, isStaff.value, board.value)
 })
 const deniedMessage = computed(() => {
-  if (isHiddenBoard.value) return '숨김 게시판에는 담당 스태프만 댓글을 남길 수 있습니다.'
-  return '이 게시판에는 댓글쓰기 권한이 없습니다.'
+  if (isHiddenBoard.value) return t('commentForm.hiddenBoardDenied')
+  return t('commentForm.denied')
 })
 
 const body = ref('')
@@ -40,7 +42,7 @@ async function handleSubmit() {
   error.value = ''
   if (!body.value.trim()) return
   if (!user.value) {
-    error.value = '로그인이 필요합니다.'
+    error.value = t('commentForm.signInRequired')
     return
   }
   if (!canComment.value) {
@@ -49,7 +51,7 @@ async function handleSubmit() {
   }
   if (isWriteRestricted.value) {
     error.value = restrictedMessage.value
-      || '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.'
+      || t('commentForm.writeRestricted')
     return
   }
 
@@ -57,7 +59,7 @@ async function handleSubmit() {
   try {
     const moderation = await checkText(body.value)
     if (moderation.flagged) {
-      error.value = moderation.reason || '작성할 수 없는 내용이 포함되어 있습니다.'
+      error.value = moderation.reason || t('commentForm.moderationBlocked')
       return
     }
     const input = {
@@ -88,7 +90,7 @@ async function handleSubmit() {
   >
     <UTextarea
       v-model="body"
-      :placeholder="parent ? `${parent.authorName || '사용자'}님에게 답글` : '댓글을 입력하세요'"
+      :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
       :rows="2"
       :maxlength="COMMENT_BODY_MAX_LENGTH"
     />
@@ -99,7 +101,7 @@ async function handleSubmit() {
       {{ restrictedMessage }}
     </p>
     <div class="flex justify-between items-center">
-      <span class="text-xs text-dimmed">{{ body.length.toLocaleString() }} / {{ COMMENT_BODY_MAX_LENGTH.toLocaleString() }}</span>
+      <span class="text-xs text-dimmed">{{ formatNumber(body.length) }} / {{ formatNumber(COMMENT_BODY_MAX_LENGTH) }}</span>
       <p
         v-if="error"
         class="text-xs text-error"
@@ -111,7 +113,7 @@ async function handleSubmit() {
         v-if="parent"
         type="button"
         size="sm"
-        label="취소"
+        :label="t('common.action.cancel')"
         color="neutral"
         variant="ghost"
         @click="emit('cancel')"
@@ -121,7 +123,7 @@ async function handleSubmit() {
         @pointerdown="imeSafeSubmitPointerDown"
         @click="imeSafeSubmitClick"
         size="sm"
-        :label="parent ? '답글 작성' : '댓글 작성'"
+        :label="parent ? t('commentForm.submitReply') : t('commentForm.submit')"
         :loading="submitting"
         :disabled="!body.trim() || isWriteRestricted"
       />
@@ -131,7 +133,7 @@ async function handleSubmit() {
     v-else-if="!isSignedIn"
     class="text-sm text-muted"
   >
-    댓글을 작성하려면 로그인이 필요합니다.
+    {{ t('commentForm.signInToComment') }}
   </p>
   <p
     v-else

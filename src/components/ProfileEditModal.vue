@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { query, serverTimestamp, where, writeBatch, getDocs } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig } from 'memi-board/runtime'
+import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n } from 'memi-board/runtime'
 import type { BoardUserModel } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardAvatarCropModal from './AvatarCropModal.vue'
@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [] }>()
 
 const db = useFirestore()
+const { t } = useMemiBoardI18n()
 
 const displayName = ref('')
 const bio = ref('')
@@ -47,7 +48,7 @@ function onPickAvatar(event: Event) {
   input.value = ''
   if (!file) return
   if (!file.type.startsWith('image/')) {
-    error.value = '이미지 파일만 선택할 수 있습니다.'
+    error.value = t('profileEditModal.imageOnly')
     return
   }
   if (cropSrc.value.startsWith('blob:')) URL.revokeObjectURL(cropSrc.value)
@@ -119,7 +120,7 @@ async function onSave() {
   if (saving.value) return
   const trimmedName = displayName.value.trim()
   if (!trimmedName) {
-    error.value = '이름을 입력해 주세요.'
+    error.value = t('profileEditModal.nameRequired')
     return
   }
   saving.value = true
@@ -139,7 +140,7 @@ async function onSave() {
     emit('saved')
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '프로필을 저장하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('profileEditModal.saveFailed')
   }
   finally {
     saving.value = false
@@ -151,7 +152,7 @@ async function onSave() {
 <template>
   <UModal
     v-model:open="open"
-    title="프로필 수정"
+    :title="t('profileEditModal.title')"
     :ui="{ content: 'sm:max-w-md' }"
   >
     <template #body>
@@ -159,11 +160,11 @@ async function onSave() {
         <div class="flex items-center gap-3">
           <UAvatar
             :src="avatarPreview"
-            :alt="displayName || '익명'"
+            :alt="displayName || t('common.label.anonymous')"
             size="xl"
           />
           <UButton
-            label="사진 변경"
+            :label="t('profileEditModal.changePhoto')"
             icon="i-lucide-camera"
             color="neutral"
             variant="outline"
@@ -179,21 +180,21 @@ async function onSave() {
           >
         </div>
 
-        <UFormField label="이름">
+        <UFormField :label="t('profileEditModal.name')">
           <UInput
             v-model="displayName"
-            placeholder="이름"
+            :placeholder="t('profileEditModal.name')"
             :maxlength="40"
             class="w-full"
           />
         </UFormField>
 
-        <UFormField label="자기소개">
+        <UFormField :label="t('profileEditModal.bio')">
           <UTextarea
             v-model="bio"
             :rows="3"
             :maxlength="200"
-            placeholder="나를 소개해 보세요"
+            :placeholder="t('profileEditModal.bioPlaceholder')"
             class="w-full"
           />
         </UFormField>
@@ -215,13 +216,13 @@ async function onSave() {
           :disabled="saving"
           @click="open = false"
         >
-          취소
+          {{ t('common.action.cancel') }}
         </UButton>
         <UButton
           :loading="saving"
           @click="onSave"
         >
-          저장
+          {{ t('common.action.save') }}
         </UButton>
       </div>
     </template>

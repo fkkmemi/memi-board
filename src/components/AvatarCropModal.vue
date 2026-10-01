@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { Cropper } from 'vue-advanced-cropper'
 import 'vue-advanced-cropper/dist/style.css'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -20,6 +21,8 @@ const emit = defineEmits<{
   confirm: [file: File]
   cancel: []
 }>()
+
+const { t } = useMemiBoardI18n()
 
 const cropperRef = ref<InstanceType<typeof Cropper> | null>(null)
 
@@ -56,8 +59,8 @@ async function confirm() {
 <template>
   <UModal
     v-model:open="open"
-    title="프로필 사진 자르기"
-    description="정사각형(1:1)으로 보여집니다. 영역을 맞춰 주세요."
+    :title="t('avatarCropModal.title')"
+    :description="t('avatarCropModal.description')"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
@@ -74,7 +77,7 @@ async function confirm() {
         </div>
       </ClientOnly>
       <p class="mt-3 text-xs text-muted">
-        드래그로 위치·확대 조절 · {{ outputSize }}×{{ outputSize }} 정사각 JPEG로 저장됩니다
+        {{ t('avatarCropModal.hint', { size: outputSize }) }}
       </p>
     </template>
 
@@ -86,14 +89,14 @@ async function confirm() {
           :disabled="loading"
           @click="close"
         >
-          취소
+          {{ t('common.action.cancel') }}
         </UButton>
         <UButton
           icon="i-lucide-check"
           :loading="loading"
           @click="confirm"
         >
-          자르고 업로드
+          {{ t('avatarCropModal.confirm') }}
         </UButton>
       </div>
     </template>

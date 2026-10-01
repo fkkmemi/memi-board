@@ -1,0 +1,31 @@
+export default {
+  introduction: 'This board is built on Nuxt 4, Vue 3 and TypeScript. Nuxt UI and Tailwind CSS shape a comfortable interface, while Firebase Firestore, Auth, Storage and nuxt-vuefire keep posts and comments flowing smoothly.',
+  settings: 'Settings',
+  loadFailed: 'Couldn’t load the list: {error}',
+  empty: 'No posts yet.',
+  photo: 'Photo',
+  likeCount: 'Likes {count}',
+  info: {
+    title: 'Board info',
+    about: 'About this board',
+    history: 'Version history',
+  },
+  stack: {
+    framework: 'Framework & language',
+    ui: 'UI & styling',
+    backend: 'Backend & data',
+  },
+  tech: {
+    nuxt: 'Vue-based SSR framework',
+    vue: 'Composition API · script setup',
+    typescript: 'Type-safe data and components',
+    nuxtUi: 'Board, form and modal UI',
+    tailwind: 'Responsive · light/dark styles',
+    lucide: 'Lightweight, consistent icons',
+    dayjs: 'Readable dates and relative times',
+    firestore: 'Real-time DB for posts and comments',
+    auth: 'Secure sign-in and permissions',
+    storage: 'Image and attachment storage',
+    vuefire: 'Real-time Nuxt–Firebase binding',
+  },
+}

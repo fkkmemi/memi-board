@@ -1,17 +1,21 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BoardListView } from 'memi-board/runtime'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 defineProps<{
   modelValue: BoardListView
 }>()
 const emit = defineEmits<{ 'update:modelValue': [value: BoardListView] }>()
 
-const options: Array<{ label: string, value: BoardListView, icon: string }> = [
-  { label: '일반', value: 'default', icon: 'i-lucide-list' },
-  { label: '조밀', value: 'dense', icon: 'i-lucide-rows-3' },
-  { label: '이미지', value: 'image', icon: 'i-lucide-image' },
-  { label: '영상', value: 'video', icon: 'i-lucide-play-circle' },
-]
+const { t } = useMemiBoardI18n()
+
+const options = computed<Array<{ label: string, value: BoardListView, icon: string }>>(() => [
+  { label: t('listViewSwitch.default'), value: 'default', icon: 'i-lucide-list' },
+  { label: t('listViewSwitch.dense'), value: 'dense', icon: 'i-lucide-rows-3' },
+  { label: t('common.label.image'), value: 'image', icon: 'i-lucide-image' },
+  { label: t('listViewSwitch.video'), value: 'video', icon: 'i-lucide-play-circle' },
+])
 </script>
 
 <template>

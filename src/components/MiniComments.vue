@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, resolveComponent } from 'vue'
 import type { BoardSection, CommentModel } from 'memi-board/runtime'
-import { formatRelativeDate, miniCommentLink, useMemiBoardCommentFeed } from 'memi-board/runtime'
+import { miniCommentLink, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = defineProps<{
   section: BoardSection
@@ -9,6 +9,7 @@ const props = defineProps<{
 }>()
 
 const NuxtLink = resolveComponent('NuxtLink')
+const { t, formatRelativeDate } = useMemiBoardI18n()
 const now = ref(Date.now())
 const sort = computed(() => props.section.sort === 'likes' ? 'likes' : 'latest')
 const { comments, commentsPending } = useMemiBoardCommentFeed(sort, {
@@ -29,7 +30,7 @@ function commentTo(comment: CommentModel) {
       v-else-if="!comments.length"
       class="flex flex-1 items-center justify-center px-3 py-6 text-sm text-muted"
     >
-      아직 댓글이 없습니다.
+      {{ t('miniComments.empty') }}
     </p>
     <ul
       v-else
@@ -45,7 +46,7 @@ function commentTo(comment: CommentModel) {
             v-if="comment.isBlinded"
             class="truncate text-sm text-muted italic"
           >
-            관리자에 의해 블라인드된 댓글입니다.
+            {{ t('miniComments.blinded') }}
           </p>
           <p
             v-else
@@ -58,7 +59,7 @@ function commentTo(comment: CommentModel) {
             {{ comment.body }}
           </p>
           <p class="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted">
-            <span>{{ comment.authorName || '익명' }}</span>
+            <span>{{ comment.authorName || t('common.label.anonymous') }}</span>
             <time>{{ formatRelativeDate(comment.createdAt, now) }}</time>
             <span
               v-if="(comment.likeCount ?? 0) > 0"

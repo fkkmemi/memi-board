@@ -11,11 +11,13 @@ import {
 } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
 import { commentDoc, likeDoc, likesCol, postDoc } from '../utils/boardPaths'
+import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export function useMemiBoardLikes(boardId: string, postId: string) {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const user = useCurrentUser()
+  const { t } = useMemiBoardI18n()
 
   const isLiked = ref(false)
   const likePending = ref(false)
@@ -43,7 +45,7 @@ export function useMemiBoardLikes(boardId: string, postId: string) {
 
   async function toggleLike(): Promise<boolean> {
     const uid = user.value?.uid
-    if (!uid) throw new Error('로그인이 필요합니다.')
+    if (!uid) throw new Error(t('likes.signInRequired'))
     if (likePending.value) return isLiked.value
     likePending.value = true
     try {
@@ -85,6 +87,7 @@ export function useMemiBoardCommentLikes(
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
   const user = useCurrentUser()
+  const { t } = useMemiBoardI18n()
   const bid = computed(() => toValue(boardId))
   const pid = computed(() => toValue(postId))
 
@@ -131,7 +134,7 @@ export function useMemiBoardCommentLikes(
 
   async function toggleLike(commentId: string): Promise<boolean> {
     const uid = user.value?.uid
-    if (!uid) throw new Error('로그인이 필요합니다.')
+    if (!uid) throw new Error(t('likes.signInRequired'))
     if (!commentId) return false
     if (pendingId.value) return isLiked(commentId)
     pendingId.value = commentId
@@ -141,7 +144,7 @@ export function useMemiBoardCommentLikes(
       const nextLiked = await runTransaction(db, async (tx) => {
         const likeSnap = await tx.get(likeRef)
         const commentSnap = await tx.get(commentRef)
-        if (!commentSnap.exists()) throw new Error('댓글을 찾을 수 없습니다.')
+        if (!commentSnap.exists()) throw new Error(t('likes.commentNotFound'))
         const current = Number(commentSnap.data()?.likeCount ?? 0)
         if (likeSnap.exists()) {
           tx.delete(likeRef)

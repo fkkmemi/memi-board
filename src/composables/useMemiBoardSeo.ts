@@ -22,6 +22,7 @@ import {
   resolvePublicSeoDb,
   toAbsoluteUrl,
   useMemiBoardConfig,
+  useMemiBoardI18n,
   type BoardListSeoPayload,
   type BoardPostSeoPayload,
 } from 'memi-board/runtime'
@@ -68,6 +69,8 @@ export async function useMemiBoardPostSeo(opts?: {
   const siteName = seo.siteName?.trim() || 'Board'
   const origin = resolveOrigin(seo.siteUrl)
   const basePath = normalizeBasePath(seo.basePath)
+  const { locale, intlLocale, t } = useMemiBoardI18n()
+  const ogLocale = computed(() => intlLocale.value.replace('-', '_'))
 
   if (seo.enabled === false) {
     return { post: computed(() => null as BoardPostSeoPayload | null) }
@@ -100,8 +103,9 @@ export async function useMemiBoardPostSeo(opts?: {
           post.value.categoryLabel,
           siteName,
           post.value.summary,
+          locale.value,
         )
-      : `게시글 | ${siteName}`,
+      : t('seo.postFallbackTitle', { site: siteName }),
   )
   const description = computed(() =>
     post.value
@@ -109,8 +113,8 @@ export async function useMemiBoardPostSeo(opts?: {
           summary: post.value.summary,
           categoryLabel: post.value.categoryLabel,
           authorName: post.value.authorName,
-        })
-      : '게시판',
+        }, locale.value)
+      : t('seo.postFallbackDescription'),
   )
   const ogImage = computed(() => {
     const img = post.value?.previewImage || seo.defaultOgImage || ''
@@ -133,7 +137,7 @@ export async function useMemiBoardPostSeo(opts?: {
     ogUrl: canonical,
     ogType: 'article',
     ogSiteName: siteName,
-    ogLocale: 'ko_KR',
+    ogLocale,
     twitterCard: 'summary_large_image',
     twitterTitle: title,
     twitterDescription: description,
@@ -174,6 +178,8 @@ export async function useMemiBoardListSeo(opts?: {
   const siteName = seo.siteName?.trim() || 'Board'
   const origin = resolveOrigin(seo.siteUrl)
   const basePath = normalizeBasePath(seo.basePath)
+  const { locale, intlLocale, t } = useMemiBoardI18n()
+  const ogLocale = computed(() => intlLocale.value.replace('-', '_'))
 
   if (seo.enabled === false) {
     return { list: computed(() => null as BoardListSeoPayload | null) }
@@ -189,20 +195,20 @@ export async function useMemiBoardListSeo(opts?: {
   const seoDb = resolvePublicSeoDb()
 
   const listAsync = useAsyncData(
-    () => `memi-board-seo-list-${category.value || 'all'}`,
-    () => fetchPublicListForSeo(category.value, seoDb),
-    { watch: [category], server: true, lazy: false },
+    () => `memi-board-seo-list-${category.value || 'all'}-${locale.value}`,
+    () => fetchPublicListForSeo(category.value, seoDb, locale.value),
+    { watch: [category, locale], server: true, lazy: false },
   )
   const list = computed(() => listAsync.data.value ?? null)
 
   const title = computed(() =>
-    boardListOgTitle(list.value?.categoryLabel || category.value, siteName),
+    boardListOgTitle(list.value?.categoryLabel || category.value, siteName, locale.value),
   )
   const description = computed(() => boardListOgDescription({
     categoryLabel: list.value?.categoryLabel,
     description: list.value?.description,
     recentTitles: list.value?.recentTitles,
-  }))
+  }, locale.value))
   const ogImage = computed(() => {
     const img = list.value?.ogImage || seo.defaultOgImage || ''
     return origin ? toAbsoluteUrl(img, origin, seo.defaultOgImage || '') : img
@@ -235,7 +241,7 @@ export async function useMemiBoardListSeo(opts?: {
     ogUrl: canonical,
     ogType: 'website',
     ogSiteName: siteName,
-    ogLocale: 'ko_KR',
+    ogLocale,
     twitterCard: 'summary_large_image',
     twitterTitle: title,
     twitterDescription: description,

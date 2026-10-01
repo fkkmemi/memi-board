@@ -1,3 +1,6 @@
+import type { MemiBoardLocale } from '../i18n/locales'
+import { translate } from '../i18n/translate'
+
 /**
  * 게시판 검열 차단 누적 → 일시 이용 제한 (호스트 contentWarning 과 동일 모델).
  * - 콘텐츠 차단(로컬/AI flagged) 시 +1
@@ -50,15 +53,19 @@ export function isModerationWriteRestricted(
   return moderationWriteRestrictedUntilMs(count, blockAtMs, nowMs, threshold, decayMs) != null
 }
 
-export function formatRestrictedUntilLabel(untilMs: number, nowMs: number = Date.now()): string {
+export function formatRestrictedUntilLabel(
+  untilMs: number,
+  nowMs: number = Date.now(),
+  locale?: MemiBoardLocale,
+): string {
   const left = Math.max(0, untilMs - nowMs)
   const hours = Math.ceil(left / (60 * 60 * 1000))
-  if (hours <= 0) return '곧 해제'
-  if (hours < 24) return `약 ${hours}시간 후 해제`
+  if (hours <= 0) return translate(locale, 'moderationStrike.liftSoon')
+  if (hours < 24) return translate(locale, 'moderationStrike.liftInHours', { hours })
   const days = Math.floor(hours / 24)
   const remH = hours % 24
-  if (remH === 0) return `약 ${days}일 후 해제`
-  return `약 ${days}일 ${remH}시간 후 해제`
+  if (remH === 0) return translate(locale, 'moderationStrike.liftInDays', { days })
+  return translate(locale, 'moderationStrike.liftInDaysHours', { days, hours: remH })
 }
 
 export function toBlockAtMs(value: unknown): number | null {

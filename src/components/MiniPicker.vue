@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { getDocs, limit as fbLimit, orderBy, query, where } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import type { PostModel } from 'memi-board/runtime'
-import { miniPostTitle, postsCol, useBoardPathConfig, useMemiBoardSettings } from 'memi-board/runtime'
+import { miniPostTitle, postsCol, useBoardPathConfig, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 
 const props = defineProps<{
   modelValue: string[]
@@ -17,6 +17,7 @@ const emit = defineEmits<{
 const db = useFirestore()
 const cfg = () => useBoardPathConfig()
 const { categoryLabel } = useMemiBoardSettings()
+const { t, locale } = useMemiBoardI18n()
 const catalog = ref<PostModel[]>([])
 const pending = ref(true)
 const q = ref('')
@@ -28,7 +29,7 @@ const filtered = computed(() => {
   const rows = catalog.value.filter(post => !selected.value.includes(post.id || ''))
   if (!needle) return rows.slice(0, 20)
   return rows.filter((post) => {
-    const title = miniPostTitle(post).toLowerCase()
+    const title = miniPostTitle(post, locale.value).toLowerCase()
     return title.includes(needle) || (post.slug || '').toLowerCase().includes(needle)
   }).slice(0, 20)
 })
@@ -71,14 +72,14 @@ function remove(id: string) {
   <div class="flex flex-col gap-3 border-t border-default p-3">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <p class="text-xs text-muted">
-        고른 글 {{ selected.length }} / {{ max }}
-        <span v-if="max >= 2"> · 2개부터 캐러셀, 4개는 그리드</span>
+        {{ t('miniPicker.selectedCount', { count: selected.length, max }) }}
+        <span v-if="max >= 2"> · {{ t('miniPicker.layoutHint') }}</span>
       </p>
       <UInput
         v-model="q"
         size="sm"
         icon="i-lucide-search"
-        placeholder="제목 검색"
+        :placeholder="t('miniPicker.searchPlaceholder')"
         class="w-48"
       />
     </div>
@@ -90,7 +91,7 @@ function remove(id: string) {
         class="flex items-center gap-2 rounded-lg bg-elevated/50 px-2 py-1.5"
       >
         <p class="min-w-0 flex-1 truncate text-sm">
-          {{ miniPostTitle(post) }}
+          {{ miniPostTitle(post, locale) }}
           <span class="text-xs text-muted">
             · {{ categoryLabel(post.category || post.boardId) }}
           </span>
@@ -106,7 +107,7 @@ function remove(id: string) {
       </div>
     </div>
 
-    <p v-if="pending" class="text-xs text-muted">글을 불러오는 중…</p>
+    <p v-if="pending" class="text-xs text-muted">{{ t('miniPicker.loading') }}</p>
     <ul v-else class="flex max-h-48 flex-col gap-0.5 overflow-y-auto">
       <li v-for="post in filtered" :key="post.id">
         <button
@@ -116,14 +117,14 @@ function remove(id: string) {
           @click="add(post.id!)"
         >
           <UIcon name="i-lucide-plus" class="size-3.5 shrink-0 text-muted" />
-          <span class="min-w-0 truncate">{{ miniPostTitle(post) }}</span>
+          <span class="min-w-0 truncate">{{ miniPostTitle(post, locale) }}</span>
           <span class="shrink-0 text-[11px] text-muted">
             {{ categoryLabel(post.category || post.boardId) }}
           </span>
         </button>
       </li>
       <li v-if="!filtered.length" class="px-2 py-3 text-center text-xs text-muted">
-        더 고를 글이 없습니다.
+        {{ t('miniPicker.noMore') }}
       </li>
     </ul>
   </div>

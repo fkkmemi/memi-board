@@ -102,16 +102,6 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
     ])
     nuxt.options.imports.transform.exclude = [...transformExclude]
 
-    // CommentItem 이 사용하는 dayjs(CommonJS)를 개발 서버에서도 ESM 형태로
-    // 사전 번들링한다. 호스트가 같은 설정을 별도로 작성할 필요가 없다.
-    const include = new Set([
-      ...(nuxt.options.vite.optimizeDeps.include || []),
-      'dayjs',
-      'dayjs/plugin/relativeTime',
-      'dayjs/locale/ko',
-    ])
-    nuxt.options.vite.optimizeDeps.include = [...include]
-
     addComponentsDir({
       path: componentsDir,
       pathPrefix: false,
@@ -150,16 +140,38 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'fetchPublicListForSeo', from },
       { name: 'resolvePublicSeoDb', from },
       { name: 'versionHistory', from },
+      { name: 'useMemiBoardI18n', from },
+      { name: 'MEMI_BOARD_LOCALES', from },
+      { name: 'useMemiBoardAutoTranslate', from },
     ])
 
     const runtimeConfig = JSON.stringify(options).replace(/</g, '\\u003c')
     const configPlugin = addTemplate({
       filename: 'memi-board.config.mjs',
       getContents: () => `
-import { configureMemiBoard } from 'memi-board/runtime'
+import { computed } from 'vue'
+import {
+  configureMemiBoard,
+  loadMemiBoardLocale,
+  memiBoardHostLocaleKey,
+  normalizeMemiBoardLocale,
+} from 'memi-board/runtime'
 
-export default defineNuxtPlugin(() => {
-  configureMemiBoard(${runtimeConfig})
+export default defineNuxtPlugin({
+  name: 'memi-board:config',
+  // @nuxtjs/i18n 플러그인이 $i18n 을 만든 뒤 실행되어야 한다.
+  dependsOn: ['i18n:plugin'],
+  async setup(nuxtApp) {
+    configureMemiBoard(${runtimeConfig})
+    // 호스트가 @nuxtjs/i18n 을 쓰면 그 언어를 게시판 기본 언어로 쓴다.
+    // 요청(SSR)마다 앱 인스턴스가 따로라 provide 로 넘긴다.
+    const i18n = nuxtApp.$i18n
+    if (!i18n?.locale) return
+    const hostLocale = computed(() => i18n.locale.value)
+    nuxtApp.vueApp.provide(memiBoardHostLocaleKey, hostLocale)
+    const initial = normalizeMemiBoardLocale(hostLocale.value)
+    if (initial) await loadMemiBoardLocale(initial)
+  },
 })
 `,
     })

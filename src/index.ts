@@ -95,6 +95,19 @@ export { useMemiBoardMiniLatest, useMemiBoardMiniPicked } from './composables/us
 export { versionHistory } from './data/versionHistory'
 export type { VersionHistoryEntry } from './data/versionHistory'
 
+export {
+  MEMI_BOARD_LOCALES,
+  DEFAULT_MEMI_BOARD_LOCALE,
+  FALLBACK_MEMI_BOARD_LOCALE,
+  normalizeMemiBoardLocale,
+  memiBoardLocaleInfo,
+} from './i18n/locales'
+export type { MemiBoardLocale, MemiBoardLocaleInfo } from './i18n/locales'
+export { translate, loadMemiBoardLocale, isMemiBoardLocaleLoaded } from './i18n/translate'
+export type { MemiBoardMessages, MemiBoardMessageParams } from './i18n/translate'
+export { useMemiBoardI18n, memiBoardHostLocaleKey } from './i18n/useMemiBoardI18n'
+export type { MemiBoardI18n, UseMemiBoardI18nOptions } from './i18n/useMemiBoardI18n'
+
 export { formatDate, formatFullDate, formatRelativeDate, formatTimestampDetails } from './utils/formatDate'
 export { slugify } from './utils/slugify'
 export {
@@ -154,12 +167,20 @@ export {
   WRITING_ASSISTANT_DAILY_LIMIT,
 } from './composables/useMemiBoardWritingAssistant'
 export type { WritingAssistantAction } from './composables/useMemiBoardWritingAssistant'
+export { useMemiBoardAutoTranslate, localizedText } from './composables/useMemiBoardAutoTranslate'
+export type {
+  MemiBoardTranslateEntry,
+  MemiBoardTranslateOptions,
+  MemiBoardLocalizedFields,
+} from './composables/useMemiBoardAutoTranslate'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'
 export {
   BOARD_SECTION_COLS,
   BOARD_SECTION_KINDS,
   BOARD_SECTION_SORTS,
+  boardSectionKinds,
+  boardSectionSorts,
   defaultSectionCount,
   clampSectionCount,
   pairSectionCols,

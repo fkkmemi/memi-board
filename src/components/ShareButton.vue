@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref } from 'vue'
+import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = defineProps<{
   title?: string | null
 }>()
 
+const { t } = useMemiBoardI18n()
 const copied = ref(false)
 let copiedTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -43,7 +45,7 @@ onBeforeUnmount(() => {
     size="sm"
     variant="ghost"
     :color="copied ? 'success' : 'neutral'"
-    :label="copied ? '링크 복사됨' : '공유'"
+    :label="copied ? t('shareButton.copied') : t('common.action.share')"
     @click="handleShare"
   />
 </template>

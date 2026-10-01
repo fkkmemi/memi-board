@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { slugify, useMemiBoardAuth, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
@@ -27,25 +27,35 @@ const emit = defineEmits<{
   saved: [categories: BoardCategory[]]
 }>()
 
-const listViewOptions: Array<{ label: string, value: BoardListView }> = [
-  { label: '일반', value: 'default' },
-  { label: '조밀', value: 'dense' },
-  { label: '이미지', value: 'image' },
-  { label: '영상', value: 'video' },
-]
-const editorTypeOptions: Array<{ label: string, value: BoardEditorType, description: string }> = [
-  { label: '일반', value: 'default', description: '제목과 본문을 작성' },
-  { label: '이미지', value: 'image', description: '여러 사진과 대표사진을 작성' },
-]
-const writeRoleOptions: Array<{ label: string, value: BoardWriteRole }> = [
-  { label: '일반 이상', value: 'user' },
-  { label: '스태프 이상', value: 'staff' },
-  { label: '관리자만', value: 'admin' },
-]
-const visibilityOptions: Array<{ label: string, value: BoardVisibility, description?: string }> = [
-  { label: '보임', value: 'public', description: '전체 목록·필터에 표시' },
-  { label: '숨김', value: 'hidden', description: '일기장·비공개. 댓글은 담당 스태프만' },
-]
+const { t } = useMemiBoardI18n()
+const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
+  { label: t('settings.option.default'), value: 'default' },
+  { label: t('settings.listView.options.dense'), value: 'dense' },
+  { label: t('common.label.image'), value: 'image' },
+  { label: t('settings.listView.options.video'), value: 'video' },
+])
+const editorTypeOptions = computed<Array<{ label: string, value: BoardEditorType, description: string }>>(() => [
+  { label: t('settings.option.default'), value: 'default', description: t('settings.editorType.options.default') },
+  { label: t('common.label.image'), value: 'image', description: t('settings.editorType.options.image') },
+])
+const writeRoleOptions = computed<Array<{ label: string, value: BoardWriteRole }>>(() => [
+  { label: t('settings.writeRole.options.user'), value: 'user' },
+  { label: t('settings.writeRole.options.staff'), value: 'staff' },
+  { label: t('settings.writeRole.options.admin'), value: 'admin' },
+])
+const visibilityOptions = computed<Array<{ label: string, value: BoardVisibility, description?: string }>>(() => [
+  { label: t('settings.visibility.options.public.label'), value: 'public', description: t('settings.visibility.options.public.description') },
+  { label: t('settings.visibility.options.hidden.label'), value: 'hidden', description: t('settings.visibility.options.hidden.description') },
+])
+// reka-ui Select 는 빈 문자열 값을 허용하지 않아 '자동'을 sentinel 로 두고 저장 시 '' 로 바꾼다.
+const LOCALE_AUTO = 'auto'
+const localeOptions = computed(() => [
+  { label: t('settings.locale.auto'), value: LOCALE_AUTO },
+  ...MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
+])
+function fromLocaleOption(value: string) {
+  return value === LOCALE_AUTO ? '' : value
+}
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, saveCategories, deleteCategory } = useMemiBoardSettings()
@@ -91,6 +101,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
       allowedStaffUids: category.allowedStaffUids ?? [],
+      locale: category.locale ?? '',
     }))
   }
 }, { immediate: true })
@@ -112,6 +123,7 @@ function addCategory() {
     writeRole: 'user',
     commentWriteRole: 'user',
     allowedStaffUids: [],
+    locale: '',
   })
   newLabel.value = ''
 }
@@ -129,7 +141,7 @@ async function moveCategory(index: number, offset: -1 | 1) {
     await saveCategories(draft.value)
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '카테고리 순서를 저장하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('settings.error.orderFailed')
   }
   finally {
     ordering.value = false
@@ -139,7 +151,7 @@ async function moveCategory(index: number, offset: -1 | 1) {
 async function removeCategory(index: number) {
   const category = draft.value[index]
   if (!category || !window.confirm(
-    `‘${category.label}’ 게시판을 삭제하시겠습니까?\n\n이 게시판의 모든 게시물, 댓글, 대댓글, 본문 이미지와 첨부파일이 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.`,
+    t('settings.deleteConfirm', { label: category.label }),
   )) return
   error.value = ''
   deletingId.value = category.id
@@ -148,7 +160,7 @@ async function removeCategory(index: number) {
     draft.value.splice(index, 1)
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '게시판과 연결 데이터를 삭제하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('settings.error.deleteFailed')
   }
   finally {
     deletingId.value = null
@@ -171,7 +183,7 @@ async function save(category: BoardCategory, index: number) {
     emit('saved', draft.value)
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '게시판 설정을 저장하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
   }
   finally {
     savingId.value = null
@@ -179,7 +191,7 @@ async function save(category: BoardCategory, index: number) {
 }
 
 async function runDeleteAll() {
-  if (!props.deleteAll || deleteConfirm.value !== '게시판 데이터 삭제') return
+  if (!props.deleteAll || deleteConfirm.value !== t('settings.danger.phrase')) return
   deletingAll.value = true
   deleteDone.value = false
   error.value = ''
@@ -189,7 +201,7 @@ async function runDeleteAll() {
     deleteDone.value = true
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '게시판 데이터를 삭제하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('settings.error.deleteAllFailed')
   }
   finally {
     deletingAll.value = false
@@ -198,14 +210,14 @@ async function runDeleteAll() {
 </script>
 
 <template>
-  <div v-if="pending" class="py-16 text-center text-sm text-muted">설정을 불러오고 있습니다.</div>
+  <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
   <UAlert
     v-else-if="!canManage"
     color="neutral"
     variant="subtle"
     icon="i-lucide-circle-help"
-    title="없는 게시판입니다"
-    description="주소를 다시 확인해 주세요."
+    :title="t('settings.notFound.title')"
+    :description="t('settings.notFound.checkAddress')"
   />
   <div v-else class="flex flex-col gap-4">
     <UAlert
@@ -213,8 +225,8 @@ async function runDeleteAll() {
       color="neutral"
       variant="subtle"
       icon="i-lucide-circle-help"
-      title="없는 게시판입니다"
-      description="게시판 주소를 다시 확인해 주세요."
+      :title="t('settings.notFound.title')"
+      :description="t('settings.notFound.checkBoardAddress')"
     />
     <details
       v-for="(category, index) in draft"
@@ -225,18 +237,18 @@ async function runDeleteAll() {
       <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 select-none [&::-webkit-details-marker]:hidden">
         <div class="min-w-0">
           <code class="text-sm font-semibold text-highlighted">{{ category.id }}</code>
-          <p class="mt-1 truncate text-xs text-muted">{{ category.label || '라벨 없음' }} · {{ categoryTo(category.id) }}</p>
+          <p class="mt-1 truncate text-xs text-muted">{{ category.label || t('settings.noLabel') }} · {{ categoryTo(category.id) }}</p>
         </div>
         <UIcon name="i-lucide-chevron-down" class="size-4 text-muted transition-transform group-open:rotate-180" />
       </summary>
 
       <div class="flex flex-col gap-5 border-t border-default px-4 py-4">
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-          <div><p class="text-sm font-medium">카테고리 ID</p><p class="text-xs text-muted">주소와 데이터 기준값</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.id.label') }}</p><p class="text-xs text-muted">{{ t('settings.id.help') }}</p></div>
           <UInput :model-value="category.id" disabled class="font-mono" />
         </div>
         <div class="flex flex-col gap-2">
-          <div><p class="text-sm font-medium">글쓰기 권한</p><p class="text-xs text-muted">이 카테고리에 글을 쓸 수 있는 최소 역할</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.writeRole.label') }}</p><p class="text-xs text-muted">{{ t('settings.writeRole.help') }}</p></div>
           <MemiBoardOptionCards
             v-model="category.writeRole"
             :options="writeRoleOptions"
@@ -245,11 +257,11 @@ async function runDeleteAll() {
         </div>
         <div class="flex flex-col gap-2">
           <div>
-            <p class="text-sm font-medium">댓글쓰기 권한</p>
+            <p class="text-sm font-medium">{{ t('settings.commentWriteRole.label') }}</p>
             <p class="text-xs text-muted">
               {{ category.visibility === 'hidden'
-                ? '숨김 게시판은 댓글이 공개 피드에 안 나오고, 담당 스태프만 작성할 수 있습니다'
-                : '이 카테고리에 댓글을 쓸 수 있는 최소 역할' }}
+                ? t('settings.commentWriteRole.hiddenHelp')
+                : t('settings.commentWriteRole.help') }}
             </p>
           </div>
           <MemiBoardOptionCards
@@ -262,40 +274,40 @@ async function runDeleteAll() {
             v-else
             class="rounded-lg border border-default px-3 py-2.5 text-sm text-muted"
           >
-            담당 스태프만 (숨김 보드 고정)
+            {{ t('settings.commentWriteRole.hiddenFixed') }}
           </p>
         </div>
         <div v-if="needsStaffPicker(category)" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-          <div><p class="text-sm font-medium">담당 스태프</p><p class="text-xs text-muted">지정한 스태프만 이 보드를 설정·관리합니다. 비우면 관리자만</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.staff.label') }}</p><p class="text-xs text-muted">{{ t('settings.staff.help') }}</p></div>
           <USelectMenu
             v-model="category.allowedStaffUids"
             :items="staffOptions"
             value-key="value"
             label-key="label"
             multiple
-            placeholder="관리자만 (스태프 미지정)"
+            :placeholder="t('settings.staff.placeholder')"
             @update:model-value="savedId = null"
           />
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
-          <div><p class="text-sm font-medium">표시 라벨</p><p class="text-xs text-muted">사용자에게 보이는 이름</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
           <UInput v-model="category.label" @update:model-value="savedId = null" />
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
-          <div><p class="text-sm font-medium">설명</p><p class="text-xs text-muted">게시판 상단 등에 보이는 안내 문구</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
           <UTextarea
             v-model="category.description"
             :rows="3"
             autoresize
             :maxrows="6"
-            placeholder="이 게시판에 대한 짧은 설명 (선택)"
+            :placeholder="t('settings.description.placeholder')"
             @update:model-value="savedId = null"
           />
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
           <div>
-            <p class="text-sm font-medium">공개 범위</p>
-            <p class="text-xs text-muted">숨김이면 전체 필터에 안 나오고, 글은 관리자·담당 스태프·작성자만 읽을 수 있습니다. 댓글은 담당 스태프만 쓸 수 있습니다</p>
+            <p class="text-sm font-medium">{{ t('settings.visibility.label') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.visibility.help') }}</p>
           </div>
           <MemiBoardOptionCards
             v-model="category.visibility"
@@ -304,7 +316,7 @@ async function runDeleteAll() {
           />
         </div>
         <div class="flex flex-col gap-2">
-          <div><p class="text-sm font-medium">리스트뷰</p><p class="text-xs text-muted">게시글 목록 표시 방식</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.listView.label') }}</p><p class="text-xs text-muted">{{ t('settings.listView.help') }}</p></div>
           <MemiBoardOptionCards
             v-model="category.listView"
             :options="listViewOptions"
@@ -312,21 +324,31 @@ async function runDeleteAll() {
           />
         </div>
         <div class="flex flex-col gap-2">
-          <div><p class="text-sm font-medium">입력 폼</p><p class="text-xs text-muted">글쓰기 화면의 작성 방식</p></div>
+          <div><p class="text-sm font-medium">{{ t('settings.editorType.label') }}</p><p class="text-xs text-muted">{{ t('settings.editorType.help') }}</p></div>
           <MemiBoardOptionCards
             v-model="category.editorType"
             :options="editorTypeOptions"
             @update:model-value="savedId = null"
           />
         </div>
+        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+          <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
+          <USelect
+            :model-value="category.locale || LOCALE_AUTO"
+            :items="localeOptions"
+            value-key="value"
+            label-key="label"
+            @update:model-value="category.locale = fromLocaleOption($event as string); savedId = null"
+          />
+        </div>
         <div class="flex flex-wrap justify-between gap-2 border-t border-default pt-4">
           <div v-if="!categoryId" class="flex gap-1">
-            <UButton label="위로" icon="i-lucide-arrow-up" color="neutral" variant="outline" size="sm" :disabled="index === 0 || ordering" @click="moveCategory(index, -1)" />
-            <UButton label="아래로" icon="i-lucide-arrow-down" color="neutral" variant="outline" size="sm" :disabled="index === draft.length - 1 || ordering" @click="moveCategory(index, 1)" />
+            <UButton :label="t('common.action.toTop')" icon="i-lucide-arrow-up" color="neutral" variant="outline" size="sm" :disabled="index === 0 || ordering" @click="moveCategory(index, -1)" />
+            <UButton :label="t('settings.action.moveDown')" icon="i-lucide-arrow-down" color="neutral" variant="outline" size="sm" :disabled="index === draft.length - 1 || ordering" @click="moveCategory(index, 1)" />
           </div>
           <div class="flex gap-1">
             <UButton
-              label="게시판으로 이동"
+              :label="t('settings.action.goToBoard')"
               icon="i-lucide-arrow-up-right"
               color="neutral"
               variant="ghost"
@@ -335,7 +357,7 @@ async function runDeleteAll() {
             />
             <UButton
               v-if="!categoryId"
-              label="게시판 삭제"
+              :label="t('settings.action.deleteBoard')"
               icon="i-lucide-trash-2"
               color="error"
               variant="ghost"
@@ -345,7 +367,7 @@ async function runDeleteAll() {
               @click="removeCategory(index)"
             />
             <UButton
-              label="저장"
+              :label="t('common.action.save')"
               icon="i-lucide-save"
               size="sm"
               :loading="savingId === category.id"
@@ -357,33 +379,33 @@ async function runDeleteAll() {
     </details>
 
     <div v-if="!categoryId" class="flex gap-2 border-t border-default pt-4">
-      <UInput v-model="newLabel" class="flex-1" placeholder="새 카테고리 이름" @keyup.enter="addCategory" />
-      <UButton label="추가" icon="i-lucide-plus" color="neutral" variant="outline" @click="addCategory" />
+      <UInput v-model="newLabel" class="flex-1" :placeholder="t('settings.newCategoryPlaceholder')" @keyup.enter="addCategory" />
+      <UButton :label="t('common.action.add')" icon="i-lucide-plus" color="neutral" variant="outline" @click="addCategory" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
-    <UAlert v-if="savedId" color="success" variant="subtle" :description="`‘${draft.find(item => item.id === savedId)?.label}’ 카테고리를 저장했습니다.`" />
+    <UAlert v-if="savedId" color="success" variant="subtle" :description="t('settings.savedCategory', { label: draft.find(item => item.id === savedId)?.label })" />
 
     <section v-if="deleteAll && !categoryId" class="mt-4 flex flex-col gap-3 border-t border-error/40 pt-6">
       <div>
-        <h2 class="font-semibold text-error">위험 영역</h2>
+        <h2 class="font-semibold text-error">{{ t('settings.danger.title') }}</h2>
         <p class="mt-1 text-sm text-muted">
-          모든 게시글, 댓글, 첨부파일과 카테고리 설정을 영구 삭제합니다. 게시판 사용자와 관리자 권한은 유지합니다.
+          {{ t('settings.danger.description') }}
         </p>
       </div>
-      <UFormField label="확인을 위해 ‘게시판 데이터 삭제’를 입력하세요">
-        <UInput v-model="deleteConfirm" autocomplete="off" placeholder="게시판 데이터 삭제" />
+      <UFormField :label="t('settings.danger.confirmLabel', { phrase: t('settings.danger.phrase') })">
+        <UInput v-model="deleteConfirm" autocomplete="off" :placeholder="t('settings.danger.phrase')" />
       </UFormField>
       <div class="flex justify-end">
         <UButton
-          label="모든 데이터 삭제"
+          :label="t('settings.danger.button')"
           icon="i-lucide-bomb"
           color="error"
-          :disabled="deleteConfirm !== '게시판 데이터 삭제'"
+          :disabled="deleteConfirm !== t('settings.danger.phrase')"
           :loading="deletingAll"
           @click="runDeleteAll"
         />
       </div>
-      <UAlert v-if="deleteDone" color="success" variant="subtle" description="게시판 데이터를 모두 삭제했습니다." />
+      <UAlert v-if="deleteDone" color="success" variant="subtle" :description="t('settings.danger.done')" />
     </section>
   </div>
 </template>

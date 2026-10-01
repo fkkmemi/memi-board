@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useMemiBoardUserPosts } from 'memi-board/runtime'
+import { useMemiBoardI18n, useMemiBoardUserPosts } from 'memi-board/runtime'
 import type { PostModel, UserPostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 
@@ -24,6 +24,8 @@ const props = withDefaults(defineProps<{
 })
 
 const emit = defineEmits<{ select: [post: UserPostModel] }>()
+
+const { t } = useMemiBoardI18n()
 
 const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardUserPosts(
   () => props.uid,
@@ -51,14 +53,14 @@ function postTo(post: PostModel): string | undefined {
       v-else-if="loadError"
       class="text-sm text-error text-center py-8"
     >
-      목록을 불러오지 못했습니다: {{ loadError }}
+      {{ t('userPostList.loadFailed', { error: String(loadError) }) }}
     </p>
 
     <p
       v-else-if="!posts.length"
       class="text-sm text-muted text-center py-8"
     >
-      작성한 글이 없습니다.
+      {{ t('userPostList.empty') }}
     </p>
 
     <MemiBoardListDefault
@@ -80,7 +82,7 @@ function postTo(post: PostModel): string | undefined {
       <UButton
         variant="outline"
         color="neutral"
-        label="더 보기"
+        :label="t('common.action.more')"
         block
         class="w-full"
         :loading="loadingMore"

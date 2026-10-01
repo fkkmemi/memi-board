@@ -4,7 +4,9 @@ import { computed, ref } from 'vue'
 import {
   REPORT_DETAIL_MAX_LENGTH,
   REPORT_REASONS,
+  reportReasonLabel,
   useMemiBoardAuth,
+  useMemiBoardI18n,
   useMemiBoardReports,
 } from 'memi-board/runtime'
 import type { BoardReportReason } from 'memi-board/runtime'
@@ -18,6 +20,10 @@ const props = defineProps<{
 }>()
 
 const { isSignedIn, user } = useMemiBoardAuth()
+const { t, locale, formatNumber } = useMemiBoardI18n()
+const reasonItems = computed(() =>
+  REPORT_REASONS.map(item => ({ ...item, label: reportReasonLabel(item.value, locale.value) })),
+)
 const { hasReported, pending, submitReport } = useMemiBoardReports(props.boardId, props.postId)
 
 const open = ref(false)
@@ -52,7 +58,7 @@ async function submit() {
     done.value = true
   }
   catch (cause) {
-    error.value = cause instanceof Error ? cause.message : '신고하지 못했습니다.'
+    error.value = cause instanceof Error ? cause.message : t('reportButton.failed')
   }
 }
 </script>
@@ -64,14 +70,14 @@ async function submit() {
       size="sm"
       variant="ghost"
       :color="hasReported ? 'warning' : 'neutral'"
-      :label="hasReported ? '신고함' : '신고'"
+      :label="hasReported ? t('reportButton.reported') : t('common.action.report')"
       :disabled="hasReported"
       @click="openModal"
     />
-    <UModal v-model:open="open" title="게시물 신고">
+    <UModal v-model:open="open" :title="t('reportButton.title')">
       <template #body>
         <div v-if="done" class="py-4 text-sm text-muted">
-          신고를 접수했습니다. 스태프가 내용을 확인합니다.
+          {{ t('reportButton.done') }}
         </div>
         <form
           v-else
@@ -80,18 +86,18 @@ async function submit() {
         >
           <URadioGroup
             v-model="reason"
-            :items="REPORT_REASONS"
+            :items="reasonItems"
             value-key="value"
-            legend="사유"
+            :legend="t('reportButton.reason')"
           />
           <UTextarea
             v-model="detail"
             :rows="3"
             :maxlength="REPORT_DETAIL_MAX_LENGTH"
-            placeholder="자세한 내용 (선택)"
+            :placeholder="t('reportButton.detailPlaceholder')"
           />
           <p class="text-right text-xs text-dimmed">
-            {{ detail.length.toLocaleString() }} / {{ REPORT_DETAIL_MAX_LENGTH.toLocaleString() }}
+            {{ formatNumber(detail.length) }} / {{ formatNumber(REPORT_DETAIL_MAX_LENGTH) }}
           </p>
           <p v-if="error" class="text-xs text-error">
             {{ error }}
@@ -101,7 +107,7 @@ async function submit() {
               type="button"
               color="neutral"
               variant="ghost"
-              label="취소"
+              :label="t('common.action.cancel')"
               :disabled="pending"
               @click="open = false"
             />
@@ -110,7 +116,7 @@ async function submit() {
               @pointerdown="imeSafeSubmitPointerDown"
               @click="imeSafeSubmitClick"
               color="warning"
-              label="신고하기"
+              :label="t('reportButton.submit')"
               :loading="pending"
             />
           </div>

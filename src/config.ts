@@ -53,6 +53,11 @@ export interface MemiBoardConfig {
   auth: MemiBoardAuthOptions
   moderation: MemiBoardModerationOptions
   seo: MemiBoardSeoOptions
+  /**
+   * 기본 언어. 호스트에 @nuxtjs/i18n 이 있으면 그 언어를 따르고,
+   * 보드 설정에서 언어를 고르면 그 보드는 그 언어로 고정된다. 기본 'ko'.
+   */
+  locale?: string
 }
 
 const GLOBAL_KEY = '__MEMI_BOARD_CONFIG__' as const
@@ -114,6 +119,7 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   if (options.auth) Object.assign(config.auth, options.auth)
   if (options.moderation) Object.assign(config.moderation, options.moderation)
   if (options.seo) Object.assign(config.seo, options.seo)
+  if (options.locale) config.locale = options.locale
 }
 
 export function useMemiBoardConfig(): MemiBoardConfig {

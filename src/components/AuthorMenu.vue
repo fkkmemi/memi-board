@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { AUTHOR_MEMO_MAX_LENGTH, useMemiBoardAuth, useMemiBoardAuthorMemo } from 'memi-board/runtime'
+import { AUTHOR_MEMO_MAX_LENGTH, useMemiBoardAuth, useMemiBoardAuthorMemo, useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{
   authorUid: string
@@ -20,14 +20,16 @@ const props = withDefaults(defineProps<{
   truncate: false,
 })
 
+const { t } = useMemiBoardI18n()
+
 const authorProfileLink = computed(() => props.authorProfileTo?.(props.authorUid))
 const authorPostsLink = computed(() => props.authorPostsTo?.(props.authorUid))
 const authorCommentsLink = computed(() => props.authorCommentsTo?.(props.authorUid))
 
 const items = computed(() => [[
-  { label: '프로필 보기', icon: 'i-lucide-user-round', to: authorProfileLink.value, disabled: !authorProfileLink.value },
-  { label: '작성글 보기', icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
-  { label: '작성한 댓글 보기', icon: 'i-lucide-message-square-text', to: authorCommentsLink.value, disabled: !authorCommentsLink.value },
+  { label: t('authorMenu.viewProfile'), icon: 'i-lucide-user-round', to: authorProfileLink.value, disabled: !authorProfileLink.value },
+  { label: t('authorMenu.viewPosts'), icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
+  { label: t('authorMenu.viewComments'), icon: 'i-lucide-message-square-text', to: authorCommentsLink.value, disabled: !authorCommentsLink.value },
 ]])
 
 // 다른 작성자에 대해 나만 보는 메모 — 로그인 안 했거나 내 카드면 아이콘 자체를 숨긴다.
@@ -74,8 +76,8 @@ async function onDeleteMemo() {
   >
     <UDropdownMenu :items="items" :content="{ align: 'start' }">
       <UButton
-        :avatar="showAvatar ? { src: authorPhoto ?? undefined, alt: authorName ?? '익명' } : undefined"
-        :label="authorName ?? '익명'"
+        :avatar="showAvatar ? { src: authorPhoto ?? undefined, alt: authorName ?? t('common.label.anonymous') } : undefined"
+        :label="authorName ?? t('common.label.anonymous')"
         variant="ghost"
         color="neutral"
         size="xs"
@@ -97,20 +99,20 @@ async function onDeleteMemo() {
         type="button"
         class="shrink-0 rounded-md p-1 transition-colors hover:bg-elevated/60"
         :class="memoSentiment === 'good' ? 'text-primary' : memoSentiment === 'bad' ? 'text-error' : 'text-muted'"
-        aria-label="이 작성자에 대한 메모"
+        :aria-label="t('authorMenu.memoAriaLabel')"
       >
         <UIcon name="i-lucide-notebook-pen" class="size-3.5" />
       </button>
       <template #content>
         <div class="flex flex-col gap-2 p-3">
           <p class="text-xs text-muted">
-            나만 보는 메모
+            {{ t('authorMenu.memoTitle') }}
           </p>
           <UTextarea
             v-model="memoText"
             :rows="3"
             :maxlength="AUTHOR_MEMO_MAX_LENGTH"
-            placeholder="이 작성자에 대해 적어두기…"
+            :placeholder="t('authorMenu.memoPlaceholder')"
             class="w-full"
           />
           <div class="flex items-center justify-between gap-2">
@@ -124,7 +126,7 @@ async function onDeleteMemo() {
               <UButton
                 v-if="memoText || memoSentiment"
                 size="xs"
-                label="삭제"
+                :label="t('common.action.delete')"
                 color="neutral"
                 variant="ghost"
                 :disabled="memoSaving"
@@ -132,7 +134,7 @@ async function onDeleteMemo() {
               />
               <UButton
                 size="xs"
-                label="나쁨"
+                :label="t('authorMenu.bad')"
                 color="error"
                 :loading="memoPendingSentiment === 'bad'"
                 :disabled="memoSaving"
@@ -140,7 +142,7 @@ async function onDeleteMemo() {
               />
               <UButton
                 size="xs"
-                label="좋음"
+                :label="t('authorMenu.good')"
                 color="primary"
                 :loading="memoPendingSentiment === 'good'"
                 :disabled="memoSaving"
