@@ -7,6 +7,7 @@
  * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
 import { ref, computed, watch } from 'vue'
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
 import { mapEditorItems } from '@nuxt/ui/utils/editor'
@@ -932,6 +933,7 @@ function friendlyWriteError(e: unknown): string {
 }
 
 async function handleSubmit() {
+  if (saving.value) return
   error.value = ''
   const imageBoard = isImageEditor.value
   if (!imageBoard && !title.value.trim()) {
@@ -1346,6 +1348,8 @@ async function handleSubmit() {
         :loading="saving"
         :disabled="isWriteRestricted || imageUploading"
         :label="isEdit ? '수정 완료' : '다음: 미리보기'"
+        @pointerdown="imeSafeSubmitPointerDown"
+        @click="imeSafeSubmitClick"
       />
       <UButton
         type="button"

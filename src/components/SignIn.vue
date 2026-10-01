@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { ref, computed } from 'vue'
 import { useMemiBoardConfig } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
@@ -45,6 +46,7 @@ async function handleApple() {
 }
 
 async function handleEmailSubmit() {
+  if (loading.value) return
   loading.value = true
   error.value = ''
   try {
@@ -121,6 +123,8 @@ async function handleEmailSubmit() {
         />
         <UButton
           type="submit"
+          @pointerdown="imeSafeSubmitPointerDown"
+          @click="imeSafeSubmitClick"
           block
           :loading="loading"
           :label="mode === 'signin' ? '로그인' : '회원가입'"

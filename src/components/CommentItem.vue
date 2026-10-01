@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, inject, ref, watch } from 'vue'
 import { Timestamp } from 'firebase/firestore'
 import dayjs from 'dayjs'
@@ -80,6 +81,7 @@ function cancelEdit() {
 }
 
 async function saveEdit() {
+  if (saving.value) return
   const body = editBody.value.trim()
   if (!props.comment.id || !body || body === localBody.value) {
     if (body === localBody.value) editing.value = false
@@ -201,6 +203,8 @@ async function toggleLike() {
           />
           <UButton
             type="submit"
+            @pointerdown="imeSafeSubmitPointerDown"
+            @click="imeSafeSubmitClick"
             label="저장"
             size="xs"
             :loading="saving"

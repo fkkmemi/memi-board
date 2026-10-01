@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, ref } from 'vue'
 import {
   REPORT_DETAIL_MAX_LENGTH,
@@ -38,6 +39,7 @@ function openModal() {
 }
 
 async function submit() {
+  if (pending.value) return
   error.value = ''
   try {
     await submitReport({
@@ -105,6 +107,8 @@ async function submit() {
             />
             <UButton
               type="submit"
+              @pointerdown="imeSafeSubmitPointerDown"
+              @click="imeSafeSubmitClick"
               color="warning"
               label="신고하기"
               :loading="pending"

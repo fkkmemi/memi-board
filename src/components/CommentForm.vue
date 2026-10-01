@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, ref } from 'vue'
 import { canWriteCommentByRole, useMemiBoardAuth } from 'memi-board/runtime'
 import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
@@ -35,6 +36,7 @@ const submitting = ref(false)
 const error = ref('')
 
 async function handleSubmit() {
+  if (submitting.value) return
   error.value = ''
   if (!body.value.trim()) return
   if (!user.value) {
@@ -116,6 +118,8 @@ async function handleSubmit() {
       />
       <UButton
         type="submit"
+        @pointerdown="imeSafeSubmitPointerDown"
+        @click="imeSafeSubmitClick"
         size="sm"
         :label="parent ? '답글 작성' : '댓글 작성'"
         :loading="submitting"

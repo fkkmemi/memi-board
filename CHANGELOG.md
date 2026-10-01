@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.44.1] - 2026-10-01
+
+### Fixed
+- macOS Safari에서 한글 입력 직후(마지막 글자가 조합 중일 때) 제출 버튼을 두 번 눌러야 넘어가던 문제를 고쳤다. 첫 클릭이 조합 확정에 먹히던 것으로, 마우스는 누르는 순간(`pointerdown`) 조합을 확정하고 바로 제출한다. 터치 입력은 기존 click 그대로다. 적용 버튼: 글쓰기 "다음: 미리보기"/"수정 완료", 댓글·답글 작성, 댓글 수정 저장, 신고하기, 이메일 로그인.
+- 위 버튼들의 제출 핸들러가 처리 중에 다시 불리면 무시해 중복 저장을 막는다.
+
+### Added
+- `imeSafeSubmitPointerDown`/`imeSafeSubmitClick` — 같은 처리를 호스트 폼에도 붙일 수 있게 내보낸다. `<UButton type="submit" @pointerdown="imeSafeSubmitPointerDown" @click="imeSafeSubmitClick" />`
+
+### 호스트(부모) 작업
+- 패키지 버전 올리기: `pnpm add memi-board@^0.44.1`. 패키지 컴포넌트는 이것만으로 고쳐진다.
+- 선택: 호스트가 직접 만든 폼 중 한글을 입력하고 바로 제출 버튼을 누르는 곳이 있으면 위 두 핸들러를 `type="submit"` 버튼에 붙인다 (form `@submit.prevent` 핸들러는 그대로 불린다).
+
 ## [0.44.0] - 2026-10-01
 
 ### Added

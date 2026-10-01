@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.44.1',
+    date: '2026-10-01',
+    highlights: [
+      'Mac Safari에서 한글을 입력하고 바로 등록 버튼을 누를 때 두 번 눌러야 하던 문제를 고쳤어요',
+    ],
+  },
+  {
     version: '0.44.0',
     date: '2026-10-01',
     highlights: [
