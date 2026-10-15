@@ -325,7 +325,7 @@ a.memi-board-post-link:visited {
 ### 7. Security Rules + 인덱스 배포
 
 1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
-   (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
+   (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardReports`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
 2. [docs/storage.rules.example](docs/storage.rules.example) → `storage.rules` 병합
 3. `firebase.json`의 Storage `bucket`이 `vuefire.config.storageBucket`과 같은지 확인
    (`*.appspot.com` vs `*.firebasestorage.app` — [firebase-setup.md](docs/firebase-setup.md) 참고)
@@ -335,6 +335,8 @@ a.memi-board-post-link:visited {
    firebase deploy --only firestore:rules,storage,firestore:indexes
    ```
 6. Storage의 Firestore 조회 권한 설정: 배포 시 교차 서비스 IAM 역할 추가 안내를 승인하고, 호스트 Firebase 프로젝트의 Storage 서비스 계정에 `roles/firebaserules.firestoreServiceAgent`가 있는지 확인한다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정) 참고. CI 배포 성공만으로 이 권한 설정을 보장하지 않는다.
+
+0.45.1로 갱신하는 호스트는 [새 규칙 적용·전환 절차](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 함께 확인한다. 패키지 설치나 사이트 푸시만으로 Firebase 규칙은 배포되지 않는다.
 
 **Rules를 파일에만 넣고 배포 안 하면** 글쓰기에서 `permission-denied` — 가장 흔한 설치 실수.
 **Storage 규칙을 앱이 쓰는 버킷이 아닌 곳에 배포하면** 본문 이미지에서 `storage/unauthorized`.
@@ -468,7 +470,7 @@ const router = useRouter()
 **에디터 이미지:** 툴바에서 기기 파일 또는 외부 HTTPS 이미지 URL을 추가할 수 있고, 붙여넣기 / 드롭 파일은 Firebase Storage에 업로드한다. 외부 URL은 Storage에 복사하지 않으며 원본이 삭제되거나 핫링크가 차단되면 표시되지 않는다. 첫 본문 이미지는 업로드·외부 링크 구분 없이 목록과 공유 대표 이미지로 사용한다.
 
 `memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
-글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MB + `image/*`** 로 본다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
+글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MiB 미만 + `image/*` + 소유권 검증**으로 제한한다. 기존 글은 작성자 또는 전역 admin·staff만 수정할 수 있다. 글 저장 전에는 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 하며, 기존 파일을 덮어쓸 때는 기존 메타데이터도 같아야 한다. 이미지 업로드도 Firestore의 글 존재 여부·소유권을 조회한다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
 
 본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
@@ -514,7 +516,13 @@ const router = useRouter()
 | 댓글 작성 | 로그인 + 보드 `commentWriteRole` 충족. **숨김 보드는 담당 스태프만** (`commentWriteRole` 무시) |
 | 글 수정·삭제 | 작성자 또는 해당 보드 관리자·담당 스태프 |
 | 댓글 삭제 | 댓글 작성자 · 글 작성자 · 해당 보드 관리자·담당 스태프 |
+| 연관 좋아요 정리 | 좋아요 작성자 또는 부모 글 작성자·해당 보드 관리자·담당 스태프. 댓글 좋아요는 댓글 작성자도 정리 가능 |
+| 파일 업로드·삭제 | 기존 글은 글 작성자 또는 전역 admin·staff. 글 문서가 없으면 파일의 `ownerUid`로 검증 |
 | 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |
+
+글 수정 시 `boardId`·`authorUid`는 바꿀 수 없고 `listed`는 공개 범위 전환 규칙을 따른다. 공개 범위 변경은 `visibilityTransition`을 기록해 새 글·댓글 생성과 일반 글 수정을 잠근 뒤 완료한다. 실패 시 같은 목표 공개 범위로 다시 저장한다. 글과 본문을 한 batch에서 만들 수 있도록 본문 쓰기는 `getAfter()`로 부모 글을 검증한다. 글 삭제 후에도 신고 기록은 보존한다.
+
+Storage 예제의 파일 읽기·목록 조회는 공개다. 숨김 보드·비공개 초안의 Firestore 읽기 제한이 첨부파일에도 적용되는 것은 아니다. Storage의 admin·staff 권한은 보드 담당 여부와 무관한 전역 권한이다. 상세한 이유와 전환 방법은 [규칙 변경 안내](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 참고한다.
 
 **알려진 한계:** AI 검열은 클라이언트 전용. SDK로 직접 write 하면 우회 가능. 중요 서비스면 Cloud Functions 검증을 호스트가 추가(패키지 범위 밖).
 
@@ -621,13 +629,14 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 1. 로그인 상태인지 확인
 2. `vuefire.config.storageBucket`과 `firebase.json` `storage.bucket`이 **같은 이름**인지 확인. 구 프로젝트는 `*.appspot.com`(앱)과 `*.firebasestorage.app`(CLI 기본)이 갈라질 수 있다 — 앱이 쓰는 쪽에 규칙을 배포한다.
 3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
-4. `firebase deploy --only storage` 후 다시 올려 본다.
+4. 저장 전 파일에 `customMetadata.ownerUid`가 있는지 확인한다. 0.45.1 이상 패키지는 이를 자동으로 넣는다. 기존 글은 작성자·전역 admin·staff인지 확인한다.
+5. 이미지 규칙도 Firestore를 조회하므로 [교차 서비스 IAM 역할](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)을 확인하고, `firebase deploy --only storage` 후 다시 올려 본다.
 
 ### ZIP 등 첨부파일 `storage/unauthorized`
 
 `memiBoardPosts/{postId}/attachments/...`에서 실패하면 로그인 상태, 앱이 쓰는 버킷에 배포된 첨부 규칙, **파일당 20MiB 미만** 조건을 먼저 확인한다. 예시 규칙은 ZIP의 MIME 형식이나 `.exe.zip` 이름을 차단하지 않는다.
 
-조건을 충족해도 실패하면 **호스트 Firebase 프로젝트의 Storage 서비스 계정에 Firestore 조회 역할이 있는지** 확인한다. 첨부 규칙은 `postExists`·`isPostOwner`·`isBoardStaff`에서 Firestore를 조회한다. 조회 권한이 없으면 새 글의 문서 존재 여부 확인부터 실패할 수 있다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)에 따라 `roles/firebaserules.firestoreServiceAgent`를 설정한다.
+조건을 충족해도 실패하면 **호스트 Firebase 프로젝트의 Storage 서비스 계정에 Firestore 조회 역할이 있는지** 확인한다. 이미지·첨부 규칙은 `canWritePostFile`에서 `postExists`·`isPostOwner`·`isBoardStaff`를 통해 Firestore를 조회한다. 조회 권한이 없으면 새 글의 문서 존재 여부 확인부터 실패할 수 있다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)에 따라 `roles/firebaserules.firestoreServiceAgent`를 설정한다.
 
 ### 글 삭제 `storage/unauthorized`
 
@@ -638,10 +647,11 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 ```
 match /memiBoardPosts/{postId}/{allPaths=**} {
   allow list, get: if true;
-  allow delete: if isSignedIn()
-    && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+  allow delete: if canDeletePostFile(postId);
 }
 ```
+
+`canDeletePostFile`과 관련 함수도 최신 `docs/storage.rules.example`에서 함께 병합한다. 글 문서가 없으면 로그인만으로 삭제를 허용하던 예전 조건(`!postExists`)은 사용하지 않는다.
 
 `write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 0.38.1+ 패키지는 `images/`·`attachments/`만 목록으로 비운다.
 

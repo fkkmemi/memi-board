@@ -1,9 +1,9 @@
-// memi-board 0.23+ Storage Rules (flat schema)
+// memi-board 0.45.1+ Storage Rules (flat schema, ownerUid metadata)
 // memiBoardPosts/{postId}/attachments|images/...
 // postId 가 전역 고유이므로 boardId prefix 는 더 이상 필요 없음.
 // 부모/호스트 Firebase 프로젝트에서 Storage 서비스 계정에
 // roles/firebaserules.firestoreServiceAgent 역할을 설정해야 한다.
-// firestore.exists/get 조회 권한이 없으면 첨부 업로드·파일 삭제가 unauthorized로 실패한다.
+// firestore.exists/get 조회 권한이 없으면 이미지·첨부 업로드·파일 삭제가 unauthorized로 실패한다.
 // 설정 및 확인 절차: docs/firebase-setup.md의 Storage 규칙의 Firestore 조회 권한 절.
 
 rules_version = '2';

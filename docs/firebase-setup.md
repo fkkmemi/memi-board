@@ -77,9 +77,37 @@ firebase deploy --only firestore:rules,storage
 
 **병합만 하고 배포를 안 하면 글쓰기·댓글에서 `permission-denied`가 난다** — 가장 흔한 설치 실수다.
 
+### 0.45.1 규칙 변경과 기존 호스트 전환
+
+0.45.1은 클라이언트와 Firestore·Storage 규칙을 함께 갱신해야 한다. 사이트 자동 배포는 Firebase 규칙 배포를 대신하지 않는다.
+
+| 대상 | 변경 내용 |
+|------|-----------|
+| 글 수정 | `boardId`·`authorUid` 변경을 금지하고 `listed` 변경을 공개 범위 전환으로 제한한다. |
+| 글·본문 동시 생성 | 본문 쓰기에서 `getAfter()`로 batch 적용 후 부모 글의 소유권을 확인한다. |
+| 공개 범위 전환 | 보드 설정의 `visibilityTransition` 동안 새 글·댓글 생성과 일반 글 수정을 잠근다. 담당 관리자의 `listed` 동기화는 허용한다. |
+| 삭제·감사 기록 | 콘텐츠 작성자·담당 관리자가 연관 좋아요를 정리할 수 있다. 글을 지워도 신고 기록은 남긴다. |
+| 이미지·첨부 업로드 | 기존 글은 작성자 또는 전역 admin·staff만 쓴다. 글 저장 전에는 업로드 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 한다. 덮어쓰기는 기존 파일의 `ownerUid`도 확인한다. |
+| 파일 삭제 | 글 문서가 있으면 작성자 또는 전역 admin·staff, 없으면 파일에 기록된 `ownerUid` 본인만 삭제한다. |
+
+적용 순서:
+
+1. 호스트에서 `memi-board@^0.45.1` 이상을 설치하고 lockfile을 갱신한다. 직접 만든 업로드 코드도 이미지·썸네일·첨부파일 모두에 `customMetadata: { ownerUid: user.uid }`를 넣는다.
+2. 최신 예제의 함수와 컬렉션·경로별 규칙 전체를 호스트에 병합한다. 컬렉션 이름을 바꿨다면 함수 내부 Firestore 경로도 맞춘다. 예전의 `!postExists(postId)`만으로 파일 쓰기·삭제를 허용하는 조건은 제거한다. Rules의 겹치는 `match` 중 하나라도 허용하면 접근이 가능하므로, 넓은 `allow write`를 남겨두지 않는다.
+3. 에뮬레이터에서 두 계정으로 새 글·본문 동시 저장, 이미지·첨부 업로드, 타인 파일 덮어쓰기·삭제 거절, 댓글 좋아요 정리, 숨김 전환 재시도를 확인한다.
+4. 새 클라이언트와 규칙 배포를 같은 배포 작업으로 진행하고 앱이 사용하는 모든 버킷에 적용한다. 새 규칙이 적용되면 기존 브라우저의 구버전 클라이언트는 저장 전 업로드에 `ownerUid`가 없어 거절될 수 있으므로 새 버전을 불러온 뒤 재시도한다. 아래 교차 서비스 IAM 설정도 확인한다.
+
+기존 글의 파일은 `ownerUid`가 없어도 부모 글의 작성자·역할로 판단하므로 메타데이터 일괄 수정이 필요하지 않다. 반면 부모 글 문서가 없고 `ownerUid`도 없는 예전 고아 파일은 클라이언트에서 수정·삭제할 수 없다. 필요한 정리는 신뢰할 수 있는 Admin SDK 또는 콘솔에서 수행한다.
+
+공개 범위 전환 중 실패하면 `visibilityTransition`을 임의로 지우거나 반대 범위로 바꾸지 말고, 설정 화면에서 **같은 목표 범위로 다시 저장**해 동기화를 완료한다. 숨김 전환은 콘텐츠의 `listed`를 먼저 내리고 마지막에 `visibility: 'hidden'`을 확정한다. 공개 복귀는 보드 공개를 먼저 허용한 뒤 콘텐츠를 동기화하고 전환 표시를 비운다.
+
+Storage의 Firestore 조회 제한은 서로 다른 문서 최대 2개이므로 예제는 글 문서와 사용자 역할 문서만 읽는다. 따라서 Storage의 admin·staff는 보드 담당 여부와 무관한 전역 파일 관리 권한을 유지한다. Firestore의 담당 스태프 범위와 혼동하지 않는다. [공식 조회 제한](https://firebase.google.com/docs/storage/security/rules-conditions#enhance_with_firestore)을 참고한다.
+
+예제의 파일 읽기와 목록 조회는 계속 공개다. 숨김 보드·비공개 초안 파일까지 비공개로 저장해야 하는 서비스는 별도의 Storage 읽기 정책을 설계해야 한다.
+
 ### Storage 규칙의 Firestore 조회 권한 (부모/호스트 프로젝트 필수 설정)
 
-Storage 예시 규칙은 첨부 업로드와 파일 삭제 시 `firestore.exists()` / `firestore.get()`으로 글의 존재 여부, `authorUid`, 사용자 `role`을 조회한다. 따라서 **호스트 Firebase 프로젝트의 Storage 서비스 계정**에 Firestore 조회 역할이 필요하다. 패키지 설치나 Firestore Rules 배포만으로 이 IAM 설정이 완료되지는 않는다.
+Storage 예시 규칙은 이미지·첨부 업로드와 파일 삭제 시 `firestore.exists()` / `firestore.get()`으로 글의 존재 여부, `authorUid`, 사용자 `role`을 조회한다. 따라서 **호스트 Firebase 프로젝트의 Storage 서비스 계정**에 Firestore 조회 역할이 필요하다. 패키지 설치나 Firestore Rules 배포만으로 이 IAM 설정이 완료되지는 않는다.
 
 호스트 프로젝트 관리자가 다음을 설정한다:
 
@@ -92,7 +120,7 @@ Storage 예시 규칙은 첨부 업로드와 파일 삭제 시 `firestore.exists
 
 **CI의 `--non-interactive` 배포 성공만으로 IAM 설정까지 완료됐다고 판단하지 않는다.** 최초 설정은 호스트 관리자가 대화형 배포 또는 IAM 콘솔에서 수행하고, 위 서비스 계정의 역할을 확인한다.
 
-2MB ZIP처럼 용량 조건을 충족해도 이 권한이 없으면 `memiBoardPosts/{postId}/attachments/...`에서 `storage/unauthorized`가 날 수 있다. 새 글 문서가 아직 없어도 `firestore.exists()` 조회 자체에는 권한이 필요하다. 현재 본문 이미지 업로드는 Firestore를 조회하지 않으므로, 이미지 업로드가 성공해도 첨부 업로드·파일 삭제의 조회 권한이 정상이라는 뜻은 아니다.
+2MB ZIP처럼 용량 조건을 충족해도 이 권한이 없으면 `memiBoardPosts/{postId}/attachments/...`에서 `storage/unauthorized`가 날 수 있다. 새 글 문서가 아직 없어도 `firestore.exists()` 조회 자체에는 권한이 필요하다. 0.45.1의 본문 이미지 업로드도 같은 Firestore 조회 권한이 필요하다.
 
 공식 근거: [교차 서비스 Storage Rules 권한 설정](https://firebase.google.com/docs/rules/manage-deploy#manage_permissions_for_cross-service_cloud_storage_security_rules), [역할의 포함 권한](https://docs.cloud.google.com/iam/docs/roles-permissions/firebaserules#firebaserules.firestoreServiceAgent).
 
