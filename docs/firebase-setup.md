@@ -69,13 +69,32 @@ firebase init firestore storage
 
 ## 5. 게시판 Security Rules 병합 + 배포
 
-README의 [Security Model](../README.md#security-model--반드시-읽어야-하는-부분) 섹션대로 `docs/firestore.rules.example`/`docs/storage.rules.example`을 프로젝트 규칙 파일에 병합한 뒤:
+README의 [Security Model](../README.md#security-model) 섹션대로 `docs/firestore.rules.example`/`docs/storage.rules.example`을 프로젝트 규칙 파일에 병합한 뒤:
 
 ```bash
 firebase deploy --only firestore:rules,storage
 ```
 
 **병합만 하고 배포를 안 하면 글쓰기·댓글에서 `permission-denied`가 난다** — 가장 흔한 설치 실수다.
+
+### Storage 규칙의 Firestore 조회 권한 (부모/호스트 프로젝트 필수 설정)
+
+Storage 예시 규칙은 첨부 업로드와 파일 삭제 시 `firestore.exists()` / `firestore.get()`으로 글의 존재 여부, `authorUid`, 사용자 `role`을 조회한다. 따라서 **호스트 Firebase 프로젝트의 Storage 서비스 계정**에 Firestore 조회 역할이 필요하다. 패키지 설치나 Firestore Rules 배포만으로 이 IAM 설정이 완료되지는 않는다.
+
+호스트 프로젝트 관리자가 다음을 설정한다:
+
+1. 호스트 저장소에서 위 배포 명령을 대화형으로 실행한다. Firebase CLI가 교차 서비스 규칙용 IAM 역할 추가를 물으면 승인한다. Firebase 콘솔에서 Storage Rules를 저장할 때 표시되는 연결 권한 안내로도 설정할 수 있다.
+2. Google Cloud Console → **IAM 및 관리자 → IAM**에서 같은 Firebase 프로젝트를 선택하고 **Google 제공 역할 부여 포함(Include Google-provided role grants)**을 켠다.
+3. `service-<PROJECT_NUMBER>@gcp-sa-firebasestorage.iam.gserviceaccount.com` 계정을 찾아 **Firebase Rules Firestore Service Agent** (`roles/firebaserules.firestoreServiceAgent`) 역할이 있는지 확인한다. `<PROJECT_NUMBER>`는 프로젝트 ID가 아니라 Firebase 프로젝트 설정의 숫자 프로젝트 번호다. 역할이 없으면 IAM 변경 권한이 있는 호스트 관리자가 이 서비스 계정에 추가한다.
+4. 권한 반영 후 로그인 상태에서 새 글에 20MiB 미만의 작은 첨부파일을 올려 확인한다. 기존 글에서는 작성자·스태프의 첨부 작업도 확인한다.
+
+이 역할은 프로젝트의 Firestore 문서 조회(`datastore.entities.get`)를 허용한다. 일반 사용자 계정에 부여하는 역할이 아니며, Firestore 쓰기·삭제 권한은 포함하지 않는다. Storage 규칙의 소유권·역할 검사는 그대로 유지한다.
+
+**CI의 `--non-interactive` 배포 성공만으로 IAM 설정까지 완료됐다고 판단하지 않는다.** 최초 설정은 호스트 관리자가 대화형 배포 또는 IAM 콘솔에서 수행하고, 위 서비스 계정의 역할을 확인한다.
+
+2MB ZIP처럼 용량 조건을 충족해도 이 권한이 없으면 `memiBoardPosts/{postId}/attachments/...`에서 `storage/unauthorized`가 날 수 있다. 새 글 문서가 아직 없어도 `firestore.exists()` 조회 자체에는 권한이 필요하다. 현재 본문 이미지 업로드는 Firestore를 조회하지 않으므로, 이미지 업로드가 성공해도 첨부 업로드·파일 삭제의 조회 권한이 정상이라는 뜻은 아니다.
+
+공식 근거: [교차 서비스 Storage Rules 권한 설정](https://firebase.google.com/docs/rules/manage-deploy#manage_permissions_for_cross-service_cloud_storage_security_rules), [역할의 포함 권한](https://docs.cloud.google.com/iam/docs/roles-permissions/firebaserules#firebaserules.firestoreServiceAgent).
 
 ## 6. 로그인 공급자 설정
 

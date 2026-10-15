@@ -97,7 +97,7 @@ function toDraft(category: BoardCategory): BoardCategory {
   return {
     ...category,
     description: category.description ?? '',
-    visibility: category.visibility === 'hidden' ? 'hidden' : 'public',
+    visibility: category.visibilityTransition || (category.visibility === 'hidden' ? 'hidden' : 'public'),
     listView: category.listView ?? 'default',
     editorType: category.editorType ?? (category.listView === 'image' ? 'image' : 'default'),
     writeRole: category.writeRole ?? 'user',
@@ -150,6 +150,7 @@ async function save() {
     const order = isNew.value ? categories.value.length : (snapshot.order ?? 0)
     await saveCategory(snapshot, order)
     snapshot.order = order
+    snapshot.visibilityTransition = undefined
     // 저장 성공 직후 draft 유지 (스냅샷 오기 전에 watch가 비우지 않도록)
     draft.value = toDraft(snapshot)
     saved.value = true
@@ -239,6 +240,7 @@ async function save() {
         <p class="text-sm font-medium">{{ t('settings.visibility.label') }}</p>
         <p class="text-xs text-muted">{{ t('settings.visibility.help') }}</p>
       </div>
+      <UAlert v-if="source?.visibilityTransition" color="warning" :title="t('settings.visibility.pending')" class="mb-3" />
       <MemiBoardOptionCards v-model="draft.visibility" :options="visibilityOptions" @update:model-value="saved = false" />
     </div>
     <div class="flex flex-col gap-2">

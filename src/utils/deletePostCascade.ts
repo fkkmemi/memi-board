@@ -22,7 +22,6 @@ import {
   postBodyDoc,
   postDoc,
   postStorageFolder,
-  reportsCol,
 } from './boardPaths'
 import { extractEditorImageUrls } from './extractEditorImageUrls'
 import { postNamespaceFromStoragePath, storagePathFromDownloadUrl } from './storagePath'
@@ -72,22 +71,13 @@ export async function deleteLikesForPost(
   await deleteQueryDocs(db, query(likesCol(db, cfg), where('postId', '==', postId)))
 }
 
-/** 글에 달린 신고를 모두 지운다. */
-export async function deleteReportsForPost(
-  db: Firestore,
-  cfg: BoardPathConfig,
-  postId: string,
-): Promise<void> {
-  await deleteQueryDocs(db, query(reportsCol(db, cfg), where('postId', '==', postId)))
-}
-
 /** 댓글 하나에 달린 좋아요만 지운다. */
 export async function deleteLikesForComment(
   db: Firestore,
   cfg: BoardPathConfig,
   commentId: string,
 ): Promise<void> {
-  await deleteQueryDocs(db, query(likesCol(db, cfg), where('commentId', '==', commentId)))
+  await deleteQueryDocs(db, query(likesCol(db, cfg), where('commentId', '==', commentId), where('target', '==', 'comment')))
 }
 
 /** 글 하나의 댓글(답글 포함), 좋아요, 본문, 첨부 Storage, 메타를 순서대로 삭제한다. */
@@ -110,7 +100,7 @@ export async function deletePostCascade(
   // 답글도 같은 flat 컬렉션에서 같은 postId를 가지므로 함께 삭제된다.
   await deleteQueryDocs(db, query(commentsCol(db, cfg), where('postId', '==', id)))
   await deleteLikesForPost(db, cfg, id)
-  await deleteReportsForPost(db, cfg, id)
+  // Reports are moderation/audit records. Keep them after the post is deleted.
 
   const extraPaths = new Set<string>()
   const extraNamespaces = new Set<string>()

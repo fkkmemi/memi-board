@@ -8,15 +8,10 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  setDoc,
-  startAfter,
   where,
-  writeBatch,
 } from 'firebase/firestore'
-import type { QueryDocumentSnapshot } from 'firebase/firestore'
 import { useBoardPathConfig } from '../config'
 import {
-  commentsCol,
   postsCol,
   settingsCol,
   settingsDoc,
@@ -27,6 +22,7 @@ import { registerBoardLookup } from './boardLookup'
 import { canManageBoardByRole } from '../utils/boardAccess'
 import { slugify } from '../utils/slugify'
 import { deletePostCascade } from '../utils/deletePostCascade'
+import { saveBoardWithVisibility } from '../utils/saveBoardVisibility'
 import { normalizeMemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { BoardModel, BoardVisibility } from '../types'
@@ -52,6 +48,8 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     order: typeof data.order === 'number' ? data.order : index,
     description: (typeof data.description === 'string' ? data.description : '') || '',
     visibility: normalizeVisibility(data.visibility),
+    visibilityTransition: data.visibilityTransition === 'hidden' || data.visibilityTransition === 'public'
+      ? data.visibilityTransition : undefined,
     listView: (data.listView as BoardModel['listView']) ?? 'default',
     editorType: (data.editorType as BoardModel['editorType'])
       ?? (data.listView === 'image' ? 'image' : 'default'),
@@ -135,40 +133,6 @@ export function useMemiBoardSettings() {
 
   const managedBoards = computed(() => boards.value.filter(board => canManageBoard(board.id)))
 
-  /** 숨김 전환 시 해당 보드 글·댓글 listed 일괄 맞춤. 값이 이미 같으면 건너뛴다. */
-  async function syncListedForCol(
-    col: ReturnType<typeof postsCol>,
-    boardId: string,
-    listed: boolean,
-  ): Promise<void> {
-    let cursor: QueryDocumentSnapshot | undefined
-    for (;;) {
-      const page = await getDocs(query(
-        col,
-        where('boardId', '==', boardId),
-        orderBy('__name__'),
-        ...(cursor ? [startAfter(cursor)] : []),
-        fbLimit(400),
-      ))
-      if (page.empty) break
-      const batch = writeBatch(db)
-      let writes = 0
-      for (const item of page.docs) {
-        if (item.data().listed === listed) continue
-        batch.update(item.ref, { listed })
-        writes++
-      }
-      if (writes) await batch.commit()
-      cursor = page.docs[page.docs.length - 1]
-      if (page.docs.length < 400) break
-    }
-  }
-
-  async function syncListedForBoard(boardId: string, listed: boolean): Promise<void> {
-    await syncListedForCol(postsCol(db, cfg()), boardId, listed)
-    await syncListedForCol(commentsCol(db, cfg()), boardId, listed)
-  }
-
   function settingsPayload(board: BoardModel, order: number) {
     return {
       label: board.label.trim(),
@@ -192,8 +156,8 @@ export function useMemiBoardSettings() {
     if (!id || !label) throw new Error(t('boardSettings.idAndNameRequired'))
     const visibility = normalizeVisibility(board.visibility)
     const payload = settingsPayload({ ...board, label, visibility }, order)
-    await setDoc(settingsDoc(db, cfg(), id), payload, { merge: true })
-    await syncListedForBoard(id, visibility !== 'hidden')
+
+    await saveBoardWithVisibility(db, cfg(), id, payload)
   }
 
   /** @deprecated saveBoard */
@@ -201,25 +165,11 @@ export function useMemiBoardSettings() {
 
   async function saveBoards(next: BoardModel[]): Promise<void> {
     if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
-    const previousById = new Map(boards.value.map(item => [item.id, item.visibility ?? 'public']))
-    const batch = writeBatch(db)
-    const visibilityChanges: Array<{ id: string, listed: boolean }> = []
-    next.forEach((board, order) => {
-      const id = board.id.trim()
-      const label = board.label.trim()
-      if (!id || !label) throw new Error(t('boardSettings.idAndNameRequired'))
-      const visibility = normalizeVisibility(board.visibility)
-      const payload = settingsPayload({ ...board, label, visibility }, order)
-      batch.set(settingsDoc(db, cfg(), id), payload, { merge: true })
-      const prev = previousById.get(id) ?? 'public'
-      if (prev !== visibility || visibility === 'hidden') {
-        visibilityChanges.push({ id, listed: visibility !== 'hidden' })
-      }
-    })
-    await batch.commit()
-    for (const change of visibilityChanges) {
-      await syncListedForBoard(change.id, change.listed)
+    // Validate the whole input before starting any writes.
+    for (const board of next) {
+      if (!board.id.trim() || !board.label.trim()) throw new Error(t('boardSettings.idAndNameRequired'))
     }
+    for (const [order, board] of next.entries()) await saveBoard(board, order)
   }
 
   /** @deprecated saveBoards */

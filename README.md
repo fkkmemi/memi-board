@@ -334,6 +334,7 @@ a.memi-board-post-link:visited {
    ```bash
    firebase deploy --only firestore:rules,storage,firestore:indexes
    ```
+6. Storage의 Firestore 조회 권한 설정: 배포 시 교차 서비스 IAM 역할 추가 안내를 승인하고, 호스트 Firebase 프로젝트의 Storage 서비스 계정에 `roles/firebaserules.firestoreServiceAgent`가 있는지 확인한다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정) 참고. CI 배포 성공만으로 이 권한 설정을 보장하지 않는다.
 
 **Rules를 파일에만 넣고 배포 안 하면** 글쓰기에서 `permission-denied` — 가장 흔한 설치 실수.
 **Storage 규칙을 앱이 쓰는 버킷이 아닌 곳에 배포하면** 본문 이미지에서 `storage/unauthorized`.
@@ -589,6 +590,7 @@ export default defineNuxtPlugin(() => {
 - [ ] CSS `@source` …/memi-board/dist/runtime/components
 - [ ] (선택) `.memi-board-post-link:visited` 읽은 글 표시 CSS
 - [ ] Rules 예시 병합 + **deploy**
+- [ ] Storage 서비스 계정의 Firestore 조회 IAM 역할 확인 ([호스트 설정](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정))
 - [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
 - [ ] 최초 로그인 후 Firebase Console에서 `memiBoardUsers/{uid}.role = 'admin'`
@@ -621,6 +623,12 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
 4. `firebase deploy --only storage` 후 다시 올려 본다.
 
+### ZIP 등 첨부파일 `storage/unauthorized`
+
+`memiBoardPosts/{postId}/attachments/...`에서 실패하면 로그인 상태, 앱이 쓰는 버킷에 배포된 첨부 규칙, **파일당 20MiB 미만** 조건을 먼저 확인한다. 예시 규칙은 ZIP의 MIME 형식이나 `.exe.zip` 이름을 차단하지 않는다.
+
+조건을 충족해도 실패하면 **호스트 Firebase 프로젝트의 Storage 서비스 계정에 Firestore 조회 역할이 있는지** 확인한다. 첨부 규칙은 `postExists`·`isPostOwner`·`isBoardStaff`에서 Firestore를 조회한다. 조회 권한이 없으면 새 글의 문서 존재 여부 확인부터 실패할 수 있다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)에 따라 `roles/firebaserules.firestoreServiceAgent`를 설정한다.
+
 ### 글 삭제 `storage/unauthorized`
 
 작성자 본인 글 삭제가 `User does not have permission to access 'memiBoardPosts/{postId}'` 로 실패하면, 파일 삭제가 아니라 **폴더 목록(`listAll`)** 이 막힌 것이다.
@@ -636,6 +644,8 @@ match /memiBoardPosts/{postId}/{allPaths=**} {
 ```
 
 `write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 0.38.1+ 패키지는 `images/`·`attachments/`만 목록으로 비운다.
+
+목록 조회는 성공하지만 **개별 파일 삭제**가 거부되면, 위 [첨부파일 오류](#zip-등-첨부파일-storageunauthorized)와 같은 Firestore 조회 IAM 역할도 확인한다. 삭제 규칙 역시 글 소유권·사용자 역할을 Firestore에서 읽는다.
 
 ### monorepo `link:` / `file:` 로 개발할 때
 

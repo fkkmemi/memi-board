@@ -50,6 +50,7 @@ export default {
     placeholder: 'A short description of this board (optional)',
   },
   visibility: {
+    pending: 'Visibility change is incomplete. Save the same setting again to resume.',
     label: 'Visibility',
     help: 'Hidden boards don’t appear in the all-boards filter, and posts can only be read by admins, assigned staff, and their authors. Only assigned staff can comment',
     options: {

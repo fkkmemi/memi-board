@@ -1,6 +1,10 @@
 // memi-board 0.23+ Storage Rules (flat schema)
 // memiBoardPosts/{postId}/attachments|images/...
 // postId 가 전역 고유이므로 boardId prefix 는 더 이상 필요 없음.
+// 부모/호스트 Firebase 프로젝트에서 Storage 서비스 계정에
+// roles/firebaserules.firestoreServiceAgent 역할을 설정해야 한다.
+// firestore.exists/get 조회 권한이 없으면 첨부 업로드·파일 삭제가 unauthorized로 실패한다.
+// 설정 및 확인 절차: docs/firebase-setup.md의 Storage 규칙의 Firestore 조회 권한 절.
 
 rules_version = '2';
 service firebase.storage {
@@ -9,11 +13,23 @@ service firebase.storage {
     function isSignedIn() {
       return request.auth != null;
     }
+    // Storage permits at most two distinct Firestore document reads:
+    // post + user role. Keep the existing global staff Storage permission.
     function isBoardStaff() {
       let userPath = /databases/(default)/documents/memiBoardUsers/$(request.auth.uid);
-      return isSignedIn()
-        && firestore.exists(userPath)
+      return isSignedIn() && firestore.exists(userPath)
         && firestore.get(userPath).data.role in ['admin', 'staff'];
+    }
+    function canWritePostFile(postId) {
+      return isSignedIn() && (postExists(postId)
+        ? (isPostOwner(postId) || isBoardStaff())
+        : (request.resource.metadata.ownerUid == request.auth.uid
+          && (resource == null || resource.metadata.ownerUid == request.auth.uid)));
+    }
+    function canDeletePostFile(postId) {
+      return isSignedIn() && (postExists(postId)
+        ? (isPostOwner(postId) || isBoardStaff())
+        : resource.metadata.ownerUid == request.auth.uid);
     }
     function postExists(postId) {
       return firestore.exists(/databases/(default)/documents/memiBoardPosts/$(postId));
@@ -33,31 +49,26 @@ service firebase.storage {
     // write 는 여기에 넣지 않는다 — 용량·image/* 제한은 아래 세부 match 가 담당.
     match /memiBoardPosts/{postId}/{allPaths=**} {
       allow list, get: if true;
-      allow delete: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+      allow delete: if canDeletePostFile(postId);
     }
 
     match /memiBoardPosts/{postId}/attachments/{fileName} {
       allow read: if true;
-      allow write: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff())
+      allow create, update: if canWritePostFile(postId)
         && request.resource.size < 20 * 1024 * 1024;
-      allow delete: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+      allow delete: if canDeletePostFile(postId);
     }
 
     match /memiBoardPosts/{postId}/images/{allPaths=**} {
       allow read: if true;
       // 글쓰기 화면은 Firestore 문서를 만들기 전에 Storage 경로(미리 딴 postId)로
-      // 올린다. 붙여넣기 이미지는 image/png 등이 오고, firestore.exists()가
-      // Storage 규칙에서 실패하면 조건 전체가 unauthorized 가 된다.
-      // 쓰기는 로그인 + 용량 + image/* 만 본다. 삭제는 소유자/스태프.
-      allow write: if isSignedIn()
+      // 올린다. 붙여넣기 이미지는 image/png 등이 온다.
+      // 기존 글은 작성자/스태프만 수정한다. 아직 저장하지 않은 파일은 ownerUid로 보호한다.
+      allow create, update: if canWritePostFile(postId)
         && request.resource != null
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
-      allow delete: if isSignedIn()
-        && (!postExists(postId) || isPostOwner(postId) || isBoardStaff());
+      allow delete: if canDeletePostFile(postId);
     }
 
     // 프로필 사진 — 경로가 uid로 고정돼 있어 본인만 쓸 수 있다. 공개 프로필의 일부라 읽기는 전체 공개.

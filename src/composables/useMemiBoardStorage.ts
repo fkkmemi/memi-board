@@ -8,6 +8,7 @@ import {
 } from 'firebase/storage'
 import type { UploadTask } from 'firebase/storage'
 import { useFirebaseApp } from 'vuefire'
+import { getAuth } from 'firebase/auth'
 import { safeFileName } from '../utils/slugify'
 import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
@@ -79,6 +80,12 @@ export function useMemiBoardStorage() {
   const app = useFirebaseApp()
   const { t, locale } = useMemiBoardI18n()
 
+  function uploadMetadata() {
+    const uid = getAuth(app).currentUser?.uid
+    if (!uid) throw new Error('Sign in before uploading a file.')
+    return { ownerUid: uid }
+  }
+
   /** postId는 작성 화면 진입 시 미리 생성한 Firestore 자동 ID를 사용한다. */
   function uploadAttachment(
     file: File,
@@ -89,6 +96,7 @@ export function useMemiBoardStorage() {
     const path = `${postStorageFolder(cfg(), postId)}/attachments/${Date.now()}-${safeFileName(file.name)}`
     const fileRef = storageRef(storage, path)
     const task: UploadTask = uploadBytesResumable(fileRef, file, {
+      customMetadata: uploadMetadata(),
       contentType: file.type || 'application/octet-stream',
       contentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
     })
@@ -141,6 +149,7 @@ export function useMemiBoardStorage() {
     const originalPath = `${folder}/images/${baseName}.${ext}`
     const originalRef = storageRef(storage, originalPath)
     await uploadBytes(originalRef, optimized.blob, {
+      customMetadata: uploadMetadata(),
       contentType: optimized.blob.type || 'image/jpeg',
     })
     const originalUrl = await getDownloadURL(originalRef)
@@ -148,7 +157,7 @@ export function useMemiBoardStorage() {
     const thumbBlob = await compressImage(optimized.blob, { maxWidth: 400, quality: 0.8 }, locale.value)
     const thumbnailPath = `${folder}/images/thumbnails/${baseName}.jpg`
     const thumbRef = storageRef(storage, thumbnailPath)
-    await uploadBytes(thumbRef, thumbBlob, { contentType: 'image/jpeg' })
+    await uploadBytes(thumbRef, thumbBlob, { contentType: 'image/jpeg', customMetadata: uploadMetadata() })
     const thumbnailUrl = await getDownloadURL(thumbRef)
 
     return { originalUrl, originalPath, thumbnailUrl, thumbnailPath }

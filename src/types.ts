@@ -178,6 +178,8 @@ export interface BoardModel {
    * 보드 목록·칩에서 제외, 글·댓글 listed=false, 댓글 쓰기는 담당 스태프만. 미지정은 public.
    */
   visibility?: BoardVisibility
+  /** Incomplete visibility change; save the target again to resume. */
+  visibilityTransition?: BoardVisibility
   listView?: BoardListView
   /** 일반 제목·본문 폼 또는 사진 갤러리 폼. 미지정 레거시는 이미지 리스트뷰일 때 image. */
   editorType?: BoardEditorType
