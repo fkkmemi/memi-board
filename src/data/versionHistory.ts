@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.45.1',
+    date: '2026-10-15',
+    highlights: [
+      '일반 계정 글쓰기·초안 조회와 태그 입력을 고쳤어요',
+      '글 삭제·첨부파일 보호·게시판 공개 범위 변경을 보강했어요',
+    ],
+  },
+  {
     version: '0.45.0',
     date: '2026-10-01',
     highlights: [

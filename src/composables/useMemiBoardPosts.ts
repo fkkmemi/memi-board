@@ -24,6 +24,7 @@ import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
+import { findReadablePostBySlug } from '../utils/findReadablePost'
 import { deletePostCascade } from '../utils/deletePostCascade'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { useBoardPathConfig } from '../config'
@@ -96,6 +97,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isBoardHidden, getBoard } = useMemiBoardSettings()
+  const { user, canManageBoard } = useMemiBoardAuth()
   const { t, locale } = useMemiBoardI18n()
   const cfg = () => useBoardPathConfig()
   const bid = () => resolveBoardId(boardId, locale.value)
@@ -134,6 +136,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
   function createPostId(): string {
     return doc(postsColRef()).id
+  }
+
+  function findBySlug(slug: string) {
+    return findReadablePostBySlug(db, cfg(), bid(), slug, user.value?.uid, canManageBoard(bid()))
   }
 
   async function getPosts(opts: {
@@ -175,13 +181,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   /** 보드 내 slug 로 조회 */
   async function getPostBySlug(slug: string): Promise<GetPostBySlugResult> {
     try {
-      const snapshot = await getDocs(query(
-        postsColRef(),
-        where('boardId', '==', bid()),
-        where('slug', '==', slug.trim()),
-        fbLimit(1),
-      ))
-      const meta = snapshot.docs[0]
+      const meta = await findBySlug(slug.trim())
       if (!meta) return { status: 'not-found' }
       try {
         const post = await getPost(meta.id)
@@ -208,14 +208,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     const cached = createdPostIds.get(`${bid()}/${s}`)
     if (cached) return { status: 'ok', id: cached }
     try {
-      const snapshot = await getDocs(query(
-        postsColRef(),
-        where('boardId', '==', bid()),
-        where('slug', '==', s),
-        fbLimit(1),
-      ))
-      const row = snapshot.docs[0]
-      return row ? { status: 'ok', id: row.id } : { status: 'not-found' }
+      const row = await findBySlug(s)
+      return row ? { status: 'ok', id: row.id }
+        : { status: isBoardHidden(bid()) ? 'permission-denied' : 'not-found' }
     }
     catch (cause) {
       if (isFirestorePermissionDenied(cause)) return { status: 'permission-denied' }
@@ -223,21 +218,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     }
   }
 
-  /** 보드 안에서 겹치지 않는 slug. 검열과 동시에 돌릴 수 있게 createPost 밖으로 노출한다. */
+  /** Auto-ID suffix also prevents collisions with unreadable drafts and concurrent writers. */
   async function resolveUniqueSlug(title: string): Promise<string> {
     const baseSlug = slugify(title.trim()) || 'post'
-    let slug = baseSlug
-    let counter = 1
-    while (!(await getDocs(query(
-      postsColRef(),
-      where('boardId', '==', bid()),
-      where('slug', '==', slug),
-      fbLimit(1),
-    ))).empty) {
-      counter++
-      slug = `${baseSlug}-${counter}`
-    }
-    return slug
+    return `${baseSlug}-${createPostId()}`
   }
 
   async function getAdjacentPosts(current: PostModel): Promise<{

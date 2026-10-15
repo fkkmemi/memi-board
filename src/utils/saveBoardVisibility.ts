@@ -1,4 +1,17 @@
-import { getDocs, limit as fbLimit, orderBy, query, runTransaction, serverTimestamp, startAfter, where, writeBatch, type Firestore, type QueryDocumentSnapshot, type DocumentData } from 'firebase/firestore'
+import {
+  getDocs,
+  limit as fbLimit,
+  orderBy,
+  query,
+  runTransaction,
+  serverTimestamp,
+  startAfter,
+  where,
+  writeBatch,
+  type Firestore,
+  type QueryDocumentSnapshot,
+  type DocumentData,
+} from 'firebase/firestore'
 import { commentsCol, postsCol, settingsDoc, type BoardPathConfig } from './boardPaths'
 
 function normalizeVisibility(value: unknown) { return value === 'hidden' ? 'hidden' : 'public' }
@@ -9,7 +22,7 @@ async function syncListedForCol(
   col: ReturnType<typeof postsCol>,
   boardId: string,
   listed: boolean,
-  ): Promise<void> {
+): Promise<void> {
   let cursor: QueryDocumentSnapshot | undefined
   for (;;) {
     const page = await getDocs(query(
@@ -30,7 +43,7 @@ async function syncListedForCol(
     if (writes) await batch.commit()
     cursor = page.docs[page.docs.length - 1]
     if (page.docs.length < 400) break
-}
+  }
 }
 
 async function syncListedForBoard(db: Firestore, cfg: BoardPathConfig, boardId: string, listed: boolean): Promise<void> {

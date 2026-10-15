@@ -1308,6 +1308,7 @@ async function handleSubmit() {
       :placeholder="t('editor.tagsPlaceholder')"
       :delimiter="','"
       add-on-paste
+      @keydown.enter.prevent
     />
 
     <!-- 이미지 보드: 본문 이미지 업로드만 (파일 첨부 없음) -->
