@@ -8,7 +8,6 @@ import {
   getDocs,
   increment,
   limit,
-  onSnapshot,
   orderBy,
   query,
   serverTimestamp,
@@ -24,6 +23,7 @@ import {
   postDoc,
 } from '../utils/boardPaths'
 import { deleteLikesForComment } from '../utils/deletePostCascade'
+import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import type { CommentModel } from '../types'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -53,7 +53,7 @@ function normalizedCommentBody(body: string, { t, formatNumber }: Pick<MemiBoard
   return trimmed
 }
 
-/** 10개씩 순차 조회한 뒤 마지막 페이지에서만 최신 1개를 실시간 구독한다. */
+/** 10개씩 순차 조회하고 불러온 범위의 수정·좋아요·삭제를 실시간 구독한다. */
 export function useMemiBoardComments(
   boardId: MaybeRefOrGetter<string>,
   postId: MaybeRefOrGetter<string>,
@@ -70,10 +70,7 @@ export function useMemiBoardComments(
   const id = computed(() => toValue(postId))
   const listedForBoard = () => !isBoardHidden(bid.value)
 
-  // limit(1) 리스너는 최신 댓글 알림 용도다. 쿼리 결과 교체로 기존 댓글이
-  // 사라지지 않도록 수신 문서를 별도 배열에 누적한다.
-  const liveComments = ref<CommentModel[]>([])
-  // parentId 도입 전 댓글은 실시간 10개 슬롯과 분리해 최초 1회만 읽는다.
+  // parentId 도입 전 댓글은 범위 구독과 분리해 최초 1회만 읽는다.
   const legacyComments = ref<CommentModel[]>([])
   const legacyPending = ref(options.subscribe !== false)
   const pagedComments = ref<CommentModel[]>([])
@@ -81,7 +78,8 @@ export function useMemiBoardComments(
   const hasMore = ref(options.subscribe !== false)
   const initialPending = ref(options.subscribe !== false)
   let pageCursor: QueryDocumentSnapshot<DocumentData> | null = null
-  let liveEnableTimer: ReturnType<typeof setTimeout> | undefined
+  let epoch = 0
+  let subscriptionVersion = 0
   let stopLiveSubscription: Unsubscribe | undefined
 
   function createdAtMs(comment: CommentModel): number {
@@ -90,7 +88,7 @@ export function useMemiBoardComments(
 
   const comments = computed(() => {
     const byId = new Map<string, CommentModel>()
-    for (const comment of [...liveComments.value, ...legacyComments.value, ...pagedComments.value]) {
+    for (const comment of [...legacyComments.value, ...pagedComments.value]) {
       if (comment.id) byId.set(comment.id, comment)
     }
     return [...byId.values()].sort((a, b) =>
@@ -99,12 +97,12 @@ export function useMemiBoardComments(
   })
 
   watch([id, bid], async ([currentId]) => {
+    const currentEpoch = ++epoch
+    subscriptionVersion++
+    loadingMore.value = false
     pagedComments.value = []
-    liveComments.value = []
     legacyComments.value = []
     pageCursor = null
-    clearTimeout(liveEnableTimer)
-    liveEnableTimer = undefined
     stopLiveSubscription?.()
     stopLiveSubscription = undefined
     hasMore.value = options.subscribe !== false
@@ -120,15 +118,15 @@ export function useMemiBoardComments(
         orderBy(documentId(), 'desc'),
       ))
       await Promise.all([snapshotPromise.then((snapshot) => {
-        if (id.value !== currentId) return
+        if (currentEpoch !== epoch) return
         const allComments = snapshot.docs
           .map(item => ({ id: item.id, ...item.data() } as CommentModel))
         legacyComments.value = allComments.filter(comment => comment.parentId === undefined)
       }), loadMore()])
-      if (id.value !== currentId) return
+      if (currentEpoch !== epoch) return
     }
     finally {
-      if (id.value === currentId) {
+      if (currentEpoch === epoch) {
         legacyPending.value = false
         initialPending.value = false
       }
@@ -137,20 +135,11 @@ export function useMemiBoardComments(
 
   function startLiveSubscription() {
     stopLiveSubscription?.()
-    stopLiveSubscription = onSnapshot(query(
-      commentsColRef(),
-      where('postId', '==', id.value),
-      where('parentId', '==', null),
-      orderBy('createdAt', 'desc'),
-      orderBy(documentId(), 'desc'),
-      limit(1),
-    ), (snapshot) => {
-      const byId = new Map(liveComments.value.map(comment => [comment.id, comment]))
-      for (const change of snapshot.docChanges()) {
-        if (change.type === 'removed') continue
-        byId.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as CommentModel)
-      }
-      liveComments.value = [...byId.values()]
+    const version = ++subscriptionVersion
+    stopLiveSubscription = subscribeCommentRange(db, cfg(), id.value, {
+      cursor: pageCursor, hasMore: hasMore.value,
+    }, (items) => {
+      if (version === subscriptionVersion) pagedComments.value = items
     }, (cause) => {
       console.error('[memi-board:comments] onSnapshot failed', cause)
     })
@@ -158,6 +147,7 @@ export function useMemiBoardComments(
 
   async function loadMore(): Promise<void> {
     if (loadingMore.value || !hasMore.value) return
+    const currentEpoch = epoch
     loadingMore.value = true
     try {
       const constraints = [
@@ -172,26 +162,23 @@ export function useMemiBoardComments(
         commentsColRef(),
         ...constraints,
       ))
+      if (currentEpoch !== epoch) return
       const pageDocs = snapshot.docs.slice(0, COMMENT_PAGE_SIZE)
       const page = pageDocs.map(item => ({ id: item.id, ...item.data() } as CommentModel))
       const existing = new Set(pagedComments.value.map(comment => comment.id))
       pagedComments.value.push(...page.filter(comment => !existing.has(comment.id)))
       pageCursor = pageDocs.at(-1) ?? pageCursor
-      if (snapshot.size <= COMMENT_PAGE_SIZE) {
-        hasMore.value = false
-        liveEnableTimer = setTimeout(() => {
-          liveEnableTimer = undefined
-          startLiveSubscription()
-        }, 1_000)
-      }
+      hasMore.value = snapshot.size > COMMENT_PAGE_SIZE
+      startLiveSubscription()
     }
     finally {
-      loadingMore.value = false
+      if (currentEpoch === epoch) loadingMore.value = false
     }
   }
 
   onScopeDispose(() => {
-    clearTimeout(liveEnableTimer)
+    epoch++
+    subscriptionVersion++
     stopLiveSubscription?.()
   })
 
@@ -274,7 +261,6 @@ export function useMemiBoardComments(
     await batch.commit()
     pagedComments.value = pagedComments.value.filter(item => item.id !== comment.id)
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
-    liveComments.value = liveComments.value.filter(item => item.id !== comment.id)
   }
 
   async function updateComment(commentId: string, body: string): Promise<void> {
@@ -308,8 +294,7 @@ export function useMemiBoardComments(
 }
 
 /**
- * 펼친 스레드의 답글을 5개씩 일회성 조회한다.
- * rootId 는 전역 고유(댓글 auto-ID)라 postId 필터 없이도 정확히 한 스레드로 스코핑된다.
+ * 펼친 스레드의 답글을 5개씩 조회하고 불러온 범위를 실시간 구독한다.
  */
 export function useMemiBoardReplies(boardId: string, postId: string, rootId: string) {
   const db = useFirestore()
@@ -322,6 +307,8 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
   const hasMore = ref(true)
   let cursor: QueryDocumentSnapshot<DocumentData> | null = null
   let stopLiveSubscription: Unsubscribe | undefined
+  let epoch = 0
+  let subscriptionVersion = 0
 
   function sortReplies(list: CommentModel[]) {
     return list.sort((a, b) =>
@@ -331,22 +318,12 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
   }
 
   function startLiveSubscription() {
-    if (stopLiveSubscription) return
-    stopLiveSubscription = onSnapshot(query(
-      commentsColRef(),
-      where('postId', '==', pid),
-      where('rootId', '==', rootId),
-      where('isReply', '==', true),
-      orderBy('createdAt', 'desc'),
-      orderBy(documentId(), 'desc'),
-      limit(1),
-    ), (snapshot) => {
-      const byId = new Map(replies.value.map(reply => [reply.id, reply]))
-      for (const change of snapshot.docChanges()) {
-        if (change.type === 'removed') continue
-        byId.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as CommentModel)
-      }
-      replies.value = sortReplies([...byId.values()])
+    stopLiveSubscription?.()
+    const version = ++subscriptionVersion
+    stopLiveSubscription = subscribeCommentRange(db, cfg(), pid, {
+      rootId, cursor, hasMore: hasMore.value,
+    }, (items) => {
+      if (version === subscriptionVersion) replies.value = items
     }, (cause) => {
       console.error('[memi-board:replies] onSnapshot failed', cause)
     })
@@ -354,6 +331,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
 
   async function loadMore(): Promise<void> {
     if (loading.value || !hasMore.value) return
+    const currentEpoch = epoch
     loading.value = true
     try {
       const constraints = [
@@ -369,6 +347,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
         commentsColRef(),
         ...constraints,
       ))
+      if (currentEpoch !== epoch) return
       const existing = new Set(replies.value.map(reply => reply.id))
       const pageDocs = snapshot.docs.slice(0, REPLY_PAGE_SIZE)
       const page = pageDocs
@@ -377,17 +356,18 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
       replies.value = sortReplies([...replies.value, ...page])
       cursor = pageDocs.at(-1) ?? cursor
       loaded.value = true
-      if (snapshot.size <= REPLY_PAGE_SIZE) {
-        hasMore.value = false
-        startLiveSubscription()
-      }
+      hasMore.value = snapshot.size > REPLY_PAGE_SIZE
+      startLiveSubscription()
     }
     finally {
-      loading.value = false
+      if (currentEpoch === epoch) loading.value = false
     }
   }
 
   function reset() {
+    epoch++
+    subscriptionVersion++
+    loading.value = false
     stopLiveSubscription?.()
     stopLiveSubscription = undefined
     replies.value = []
@@ -401,7 +381,7 @@ export function useMemiBoardReplies(boardId: string, postId: string, rootId: str
     await loadMore()
   }
 
-  onScopeDispose(() => stopLiveSubscription?.())
+  onScopeDispose(() => { epoch++; subscriptionVersion++; stopLiveSubscription?.() })
 
   return { replies, loading, loaded, hasMore, loadMore, refresh }
 }

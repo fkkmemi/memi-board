@@ -52,7 +52,7 @@ function startReply(comment: CommentModel) {
 async function handleSaved() {
   expanded.value = true
   replyingTo.value = null
-  // 이미 펼쳐진 스레드는 onSnapshot이 새 답글을 누적한다. refresh()하면
+  // 이미 펼쳐진 스레드는 onSnapshot이 불러온 답글과 새 답글을 갱신한다. refresh()하면
   // 작성 브라우저만 첫 5개 상태로 되돌아가므로 최초 조회 전일 때만 읽는다.
   if (!loaded.value) await refresh()
 }

@@ -15,6 +15,7 @@ export const versionHistory: VersionHistoryEntry[] = [
     date: '2026-10-15',
     highlights: [
       '일반 계정 글쓰기·초안 조회와 태그 입력을 고쳤어요',
+      '댓글·답글 수정과 좋아요가 다른 사용자에게 바로 반영돼요',
       '글 삭제·첨부파일 보호·게시판 공개 범위 변경을 보강했어요',
     ],
   },
