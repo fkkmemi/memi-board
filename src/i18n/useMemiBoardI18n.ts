@@ -70,7 +70,10 @@ export function useMemiBoardI18n(options: UseMemiBoardI18nOptions = {}) {
     dir: computed(() => info.value.dir),
     /** Intl 로케일 태그(예: 'ko-KR'). */
     intlLocale: computed(() => info.value.intl),
-    t: (key: string, params?: MemiBoardMessageParams) => translate(locale.value, key, params),
+    t: (key: string, params?: MemiBoardMessageParams) => {
+      const role = key.startsWith('common.role.') ? key.slice('common.role.'.length) : ''
+      return config.roleLabels?.[role as keyof NonNullable<typeof config.roleLabels>] ?? translate(locale.value, key, params)
+    },
     formatDate: (ts: Timestamp | undefined) => formatDate(ts, locale.value),
     formatFullDate: (ts: Timestamp | undefined) => formatFullDate(ts, locale.value),
     formatRelativeDate: (ts: Timestamp | undefined, now?: number) => formatRelativeDate(ts, now, locale.value),

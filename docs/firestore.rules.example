@@ -32,12 +32,12 @@ service cloud.firestore {
     function isBoardAdmin() {
       return isSignedIn()
         && exists(boardUserPath())
-        && get(boardUserPath()).data.role == 'admin';
+        && get(boardUserPath()).data.role in ['owner', 'admin'];
     }
     function isBoardStaff() {
       return isSignedIn()
         && exists(boardUserPath())
-        && get(boardUserPath()).data.role in ['admin', 'staff'];
+        && get(boardUserPath()).data.role in ['owner', 'admin', 'manager', 'staff'];
     }
     function boardSettingsPath(boardId) {
       return /databases/$(database)/documents/memiBoardSettings/$(boardId);
@@ -64,7 +64,23 @@ service cloud.firestore {
     }
     function isAllowedStaffForBoard(boardId) {
       let allowed = get(boardSettingsPath(boardId)).data.get('allowedStaffUids', []);
-      return isBoardAdmin() || request.auth.uid in allowed;
+      return isBoardAdmin() || request.auth.uid in allowed
+        || request.auth.uid in get(boardSettingsPath(boardId)).data.get('allowedManagerUids', []);
+    }
+    function isBoardOwner() {
+      return isSignedIn() && get(boardUserPath()).data.role == 'owner';
+    }
+    function canConfigureBoard(boardId) {
+      return isBoardAdmin() || (isSignedIn()
+        && get(boardUserPath()).data.role == 'manager'
+        && request.auth.uid in get(boardSettingsPath(boardId)).data.get('allowedManagerUids', []));
+    }
+    function canChangeRole(uid) {
+      return isSignedIn() && uid != request.auth.uid
+        && request.resource.data.role in ['admin', 'manager', 'staff', 'user']
+        && resource.data.role != 'owner'
+        && (isBoardOwner() || (isBoardAdmin()
+          && resource.data.role != 'admin' && request.resource.data.role != 'admin'));
     }
     function isBoardManager(boardId) {
       return isBoardStaff() && isAllowedStaffForBoard(boardId);
@@ -180,7 +196,7 @@ service cloud.firestore {
         && (!('moderationBlockCount' in request.resource.data)
             || request.resource.data.moderationBlockCount == 0
             || request.resource.data.moderationBlockCount == 1);
-      allow update: if (isBoardAdmin() && request.resource.data.role in ['admin', 'staff', 'user'])
+      allow update: if (canChangeRole(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
         || (isSignedIn()
           && request.auth.uid == uid
           && request.resource.data.role == resource.data.role
@@ -236,11 +252,11 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isBoardAdmin();
       allow update: if isBoardAdmin()
-        || (isBoardManager(boardId)
+        || (canConfigureBoard(boardId)
           && request.resource.data.get('visibility', 'public')
             == resource.data.get('visibility', 'public')
-          && request.resource.data.get('allowedStaffUids', [])
-            == resource.data.get('allowedStaffUids', [])
+          && request.resource.data.get('allowedManagerUids', [])
+            == resource.data.get('allowedManagerUids', [])
           && request.resource.data.get('visibilityTransition', '')
             == resource.data.get('visibilityTransition', ''));
       allow delete: if isBoardAdmin();
@@ -348,7 +364,7 @@ service cloud.firestore {
     match /memiBoardReports/{reportId} {
       allow read: if (isSignedIn() && resource == null)
         || (isSignedIn() && request.auth.uid == resource.data.uid)
-        || isBoardStaff();
+        || isBoardAdmin() || isBoardManager(resource.data.boardId);
 
       allow create: if isBoardWriter()
         && request.resource.data.uid == request.auth.uid

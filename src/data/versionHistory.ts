@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.46.0',
+    date: '2026-10-21',
+    highlights: [
+      '일반 사용자·스태프·매니저·관리자·최고 관리자, 다섯 가지 역할을 지원해요',
+      '게시판별 매니저가 설정과 스태프 배정을 관리할 수 있어요',
+      '서비스에 맞게 역할 이름을 바꿀 수 있어요',
+    ],
+  },
+  {
     version: '0.45.1',
     date: '2026-10-15',
     highlights: [

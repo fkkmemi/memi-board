@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import type { BoardUserRole } from './types'
 import {
   DEFAULT_COMMENTS_COLLECTION,
   DEFAULT_LIKES_COLLECTION,
@@ -57,6 +58,7 @@ export interface MemiBoardConfig {
    * 기본 언어. 호스트에 @nuxtjs/i18n 이 있으면 그 언어를 따르고,
    * 보드 설정에서 언어를 고르면 그 보드는 그 언어로 고정된다. 기본 'ko'.
    */
+  roleLabels?: Partial<Record<BoardUserRole, string>>
   locale?: string
 }
 
@@ -119,6 +121,7 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   if (options.auth) Object.assign(config.auth, options.auth)
   if (options.moderation) Object.assign(config.moderation, options.moderation)
   if (options.seo) Object.assign(config.seo, options.seo)
+  if (options.roleLabels) config.roleLabels = { ...options.roleLabels }
   if (options.locale) config.locale = options.locale
 }
 

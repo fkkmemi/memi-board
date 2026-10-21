@@ -1,4 +1,5 @@
 export default {
+  managers: '담당 매니저',
   loading: '설정을 불러오고 있습니다.',
   noAccess: '접근 권한이 없습니다',
   notFound: {

@@ -1,4 +1,4 @@
-type BoardLookup = (boardId: string) => { allowedStaffUids?: string[] } | undefined
+type BoardLookup = (boardId: string) => { allowedStaffUids?: string[]; allowedManagerUids?: string[] } | undefined
 
 let lookup: BoardLookup | undefined
 

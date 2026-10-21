@@ -30,6 +30,8 @@ export default {
     loading: 'Loading…',
   },
   role: {
+    owner: 'Owner',
+    manager: 'Manager',
     admin: 'Admin',
     staff: 'Staff',
     user: 'User',

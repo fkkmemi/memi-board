@@ -16,7 +16,7 @@ export const BOARD_USER_ROLES: Array<{
   value: BoardUserRole
   label: string
   description: string
-}> = (['admin', 'staff', 'user'] as const).map(value => ({
+}> = (['owner', 'admin', 'manager', 'staff', 'user'] as const).map(value => ({
   value,
   label: translate('ko', `common.role.${value}`),
   description: translate('ko', `boardUsers.roleDescription.${value}`),

@@ -728,3 +728,7 @@ npm 패키지 설정의 Trusted Publisher는 GitHub 저장소 `fkkmemi/memi-boar
 - UI: `<MemiBoardVersionHistory />`
 - 상세: [CHANGELOG.md](CHANGELOG.md)
 - **MIT**
+
+### 0.46 역할 및 서비스별 명칭
+
+5개 역할과 게시판별 매니저 범위, `roleLabels`, 호스트 마이그레이션 절차는 [역할 마이그레이션](docs/roles-migration.md)을 참고한다. 설정 접근에는 `canConfigureBoard()`를 사용한다.

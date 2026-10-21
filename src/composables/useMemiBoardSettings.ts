@@ -56,6 +56,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     writeRole: (data.writeRole as BoardModel['writeRole']) ?? 'user',
     commentWriteRole: (data.commentWriteRole as BoardModel['commentWriteRole']) ?? 'user',
     allowedStaffUids: Array.isArray(data.allowedStaffUids) ? data.allowedStaffUids as string[] : [],
+    allowedManagerUids: Array.isArray(data.allowedManagerUids) ? data.allowedManagerUids as string[] : [],
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
   }
 }
@@ -143,6 +144,7 @@ export function useMemiBoardSettings() {
       writeRole: board.writeRole ?? 'user',
       commentWriteRole: board.commentWriteRole ?? 'user',
       allowedStaffUids: board.allowedStaffUids ?? [],
+      allowedManagerUids: board.allowedManagerUids ?? [],
       locale: normalizeMemiBoardLocale(board.locale) ?? '',
       order,
       updatedAt: serverTimestamp(),

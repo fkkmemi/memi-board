@@ -121,7 +121,7 @@ export interface CommentModel {
   likeCount?: number
 }
 
-export type BoardUserRole = 'admin' | 'staff' | 'user'
+export type BoardUserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'user'
 
 /** memiBoardUsers/{uid} — 이메일만 빼고 전부 공개 프로필 정보다(누구나 읽을 수 있음). */
 export interface BoardUserModel {
@@ -190,6 +190,8 @@ export interface BoardModel {
    * 비어 있으면 담당 없음(관리자만). 관리자는 항상 통과.
    */
   allowedStaffUids?: string[]
+  /** 이 게시판의 설정 및 스태프 배정을 관리하는 매니저 */
+  allowedManagerUids?: string[]
   /**
    * 게시판 화면 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 호스트 언어를 따른다.
    */

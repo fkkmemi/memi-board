@@ -31,6 +31,10 @@ import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 export interface UseMemiBoardAuthReturn {
   user: ReturnType<typeof useCurrentUser>
   isSignedIn: ComputedRef<boolean>
+  role: Ref<BoardUserRole>
+  isOwner: ComputedRef<boolean>
+  isManager: ComputedRef<boolean>
+  canConfigureBoard: (boardId: string | undefined | null) => boolean
   isAdmin: ComputedRef<boolean>
   isStaff: ComputedRef<boolean>
   canManageContent: ComputedRef<boolean>
@@ -114,6 +118,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
   }
 
   function applyUserData(data: Record<string, unknown> | undefined) {
+    role.value = ['owner', 'admin', 'manager', 'staff', 'user'].includes(String(data?.role)) ? data?.role as BoardUserRole : 'user'
     if (!data) {
       rawBlockCount.value = 0
       blockAtMs.value = null
@@ -157,7 +162,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       updateDoc(ref, visit),
       setDoc(privateRef, { email: firebaseUser.email }, { merge: true }),
     ])
-    return (['admin', 'staff', 'user'].includes(String(data.role)) ? data.role : 'user') as BoardUserRole
+    return (['owner', 'admin', 'manager', 'staff', 'user'].includes(String(data.role)) ? data.role : 'user') as BoardUserRole
   }
 
   async function refreshBoardUser() {
@@ -200,8 +205,10 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
   }
 
   const isSignedIn = computed(() => !!user.value)
-  const isAdmin = computed(() => role.value === 'admin')
-  const isStaff = computed(() => role.value === 'staff')
+  const isOwner = computed(() => role.value === 'owner')
+  const isManager = computed(() => role.value === 'manager')
+  const isAdmin = computed(() => isOwner.value || role.value === 'admin')
+  const isStaff = computed(() => isManager.value || role.value === 'staff')
   const canManageContent = computed(() => isAdmin.value || isStaff.value)
 
   const moderationBlockCount = computed(() =>
@@ -350,6 +357,13 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
     )
   }
 
+  function canConfigureBoard(boardId: string | undefined | null) {
+    if (!user.value) return false
+    if (isAdmin.value) return true
+    return isManager.value && !!boardId
+      && (resolveBoardLookup(boardId)?.allowedManagerUids ?? []).includes(user.value.uid)
+  }
+
   function canEdit(post: Pick<PostModel, 'authorUid' | 'boardId'>) {
     return isSignedIn.value && (user.value?.uid === post.authorUid || canManageBoard(post.boardId))
   }
@@ -364,6 +378,10 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
 
   return {
     user,
+    role,
+    isOwner,
+    isManager,
+    canConfigureBoard,
     isSignedIn,
     isAdmin,
     isStaff,

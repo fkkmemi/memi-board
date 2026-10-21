@@ -7,6 +7,15 @@
 ### Documentation
 - 0.45.1 규칙 전환 절차, `ownerUid`·교차 서비스 IAM, 공개 범위 전환 재시도, 파일 관리 권한과 신고 보존 정책을 명시하고 이전 업로드·삭제 안내를 바로잡았다.
 
+## [0.46.0] - 2026-10-21
+
+- `owner`·`manager` 추가, `allowedManagerUids`로 게시판 설정 및 스태프 배정 범위를 분리한다.
+- `roleLabels`로 호스트별 역할 표시명을 바꾼다. `canConfigureBoard()`는 설정, 기존 `canManageBoard()`는 콘텐츠 관리에 사용한다.
+- 최고 관리자만 다른 관리자 역할을 변경한다. 자기 역할 및 owner 역할 변경은 클라이언트에서 금지한다.
+- 신고 읽기를 담당 게시판으로 제한한다. 비관리자 신고 목록은 boardId가 필요하다.
+- Storage의 전역 스태프 수정 권한을 제거한다. 타인 파일 수정·삭제는 admin/owner만 가능하며, 담당자 파일 관리는 호스트의 서버 처리가 필요하다.
+- 기존 admin → owner, staff → manager 및 담당 목록 이전 절차: `docs/roles-migration.md`.
+
 ## [0.45.1] - 2026-10-15
 
 ### Fixed

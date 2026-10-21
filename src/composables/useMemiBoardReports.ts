@@ -115,7 +115,7 @@ const QUEUE_PAGE_SIZE = 20
 export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: MaybeRefOrGetter<string> } = {}) {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
-  const { canManageContent, canManageBoard } = useMemiBoardAuth()
+  const { isAdmin, canManageContent, canManageBoard } = useMemiBoardAuth()
   const pageSize = options.pageSize ?? QUEUE_PAGE_SIZE
   const boardFilter = computed(() => toValue(options.boardId)?.trim() || '')
 
@@ -133,7 +133,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
 
   function startHead() {
     stop?.()
-    if (!canManageContent.value) {
+    if (!canManageContent.value || (!isAdmin.value && !boardFilter.value)) {
       reports.value = []
       pending.value = false
       return

@@ -53,13 +53,13 @@ function fromLocaleOption(value: string) {
   return value === LOCALE_AUTO ? '' : value
 }
 
-const { isAdmin, rolePending } = useMemiBoardAuth()
+const { isAdmin, canConfigureBoard, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory } = useMemiBoardSettings()
-const canManage = computed(() => isAdmin.value || props.authorized)
+const canManage = computed(() => canConfigureBoard(props.categoryId) || props.authorized)
 // users 전체 목록은 rules상 board-role 관리자만 읽을 수 있다 — "허용 스태프" 지정 권한이
 // 있을 때만(기본은 board-role 관리자) 쿼리를 시작한다. canManage(호스트 authorized 포함)로
 // 그냥 열면 스태프도 authorized=true라 여기서 다시 permission-denied가 난다.
-const canManageStaffAssignment = computed(() => props.canManageStaff ?? isAdmin.value)
+const canManageStaffAssignment = computed(() => props.canManageStaff ?? canConfigureBoard(props.categoryId))
 const { users } = useMemiBoardUsers({ enabled: canManageStaffAssignment })
 const mounted = ref(false)
 onMounted(() => { mounted.value = true })
@@ -83,14 +83,16 @@ function emptyDraft(id: string): BoardCategory {
     writeRole: 'user',
     commentWriteRole: 'user',
     allowedStaffUids: [],
+    allowedManagerUids: [],
     locale: '',
   }
 }
 
 // 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
 const staffOptions = computed(() => users.value
-  .filter(item => item.role === 'staff')
+  .filter(item => item.role === 'staff' || item.role === 'manager')
   .map(item => ({ label: item.displayName || item.id, value: item.id })))
+const managerOptions = computed(() => users.value.filter(item => item.role === 'manager').map(item => ({ label: item.displayName || item.id, value: item.id })))
 const needsStaffPicker = computed(() => canManageStaffAssignment.value)
 
 function toDraft(category: BoardCategory): BoardCategory {
@@ -103,6 +105,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     writeRole: category.writeRole ?? 'user',
     commentWriteRole: category.commentWriteRole ?? 'user',
     allowedStaffUids: category.allowedStaffUids ?? [],
+    allowedManagerUids: category.allowedManagerUids ?? [],
     locale: category.locale ?? '',
   }
 }
@@ -208,6 +211,10 @@ async function save() {
         {{ t('settings.commentWriteRole.hiddenFixed') }}
       </p>
     </div>
+    <div v-if="isAdmin" class="flex flex-col gap-2">
+      <p class="text-sm font-medium">{{ t('settings.managers') }}</p>
+      <USelectMenu v-model="draft.allowedManagerUids" :items="managerOptions" value-key="value" label-key="label" multiple @update:model-value="saved = false" />
+    </div>
     <div v-if="needsStaffPicker" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.staff.label') }}</p><p class="text-xs text-muted">{{ t('settings.staff.help') }}</p></div>
       <USelectMenu
@@ -235,7 +242,7 @@ async function save() {
         @update:model-value="saved = false"
       />
     </div>
-    <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
+    <div v-if="isAdmin" class="flex flex-col gap-2">
       <div>
         <p class="text-sm font-medium">{{ t('settings.visibility.label') }}</p>
         <p class="text-xs text-muted">{{ t('settings.visibility.help') }}</p>

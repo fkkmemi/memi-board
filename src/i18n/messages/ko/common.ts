@@ -31,6 +31,8 @@ export default {
     loading: '불러오는 중…',
   },
   role: {
+    owner: '최고 관리자',
+    manager: '매니저',
     admin: '관리자',
     staff: '스태프',
     user: '사용자',

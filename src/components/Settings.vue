@@ -66,8 +66,9 @@ const canManage = computed(() => isAdmin.value || props.authorized)
 const canManageStaffAssignment = computed(() => props.canManageStaff ?? isAdmin.value)
 const { users } = useMemiBoardUsers({ enabled: canManageStaffAssignment })
 // 이 카테고리에 글/댓글을 쓰려면 스태프 역할이 필요할 때만 "허용 스태프" 지정이 의미가 있다.
+const managerOptions = computed(() => users.value.filter(item => item.role === 'manager').map(item => ({ label: item.displayName || item.id, value: item.id })))
 const staffOptions = computed(() => users.value
-  .filter(item => item.role === 'staff')
+  .filter(item => item.role === 'staff' || item.role === 'manager')
   .map(item => ({ label: item.displayName || item.id, value: item.id })))
 function needsStaffPicker(category: BoardCategory) {
   return canManageStaffAssignment.value
@@ -101,6 +102,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       writeRole: category.writeRole ?? 'user',
       commentWriteRole: category.commentWriteRole ?? 'user',
       allowedStaffUids: category.allowedStaffUids ?? [],
+      allowedManagerUids: category.allowedManagerUids ?? [],
       locale: category.locale ?? '',
     }))
   }
@@ -123,6 +125,7 @@ function addCategory() {
     writeRole: 'user',
     commentWriteRole: 'user',
     allowedStaffUids: [],
+    allowedManagerUids: [],
     locale: '',
   })
   newLabel.value = ''
@@ -276,6 +279,10 @@ async function runDeleteAll() {
           >
             {{ t('settings.commentWriteRole.hiddenFixed') }}
           </p>
+        </div>
+        <div v-if="isAdmin" class="flex flex-col gap-2">
+          <p class="text-sm font-medium">{{ t('settings.managers') }}</p>
+          <USelectMenu v-model="category.allowedManagerUids" :items="managerOptions" value-key="value" label-key="label" multiple @update:model-value="savedId = null" />
         </div>
         <div v-if="needsStaffPicker(category)" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.staff.label') }}</p><p class="text-xs text-muted">{{ t('settings.staff.help') }}</p></div>

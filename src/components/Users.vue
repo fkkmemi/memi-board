@@ -4,7 +4,7 @@ import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUsers
 import type { BoardUserRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
-const { isAdmin, rolePending } = useMemiBoardAuth()
+const { isAdmin, isOwner, user, rolePending } = useMemiBoardAuth()
 const canManage = computed(() => isAdmin.value || props.authorized)
 const { users, usersPending, updateUserRole } = useMemiBoardUsers({ enabled: canManage })
 const { t, formatNumber } = useMemiBoardI18n()
@@ -13,6 +13,7 @@ const roleItems = computed(() => BOARD_USER_ROLES.map(item => ({
   label: t(`common.role.${item.value}`),
   description: t(`boardUsers.roleDescription.${item.value}`),
 })))
+const assignableRoles = computed(() => roleItems.value.filter(item => isOwner.value ? item.value !== 'owner' : !['owner', 'admin'].includes(item.value)))
 const savingUid = ref<string | null>(null)
 const savedUid = ref<string | null>(null)
 const error = ref('')
@@ -56,11 +57,11 @@ async function changeRole(uid: string, role: BoardUserRole) {
         </div>
         <USelect
           :model-value="boardUser.role || 'user'"
-          :items="roleItems"
+          :items="boardUser.role === 'owner' || (!isOwner && boardUser.role === 'admin') ? roleItems : assignableRoles"
           value-key="value"
           label-key="label"
           :loading="savingUid === boardUser.id"
-          :disabled="savingUid === boardUser.id"
+          :disabled="savingUid === boardUser.id || boardUser.id === user?.uid || boardUser.role === 'owner' || (!isOwner && boardUser.role === 'admin')"
           @update:model-value="changeRole(boardUser.id, $event as BoardUserRole)"
         />
       </div>

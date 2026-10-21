@@ -1,4 +1,5 @@
 export default {
+  managers: 'Assigned managers',
   loading: 'Loading settings…',
   noAccess: 'You don’t have access',
   notFound: {

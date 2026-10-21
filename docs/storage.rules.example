@@ -14,11 +14,11 @@ service firebase.storage {
       return request.auth != null;
     }
     // Storage permits at most two distinct Firestore document reads:
-    // post + user role. Keep the existing global staff Storage permission.
+    // post + user role. Scoped staff must not gain global file access.
     function isBoardStaff() {
       let userPath = /databases/(default)/documents/memiBoardUsers/$(request.auth.uid);
       return isSignedIn() && firestore.exists(userPath)
-        && firestore.get(userPath).data.role in ['admin', 'staff'];
+        && firestore.get(userPath).data.role in ['owner', 'admin'];
     }
     function canWritePostFile(postId) {
       return isSignedIn() && (postExists(postId)
