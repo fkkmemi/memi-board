@@ -39,7 +39,8 @@ import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
-import type { Attachment, PostDetail, PostModel } from '../types'
+import type { Attachment, PostDetail, PostModel, PostTranslationSet } from '../types'
+import { readContentI18nSource, readI18nSource, readLocalizedFields } from '../utils/localizedFields'
 
 export interface CreatePostInput {
   postId?: string
@@ -53,6 +54,8 @@ export interface CreatePostInput {
   moderationModel?: string
   /** resolveUniqueSlug 로 미리 구한 slug. 없으면 createPost 가 직접 구한다. */
   slug?: string
+  /** 10개 언어 번역. 있으면 글과 본문에 함께 저장한다. */
+  translations?: PostTranslationSet
 }
 
 export interface UpdatePostInput {
@@ -60,6 +63,8 @@ export interface UpdatePostInput {
   content: string
   tags?: string[]
   attachments?: Attachment[]
+  /** 있으면 제목·본문 번역을 이 값으로 바꾼다. 없으면 기존 번역을 건드리지 않는다. */
+  translations?: PostTranslationSet
 }
 
 export type GetPostBySlugResult =
@@ -105,6 +110,18 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const postsColRef = () => postsCol(db, cfg())
   const postDocRef = (id: string) => postDoc(db, cfg(), id)
   const bodyDocRef = (id: string) => postBodyDoc(db, cfg(), id)
+
+  function readPostDetail(id: string, data: Record<string, unknown>, body: Record<string, unknown> | undefined): PostDetail {
+    return {
+      id,
+      ...data,
+      i18n: readLocalizedFields(data.i18n),
+      i18nSource: readI18nSource(data.i18nSource),
+      content: typeof body?.content === 'string' ? body.content : '',
+      contentI18n: readLocalizedFields(body?.i18n),
+      contentI18nSource: readContentI18nSource(body?.i18nSource),
+    } as PostDetail
+  }
 
   function listedForBoard(): boolean {
     return !isBoardHidden(bid())
@@ -171,11 +188,11 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   async function getPost(id: string): Promise<PostDetail | null> {
     const [metaSnap, bodySnap] = await Promise.all([getDoc(postDocRef(id)), getDoc(bodyDocRef(id))])
     if (!metaSnap.exists()) return null
-    return {
-      id: metaSnap.id,
-      ...metaSnap.data(),
-      content: bodySnap.exists() ? ((bodySnap.data() as { content: string }).content ?? '') : '',
-    } as PostDetail
+    return readPostDetail(
+      metaSnap.id,
+      metaSnap.data() as Record<string, unknown>,
+      bodySnap.exists() ? bodySnap.data() as Record<string, unknown> : undefined,
+    )
   }
 
   /** 보드 내 slug 로 조회 */
@@ -293,8 +310,18 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
       moderationModel: input.moderationModel ?? null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
+      ...(input.translations ? {
+        i18n: input.translations.i18n,
+        i18nSource: input.translations.i18nSource,
+      } : {}),
     })
-    batch.set(bodyDocRef(id), { content: input.content })
+    batch.set(bodyDocRef(id), {
+      content: input.content,
+      ...(input.translations?.contentI18n ? {
+        i18n: input.translations.contentI18n,
+        i18nSource: input.translations.contentI18nSource,
+      } : {}),
+    })
     await batch.commit()
     createdPostIds.set(`${bid()}/${slug}`, id)
     return slug
@@ -316,8 +343,33 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         listed,
         attachments: input.attachments ?? [],
         updatedAt: serverTimestamp(),
+        ...(input.translations ? {
+          i18n: input.translations.i18n,
+          i18nSource: input.translations.i18nSource,
+        } : {}),
       }),
-      setDoc(bodyDocRef(id), { content: input.content }, { merge: true }),
+      setDoc(bodyDocRef(id), {
+        content: input.content,
+        ...(input.translations
+          ? (input.translations.contentI18n
+              ? { i18n: input.translations.contentI18n, i18nSource: input.translations.contentI18nSource }
+              : { i18n: deleteField(), i18nSource: deleteField() })
+          : {}),
+      }, { merge: true }),
+    ])
+  }
+
+  /** 이미 있는 글에 10개 언어 번역만 기록한다. 제목·본문 원문은 바꾸지 않는다. */
+  async function savePostTranslations(id: string, translations: PostTranslationSet): Promise<void> {
+    await Promise.all([
+      updateDoc(postDocRef(id), {
+        i18n: translations.i18n,
+        i18nSource: translations.i18nSource,
+        updatedAt: serverTimestamp(),
+      }),
+      setDoc(bodyDocRef(id), translations.contentI18n
+        ? { i18n: translations.contentI18n, i18nSource: translations.contentI18nSource }
+        : { i18n: deleteField(), i18nSource: deleteField() }, { merge: true }),
     ])
   }
 
@@ -346,6 +398,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     getAdjacentPosts,
     createPost,
     updatePost,
+    savePostTranslations,
     publishPost,
     deletePost,
   }
@@ -522,13 +575,26 @@ export function useMemiBoardPost(
   const bodyRef = computed(() => postBodyDoc(db, cfg(), id.value))
 
   const { data: meta, pending: metaPending } = useDocument<PostModel>(postRef)
-  const { data: body, pending: bodyPending } = useDocument<{ content: string }>(bodyRef)
+  const { data: body, pending: bodyPending } = useDocument<{
+    content: string
+    i18n?: PostModel['i18n']
+    i18nSource?: { locale?: string, hash?: string }
+  }>(bodyRef)
 
   const post = computed<PostDetail | null>(() => {
     // boardId 는 이제 문서 필드라, URL의 boardId 세그먼트와 실제 글이 다른 보드에
     // 속하면(잘못된 URL 등) 상세를 보여주지 않는다.
     if (!meta.value || meta.value.boardId !== bid.value) return null
-    return { ...meta.value, id: id.value, content: body.value?.content ?? '' } as PostDetail
+    const bodyData = body.value as Record<string, unknown> | null | undefined
+    return {
+      ...meta.value,
+      id: id.value,
+      i18n: readLocalizedFields(meta.value.i18n),
+      i18nSource: readI18nSource(meta.value.i18nSource),
+      content: body.value?.content ?? '',
+      contentI18n: readLocalizedFields(bodyData?.i18n),
+      contentI18nSource: readContentI18nSource(bodyData?.i18nSource),
+    }
   })
   const pending = computed(() => metaPending.value || bodyPending.value)
 

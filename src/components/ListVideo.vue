@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { useMemiBoardI18n, videoListCoverUrl } from 'memi-board/runtime'
+import { displayPostSummary, displayPostTitle, useMemiBoardI18n, videoListCoverUrl } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 defineProps<{
@@ -14,7 +14,16 @@ defineProps<{
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
-const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+
+function titleOf(post: PostModel) {
+  return displayPostTitle(post, locale.value).trim()
+}
+function summaryOf(post: PostModel) {
+  const summary = displayPostSummary(post, locale.value).trim()
+  if (!summary || summary === titleOf(post)) return ''
+  return summary
+}
 
 /** 영상 목록: YouTube URL 이 있으면 썸네일 우선, 그다음 본문/첨부 이미지. */
 function cover(post: PostModel): string | undefined {
@@ -37,7 +46,7 @@ function cover(post: PostModel): string | undefined {
         @click="!postTo(post) && emit('select', post)"
       >
         <div class="relative aspect-video overflow-hidden bg-elevated">
-          <img v-if="cover(post)" :src="cover(post)" :alt="post.title" class="size-full object-cover">
+          <img v-if="cover(post)" :src="cover(post)" :alt="titleOf(post)" class="size-full object-cover">
           <div v-else class="flex size-full items-center justify-center text-muted"><UIcon name="i-lucide-video" class="size-10" /></div>
           <span class="absolute inset-0 flex items-center justify-center bg-black/10">
             <span class="flex size-12 items-center justify-center rounded-full bg-black/70 text-white shadow"><UIcon name="i-lucide-play" class="ml-0.5 size-6 fill-current" /></span>
@@ -53,7 +62,7 @@ function cover(post: PostModel): string | undefined {
               size="sm"
               class="mt-0.5 shrink-0"
             />
-            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit">{{ post.title }}</h3>
+            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit">{{ titleOf(post) }}</h3>
             <span
               v-if="(post.commentCount ?? 0) > 0"
               class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
@@ -61,7 +70,7 @@ function cover(post: PostModel): string | undefined {
               {{ post.commentCount }}
             </span>
           </div>
-          <p v-if="post.summary" class="mt-2 line-clamp-2 whitespace-pre-line text-sm text-muted">{{ post.summary }}</p>
+          <p v-if="summaryOf(post)" class="mt-2 line-clamp-2 whitespace-pre-line text-sm text-muted">{{ summaryOf(post) }}</p>
         </div>
       </component>
 

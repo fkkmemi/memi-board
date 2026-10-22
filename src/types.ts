@@ -1,4 +1,35 @@
 import type { Timestamp } from 'firebase/firestore'
+import type { MemiBoardLocale } from './i18n/locales'
+
+/** 언어별 필드 번역. `{ en: { title: '…' }, ja: { title: '…' } }` */
+export type MemiBoardI18nMap = Partial<Record<MemiBoardLocale, Record<string, string>>>
+
+/**
+ * 번역을 만든 시점의 원문. 이 값과 문서의 원문 필드가 같을 때만 번역을 보여 준다.
+ * 게시판은 label·description, 글은 title·summary, 섹션은 title 만 채운다.
+ */
+export interface MemiBoardI18nSource {
+  locale?: MemiBoardLocale
+  label?: string
+  description?: string
+  title?: string
+  summary?: string
+  contentHash?: string
+}
+
+/** 본문 서브문서에 두는 번역 기준. 본문 전체 대신 해시만 저장한다. */
+export interface PostContentI18nSource {
+  locale?: MemiBoardLocale
+  hash?: string
+}
+
+/** 글 제목·요약·본문을 10개 언어로 저장한 결과. */
+export interface PostTranslationSet {
+  i18n: MemiBoardI18nMap
+  i18nSource: MemiBoardI18nSource
+  contentI18n?: MemiBoardI18nMap
+  contentI18nSource?: PostContentI18nSource
+}
 
 export interface Attachment {
   name: string
@@ -71,10 +102,18 @@ export interface PostModel {
   moderationModel?: string
   createdAt: Timestamp
   updatedAt: Timestamp
+  /** 제목·요약의 10개 언어 번역. 본문은 body/main 에 따로 둔다. */
+  i18n?: MemiBoardI18nMap
+  /** 번역을 만들 때의 제목·요약. 지금 원문과 다르면 번역을 쓰지 않는다. */
+  i18nSource?: MemiBoardI18nSource
 }
 
 export interface PostDetail extends PostModel {
   content: string
+  /** body/main 의 본문 번역. */
+  contentI18n?: MemiBoardI18nMap
+  /** 본문 번역을 만든 시점의 해시. 본문이 바뀌면 번역을 쓰지 않는다. */
+  contentI18nSource?: PostContentI18nSource
 }
 
 /**
@@ -196,6 +235,10 @@ export interface BoardModel {
    * 게시판 화면 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 호스트 언어를 따른다.
    */
   locale?: string
+  /** 이름·설명의 10개 언어 번역. */
+  i18n?: MemiBoardI18nMap
+  /** 번역을 만들 때의 이름·설명. */
+  i18nSource?: MemiBoardI18nSource
   /** 보드 목록 정렬 */
   order?: number
 }
@@ -227,6 +270,10 @@ export interface BoardSection {
   cols: BoardSectionCols
   height: BoardSectionHeight
   order: number
+  /** 섹션 제목의 10개 언어 번역. */
+  i18n?: MemiBoardI18nMap
+  /** 번역을 만들 때의 제목. */
+  i18nSource?: MemiBoardI18nSource
 }
 
 export interface BoardSectionLayout {

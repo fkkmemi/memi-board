@@ -6,6 +6,8 @@ import { BOARD_SECTION_COLS, clampSectionCount } from '../utils/section'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import { coversLocales, mergeSourceFields, readI18nSource, readLocalizedFields } from '../utils/localizedFields'
+import { useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 export const DEFAULT_BOARD_SECTIONS: BoardSection[] = []
 
@@ -57,6 +59,8 @@ function defaultSectionTitle(order: number, locale?: MemiBoardLocale) {
 export function normalizeBoardSection(raw: Record<string, unknown>, order: number, locale?: MemiBoardLocale): BoardSection {
   const kind = asKind(raw)
   const count = clampSectionCount(kind, raw.count)
+  const i18n = readLocalizedFields(raw.i18n)
+  const i18nSource = readI18nSource(raw.i18nSource)
   return {
     id: String(raw.id || `box-${order + 1}`),
     title: String(raw.title || defaultSectionTitle(order, locale)),
@@ -69,12 +73,15 @@ export function normalizeBoardSection(raw: Record<string, unknown>, order: numbe
     cols: asCols(raw),
     height: asHeight(raw),
     order,
+    ...(i18n ? { i18n } : {}),
+    ...(i18nSource ? { i18nSource } : {}),
   }
 }
 
 /** 호스트 `settings/homeLayout` 문서를 읽는다. 기존 메인 레이아웃 경로를 유지한다. */
 export function useMemiBoardSections() {
   const { locale } = useMemiBoardI18n()
+  const { translateEntries } = useMemiBoardAutoTranslate()
   const db = useFirestore()
   const settingsRef = doc(db, 'settings', 'homeLayout')
   const { data: settings, pending } = useDocument<BoardSectionLayout>(settingsRef)
@@ -84,27 +91,65 @@ export function useMemiBoardSections() {
     return source.map((block, index) => normalizeBoardSection(block as unknown as Record<string, unknown>, index, locale.value))
   })
 
+  async function withSectionTranslations(list: BoardSection[]): Promise<BoardSection[]> {
+    const source = locale.value
+    const pending = list.filter((section) => {
+      const title = section.title.trim()
+      if (!title) return false
+      return !(section.i18nSource?.title === title && coversLocales(section.i18n, ['title']))
+    })
+    if (!pending.length) return list
+    const translated = await translateEntries(pending.map(section => ({
+      id: section.id,
+      fields: { title: section.title.trim() },
+      context: section.kind,
+    })), {
+      source,
+      purpose: 'section heading on a website home page',
+    })
+    return list.map((section) => {
+      const row = translated[section.id]
+      if (!row) return section
+      const title = section.title.trim()
+      const i18n = mergeSourceFields(source, { title }, row)
+      if (!coversLocales(i18n, ['title'])) return section
+      return { ...section, title, i18n, i18nSource: { locale: source, title } }
+    })
+  }
+
+  function sectionPayload(block: BoardSection, order: number) {
+    const raw = block as unknown as Record<string, unknown>
+    const kind = asKind(raw)
+    const count = clampSectionCount(kind, block.count)
+    const title = block.title.trim() || defaultSectionTitle(order, locale.value)
+    return {
+      id: block.id,
+      title,
+      showTitle: block.showTitle !== false,
+      kind,
+      boardId: asBoardId(raw),
+      count,
+      postIds: asPostIds(raw, count),
+      sort: asSort(raw),
+      cols: asCols(raw),
+      height: asHeight(raw),
+      order,
+      ...(block.i18n ? { i18n: block.i18n } : {}),
+      ...(block.i18nSource?.title === title ? { i18nSource: block.i18nSource } : {}),
+    }
+  }
+
   async function saveSections(next: BoardSection[]) {
+    let blocks = next
+    try {
+      blocks = await withSectionTranslations(next)
+    }
+    catch (cause) {
+      console.warn('[memi-board] section translation skipped', cause)
+    }
     await setDoc(settingsRef, {
       columns: 12,
-      blocks: next.map((block, order) => {
-        const raw = block as unknown as Record<string, unknown>
-        const kind = asKind(raw)
-        const count = clampSectionCount(kind, block.count)
-        return {
-          id: block.id,
-          title: block.title.trim() || defaultSectionTitle(order, locale.value),
-          showTitle: block.showTitle !== false,
-          kind,
-          boardId: asBoardId(raw),
-          count,
-          postIds: asPostIds(raw, count),
-          sort: asSort(raw),
-          cols: asCols(raw),
-          height: asHeight(raw),
-          order,
-        }
-      }),
+      blocks: blocks.map((block, order) => sectionPayload(block, order)),
       updatedAt: serverTimestamp(),
     })
   }

@@ -90,9 +90,9 @@ export async function useMemiBoardPostSeo(opts?: {
 
   // await 하지 않고 먼저 등록 → data ref 확보 후 메타 연결
   const postAsync = useAsyncData(
-    () => `memi-board-seo-post-${category.value}-${slug.value}`,
-    () => fetchPublicPostForSeo(category.value, slug.value, seoDb),
-    { watch: [category, slug], server: true, lazy: false },
+    () => `memi-board-seo-post-${category.value}-${slug.value}-${locale.value}`,
+    () => fetchPublicPostForSeo(category.value, slug.value, seoDb, locale.value),
+    { watch: [category, slug, locale], server: true, lazy: false },
   )
   const post = computed(() => postAsync.data.value ?? null)
 

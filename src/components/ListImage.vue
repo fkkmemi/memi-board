@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostSummary, displayPostTitle, useMemiBoardI18n } from 'memi-board/runtime'
 
 defineProps<{
   posts: PostModel[]
@@ -10,7 +10,14 @@ defineProps<{
 }>()
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
-const { t } = useMemiBoardI18n()
+const { t, locale } = useMemiBoardI18n()
+
+function titleOf(post: PostModel) {
+  return displayPostTitle(post, locale.value).trim()
+}
+function altOf(post: PostModel) {
+  return titleOf(post) || displayPostSummary(post, locale.value).trim() || t('common.label.image')
+}
 
 function image(post: PostModel): string | undefined {
   return post.previewImage || post.attachments?.find(item => item.type.startsWith('image/'))?.url
@@ -30,7 +37,7 @@ function image(post: PostModel): string | undefined {
       <img
         v-if="image(post)"
         :src="image(post)"
-        :alt="post.title?.trim() || post.summary || t('common.label.image')"
+        :alt="altOf(post)"
         class="size-full object-cover transition duration-300 group-hover:scale-105"
       >
       <div
@@ -47,7 +54,7 @@ function image(post: PostModel): string | undefined {
 
       <!-- 좌측 상단: 초안 표시 + 제목(있을 때만) + 댓글수. 이미지 보드는 제목 없이 썸네일 중심 -->
       <div
-        v-if="post.isPublished === false || post.title?.trim() || (post.commentCount ?? 0) > 0"
+        v-if="post.isPublished === false || titleOf(post) || (post.commentCount ?? 0) > 0"
         class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3"
       >
         <UBadge
@@ -59,10 +66,10 @@ function image(post: PostModel): string | undefined {
           class="shrink-0"
         />
         <h3
-          v-if="post.title?.trim()"
+          v-if="titleOf(post)"
           class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm"
         >
-          {{ post.title }}
+          {{ titleOf(post) }}
         </h3>
         <span
           v-if="(post.commentCount ?? 0) > 0"

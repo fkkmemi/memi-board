@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { BoardSection, CommentModel, PostModel } from 'memi-board/runtime'
-import { miniMoreLink, sectionColClass, sectionMinHeight, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayStoredField, miniMoreLink, sectionColClass, sectionMinHeight, useMemiBoardI18n } from 'memi-board/runtime'
 import MemiBoardMiniComments from './MiniComments.vue'
 import MemiBoardMiniList from './MiniList.vue'
 import MemiBoardMiniPost from './MiniPost.vue'
@@ -13,7 +13,14 @@ const props = defineProps<{
   getMoreLink?: (section: BoardSection) => string | undefined
 }>()
 
-const { t } = useMemiBoardI18n()
+const { t, locale } = useMemiBoardI18n()
+const title = computed(() => displayStoredField(
+  props.section.i18n,
+  props.section.i18nSource,
+  'title',
+  props.section.title,
+  locale.value,
+))
 const moreTo = computed(() => props.getMoreLink?.(props.section) ?? miniMoreLink(props.section))
 </script>
 
@@ -30,7 +37,7 @@ const moreTo = computed(() => props.getMoreLink?.(props.section) ?? miniMoreLink
         v-if="section.showTitle"
         class="min-w-0 truncate text-sm font-semibold text-highlighted"
       >
-        {{ section.title }}
+        {{ title }}
       </h2>
       <span v-else class="min-w-0" />
       <UButton

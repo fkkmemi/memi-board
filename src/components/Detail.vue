@@ -2,7 +2,7 @@
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostContent, displayPostTitle, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -38,7 +38,7 @@ const { getAdjacentPosts, deletePost, publishPost } = useMemiBoardPosts(() => pr
 const { canEdit, canDelete } = useMemiBoardAuth()
 const { boardLabel, getBoard } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순. 댓글 등 자식 컴포넌트도 이 언어를 따른다.
-const { t, dir, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
+const { t, dir, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
 const { recordView } = useMemiBoardViews()
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
@@ -141,8 +141,10 @@ async function handleDelete() {
  * 본문 표시: HTML(UEditor 저장)이면 그대로, 아니면 마크다운/플레인 변환.
  * (상세에 UEditor 쓰면 목록 이동 시 TipTap plugin 충돌)
  */
+const shownTitle = computed(() => post.value ? displayPostTitle(post.value, locale.value).trim() : '')
+const shownBoardLabel = computed(() => boardLabel(props.boardId, locale.value))
 const contentHtml = computed(() => {
-  const raw = post.value?.content || ''
+  const raw = post.value ? displayPostContent(post.value, locale.value) : ''
   if (!raw.trim()) return ''
   // 저장된 HTML (에디터 content-type=html)
   if (/<[a-z][\s\S]*>/i.test(raw)) return raw
@@ -200,14 +202,14 @@ const contentHtml = computed(() => {
         <div class="flex items-center gap-2 min-w-0">
           <UBadge
             v-if="post.category"
-            :label="boardLabel(boardId)"
+            :label="shownBoardLabel"
             variant="subtle"
           />
           <h1
-            v-if="post.title?.trim()"
+            v-if="shownTitle"
             class="text-2xl font-semibold"
           >
-            {{ post.title }}
+            {{ shownTitle }}
           </h1>
         </div>
         <UButton
@@ -310,7 +312,7 @@ const contentHtml = computed(() => {
         :post-id="postId"
         :like-count="post.likeCount ?? 0"
       />
-      <MemiBoardShareButton :title="post.title" />
+      <MemiBoardShareButton :title="shownTitle || post.title" />
       <MemiBoardReportButton
         :board-id="boardId"
         :post-id="postId"

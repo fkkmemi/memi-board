@@ -1,6 +1,7 @@
 import type { BoardListView, BoardSection, BoardSectionCols, BoardSectionHeight, BoardSectionKind, BoardSectionSort, CommentModel, PostModel } from '../types'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
+import { displayPostSummary, displayPostTitle } from './localizedFields'
 
 export const BOARD_SECTION_COLS: BoardSectionCols[] = [3, 4, 5, 6, 7, 8, 9, 12]
 
@@ -85,7 +86,9 @@ export function miniPostImage(post: PostModel): string | undefined {
 }
 
 export function miniPostTitle(post: PostModel, locale?: MemiBoardLocale) {
-  return post.title?.trim() || post.summary || translate(locale, 'sectionUtil.untitledPost')
+  return displayPostTitle(post, locale).trim()
+    || displayPostSummary(post, locale).trim()
+    || translate(locale, 'sectionUtil.untitledPost')
 }
 
 export type MiniViewGroup = 'list' | 'media'

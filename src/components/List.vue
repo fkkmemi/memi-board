@@ -64,12 +64,12 @@ const emit = defineEmits<{ select: [post: PostModel], 'update:view': [view: Boar
 const { boardDescription, getBoard } = useMemiBoardSettings()
 const resolvedBoardId = computed(() => props.boardId || props.category || '')
 // 보드 설정 언어 → 호스트 언어 순. 자식 컴포넌트도 이 언어를 따른다.
-const { t, dir } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
+const { t, dir, locale } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
 const introductionText = computed(() => props.introduction ?? t('list.introduction'))
 const listDescription = computed(() => {
   const explicit = props.description?.trim()
   if (explicit) return explicit
-  if (resolvedBoardId.value) return boardDescription(resolvedBoardId.value)
+  if (resolvedBoardId.value) return boardDescription(resolvedBoardId.value, locale.value)
   return undefined
 })
 const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(

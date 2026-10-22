@@ -4,10 +4,11 @@ import { useMemiBoardConfig } from '../config'
 import {
   DEFAULT_MEMI_BOARD_LOCALE,
   MEMI_BOARD_LOCALES,
-  normalizeMemiBoardLocale,
   type MemiBoardLocale,
 } from '../i18n/locales'
+import type { MemiBoardI18nMap } from '../types'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
+import { localizedText, mergeSourceFields } from '../utils/localizedFields'
 
 /** 번역할 항목 하나. fields 의 키(label, description 등)별로 번역 결과가 돌아온다. */
 export interface MemiBoardTranslateEntry {
@@ -18,7 +19,7 @@ export interface MemiBoardTranslateEntry {
 }
 
 /** 언어별 번역 결과. `{ en: { label: 'About' }, ja: { label: '…' } }` */
-export type MemiBoardLocalizedFields = Partial<Record<MemiBoardLocale, Record<string, string>>>
+export type MemiBoardLocalizedFields = MemiBoardI18nMap
 
 export interface MemiBoardTranslateOptions {
   /** 원문 언어. 기본 'ko' */
@@ -30,6 +31,29 @@ export interface MemiBoardTranslateOptions {
 }
 
 const REQUEST_TIMEOUT_MS = 30_000
+const HTML_TIMEOUT_MS = 45_000
+export const HTML_MAX_CHARS = 12_000
+const HTML_CONCURRENCY = 3
+
+function cleanModelOutput(value: string): string {
+  return value.trim()
+    .replace(/^```(?:html|text)?\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim()
+}
+
+async function mapPool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const index = next++
+      out[index] = await fn(items[index]!)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, () => worker()))
+  return out
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return new Promise<T>((resolve, reject) => {
@@ -139,20 +163,59 @@ export function useMemiBoardAutoTranslate() {
     return Object.fromEntries(cleaned.map((entry, index) => [entry.id, results[index]!]))
   }
 
-  return { translateEntries }
+  function getHtmlModel() {
+    const ai = getAI(app, {
+      backend: new GoogleAIBackend(),
+      useLimitedUseAppCheckTokens: moderation.useLimitedUseAppCheckTokens !== false,
+    })
+    return getGenerativeModel(ai, {
+      model: moderation.model ?? 'gemini-3.5-flash-lite',
+      systemInstruction: [
+        'You translate an HTML fragment of a message-board post.',
+        'Keep every tag, attribute, URL, class, and image source exactly as written.',
+        'Translate only human-readable text nodes.',
+        'Output only the HTML fragment. Do not add explanations or markdown code fences.',
+      ].join('\n'),
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 8192,
+      },
+    })
+  }
+
+  /**
+   * 게시글 본문 HTML 을 언어마다 한 번씩 번역한다.
+   * 원문 언어는 넣지 않는다. 12,000자를 넘으면 reject 한다.
+   */
+  async function translateHtml(
+    html: string,
+    options: MemiBoardTranslateOptions = {},
+  ): Promise<Partial<Record<MemiBoardLocale, string>>> {
+    const source = options.source ?? DEFAULT_MEMI_BOARD_LOCALE
+    const targets = (options.targets ?? MEMI_BOARD_LOCALES.map(item => item.code))
+      .filter(code => code !== source)
+    const text = html.trim()
+    if (!text || !targets.length) return {}
+    if (text.length > HTML_MAX_CHARS) {
+      throw new Error(`translation is limited to ${HTML_MAX_CHARS} characters`)
+    }
+
+    const rows = await mapPool(targets, HTML_CONCURRENCY, async (code) => {
+      const prompt = [
+        `Source language: ${memiBoardLanguageLabel(source)} (${source})`,
+        `Translate into: ${code} = ${memiBoardLanguageLabel(code)}`,
+        'HTML:',
+        text,
+      ].join('\n')
+      const result = await withTimeout(getHtmlModel().generateContent(prompt), HTML_TIMEOUT_MS)
+      const output = cleanModelOutput(result.response.text())
+      if (!output) throw new Error(`empty translation for ${code}`)
+      return [code, output] as const
+    })
+    return Object.fromEntries(rows)
+  }
+
+  return { translateEntries, translateHtml }
 }
 
-/**
- * 저장된 번역에서 현재 언어 값을 고른다. 현재 언어 → en → 원문 순.
- * `localizedText(item.i18n, locale, 'label', item.label)`
- */
-export function localizedText(
-  i18n: MemiBoardLocalizedFields | null | undefined,
-  locale: string | null | undefined,
-  field: string,
-  fallback: string,
-): string {
-  const code = normalizeMemiBoardLocale(locale)
-  if (!code || code === DEFAULT_MEMI_BOARD_LOCALE) return fallback
-  return i18n?.[code]?.[field] || i18n?.en?.[field] || fallback
-}
+export { localizedText, mergeSourceFields }

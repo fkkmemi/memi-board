@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
@@ -58,7 +58,7 @@ function fromLocaleOption(value: string) {
 }
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
-const { categories, settingsPending, saveCategory, saveCategories, deleteCategory } = useMemiBoardSettings()
+const { categories, settingsPending, saveCategory, saveCategories, deleteCategory, translateBoard } = useMemiBoardSettings()
 const canManage = computed(() => isAdmin.value || props.authorized)
 // users 전체 목록은 rules상 board-role 관리자만 읽을 수 있다 — "허용 스태프" 지정 권한이
 // 있을 때만(기본은 board-role 관리자) 쿼리를 시작한다. canManage(호스트 authorized 포함)로
@@ -178,12 +178,25 @@ async function save(category: BoardCategory, index: number) {
   error.value = ''
   savedId.value = null
   savingId.value = category.id
+  let translateFailed = false
+  try {
+    const translated = await translateBoard(category)
+    category.i18n = translated.i18n
+    category.i18nSource = translated.i18nSource
+    category.label = translated.label
+    category.description = translated.description
+  }
+  catch (cause) {
+    console.warn('[memi-board] board translation failed', cause)
+    translateFailed = true
+  }
   try {
     const order = props.categoryId ? (category.order ?? index) : index
     await saveCategory(category, order)
     category.order = order
     savedId.value = category.id
     emit('saved', draft.value)
+    if (translateFailed) error.value = t('settings.autoTranslate.failed')
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
@@ -302,14 +315,18 @@ async function runDeleteAll() {
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
           <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
-          <UTextarea
-            v-model="category.description"
-            :rows="3"
-            autoresize
-            :maxrows="6"
-            :placeholder="t('settings.description.placeholder')"
-            @update:model-value="savedId = null"
-          />
+          <div class="flex flex-col gap-2">
+            <UTextarea
+              v-model="category.description"
+              :rows="3"
+              autoresize
+              :maxrows="6"
+              :placeholder="t('settings.description.placeholder')"
+              @update:model-value="savedId = null"
+            />
+            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+            <p v-if="boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t('settings.autoTranslate.ready') }}</p>
+          </div>
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
           <div>

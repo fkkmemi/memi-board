@@ -152,6 +152,10 @@ export type {
   BoardSectionSort,
   BoardSectionLayout,
   ModerationResult,
+  MemiBoardI18nMap,
+  MemiBoardI18nSource,
+  PostContentI18nSource,
+  PostTranslationSet,
 } from './types'
 
 export {
@@ -167,12 +171,24 @@ export {
   WRITING_ASSISTANT_DAILY_LIMIT,
 } from './composables/useMemiBoardWritingAssistant'
 export type { WritingAssistantAction } from './composables/useMemiBoardWritingAssistant'
-export { useMemiBoardAutoTranslate, localizedText } from './composables/useMemiBoardAutoTranslate'
+export { useMemiBoardAutoTranslate, localizedText, HTML_MAX_CHARS } from './composables/useMemiBoardAutoTranslate'
 export type {
   MemiBoardTranslateEntry,
   MemiBoardTranslateOptions,
   MemiBoardLocalizedFields,
 } from './composables/useMemiBoardAutoTranslate'
+export {
+  hashText,
+  readLocalizedFields,
+  readI18nSource,
+  mergeSourceFields,
+  coversLocales,
+  displayStoredField,
+  displayPostTitle,
+  displayPostSummary,
+  displayPostContent,
+  boardCopyIsTranslated,
+} from './utils/localizedFields'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'
 export {

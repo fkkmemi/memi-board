@@ -26,6 +26,15 @@ import { saveBoardWithVisibility } from '../utils/saveBoardVisibility'
 import { normalizeMemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { BoardModel, BoardVisibility } from '../types'
+import {
+  boardCopyIsTranslated,
+  coversLocales,
+  displayStoredField,
+  mergeSourceFields,
+  readI18nSource,
+  readLocalizedFields,
+} from '../utils/localizedFields'
+import { useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 /** 필요할 때 호스트가 명시적으로 시드할 수 있는 예시 보드. 자동 적용하지 않는다. */
 export const DEFAULT_BOARDS: BoardModel[] = [
@@ -58,6 +67,8 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     allowedStaffUids: Array.isArray(data.allowedStaffUids) ? data.allowedStaffUids as string[] : [],
     allowedManagerUids: Array.isArray(data.allowedManagerUids) ? data.allowedManagerUids as string[] : [],
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
+    i18n: readLocalizedFields(data.i18n),
+    i18nSource: readI18nSource(data.i18nSource),
   }
 }
 
@@ -71,7 +82,8 @@ export function useMemiBoardSettings() {
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isSignedIn, isAdmin, isStaff, user } = useMemiBoardAuth()
-  const { t } = useMemiBoardI18n()
+  const { t, locale } = useMemiBoardI18n()
+  const { translateEntries } = useMemiBoardAutoTranslate()
 
   const boardsQuery = computed(() => query(settingsCol(db, cfg()), orderBy('order', 'asc')))
   const { data: boardDocs, pending: settingsPending } = useCollection(boardsQuery, {
@@ -93,17 +105,21 @@ export function useMemiBoardSettings() {
   /** @deprecated publicBoards */
   const publicCategories = publicBoards
 
-  function boardLabel(id: string | undefined): string | undefined {
+  function boardLabel(id: string | undefined, localeOverride?: string | null): string | undefined {
     if (!id) return undefined
-    return boards.value.find(board => board.id === id)?.label ?? id
+    const board = boards.value.find(item => item.id === id)
+    if (!board) return id
+    return displayStoredField(board.i18n, board.i18nSource, 'label', board.label, localeOverride ?? locale.value) || board.label
   }
   /** @deprecated boardLabel */
   const categoryLabel = boardLabel
 
-  function boardDescription(id: string | undefined): string | undefined {
+  function boardDescription(id: string | undefined, localeOverride?: string | null): string | undefined {
     if (!id) return undefined
-    const value = boards.value.find(board => board.id === id)?.description?.trim()
-    return value || undefined
+    const board = boards.value.find(item => item.id === id)
+    const value = board?.description?.trim()
+    if (!board || !value) return undefined
+    return displayStoredField(board.i18n, board.i18nSource, 'description', value, localeOverride ?? locale.value) || undefined
   }
   /** @deprecated boardDescription */
   const categoryDescription = boardDescription
@@ -146,8 +162,44 @@ export function useMemiBoardSettings() {
       allowedStaffUids: board.allowedStaffUids ?? [],
       allowedManagerUids: board.allowedManagerUids ?? [],
       locale: normalizeMemiBoardLocale(board.locale) ?? '',
+      ...(board.i18n ? { i18n: board.i18n } : {}),
+      ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,
       updatedAt: serverTimestamp(),
+    }
+  }
+
+  /**
+   * 이름·설명이 바뀌었으면 10개 언어로 번역해 보드에 붙인다.
+   * 문구가 같으면 기존 번역을 그대로 둔다. 저장은 호출한 쪽이 한다.
+   */
+  async function translateBoard(board: BoardModel): Promise<BoardModel> {
+    const label = board.label.trim()
+    const description = (board.description ?? '').trim()
+    if (!label) return board
+    if (boardCopyIsTranslated({ ...board, label, description })) return { ...board, label, description }
+
+    const source = locale.value
+    const fields: Record<string, string> = { label }
+    if (description) fields.description = description
+    const translated = await translateEntries([{
+      id: board.id || 'board',
+      fields,
+      context: board.id,
+    }], {
+      source,
+      purpose: 'board name and short description shown in navigation and page headers',
+    })
+    const i18n = mergeSourceFields(source, fields, translated[board.id || 'board'])
+    if (!coversLocales(i18n, Object.keys(fields))) {
+      throw new Error(t('settings.autoTranslate.failed'))
+    }
+    return {
+      ...board,
+      label,
+      description,
+      i18n,
+      i18nSource: { locale: source, label, description },
     }
   }
 
@@ -254,6 +306,7 @@ export function useMemiBoardSettings() {
     addCategory,
     saveBoard,
     saveCategory,
+    translateBoard,
     saveBoards,
     saveCategories,
     deleteBoard,

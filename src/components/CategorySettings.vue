@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
@@ -54,7 +54,7 @@ function fromLocaleOption(value: string) {
 }
 
 const { isAdmin, canConfigureBoard, rolePending } = useMemiBoardAuth()
-const { categories, settingsPending, saveCategory } = useMemiBoardSettings()
+const { categories, settingsPending, saveCategory, translateBoard } = useMemiBoardSettings()
 const canManage = computed(() => canConfigureBoard(props.categoryId) || props.authorized)
 // users 전체 목록은 rules상 board-role 관리자만 읽을 수 있다 — "허용 스태프" 지정 권한이
 // 있을 때만(기본은 board-role 관리자) 쿼리를 시작한다. canManage(호스트 authorized 포함)로
@@ -149,6 +149,18 @@ async function save() {
   saved.value = false
   error.value = ''
   const snapshot = { ...draft.value }
+  let translateFailed = false
+  try {
+    const translated = await translateBoard(snapshot)
+    snapshot.i18n = translated.i18n
+    snapshot.i18nSource = translated.i18nSource
+    snapshot.label = translated.label
+    snapshot.description = translated.description
+  }
+  catch (cause) {
+    console.warn('[memi-board] board translation failed', cause)
+    translateFailed = true
+  }
   try {
     const order = isNew.value ? categories.value.length : (snapshot.order ?? 0)
     await saveCategory(snapshot, order)
@@ -158,6 +170,7 @@ async function save() {
     draft.value = toDraft(snapshot)
     saved.value = true
     emit('saved', snapshot)
+    if (translateFailed) error.value = t('settings.autoTranslate.failed')
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
@@ -233,14 +246,18 @@ async function save() {
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
       <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
-      <UTextarea
-        v-model="draft.description"
-        :rows="3"
-        autoresize
-        :maxrows="6"
-        :placeholder="t('settings.description.placeholder')"
-        @update:model-value="saved = false"
-      />
+      <div class="flex flex-col gap-2">
+        <UTextarea
+          v-model="draft.description"
+          :rows="3"
+          autoresize
+          :maxrows="6"
+          :placeholder="t('settings.description.placeholder')"
+          @update:model-value="saved = false"
+        />
+        <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+        <p v-if="draft && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t('settings.autoTranslate.ready') }}</p>
+      </div>
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
       <div>

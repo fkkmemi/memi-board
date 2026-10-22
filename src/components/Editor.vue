@@ -11,7 +11,7 @@ import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
 import { mapEditorItems } from '@nuxt/ui/utils/editor'
-import type { Attachment, EditorImageEntry } from 'memi-board/runtime'
+import type { Attachment, EditorImageEntry, PostTranslationSet } from 'memi-board/runtime'
 import type { WritingAssistantAction } from 'memi-board/runtime'
 import {
   useMemiBoardAuth,
@@ -22,6 +22,9 @@ import {
   hasBodyImage,
   hasBodyText,
   plainTextFromHtml,
+  titleFromBody,
+  buildPostPreview,
+  hashText,
   useMemiBoardWritingAssistant,
 } from 'memi-board/runtime'
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
@@ -39,14 +42,14 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
-const { createPostId, getPost, createPost, updatePost, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
+const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순.
 const { t, dir, locale } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
 // provide 한 컴포넌트 자신은 inject 를 못 받으므로 AI 프롬프트 언어를 직접 넘긴다.
 const { checkText } = useMemiBoardModeration({ locale })
 const { uploadEditorImage } = useMemiBoardStorage()
-const { assist } = useMemiBoardWritingAssistant({ locale })
+const { assist, translatePost } = useMemiBoardWritingAssistant({ locale })
 
 const title = ref('')
 /** UEditor content-type=html (shineb 와 동일) */
@@ -78,6 +81,9 @@ const externalImageCandidate = computed(() => {
 })
 const aiRunning = ref(false)
 const aiError = ref('')
+const aiNotice = ref('')
+const pendingTranslations = ref<PostTranslationSet | null>(null)
+const pendingTranslationKey = ref('')
 const aiCustomDialogOpen = ref(false)
 const aiCustomInstruction = ref('')
 
@@ -652,8 +658,7 @@ const aiMenuItems = computed(() => [
     { label: t('editor.ai.summarize'), icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
   ],
   [
-    { label: t('editor.ai.translateEn'), icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-en') },
-    { label: t('editor.ai.translateKo'), icon: 'i-lucide-languages', onSelect: () => runWritingAssistant('translate-ko') },
+    { label: t('editor.ai.translateAll'), icon: 'i-lucide-languages', onSelect: () => translateAllLocales() },
   ],
   [
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
@@ -684,6 +689,7 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
   const editor = resolveEditor()
   if (!editor || aiRunning.value) return
   aiError.value = ''
+  aiNotice.value = ''
 
   const { from, to } = editor.state.selection
   const hasSelection = from !== to
@@ -710,6 +716,60 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
   }
   catch (cause) {
     console.warn('[memi-board] writing assistant failed', cause)
+    aiError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
+  }
+  finally {
+    aiRunning.value = false
+  }
+}
+
+function currentBodyContent(): string {
+  return isImageEditor.value && coverSlots.value.length
+    ? withCoverImagesInContent(content.value, coverUrls())
+    : content.value
+}
+
+function currentStoredTitle(body: string): string {
+  return isImageEditor.value ? titleFromBody(body) : title.value.trim()
+}
+
+function translationKey(body: string, storedTitle: string): string {
+  return `${storedTitle}\n${hashText(body)}`
+}
+
+async function translateAllLocales() {
+  if (aiRunning.value) return
+  aiError.value = ''
+  aiNotice.value = ''
+  const body = currentBodyContent()
+  const storedTitle = currentStoredTitle(body)
+  const summary = buildPostPreview(body, isImageEditor.value ? [] : attachments.value).summary
+  if (!storedTitle.trim() && !summary.trim() && !plainTextFromHtml(body)) {
+    aiError.value = t('editor.ai.translateEmpty')
+    return
+  }
+  aiRunning.value = true
+  try {
+    const translations = await translatePost({
+      source: locale.value,
+      title: storedTitle,
+      summary,
+      content: plainTextFromHtml(body) ? body : '',
+    })
+    if (props.postId) {
+      await savePostTranslations(props.postId, translations)
+      pendingTranslations.value = null
+      pendingTranslationKey.value = ''
+      aiNotice.value = t('editor.ai.translateSaved')
+    }
+    else {
+      pendingTranslations.value = translations
+      pendingTranslationKey.value = translationKey(body, storedTitle)
+      aiNotice.value = t('editor.ai.translatePending')
+    }
+  }
+  catch (cause) {
+    console.warn('[memi-board] post translation failed', cause)
     aiError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
   }
   finally {
@@ -982,15 +1042,19 @@ async function handleSubmit() {
     }
 
     submitHint.value = t('editor.hint.saving')
-    const bodyContent = imageBoard && coverSlots.value.length
-      ? withCoverImagesInContent(content.value, coverUrls())
-      : content.value
+    const bodyContent = currentBodyContent()
+    const storedTitle = currentStoredTitle(bodyContent)
+    const translations = pendingTranslations.value
+      && pendingTranslationKey.value === translationKey(bodyContent, storedTitle)
+      ? pendingTranslations.value
+      : undefined
     const payload = {
       title: imageBoard ? '' : title.value.trim(),
       content: bodyContent,
       tags: tags.value.map(t => t.trim()).filter(Boolean),
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
       attachments: imageBoard ? [] : attachments.value,
+      ...(translations ? { translations } : {}),
     }
 
     if (props.postId) {
@@ -1289,6 +1353,13 @@ async function handleSubmit() {
       >
         <UIcon name="i-lucide-circle-alert" class="size-3.5 shrink-0" />
         {{ aiError }}
+      </p>
+      <p
+        v-else-if="aiNotice"
+        class="flex items-center gap-2 border-t border-default px-4 py-2 text-xs text-primary"
+      >
+        <UIcon name="i-lucide-languages" class="size-3.5 shrink-0" />
+        {{ aiNotice }}
       </p>
 
       <p

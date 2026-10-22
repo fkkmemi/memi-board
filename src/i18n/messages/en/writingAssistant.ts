@@ -5,6 +5,9 @@ export default {
   contentRequired: 'Enter some content for the AI to work on first.',
   customRequired: 'Enter an instruction for how to rewrite it.',
   emptyResult: 'The AI couldn’t produce a result. Please try again.',
+  translateEmpty: 'Enter a title or body to translate first.',
+  translateTooLong: 'Posts longer than {limit} characters can’t be saved in 10 languages. Shorten it and try again.',
+  translateIncomplete: 'Some languages came back empty. Please try again.',
   failed: 'The AI task failed. Please try again.',
   actions: {
     proofread: 'Check spelling',
@@ -13,6 +16,7 @@ export default {
     summarize: 'Summarize',
     translateEn: 'Translate to English',
     translateKo: 'Translate to Korean',
+    translateAll: 'Translate and save in 10 languages',
     title: 'Generate title from body',
     custom: 'Rewrite in a custom style…',
   },

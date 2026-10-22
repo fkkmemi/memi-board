@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
+import { displayPostSummary, displayPostTitle, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 withDefaults(defineProps<{
@@ -15,7 +15,17 @@ withDefaults(defineProps<{
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const { categoryLabel } = useMemiBoardSettings()
-const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+
+function titleOf(post: PostModel) {
+  return displayPostTitle(post, locale.value).trim() || displayPostSummary(post, locale.value).trim() || t('list.photo')
+}
+function summaryOf(post: PostModel) {
+  const summary = displayPostSummary(post, locale.value).trim()
+  const title = displayPostTitle(post, locale.value).trim()
+  if (!summary || summary === title) return ''
+  return summary
+}
 const NuxtLink = resolveComponent('NuxtLink')
 
 function image(post: PostModel): string | undefined {
@@ -58,7 +68,7 @@ function image(post: PostModel): string | undefined {
                   class="mt-0.5 shrink-0"
                 />
                 <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug text-inherit sm:text-base">
-                  {{ post.title?.trim() || post.summary || t('list.photo') }}
+                  {{ titleOf(post) }}
                 </h3>
                 <span
                   v-if="(post.commentCount ?? 0) > 0"
@@ -69,10 +79,10 @@ function image(post: PostModel): string | undefined {
               </div>
             </div>
             <p
-              v-if="post.summary"
+              v-if="summaryOf(post)"
               class="min-w-0 line-clamp-2 break-words whitespace-pre-line text-sm leading-snug text-muted"
             >
-              {{ post.summary }}
+              {{ summaryOf(post) }}
             </p>
           </div>
 
@@ -82,7 +92,7 @@ function image(post: PostModel): string | undefined {
           >
             <img
               :src="image(post)"
-              :alt="post.title"
+              :alt="titleOf(post)"
               class="h-full w-full object-cover"
             >
           </div>

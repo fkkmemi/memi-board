@@ -26,6 +26,7 @@ import {
 } from '../utils/boardSeo'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { loadMemiBoardLocale, translate } from '../i18n/translate'
+import { displayPostSummary, displayPostTitle, displayStoredField, readI18nSource, readLocalizedFields } from '../utils/localizedFields'
 
 export type PublicSeoDb = {
   db: Firestore
@@ -39,7 +40,7 @@ export function resolvePublicSeoDb(): PublicSeoDb {
   }
 }
 
-async function loadBoardMeta(ctx: PublicSeoDb, boardId: string): Promise<{
+async function loadBoardMeta(ctx: PublicSeoDb, boardId: string, locale?: MemiBoardLocale): Promise<{
   label: string
   description: string
   hidden: boolean
@@ -50,9 +51,13 @@ async function loadBoardMeta(ctx: PublicSeoDb, boardId: string): Promise<{
       return { label: boardId, description: '', hidden: false }
     }
     const d = snap.data() ?? {}
+    const label = typeof d.label === 'string' && d.label.trim() ? d.label.trim() : boardId
+    const description = typeof d.description === 'string' ? d.description.trim() : ''
+    const i18n = readLocalizedFields(d.i18n)
+    const i18nSource = readI18nSource(d.i18nSource)
     return {
-      label: typeof d.label === 'string' && d.label.trim() ? d.label.trim() : boardId,
-      description: typeof d.description === 'string' ? d.description.trim() : '',
+      label: displayStoredField(i18n, i18nSource, 'label', label, locale) || label,
+      description: displayStoredField(i18n, i18nSource, 'description', description, locale),
       hidden: d.visibility === 'hidden',
     }
   }
@@ -79,6 +84,7 @@ export async function fetchPublicPostForSeo(
   boardId: string,
   slug: string,
   ctx?: PublicSeoDb,
+  locale?: MemiBoardLocale,
 ): Promise<BoardPostSeoPayload | null> {
   const b = boardId.trim()
   const s = slug.trim()
@@ -86,7 +92,8 @@ export async function fetchPublicPostForSeo(
 
   const store = ctx ?? resolvePublicSeoDb()
   store.paths = resolveBoardPathConfig(store.paths)
-  const meta = await loadBoardMeta(store, b)
+  if (locale) await loadMemiBoardLocale(locale)
+  const meta = await loadBoardMeta(store, b, locale)
   if (meta.hidden) return null
 
   try {
@@ -101,7 +108,11 @@ export async function fetchPublicPostForSeo(
     const row = snap.docs[0]
     if (!row) return null
     const d = row.data() ?? {}
-    const title = typeof d.title === 'string' ? d.title.trim() : ''
+    const rawTitle = typeof d.title === 'string' ? d.title : ''
+    const rawSummary = typeof d.summary === 'string' ? d.summary : ''
+    const i18n = readLocalizedFields(d.i18n)
+    const i18nSource = readI18nSource(d.i18nSource)
+    const title = displayPostTitle({ title: rawTitle, i18n, i18nSource }, locale).trim()
     if (!title) return null
     return {
       id: row.id,
@@ -109,7 +120,7 @@ export async function fetchPublicPostForSeo(
       category: b,
       categoryLabel: meta.label,
       title,
-      summary: typeof d.summary === 'string' ? d.summary.trim().slice(0, 200) : '',
+      summary: displayPostSummary({ summary: rawSummary, i18n, i18nSource }, locale).trim().slice(0, 200),
       previewImage: toBoardOgImageUrl(d.previewImage),
       authorName: typeof d.authorName === 'string' && d.authorName.trim() ? d.authorName.trim() : null,
       createdAt: createdAtIso(d.createdAt),
@@ -134,7 +145,7 @@ export async function fetchPublicListForSeo(
   store.paths = resolveBoardPathConfig(store.paths)
 
   if (b) {
-    const meta = await loadBoardMeta(store, b)
+    const meta = await loadBoardMeta(store, b, locale)
     if (meta.hidden) {
       return {
         kind: 'category',
@@ -145,7 +156,7 @@ export async function fetchPublicListForSeo(
         recentTitles: [],
       }
     }
-    const { recentTitles, ogImage } = await loadRecentListed(store, b)
+    const { recentTitles, ogImage } = await loadRecentListed(store, b, locale)
     return {
       kind: 'category',
       category: b,
@@ -166,7 +177,7 @@ export async function fetchPublicListForSeo(
   }
 }
 
-async function loadRecentListed(ctx: PublicSeoDb, boardId: string): Promise<{
+async function loadRecentListed(ctx: PublicSeoDb, boardId: string, locale?: MemiBoardLocale): Promise<{
   recentTitles: string[]
   ogImage: string | null
 }> {
@@ -183,7 +194,12 @@ async function loadRecentListed(ctx: PublicSeoDb, boardId: string): Promise<{
     ))
     for (const row of snap.docs) {
       const d = row.data() ?? {}
-      const title = typeof d.title === 'string' ? d.title.trim() : ''
+      const rawTitle = typeof d.title === 'string' ? d.title : ''
+      const title = displayPostTitle({
+        title: rawTitle,
+        i18n: readLocalizedFields(d.i18n),
+        i18nSource: readI18nSource(d.i18nSource),
+      }, locale).trim()
       if (title && recentTitles.length < 5) recentTitles.push(title)
       if (!ogImage) ogImage = toBoardOgImageUrl(d.previewImage)
     }

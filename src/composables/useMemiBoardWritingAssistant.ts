@@ -5,9 +5,13 @@ import { useCurrentUser, useFirebaseApp, useFirestore } from 'vuefire'
 import { useBoardPathConfig, useMemiBoardConfig } from '../config'
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
+import { plainTextFromHtml } from '../utils/postBody'
+import { coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { translate, type MemiBoardMessageParams } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import type { MemiBoardI18nMap, PostTranslationSet } from '../types'
+import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 export const WRITING_ASSISTANT_DAILY_LIMIT = 10
 const WRITING_ASSISTANT_WINDOW_MS = 24 * 60 * 60 * 1000
@@ -110,6 +114,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   const db = useFirestore()
   const user = useCurrentUser()
   const config = useMemiBoardConfig()
+  const { translateEntries, translateHtml } = useMemiBoardAutoTranslate()
 
   async function reserveDailyUse(): Promise<void> {
     const uid = user.value?.uid
@@ -190,5 +195,67 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     return output
   }
 
-  return { assist }
+  /**
+   * 제목·요약·본문을 지원 언어 10개로 번역한다.
+   * 하루 사용 횟수는 언어 수와 상관없이 1회만 차감한다. 저장은 호출한 쪽이 한다.
+   */
+  async function translatePost(input: {
+    source?: MemiBoardLocale
+    title?: string
+    summary?: string
+    content?: string
+  }): Promise<PostTranslationSet> {
+    const source = input.source ?? locale.value
+    const title = input.title?.trim() ?? ''
+    const summary = input.summary?.trim() ?? ''
+    const content = input.content ?? ''
+    const fields: Record<string, string> = {}
+    if (title) fields.title = title
+    if (summary) fields.summary = summary
+    const hasText = !!plainTextFromHtml(content)
+    if (!Object.keys(fields).length && !hasText) throw new Error(t('writingAssistant.translateEmpty'))
+    if (hasText && content.length > HTML_MAX_CHARS) {
+      throw new Error(t('writingAssistant.translateTooLong', { limit: HTML_MAX_CHARS }))
+    }
+
+    await reserveDailyUse()
+    const emptyFields: Record<string, MemiBoardI18nMap> = {}
+    const [fieldMap, htmlMap] = await Promise.all([
+      Object.keys(fields).length
+        ? translateEntries([{
+            id: 'post',
+            fields,
+            context: 'message board post title and short summary',
+          }], {
+            source,
+            purpose: 'message board post title and short summary',
+          })
+        : Promise.resolve(emptyFields),
+      hasText ? translateHtml(content, { source }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
+    ])
+
+    const i18n = mergeSourceFields(source, fields, fieldMap.post)
+    if (Object.keys(fields).length && !coversLocales(i18n, Object.keys(fields))) {
+      throw new Error(t('writingAssistant.translateIncomplete'))
+    }
+
+    const result: PostTranslationSet = {
+      i18n,
+      i18nSource: { locale: source, title, summary },
+    }
+    if (hasText) {
+      const htmlFields: MemiBoardI18nMap = {}
+      for (const [code, text] of Object.entries(htmlMap)) {
+        const localeCode = normalizeMemiBoardLocale(code)
+        if (localeCode && typeof text === 'string' && text.trim()) htmlFields[localeCode] = { content: text.trim() }
+      }
+      const contentI18n = mergeSourceFields(source, { content }, htmlFields)
+      if (!coversLocales(contentI18n, ['content'])) throw new Error(t('writingAssistant.translateIncomplete'))
+      result.contentI18n = contentI18n
+      result.contentI18nSource = { locale: source, hash: hashText(content) }
+    }
+    return result
+  }
+
+  return { assist, translatePost }
 }

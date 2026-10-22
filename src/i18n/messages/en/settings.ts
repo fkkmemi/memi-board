@@ -80,6 +80,11 @@ export default {
     help: 'Leave empty to follow the site language. If set, this board always appears in that language.',
     auto: 'Auto (follow site language)',
   },
+  autoTranslate: {
+    help: 'Saving translates the name and description into 10 languages. Unchanged text is not translated again.',
+    failed: 'Settings were saved, but translating into 10 languages failed. Save again to retry.',
+    ready: 'The name and description are saved in 10 languages.',
+  },
   action: {
     moveDown: 'Down',
     goToBoard: 'Go to board',
