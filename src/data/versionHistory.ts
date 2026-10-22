@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.46.1',
+    date: '2026-10-22',
+    highlights: [
+      '게시판 이름과 설명을 저장하면 10개 언어로 번역해 둬요',
+      '글쓰기 AI에서 한 번에 10개 언어로 번역해 저장할 수 있어요',
+      '보는 언어로 제목과 본문이 보이고, 원문을 고치면 번역 대신 원문이 보여요',
+    ],
+  },
+  {
     version: '0.46.0',
     date: '2026-10-21',
     highlights: [
