@@ -1,5 +1,9 @@
 # 0.46 역할 마이그레이션
 
+[호스트 설치 가이드](host-integration.md) · [국제화·번역 설정](internationalization.md) · [Firebase 준비](firebase-setup.md)
+
+신규 설치는 로그인으로 생성된 사용자 문서의 역할을 신뢰할 수 있는 콘솔 또는 서버에서 `owner`로 지정한다. 아래 admin → owner·staff → manager 이전은 기존 3개 역할을 쓰던 호스트에만 필요하다. 새로 만든 admin을 반복해서 owner로 바꾸는 작업이 아니다.
+
 역할: user(일반 사용자), staff(콘텐츠 담당), manager(담당 게시판 설정·스태프 배정), admin(전체 관리), owner(관리자 지정).
 
 `allowedStaffUids`는 콘텐츠 담당자, `allowedManagerUids`는 설정 담당자다. manager도 다른 게시판의 allowedStaffUids에만 배정되면 그 게시판에서는 콘텐츠만 관리한다. 글로벌 역할은 자격이고 실제 범위는 게시판 문서가 정한다. 매장 등 호스트의 조직을 게시판에 연결하고 배정을 동기화하는 책임은 호스트에 있다.

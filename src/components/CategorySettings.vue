@@ -23,7 +23,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ saved: [category: BoardCategory] }>()
 
-const { t } = useMemiBoardI18n()
+const { t, i18nEnabled, translationEnabled } = useMemiBoardI18n()
 const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
   { label: t('settings.option.default'), value: 'default' },
   { label: t('settings.listView.options.dense'), value: 'dense' },
@@ -149,7 +149,7 @@ watch(source, (category) => {
 }, { immediate: true })
 
 async function translateCopy() {
-  if (!draft.value?.label.trim() || translating.value || saving.value) return
+  if (!translationEnabled.value || !draft.value?.label.trim() || translating.value || saving.value) return
   const current = draft.value
   const snapshot = { ...current }
   translating.value = true
@@ -177,7 +177,7 @@ async function save() {
   error.value = ''
   const snapshot = { ...draft.value, autoTranslate: draft.value.autoTranslate === true }
   let translateFailed = false
-  if (snapshot.autoTranslate) {
+  if (translationEnabled.value && snapshot.autoTranslate) {
     try {
       const translated = await translateBoard(snapshot)
       snapshot.i18n = translated.i18n
@@ -275,6 +275,7 @@ async function save() {
       <div class="flex flex-wrap items-center gap-2">
         <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating" @update:model-value="saved = false" />
         <UButton
+          v-if="translationEnabled"
           :label="t('settings.autoTranslate.action')"
           icon="i-lucide-languages"
           color="neutral"
@@ -297,15 +298,15 @@ async function save() {
           :placeholder="t('settings.description.placeholder')"
           @update:model-value="saved = false"
         />
-        <div class="flex items-center justify-between gap-3">
+        <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
             <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
           </div>
           <USwitch v-model="draft.autoTranslate" size="sm" @update:model-value="saved = false" />
         </div>
-        <p class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
-        <p v-if="boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
+        <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
+        <p v-if="translationEnabled && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
       </div>
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
@@ -324,7 +325,7 @@ async function save() {
       <div><p class="text-sm font-medium">{{ t('settings.editorType.label') }}</p><p class="text-xs text-muted">{{ t('settings.editorType.help') }}</p></div>
       <MemiBoardOptionCards v-model="draft.editorType" :options="editorTypeOptions" @update:model-value="saved = false" />
     </div>
-    <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+    <div v-if="i18nEnabled" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
       <USelect
         :model-value="draft.locale || LOCALE_AUTO"

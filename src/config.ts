@@ -15,6 +15,16 @@ export interface MemiBoardAuthOptions {
   providers?: Array<'google' | 'apple' | 'emailPassword'>
 }
 
+export interface MemiBoardI18nOptions {
+  /** false이면 호스트·게시판 언어 대신 locale로 UI를 고정하고 번역 기능도 끈다. 기본 true. */
+  enabled?: boolean
+}
+
+export interface MemiBoardTranslationOptions {
+  /** false이면 콘텐츠 번역 생성과 번역문 표시를 끈다. UI 언어 설정은 유지한다. 기본 true. */
+  enabled?: boolean
+}
+
 export interface MemiBoardModerationOptions {
   enabled?: boolean
   model?: string
@@ -54,6 +64,8 @@ export interface MemiBoardConfig {
   auth: MemiBoardAuthOptions
   moderation: MemiBoardModerationOptions
   seo: MemiBoardSeoOptions
+  i18n?: MemiBoardI18nOptions
+  translation?: MemiBoardTranslationOptions
   /**
    * 기본 언어. 호스트에 @nuxtjs/i18n 이 있으면 그 언어를 따르고,
    * 보드 설정에서 언어를 고르면 그 보드는 그 언어로 고정된다. 기본 'ko'.
@@ -121,12 +133,31 @@ export function configureMemiBoard(options: Partial<MemiBoardConfig>): void {
   if (options.auth) Object.assign(config.auth, options.auth)
   if (options.moderation) Object.assign(config.moderation, options.moderation)
   if (options.seo) Object.assign(config.seo, options.seo)
+  if (options.i18n) config.i18n = { ...config.i18n, ...options.i18n }
+  if (options.translation) config.translation = { ...config.translation, ...options.translation }
   if (options.roleLabels) config.roleLabels = { ...options.roleLabels }
   if (options.locale) config.locale = options.locale
 }
 
 export function useMemiBoardConfig(): MemiBoardConfig {
   return getSharedConfig()
+}
+
+export function isMemiBoardI18nEnabled(): boolean {
+  return useMemiBoardConfig().i18n?.enabled !== false
+}
+
+export function isMemiBoardTranslationEnabled(): boolean {
+  return isMemiBoardI18nEnabled() && useMemiBoardConfig().translation?.enabled !== false
+}
+
+/** UI를 거치지 않는 호출도 AI 요청·이용 횟수 갱신 전에 차단한다. */
+export function assertMemiBoardTranslationEnabled(): void {
+  if (!isMemiBoardTranslationEnabled()) {
+    throw Object.assign(new Error('Content translation is disabled for this board service.'), {
+      code: 'memi-board/translation-disabled',
+    })
+  }
 }
 
 export function useBoardPathConfig(): BoardPathConfig {

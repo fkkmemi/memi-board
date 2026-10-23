@@ -27,7 +27,7 @@ import { slugify } from '../utils/slugify'
 import { findReadablePostBySlug } from '../utils/findReadablePost'
 import { deletePostCascade } from '../utils/deletePostCascade'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
-import { useBoardPathConfig } from '../config'
+import { assertMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import {
   postBodyDoc,
@@ -361,6 +361,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
 
   /** 이미 있는 글에 10개 언어 번역만 기록한다. 제목·본문 원문은 바꾸지 않는다. */
   async function savePostTranslations(id: string, translations: PostTranslationSet): Promise<void> {
+    assertMemiBoardTranslationEnabled()
     await Promise.all([
       updateDoc(postDocRef(id), {
         i18n: translations.i18n,

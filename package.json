@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.46.2",
+  "version": "0.47.0",
   "type": "module",
   "description": "Nuxt 4 + Nuxt UI + VueFire/Firebase 전용 게시판 모듈",
   "license": "MIT",
@@ -60,7 +60,8 @@
     "dev": "pnpm build && nuxi dev playground",
     "dev:build": "pnpm build && nuxi build playground",
     "dev:prepare": "pnpm build && nuxi prepare playground",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "test:i18n": "pnpm build && node --test tests/i18n-options.test.mjs"
   },
   "peerDependencies": {
     "@nuxt/ui": "^4.0.0",

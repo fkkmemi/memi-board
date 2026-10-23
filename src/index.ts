@@ -1,11 +1,13 @@
 /** Runtime API — composables / config / types only. UI SFC는 루트 Nuxt 모듈이 등록. */
 
-export { configureMemiBoard, useMemiBoardConfig, useBoardPathConfig } from './config'
+export { configureMemiBoard, useMemiBoardConfig, useBoardPathConfig, isMemiBoardI18nEnabled, isMemiBoardTranslationEnabled } from './config'
 export type {
   MemiBoardConfig,
   MemiBoardAuthOptions,
   MemiBoardModerationOptions,
   MemiBoardSeoOptions,
+  MemiBoardI18nOptions,
+  MemiBoardTranslationOptions,
 } from './config'
 
 export {

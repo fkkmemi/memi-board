@@ -1,4 +1,5 @@
 import { MEMI_BOARD_LOCALES, normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
+import { isMemiBoardTranslationEnabled } from '../config'
 import type { MemiBoardI18nMap, MemiBoardI18nSource, PostContentI18nSource, PostDetail, PostModel } from '../types'
 
 const SOURCE_KEYS = ['label', 'description', 'title', 'summary', 'contentHash'] as const
@@ -98,6 +99,7 @@ export function localizedText(
   fallback: string,
   sourceLocale?: string | null,
 ): string {
+  if (!isMemiBoardTranslationEnabled()) return fallback
   const code = normalizeMemiBoardLocale(locale)
   const source = normalizeMemiBoardLocale(sourceLocale)
   if (!code || (source && code === source)) return fallback

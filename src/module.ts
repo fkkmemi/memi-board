@@ -152,6 +152,8 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
 import { computed } from 'vue'
 import {
   configureMemiBoard,
+  useMemiBoardConfig,
+  isMemiBoardI18nEnabled,
   loadMemiBoardLocale,
   memiBoardHostLocaleKey,
   normalizeMemiBoardLocale,
@@ -163,6 +165,11 @@ export default defineNuxtPlugin({
   dependsOn: ['i18n:plugin'],
   async setup(nuxtApp) {
     configureMemiBoard(${runtimeConfig})
+    if (!isMemiBoardI18nEnabled()) {
+      const fixed = normalizeMemiBoardLocale(useMemiBoardConfig().locale) ?? 'ko'
+      await loadMemiBoardLocale(fixed)
+      return
+    }
     // 호스트가 @nuxtjs/i18n 을 쓰면 그 언어를 게시판 기본 언어로 쓴다.
     // 요청(SSR)마다 앱 인스턴스가 따로라 provide 로 넘긴다.
     const i18n = nuxtApp.$i18n

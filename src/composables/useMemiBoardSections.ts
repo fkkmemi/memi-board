@@ -8,6 +8,7 @@ import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import { coversLocales, mergeSourceFields, readI18nSource, readLocalizedFields } from '../utils/localizedFields'
 import { useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
+import { isMemiBoardTranslationEnabled } from '../config'
 
 export const DEFAULT_BOARD_SECTIONS: BoardSection[] = []
 
@@ -92,6 +93,7 @@ export function useMemiBoardSections() {
   })
 
   async function withSectionTranslations(list: BoardSection[]): Promise<BoardSection[]> {
+    if (!isMemiBoardTranslationEnabled()) return list
     const source = locale.value
     const pending = list.filter((section) => {
       const title = section.title.trim()

@@ -45,7 +45,7 @@ const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '
 const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순.
-const { t, dir, locale } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
+const { t, dir, locale, translationEnabled } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
 // provide 한 컴포넌트 자신은 inject 를 못 받으므로 AI 프롬프트 언어를 직접 넘긴다.
 const { checkText } = useMemiBoardModeration({ locale })
 const { uploadEditorImage } = useMemiBoardStorage()
@@ -657,9 +657,9 @@ const aiMenuItems = computed(() => [
     { label: t('editor.ai.continue'), icon: 'i-lucide-text-cursor-input', onSelect: () => runWritingAssistant('continue') },
     { label: t('editor.ai.summarize'), icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
   ],
-  [
+  ...(translationEnabled.value ? [[
     { label: t('editor.ai.translateAll'), icon: 'i-lucide-languages', onSelect: () => translateAllLocales() },
-  ],
+  ]] : []),
   [
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
   ],
@@ -738,7 +738,7 @@ function translationKey(body: string, storedTitle: string): string {
 }
 
 async function translateAllLocales() {
-  if (aiRunning.value) return
+  if (!translationEnabled.value || aiRunning.value) return
   aiError.value = ''
   aiNotice.value = ''
   const body = currentBodyContent()
@@ -1044,7 +1044,7 @@ async function handleSubmit() {
     submitHint.value = t('editor.hint.saving')
     const bodyContent = currentBodyContent()
     const storedTitle = currentStoredTitle(bodyContent)
-    const translations = pendingTranslations.value
+    const translations = translationEnabled.value && pendingTranslations.value
       && pendingTranslationKey.value === translationKey(bodyContent, storedTitle)
       ? pendingTranslations.value
       : undefined

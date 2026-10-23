@@ -2,6 +2,8 @@
 
 이 모듈을 처음 붙이는 프로젝트, 특히 Firebase를 아직 안 써본 프로젝트라면 README의 "설치" 섹션만으로는 부족하다. 여기 순서대로 하면 된다.
 
+[호스트 설치 가이드](host-integration.md) · [국제화·번역 설정](internationalization.md) · [역할 마이그레이션](roles-migration.md)
+
 ## 1. 사전 준비
 
 - Node.js + pnpm (또는 npm/yarn)
@@ -39,7 +41,7 @@ firebase init firestore storage
 ```json
 // firebase.json
 {
-  "firestore": { "rules": "firestore.rules" },
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
   "storage": {
     "bucket": "<vuefire.config.storageBucket 과 동일한 값>",
     "rules": "storage.rules"
@@ -79,6 +81,9 @@ firebase deploy --only firestore:rules,storage
 
 ### 0.45.1 규칙 변경과 기존 호스트 전환
 
+0.46 이상에서는 아래 파일 관리의 전역 역할이 **admin/owner**다. staff/manager는 담당 콘텐츠를 관리하지만 타인 파일의 수정·삭제는 기본 규칙으로 허용하지 않는다. 신규 설치의 최초 역할은 `owner`로 지정하고, 기존 admin·staff 계정은 [역할 마이그레이션](roles-migration.md) 절차로 이전한다.
+
+
 0.45.1은 클라이언트와 Firestore·Storage 규칙을 함께 갱신해야 한다. 사이트 자동 배포는 Firebase 규칙 배포를 대신하지 않는다.
 
 | 대상 | 변경 내용 |
@@ -87,13 +92,13 @@ firebase deploy --only firestore:rules,storage
 | 글·본문 동시 생성 | 본문 쓰기에서 `getAfter()`로 batch 적용 후 부모 글의 소유권을 확인한다. |
 | 공개 범위 전환 | 보드 설정의 `visibilityTransition` 동안 새 글·댓글 생성과 일반 글 수정을 잠근다. 담당 관리자의 `listed` 동기화는 허용한다. |
 | 삭제·감사 기록 | 콘텐츠 작성자·담당 관리자가 연관 좋아요를 정리할 수 있다. 글을 지워도 신고 기록은 남긴다. |
-| 이미지·첨부 업로드 | 기존 글은 작성자 또는 전역 admin·staff만 쓴다. 글 저장 전에는 업로드 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 한다. 덮어쓰기는 기존 파일의 `ownerUid`도 확인한다. |
-| 파일 삭제 | 글 문서가 있으면 작성자 또는 전역 admin·staff, 없으면 파일에 기록된 `ownerUid` 본인만 삭제한다. |
+| 이미지·첨부 업로드 | 기존 글은 작성자 또는 전역 admin·owner만 쓴다. 글 저장 전에는 업로드 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 한다. 덮어쓰기는 기존 파일의 `ownerUid`도 확인한다. |
+| 파일 삭제 | 글 문서가 있으면 작성자 또는 전역 admin·owner, 없으면 파일에 기록된 `ownerUid` 본인만 삭제한다. |
 
 적용 순서:
 
 1. 호스트에서 `memi-board@^0.45.1` 이상을 설치하고 lockfile을 갱신한다. 직접 만든 업로드 코드도 이미지·썸네일·첨부파일 모두에 `customMetadata: { ownerUid: user.uid }`를 넣는다.
-2. 최신 예제의 함수와 컬렉션·경로별 규칙 전체를 호스트에 병합한다. 컬렉션 이름을 바꿨다면 함수 내부 Firestore 경로도 맞춘다. 예전의 `!postExists(postId)`만으로 파일 쓰기·삭제를 허용하는 조건은 제거한다. Rules의 겹치는 `match` 중 하나라도 허용하면 접근이 가능하므로, 넓은 `allow write`를 남겨두지 않는다.
+2. 현재 설치한 버전 예제의 함수와 컬렉션·경로별 규칙 전체를 호스트에 병합한다. 컬렉션 이름을 바꿨다면 함수 내부 Firestore 경로도 맞춘다. 예전의 `!postExists(postId)`만으로 파일 쓰기·삭제를 허용하는 조건은 제거한다. Rules의 겹치는 `match` 중 하나라도 허용하면 접근이 가능하므로, 넓은 `allow write`를 남겨두지 않는다.
 3. 에뮬레이터에서 두 계정으로 새 글·본문 동시 저장, 이미지·첨부 업로드, 타인 파일 덮어쓰기·삭제 거절, 댓글 좋아요 정리, 숨김 전환 재시도를 확인한다.
 4. 새 클라이언트와 규칙 배포를 같은 배포 작업으로 진행하고 앱이 사용하는 모든 버킷에 적용한다. 새 규칙이 적용되면 기존 브라우저의 구버전 클라이언트는 저장 전 업로드에 `ownerUid`가 없어 거절될 수 있으므로 새 버전을 불러온 뒤 재시도한다. 아래 교차 서비스 IAM 설정도 확인한다.
 
@@ -101,7 +106,7 @@ firebase deploy --only firestore:rules,storage
 
 공개 범위 전환 중 실패하면 `visibilityTransition`을 임의로 지우거나 반대 범위로 바꾸지 말고, 설정 화면에서 **같은 목표 범위로 다시 저장**해 동기화를 완료한다. 숨김 전환은 콘텐츠의 `listed`를 먼저 내리고 마지막에 `visibility: 'hidden'`을 확정한다. 공개 복귀는 보드 공개를 먼저 허용한 뒤 콘텐츠를 동기화하고 전환 표시를 비운다.
 
-Storage의 Firestore 조회 제한은 서로 다른 문서 최대 2개이므로 예제는 글 문서와 사용자 역할 문서만 읽는다. 따라서 Storage의 admin·staff는 보드 담당 여부와 무관한 전역 파일 관리 권한을 유지한다. Firestore의 담당 스태프 범위와 혼동하지 않는다. [공식 조회 제한](https://firebase.google.com/docs/storage/security/rules-conditions#enhance_with_firestore)을 참고한다.
+Storage의 Firestore 조회 제한은 서로 다른 문서 최대 2개이므로 예제는 글 문서와 사용자 역할 문서만 읽는다. 따라서 Storage의 admin·owner는 보드 담당 여부와 무관한 전역 파일 관리 권한을 유지한다. Firestore의 담당 스태프 범위와 혼동하지 않는다. [공식 조회 제한](https://firebase.google.com/docs/storage/security/rules-conditions#enhance_with_firestore)을 참고한다.
 
 예제의 파일 읽기와 목록 조회는 계속 공개다. 숨김 보드·비공개 초안 파일까지 비공개로 저장해야 하는 서비스는 별도의 Storage 읽기 정책을 설계해야 한다.
 

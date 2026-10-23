@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.47.0',
+    date: '2026-10-23',
+    highlights: [
+      '서비스에 따라 국제화를 끄고 한 언어로만 게시판을 사용할 수 있어요',
+      '화면 언어 전환은 유지하면서 콘텐츠 번역만 끌 수도 있어요',
+      '다른 사이트에 설치하는 방법과 번역 설정 안내를 정리했어요',
+    ],
+  },
+  {
     version: '0.46.2',
     date: '2026-10-23',
     highlights: [

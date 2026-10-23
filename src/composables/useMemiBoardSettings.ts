@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   where,
 } from 'firebase/firestore'
-import { useBoardPathConfig } from '../config'
+import { isMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
 import {
   postsCol,
   settingsCol,
@@ -176,6 +176,7 @@ export function useMemiBoardSettings() {
    * 문구가 같으면 기존 번역을 그대로 둔다. 저장은 호출한 쪽이 한다.
    */
   async function translateBoard(board: BoardModel): Promise<BoardModel> {
+    if (!isMemiBoardTranslationEnabled()) return board
     const label = board.label.trim()
     const description = (board.description ?? '').trim()
     if (!label) return board

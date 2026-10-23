@@ -11,7 +11,7 @@ import {
   type InjectionKey,
   type MaybeRefOrGetter,
 } from 'vue'
-import { useMemiBoardConfig } from '../config'
+import { isMemiBoardI18nEnabled, isMemiBoardTranslationEnabled, useMemiBoardConfig } from '../config'
 import {
   DEFAULT_MEMI_BOARD_LOCALE,
   memiBoardLocaleInfo,
@@ -49,13 +49,16 @@ export function useMemiBoardI18n(options: UseMemiBoardI18nOptions = {}) {
   const hostLocale = canInject ? inject(memiBoardHostLocaleKey, null) : null
   const config = useMemiBoardConfig()
 
-  const locale = computed<MemiBoardLocale>(() =>
-    normalizeMemiBoardLocale(toValue(options.boardLocale))
+  const i18nEnabled = computed(isMemiBoardI18nEnabled)
+  const translationEnabled = computed(isMemiBoardTranslationEnabled)
+  const locale = computed<MemiBoardLocale>(() => {
+    if (!i18nEnabled.value) return normalizeMemiBoardLocale(config.locale) ?? DEFAULT_MEMI_BOARD_LOCALE
+    return normalizeMemiBoardLocale(toValue(options.boardLocale))
     ?? parentLocale?.value
     ?? normalizeMemiBoardLocale(toValue(hostLocale))
     ?? normalizeMemiBoardLocale(config.locale)
-    ?? DEFAULT_MEMI_BOARD_LOCALE,
-  )
+    ?? DEFAULT_MEMI_BOARD_LOCALE
+  })
 
   if (options.boardLocale !== undefined && canInject) provide(boardLocaleKey, locale)
 
@@ -66,6 +69,8 @@ export function useMemiBoardI18n(options: UseMemiBoardI18nOptions = {}) {
 
   return {
     locale,
+    i18nEnabled,
+    translationEnabled,
     /** 'ltr' | 'rtl' — 보드 루트 요소의 dir 속성에 쓴다. */
     dir: computed(() => info.value.dir),
     /** Intl 로케일 태그(예: 'ko-KR'). */

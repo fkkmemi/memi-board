@@ -27,7 +27,7 @@ const emit = defineEmits<{
   saved: [categories: BoardCategory[]]
 }>()
 
-const { t } = useMemiBoardI18n()
+const { t, i18nEnabled, translationEnabled } = useMemiBoardI18n()
 const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
   { label: t('settings.option.default'), value: 'default' },
   { label: t('settings.listView.options.dense'), value: 'dense' },
@@ -178,7 +178,7 @@ function categoryTo(id: string) {
 }
 
 async function translateCopy(category: BoardCategory) {
-  if (!category.label.trim() || translatingId.value || savingId.value) return
+  if (!translationEnabled.value || !category.label.trim() || translatingId.value || savingId.value) return
   const snapshot = { ...category }
   translatingId.value = category.id
   savedId.value = null
@@ -205,7 +205,7 @@ async function save(category: BoardCategory, index: number) {
   savingId.value = category.id
   category.autoTranslate = category.autoTranslate === true
   let translateFailed = false
-  if (category.autoTranslate) {
+  if (translationEnabled.value && category.autoTranslate) {
     try {
       const translated = await translateBoard(category)
       category.i18n = translated.i18n
@@ -343,6 +343,7 @@ async function runDeleteAll() {
           <div class="flex flex-wrap items-center gap-2">
             <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id" @update:model-value="savedId = null" />
             <UButton
+              v-if="translationEnabled"
               :label="t('settings.autoTranslate.action')"
               icon="i-lucide-languages"
               color="neutral"
@@ -365,15 +366,15 @@ async function runDeleteAll() {
               :placeholder="t('settings.description.placeholder')"
               @update:model-value="savedId = null"
             />
-            <div class="flex items-center justify-between gap-3">
+            <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
               <div>
                 <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
                 <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
               </div>
               <USwitch v-model="category.autoTranslate" size="sm" @update:model-value="savedId = null" />
             </div>
-            <p class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
-            <p v-if="boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
+            <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
+            <p v-if="translationEnabled && boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
           </div>
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
@@ -403,7 +404,7 @@ async function runDeleteAll() {
             @update:model-value="savedId = null"
           />
         </div>
-        <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
+        <div v-if="i18nEnabled" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
           <USelect
             :model-value="category.locale || LOCALE_AUTO"

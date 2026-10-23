@@ -2,7 +2,7 @@ import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai'
 import { runTransaction, serverTimestamp } from 'firebase/firestore'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useCurrentUser, useFirebaseApp, useFirestore } from 'vuefire'
-import { useBoardPathConfig, useMemiBoardConfig } from '../config'
+import { assertMemiBoardTranslationEnabled, useBoardPathConfig, useMemiBoardConfig } from '../config'
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
 import { plainTextFromHtml } from '../utils/postBody'
@@ -145,6 +145,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   }
 
   async function assist(input: WritingAssistantInput): Promise<string> {
+    if (input.action === 'translate-en' || input.action === 'translate-ko') assertMemiBoardTranslationEnabled()
     const lang = locale.value
     const ko = lang === 'ko'
     const instruction = resolveInstruction(input, lang, t)
@@ -205,6 +206,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     summary?: string
     content?: string
   }): Promise<PostTranslationSet> {
+    assertMemiBoardTranslationEnabled()
     const source = input.source ?? locale.value
     const title = input.title?.trim() ?? ''
     const summary = input.summary?.trim() ?? ''

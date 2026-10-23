@@ -12,6 +12,18 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지
 
 같은 스택(Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase)이면 **다른 호스트 앱에도 그대로 재사용** 가능하다. Firebase 프로젝트는 호스트마다 달라도 되고, 같은 프로젝트에서는 `boardId`로 게시판 인스턴스를 나눈다 — `memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`는 모두 최상위 flat 컬렉션이고 `boardId`는 각 문서의 필드다(경로 세그먼트가 아니다).
 
+## 안내 문서
+
+| 필요한 작업 | 문서 |
+|---|---|
+| 다른 사이트에 처음 설치 | [호스트 설치 가이드](docs/host-integration.md) — 최소 설정, 라우트, 첫 게시판 |
+| 한 언어만 사용하거나 다국어·번역 선택 | [국제화·콘텐츠 번역](docs/internationalization.md) — 모드별 설정과 저장 시점 |
+| Firebase 연결과 규칙·인덱스 배포 | [Firebase 준비](docs/firebase-setup.md) |
+| 매장·조직별 담당 권한, 기존 역할 이전 | [역할과 마이그레이션](docs/roles-migration.md) |
+| 설정·API·문제 해결 상세 | 이 README의 [호스트 설정](#부모호스트-앱-설정), [API](#제공하는-api), [문제 해결](#문제-해결) |
+
+`i18n.enabled`·`translation.enabled`는 **0.47.0 이상**에서 지원한다. 해당 옵션을 사용할 호스트는 `pnpm add memi-board@^0.47.0`으로 설치하거나 업데이트한다.
+
 ## 플랫폼 요구사항
 
 | 항목 | 요구 |
@@ -28,7 +40,7 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지
 
 | 엔트리 | 역할 |
 |--------|------|
-| `memi-board` | **Nuxt 모듈** — 설정, SFC auto-import, peer dedupe, `dayjs` 개발 서버 최적화 |
+| `memi-board` | **Nuxt 모듈** — 설정, SFC auto-import, peer dedupe |
 | `memi-board/runtime` | composables, types, 유틸리티 (**Vue 컴포넌트 export 없음**) |
 
 일반 사용자는 `nuxt.config.ts`의 `memiBoard`만 설정한다. 별도 Nuxt 플러그인은 필요 없다.
@@ -47,10 +59,10 @@ Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지
 **사전 준비:** Node + pnpm, Firebase 프로젝트(Firestore·Storage·Auth). 처음부터면 → [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ```bash
-pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs
+pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase
 ```
 
-`vuefire` / `firebase` / `nuxt-vuefire` / `dayjs`는 **호스트에 직접 설치**한다. TipTap은 `@nuxt/ui`와 `memi-board`가 관리하므로 호스트에서 별도로 설치하거나 버전을 맞출 필요가 없다.
+`vuefire` / `firebase` / `nuxt-vuefire`는 **호스트에 직접 설치**한다. TipTap은 `@nuxt/ui`와 `memi-board`가 관리하므로 호스트에서 별도로 설치하거나 버전을 맞출 필요가 없다. 날짜 표시는 `Intl`을 사용하므로 `dayjs`는 필요 없다.
 
 ---
 
@@ -71,6 +83,9 @@ export default defineNuxtConfig({
   ],
 
   memiBoard: {
+    // 단일 언어 예시. 다국어 서비스는 아래 국제화 가이드 참고
+    locale: 'ko',
+    i18n: { enabled: false },
     // Firestore: memiBoardPosts / memiBoardComments / memiBoardLikes / memiBoardSettings / memiBoardUsers
     // (전부 flat 컬렉션 — boardId 는 각 문서의 필드. 컴포저블 호출 시 boardId 인자로 지정)
     auth: { providers: ['google', 'apple'] }, // + 'emailPassword'
@@ -137,6 +152,7 @@ export default defineNuxtConfig({
 | `postsCollection` | `'memiBoardPosts'` | 글 컬렉션 이름 |
 | `commentsCollection` | `'memiBoardComments'` | 댓글 컬렉션 이름 |
 | `likesCollection` | `'memiBoardLikes'` | 좋아요 컬렉션 이름 |
+| `reportsCollection` | `'memiBoardReports'` | 신고 컬렉션 이름 |
 | `settingsCollection` | `'memiBoardSettings'` | 보드 설정 컬렉션 이름 |
 | `usersCollection` | `'memiBoardUsers'` | 역할 문서 컬렉션 이름 |
 | `auth.providers` | `['google','apple']` | 로그인 공급자 |
@@ -146,7 +162,10 @@ export default defineNuxtConfig({
 | `seo.siteUrl` | `''` | 절대 URL origin. 비우면 `runtimeConfig.public.siteUrl` → 요청 origin 순 |
 | `seo.defaultOgImage` | `''` | 대표 이미지 없을 때 (상대경로 또는 `https://…`) |
 | `seo.basePath` | `'/board'` | canonical: `{base}`, `{base}/{category}`, `{base}/{category}/{slug}` |
-| `locale` | `'ko'` | 기본 화면 언어. 호스트에 `@nuxtjs/i18n`이 있으면 그 언어가 우선 (아래 다국어 절) |
+| `i18n.enabled` | `true` | `false`면 UI를 `locale`로 고정하고 언어 선택·콘텐츠 번역을 끈다 |
+| `translation.enabled` | `true` | `false`면 UI 언어 전환은 유지하고 콘텐츠 번역 생성·표시를 끈다 |
+| `locale` | `'ko'` | 국제화가 켜져 있으면 게시판·호스트 언어 다음의 기본값. 꺼져 있으면 고정 UI 언어 |
+| `roleLabels` | 언어별 기본 명칭 | 서비스별 역할 표시 이름. 권한과 담당 범위는 바꾸지 않음 |
 
 #### routeRules 원칙
 
@@ -240,7 +259,7 @@ watch([categoryId, id], async ([category, slug]) => {
 - [ ] CSS `@source` (아래)
 - [ ] (선택) 읽은 글 표시 CSS (아래)
 - [ ] Rules·indexes **deploy**
-- [ ] 최초 admin + 첫 카테고리
+- [ ] 최초 owner + 첫 게시판
 
 ### 4. Tailwind `@source` (필수)
 
@@ -253,56 +272,19 @@ watch([categoryId, id], async ([category, slug]) => {
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 5. 다국어 (@nuxtjs/i18n, 권장)
+### 5. 국제화와 콘텐츠 번역 (선택)
 
-게시판 UI는 10개 언어를 지원한다: `ko` `en` `ja` `de` `fr` `es` `pt` `zh` `ar` `id` (`MEMI_BOARD_LOCALES`).
+[국제화·번역 가이드](docs/internationalization.md)에 모드별 복사 예제, 호스트 언어 연결, 번역 저장 시점, 오류 처리와 기존 데이터 유지 정책을 정리했다.
 
-- **언어 결정 순서**: 보드 설정의 "게시판 언어" → 호스트 `@nuxtjs/i18n`의 현재 locale → `memiBoard.locale` → `'ko'`.
-- **번역 범위**: ko·en은 모든 문구, 나머지 8개 언어는 짧은 화면 문구만 번역돼 있다. 긴 안내문(삭제 확인 등)은 영어로 폴백된다.
-- **로딩**: 언어별 번역 파일은 별도 청크로 그 언어를 쓸 때만 받는다(언어당 gzip 약 7KB). ko는 기본 번들에 들어 있다.
-- **날짜**: `Intl`로 그 언어 형식에 맞춰 표시한다. dayjs는 더 이상 쓰지 않는다.
-- **AI**: 검열·글쓰기 도우미 프롬프트도 보드 언어를 따른다(ko는 한국어 프롬프트, 그 외는 영어 프롬프트 + 해당 언어로 응답).
-- **콘텐츠 번역**: 게시판 설정을 저장하면 이름·설명을, 섹션을 저장하면 제목을, 글쓰기 AI의 "10개 언어로 번역해 저장"은 글 제목·요약·본문을 10개 언어로 문서에 남긴다. 별도 컬렉션은 만들지 않는다. 화면 언어가 원문과 다르면 그 번역을 보여주고, 원문을 고치면 다시 번역할 때까지 원문을 보여 준다. 댓글은 작성한 언어 그대로다.
-- **아랍어**: 게시판 목록·상세·글쓰기 루트에 `dir="rtl"`이 붙는다.
+| 목적 | `memiBoard` 설정 |
+|---|---|
+| 한국어 전용 | `locale: 'ko', i18n: { enabled: false }` |
+| UI만 다국어 | `i18n: { enabled: true }, translation: { enabled: false }` |
+| UI·콘텐츠 모두 다국어 | `i18n: { enabled: true }, translation: { enabled: true }` |
 
-호스트에 `@nuxtjs/i18n`을 설치하면 사이트 언어 전환에 게시판이 자동으로 따라간다. locale `code`는 위 코드와 같게 둔다(`en-US`처럼 써도 앞 두 글자로 맞춘다).
+설정 생략 시 두 옵션은 `true`이며, `i18n.enabled: false`이면 콘텐츠 번역도 꺼진다. UI는 `locale`로 고정하고 콘텐츠는 원문을 표시한다. 기존 번역 데이터는 유지한다. 호스트의 언어 전환을 연결할 때만 `@nuxtjs/i18n`을 추가하면 된다.
 
-```bash
-pnpm add @nuxtjs/i18n
-```
-
-```ts
-// nuxt.config.ts — '@nuxtjs/i18n'은 'memi-board'보다 앞에 둔다
-modules: ['@nuxt/ui', '@nuxtjs/i18n', 'nuxt-vuefire', 'memi-board'],
-i18n: {
-  locales: [
-    { code: 'ko', language: 'ko-KR', name: '한국어', file: 'ko.json' },
-    { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
-    // ja, de, fr, es, pt, zh, ar(dir: 'rtl'), id …
-  ],
-  defaultLocale: 'ko',
-  strategy: 'no_prefix',
-  langDir: 'locales/',
-},
-```
-
-Nuxt UI 내부 문구(닫기·검색 등)와 `<html lang dir>`도 맞추려면 `app.vue`에서:
-
-```vue
-<script setup lang="ts">
-import { ar, de, en, es, fr, id, ja, ko, pt_br, zh_cn } from '@nuxt/ui/locale'
-const { locale } = useI18n()
-const uiLocales = { ko, en, ja, de, fr, es, pt: pt_br, zh: zh_cn, ar, id }
-const uiLocale = computed(() => uiLocales[locale.value as keyof typeof uiLocales] ?? ko)
-useHead({ htmlAttrs: { lang: () => uiLocale.value.code, dir: () => uiLocale.value.dir } })
-</script>
-
-<template>
-  <UApp :locale="uiLocale">…</UApp>
-</template>
-```
-
-`@nuxtjs/i18n` 없이 한 언어로만 쓰려면 `memiBoard: { locale: 'en' }`만 지정한다. 호스트 화면에서 같은 번역을 쓰려면 `useMemiBoardI18n()`의 `t`, `formatRelativeDate` 등을 쓴다.
+번역 버튼은 라벨·설명을 번역해 임시 반영하고 **저장**을 눌러 적용한다. 자동 번역 토글은 기본 꺼짐이며, 켜면 **설정 저장 시** 번역한 뒤 저장한다. 문구가 같고 번역이 모두 있으면 재번역을 건너뛴다. 서비스 전체의 국제화·번역이 꺼져 있으면 자동 번역도 실행하지 않는다.
 
 ### 6. 읽은 글 표시 (선택)
 
@@ -354,7 +336,7 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 
 1. 아래 게시판 페이지를 만든 뒤 Google 또는 Apple로 로그인한다.
 2. Firebase Console → Firestore에서 `memiBoardUsers/{uid}` 문서를 찾는다.
-3. 해당 문서의 `role`을 문자열 `admin`으로 변경한다.
+3. 해당 문서의 `role`을 문자열 `owner`로 변경한다.
    - UID는 Firebase Console → Authentication → Users에서도 확인할 수 있다.
 4. `/board-settings`에서 첫 카테고리를 만든다. 카테고리가 없으면 글을 작성할 수 없다.
 5. 이후 역할 변경은 `/board-users`의 `MemiBoardUsers`에서 처리한다.
@@ -366,81 +348,33 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 라우팅·미들웨어는 **호스트 소유**. 컴포넌트는 모듈 auto-import (`MemiBoardList` 등).  
 `import { MemiBoardEditor } from 'memi-board/runtime'`는 **안 된다**. 컴포넌트는 모듈이 auto-import하고, composable과 type만 `memi-board/runtime`에서 명시적으로 가져올 수 있다.
 
-```vue
-<!-- app/pages/board/index.vue -->
-<script setup lang="ts">
-import { useMemiBoardAuth } from 'memi-board/runtime'
-const { isSignedIn } = useMemiBoardAuth()
-</script>
-
-<template>
-  <div>
-    <UButton v-if="isSignedIn" to="/board/new" label="새 글쓰기" />
-    <!-- 단순: 상세 /board/{id} -->
-    <MemiBoardList
-      post-link-base="/board"
-      introduction="우리 서비스의 소식과 이야기를 나누는 게시판입니다."
-    />
-    <!-- 카테고리 path: get-post-link 권장 -->
-    <!--
-    <MemiBoardList
-      :category="route.params.category as string"
-      :get-post-link="(p) => `/board/${p.category}/${p.id}`"
-    />
-    -->
-    <MemiBoardSignIn v-if="!isSignedIn" />
-  </div>
-</template>
-```
+라우트별 완성 예제는 [호스트 설치 가이드](docs/host-integration.md#7-목록글쓰기상세-페이지-연결)에 있다. 목록·에디터·상세에는 `boardId`를 전달한다.
 
 ```vue
-<!-- app/pages/board/[id].vue -->
-<script setup lang="ts">
-const route = useRoute()
-const router = useRouter()
-</script>
-
+<!-- free 게시판 목록: 게시판 설정에서 먼저 free를 만든다 -->
 <template>
-  <MemiBoardDetail
-    :post-id="route.params.id as string"
-    @edit="router.push(`/board/${route.params.id}/edit`)"
-    @deleted="router.push('/board')"
+  <MemiBoardList
+    board-id="free"
+    :get-post-link="post => `/board/free/${encodeURIComponent(post.slug)}`"
   />
 </template>
 ```
 
-```ts
-// app/middleware/board-auth.ts — 글쓰기 가드 (호스트)
-import { getCurrentUser } from 'vuefire'
-
-export default defineNuxtRouteMiddleware(async () => {
-  const user = await getCurrentUser()
-  if (!user) return navigateTo('/board')
-})
-```
-
 ```vue
-<!-- app/pages/board/new.vue -->
-<script setup lang="ts">
-definePageMeta({ middleware: 'board-auth' })
-const router = useRouter()
-// MemiBoardEditor 는 auto-import (import from 'memi-board/runtime' 불필요)
-</script>
-
+<!-- 새 글: saved는 새 글의 slug를 전달한다 -->
 <template>
   <MemiBoardEditor
-    @saved="(id) => router.push(`/board/${id}`)"
-    @cancel="router.push('/board')"
+    board-id="free"
+    @saved="slug => navigateTo(`/board/free/${encodeURIComponent(slug)}`)"
   />
-  <!-- path 로 카테고리 고정 시: fixed-category="free" -->
 </template>
 ```
 
-전체 페이지 예시는 `playground/app/pages/board/` 참고.
+상세에는 `<MemiBoardDetail :board-id="boardId" :post-id="postId" />`를 사용한다. URL의 slug는 `resolvePostIdBySlug()`로 Firestore 문서 ID로 바꾼다. 기존 글 수정의 `saved` 이벤트는 문서 ID를 전달하므로 현재 상세 URL의 slug를 유지한다. 공개 페이지의 SEO와 로그인·관리 페이지 가드까지 포함한 연결 순서는 설치 가이드를 따른다.
 
 ### 관리 페이지
 
-기본 Rules는 게시판의 `memiBoardUsers/{uid}.role == 'admin'`을 검사한다. 컴포넌트도 같은 role을 확인하므로 기본 설치에서는 `authorized`를 전달하지 않는다.
+전체 설정·사용자 관리는 `owner` 또는 `admin` 역할을 사용한다. 기본 설치에서는 `authorized`를 전달하지 않는다. 관리자 역할 지정은 owner만 가능하고, owner 자체 변경은 신뢰할 수 있는 서버나 콘솔에서 한다. 담당 manager의 개별 게시판 설정은 `MemiBoardCategorySettings`와 `canConfigureBoard(boardId)`를 사용한다.
 
 ```vue
 <!-- app/pages/board-settings.vue -->
@@ -456,22 +390,22 @@ const router = useRouter()
 </template>
 ```
 
-호스트의 별도 사이트 관리자 체계를 연동할 때만 `authorized`를 사용할 수 있다. 이 prop은 UI 표시만 허용하며 Firestore Rules를 우회하지 않는다. 이 경우에도 해당 사용자를 게시판 admin으로 등록하거나 호스트 Rules를 같은 관리자 체계에 맞게 수정해야 한다. 관리 URL이 일반 사용자에게 노출되지 않도록 호스트 라우트 가드를 추가하는 것을 권장한다.
+호스트의 별도 사이트 관리자 체계를 연동할 때만 `authorized`를 사용할 수 있다. 이 prop은 UI 표시만 허용하며 Firestore Rules를 우회하지 않는다. 이 경우에도 해당 사용자를 게시판 admin/owner로 등록하거나 호스트 Rules를 같은 관리자 체계에 맞게 수정해야 한다. 관리 URL이 일반 사용자에게 노출되지 않도록 호스트 라우트 가드를 추가하는 것을 권장한다.
 
 ### 제공하는 API
 
 **컴포넌트 (auto-import):**  
 `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardSettings`, `MemiBoardUsers`, `MemiBoardVersionHistory`
 
-**List props:** `pageSize`, `category`, `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
+**List props:** `boardId`(필수), `pageSize`, `category`(이전 이름), `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
 
-**Editor props:** `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)  
+**Editor props:** `boardId`, `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)
 본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
 
 **에디터 이미지:** 툴바에서 기기 파일 또는 외부 HTTPS 이미지 URL을 추가할 수 있고, 붙여넣기 / 드롭 파일은 Firebase Storage에 업로드한다. 외부 URL은 Storage에 복사하지 않으며 원본이 삭제되거나 핫링크가 차단되면 표시되지 않는다. 첫 본문 이미지는 업로드·외부 링크 구분 없이 목록과 공유 대표 이미지로 사용한다.
 
 `memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
-글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MiB 미만 + `image/*` + 소유권 검증**으로 제한한다. 기존 글은 작성자 또는 전역 admin·staff만 수정할 수 있다. 글 저장 전에는 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 하며, 기존 파일을 덮어쓸 때는 기존 메타데이터도 같아야 한다. 이미지 업로드도 Firestore의 글 존재 여부·소유권을 조회한다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
+글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MiB 미만 + `image/*` + 소유권 검증**으로 제한한다. 기존 글은 작성자 또는 전역 admin·owner만 수정할 수 있다. 글 저장 전에는 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 하며, 기존 파일을 덮어쓸 때는 기존 메타데이터도 같아야 한다. 이미지 업로드도 Firestore의 글 존재 여부·소유권을 조회한다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
 
 본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
 본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
@@ -487,7 +421,7 @@ const router = useRouter()
 
 ### 보드 (구 카테고리)
 
-- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, order, updatedAt }`
+- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, allowedManagerUids, locale, autoTranslate, i18n, i18nSource, order, updatedAt }`
 - 설정이 없으면 빈 목록이며 기본 보드를 자동 생성하지 않음
 - `MemiBoardSettings`에서 관리자가 보드별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
 - `boardId`는 문서 ID이자 각 글(`memiBoardPosts`)의 `boardId` 참조값이므로 생성 후 변경하지 않는 것을 권장
@@ -518,12 +452,12 @@ const router = useRouter()
 | 글 수정·삭제 | 작성자 또는 해당 보드 관리자·담당 스태프 |
 | 댓글 삭제 | 댓글 작성자 · 글 작성자 · 해당 보드 관리자·담당 스태프 |
 | 연관 좋아요 정리 | 좋아요 작성자 또는 부모 글 작성자·해당 보드 관리자·담당 스태프. 댓글 좋아요는 댓글 작성자도 정리 가능 |
-| 파일 업로드·삭제 | 기존 글은 글 작성자 또는 전역 admin·staff. 글 문서가 없으면 파일의 `ownerUid`로 검증 |
-| 역할 관리 | `MemiBoardUsers`에서 admin이 `admin`·`staff`·`user` 변경 |
+| 파일 업로드·삭제 | 기존 글은 글 작성자 또는 전역 admin·owner. 글 문서가 없으면 파일의 `ownerUid`로 검증 |
+| 역할 관리 | owner는 다른 admin 지정 가능. admin은 manager·staff·user 관리. 자기 역할과 owner 변경은 클라이언트에서 금지 |
 
 글 수정 시 `boardId`·`authorUid`는 바꿀 수 없고 `listed`는 공개 범위 전환 규칙을 따른다. 공개 범위 변경은 `visibilityTransition`을 기록해 새 글·댓글 생성과 일반 글 수정을 잠근 뒤 완료한다. 실패 시 같은 목표 공개 범위로 다시 저장한다. 글과 본문을 한 batch에서 만들 수 있도록 본문 쓰기는 `getAfter()`로 부모 글을 검증한다. 글 삭제 후에도 신고 기록은 보존한다.
 
-Storage 예제의 파일 읽기·목록 조회는 공개다. 숨김 보드·비공개 초안의 Firestore 읽기 제한이 첨부파일에도 적용되는 것은 아니다. Storage의 admin·staff 권한은 보드 담당 여부와 무관한 전역 권한이다. 상세한 이유와 전환 방법은 [규칙 변경 안내](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 참고한다.
+Storage 예제의 파일 읽기·목록 조회는 공개다. 숨김 보드·비공개 초안의 Firestore 읽기 제한이 첨부파일에도 적용되는 것은 아니다. Storage의 admin·owner 권한은 보드 담당 여부와 무관한 전역 권한이다. 담당 staff/manager의 타인 파일 관리에는 별도 서버 API가 필요하다. 상세한 이유와 전환 방법은 [규칙 변경 안내](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 참고한다.
 
 **알려진 한계:** AI 검열은 클라이언트 전용. SDK로 직접 write 하면 우회 가능. 중요 서비스면 Cloud Functions 검증을 호스트가 추가(패키지 범위 밖).
 
@@ -590,7 +524,7 @@ export default defineNuxtPlugin(() => {
 ## 다른 프로젝트에 붙일 때 체크리스트
 
 - [ ] 동일 스택: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
-- [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase dayjs`
+- [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase`
 - [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
 - [ ] `memiBoard` (`boardId` · `auth` · `moderation` · **`seo`**)
 - [ ] 공개 목록·상세 **SSR on**, 쓰기·설정만 `ssr: false` (전 경로 CSR 금지)
@@ -602,7 +536,7 @@ export default defineNuxtPlugin(() => {
 - [ ] Storage 서비스 계정의 Firestore 조회 IAM 역할 확인 ([호스트 설정](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정))
 - [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
 - [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
-- [ ] 최초 로그인 후 Firebase Console에서 `memiBoardUsers/{uid}.role = 'admin'`
+- [ ] 최초 로그인 후 Firebase Console에서 `memiBoardUsers/{uid}.role = 'owner'`
 - [ ] 설정 페이지에서 첫 카테고리 생성
 - [ ] (검열) AI Logic 활성화 + 권장 모델 + App Check
 - [ ] `pnpm why vuefire` 로 이중 인스턴스 없는지 확인
@@ -630,7 +564,7 @@ App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워�
 1. 로그인 상태인지 확인
 2. `vuefire.config.storageBucket`과 `firebase.json` `storage.bucket`이 **같은 이름**인지 확인. 구 프로젝트는 `*.appspot.com`(앱)과 `*.firebasestorage.app`(CLI 기본)이 갈라질 수 있다 — 앱이 쓰는 쪽에 규칙을 배포한다.
 3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
-4. 저장 전 파일에 `customMetadata.ownerUid`가 있는지 확인한다. 0.45.1 이상 패키지는 이를 자동으로 넣는다. 기존 글은 작성자·전역 admin·staff인지 확인한다.
+4. 저장 전 파일에 `customMetadata.ownerUid`가 있는지 확인한다. 0.45.1 이상 패키지는 이를 자동으로 넣는다. 기존 글은 작성자·전역 admin·owner인지 확인한다.
 5. 이미지 규칙도 Firestore를 조회하므로 [교차 서비스 IAM 역할](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)을 확인하고, `firebase deploy --only storage` 후 다시 올려 본다.
 
 ### ZIP 등 첨부파일 `storage/unauthorized`
@@ -679,7 +613,7 @@ pnpm add link:../memi-board
 
 SEO composable은 `#imports`로 호스트 Nuxt 인스턴스를 쓴다. `dist/index.js`에 `nuxt/app`을 넣지 않으므로 link 시 Nuxt 이중 로딩(E1001)이 나지 않는다.
 
-모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe와 `dayjs` 최적화를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
+모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
 
 링크 상태에서 새 Tailwind 클래스를 바로 시험하려면 호스트 CSS에 소스 경로를 하나 더 둔다.
 
