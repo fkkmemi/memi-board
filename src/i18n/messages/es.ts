@@ -548,7 +548,12 @@ const messages: MemiBoardMessages = {
       auto: 'Automático (según el idioma del sitio)',
     },
     autoTranslate: {
-      help: 'Al guardar, el nombre y la descripción se traducen a 10 idiomas. Si el texto no cambia, no se vuelve a traducir.',
+      action: "Traducir a 10 idiomas",
+      manualHelp: "Traduce el nombre y la descripción juntos y guarda para aplicar los cambios.",
+      pending: "Las traducciones a 10 idiomas están listas. Guarda para aplicarlas.",
+      manualFailed: "La traducción falló. Tu texto se conserva. Inténtalo de nuevo.",
+      label: 'Traducir a 10 idiomas al guardar',
+      help: 'Si está activado, el nombre y la descripción se traducen a 10 idiomas. Si está desactivado, no se traducen. El texto sin cambios no se vuelve a traducir.',
       failed: 'Los ajustes se guardaron, pero falló la traducción a 10 idiomas. Guarda de nuevo.',
       ready: 'El nombre y la descripción están guardados en 10 idiomas.',
     },

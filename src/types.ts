@@ -239,6 +239,11 @@ export interface BoardModel {
   i18n?: MemiBoardI18nMap
   /** 번역을 만들 때의 이름·설명. */
   i18nSource?: MemiBoardI18nSource
+  /**
+   * 설정을 저장할 때 이름·설명을 10개 언어로 번역한다.
+   * 없거나 false 이면 번역하지 않는다.
+   */
+  autoTranslate?: boolean
   /** 보드 목록 정렬 */
   order?: number
 }

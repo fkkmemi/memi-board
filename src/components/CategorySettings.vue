@@ -69,6 +69,8 @@ const canCreate = computed(() => props.canCreate ?? isAdmin.value)
 const isNew = computed(() => !source.value)
 const draft = ref<BoardCategory | null>(null)
 const saving = ref(false)
+const translating = ref(false)
+const translatedDraft = ref(false)
 const saved = ref(false)
 const error = ref('')
 
@@ -85,6 +87,7 @@ function emptyDraft(id: string): BoardCategory {
     allowedStaffUids: [],
     allowedManagerUids: [],
     locale: '',
+    autoTranslate: false,
   }
 }
 
@@ -107,12 +110,14 @@ function toDraft(category: BoardCategory): BoardCategory {
     allowedStaffUids: category.allowedStaffUids ?? [],
     allowedManagerUids: category.allowedManagerUids ?? [],
     locale: category.locale ?? '',
+    autoTranslate: category.autoTranslate === true,
   }
 }
 
 // 카테고리 전환·최초 로드 시에만 draft를 서버 값으로 맞춘다.
 // 저장 직후 onSnapshot 갱신으로 draft.description 이 비워지거나 입력 중이던 값이 덮이지 않게 한다.
 watch(() => props.categoryId, (id) => {
+  translatedDraft.value = false
   if (source.value) draft.value = toDraft(source.value)
   else if (canCreate.value) draft.value = emptyDraft(id)
   else draft.value = null
@@ -143,23 +148,47 @@ watch(source, (category) => {
   }
 }, { immediate: true })
 
-async function save() {
-  if (!draft.value) return
-  saving.value = true
+async function translateCopy() {
+  if (!draft.value?.label.trim() || translating.value || saving.value) return
+  const current = draft.value
+  const snapshot = { ...current }
+  translating.value = true
   saved.value = false
   error.value = ''
-  const snapshot = { ...draft.value }
-  let translateFailed = false
   try {
     const translated = await translateBoard(snapshot)
-    snapshot.i18n = translated.i18n
-    snapshot.i18nSource = translated.i18nSource
-    snapshot.label = translated.label
-    snapshot.description = translated.description
+    if (draft.value !== current || current.label !== snapshot.label || current.description !== snapshot.description) return
+    Object.assign(current, { label: translated.label, description: translated.description, i18n: translated.i18n, i18nSource: translated.i18nSource })
+    translatedDraft.value = true
   }
   catch (cause) {
     console.warn('[memi-board] board translation failed', cause)
-    translateFailed = true
+    if (draft.value === current) error.value = t('settings.autoTranslate.manualFailed')
+  }
+  finally {
+    translating.value = false
+  }
+}
+
+async function save() {
+  if (!draft.value || translating.value || saving.value) return
+  saving.value = true
+  saved.value = false
+  error.value = ''
+  const snapshot = { ...draft.value, autoTranslate: draft.value.autoTranslate === true }
+  let translateFailed = false
+  if (snapshot.autoTranslate) {
+    try {
+      const translated = await translateBoard(snapshot)
+      snapshot.i18n = translated.i18n
+      snapshot.i18nSource = translated.i18nSource
+      snapshot.label = translated.label
+      snapshot.description = translated.description
+    }
+    catch (cause) {
+      console.warn('[memi-board] board translation failed', cause)
+      translateFailed = true
+    }
   }
   try {
     const order = isNew.value ? categories.value.length : (snapshot.order ?? 0)
@@ -169,6 +198,7 @@ async function save() {
     // 저장 성공 직후 draft 유지 (스냅샷 오기 전에 watch가 비우지 않도록)
     draft.value = toDraft(snapshot)
     saved.value = true
+    translatedDraft.value = false
     emit('saved', snapshot)
     if (translateFailed) error.value = t('settings.autoTranslate.failed')
   }
@@ -242,21 +272,40 @@ async function save() {
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
-      <UInput v-model="draft.label" @update:model-value="saved = false" />
+      <div class="flex flex-wrap items-center gap-2">
+        <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating" @update:model-value="saved = false" />
+        <UButton
+          :label="t('settings.autoTranslate.action')"
+          icon="i-lucide-languages"
+          color="neutral"
+          variant="outline"
+          :loading="translating"
+          :disabled="saving || !draft.label.trim()"
+          @click="translateCopy"
+        />
+      </div>
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
       <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
       <div class="flex flex-col gap-2">
         <UTextarea
           v-model="draft.description"
+          :disabled="translating"
           :rows="3"
           autoresize
           :maxrows="6"
           :placeholder="t('settings.description.placeholder')"
           @update:model-value="saved = false"
         />
-        <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
-        <p v-if="draft && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t('settings.autoTranslate.ready') }}</p>
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+          </div>
+          <USwitch v-model="draft.autoTranslate" size="sm" @update:model-value="saved = false" />
+        </div>
+        <p class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
+        <p v-if="boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
       </div>
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
@@ -286,7 +335,7 @@ async function save() {
       />
     </div>
     <div class="flex justify-end border-t border-default pt-4">
-      <UButton :label="isNew ? t('settings.action.create') : t('common.action.save')" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" @click="save" />
+      <UButton :label="isNew ? t('settings.action.create') : t('common.action.save')" :icon="isNew ? 'i-lucide-plus' : 'i-lucide-save'" :loading="saving" :disabled="translating" @click="save" />
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? t('settings.created') : t('settings.savedSettings')" />

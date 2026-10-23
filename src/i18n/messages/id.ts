@@ -548,7 +548,12 @@ const messages: MemiBoardMessages = {
       auto: 'Otomatis (ikuti bahasa situs)',
     },
     autoTranslate: {
-      help: 'Saat disimpan, nama dan deskripsi diterjemahkan ke 10 bahasa. Teks yang tidak berubah tidak diterjemahkan lagi.',
+      action: "Terjemahkan ke 10 bahasa",
+      manualHelp: "Terjemahkan nama tampilan dan deskripsi sekaligus, lalu simpan untuk menerapkan.",
+      pending: "Terjemahan 10 bahasa siap. Simpan untuk menerapkan.",
+      manualFailed: "Terjemahan gagal. Teks Anda tetap tersimpan di formulir. Silakan coba lagi.",
+      label: 'Terjemahkan ke 10 bahasa saat menyimpan',
+      help: 'Jika aktif, nama dan deskripsi diterjemahkan ke 10 bahasa. Jika nonaktif, tidak diterjemahkan. Teks yang tidak berubah tidak diterjemahkan lagi.',
       failed: 'Pengaturan tersimpan, tetapi terjemahan ke 10 bahasa gagal. Simpan lagi.',
       ready: 'Nama dan deskripsi tersimpan dalam 10 bahasa.',
     },

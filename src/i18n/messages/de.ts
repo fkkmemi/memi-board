@@ -548,7 +548,12 @@ const messages: MemiBoardMessages = {
       auto: 'Automatisch (Sprache der Website)',
     },
     autoTranslate: {
-      help: 'Beim Speichern werden Name und Beschreibung in 10 Sprachen übersetzt. Unveränderter Text wird nicht erneut übersetzt.',
+      action: "In 10 Sprachen übersetzen",
+      manualHelp: "Anzeigename und Beschreibung zusammen übersetzen. Danach zum Anwenden speichern.",
+      pending: "Übersetzungen für 10 Sprachen sind bereit. Zum Anwenden speichern.",
+      manualFailed: "Übersetzung fehlgeschlagen. Ihr Text bleibt erhalten. Bitte erneut versuchen.",
+      label: 'Beim Speichern in 10 Sprachen übersetzen',
+      help: 'Wenn aktiv, werden Name und Beschreibung in 10 Sprachen übersetzt. Wenn aus, wird nicht übersetzt. Unveränderter Text wird nicht erneut übersetzt.',
       failed: 'Die Einstellungen wurden gespeichert, die Übersetzung in 10 Sprachen ist aber fehlgeschlagen. Speichern Sie erneut.',
       ready: 'Name und Beschreibung sind in 10 Sprachen gespeichert.',
     },

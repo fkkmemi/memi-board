@@ -81,7 +81,12 @@ export default {
     auto: 'Auto (follow site language)',
   },
   autoTranslate: {
-    help: 'Saving translates the name and description into 10 languages. Unchanged text is not translated again.',
+    action: "Translate into 10 languages",
+    manualHelp: "Translate the display label and description together, then click Save to apply.",
+    pending: "Translations for 10 languages are ready. Click Save to apply.",
+    manualFailed: "Translation failed. Your text is unchanged. Please try again.",
+    label: 'Translate into 10 languages when saving',
+    help: 'When on, the name and description are translated into 10 languages. When off, they are not translated. Unchanged text is not translated again.',
     failed: 'Settings were saved, but translating into 10 languages failed. Save again to retry.',
     ready: 'The name and description are saved in 10 languages.',
   },

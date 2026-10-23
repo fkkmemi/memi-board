@@ -82,6 +82,8 @@ const pending = computed(() => !mounted.value || rolePending.value || settingsPe
 const draft = ref<BoardCategory[]>([])
 const newLabel = ref('')
 const savingId = ref<string | null>(null)
+const translatingId = ref<string | null>(null)
+const translatedDraftIds = ref(new Set<string>())
 const savedId = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
 const ordering = ref(false)
@@ -104,6 +106,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       allowedStaffUids: category.allowedStaffUids ?? [],
       allowedManagerUids: category.allowedManagerUids ?? [],
       locale: category.locale ?? '',
+      autoTranslate: category.autoTranslate === true,
     }))
   }
 }, { immediate: true })
@@ -174,27 +177,53 @@ function categoryTo(id: string) {
   return `${props.categoryBase.replace(/\/$/, '')}/${encodeURIComponent(id)}`
 }
 
-async function save(category: BoardCategory, index: number) {
-  error.value = ''
+async function translateCopy(category: BoardCategory) {
+  if (!category.label.trim() || translatingId.value || savingId.value) return
+  const snapshot = { ...category }
+  translatingId.value = category.id
   savedId.value = null
-  savingId.value = category.id
-  let translateFailed = false
+  error.value = ''
   try {
-    const translated = await translateBoard(category)
-    category.i18n = translated.i18n
-    category.i18nSource = translated.i18nSource
-    category.label = translated.label
-    category.description = translated.description
+    const translated = await translateBoard(snapshot)
+    if (!draft.value.includes(category) || category.label !== snapshot.label || category.description !== snapshot.description) return
+    Object.assign(category, { label: translated.label, description: translated.description, i18n: translated.i18n, i18nSource: translated.i18nSource })
+    translatedDraftIds.value.add(category.id)
   }
   catch (cause) {
     console.warn('[memi-board] board translation failed', cause)
-    translateFailed = true
+    error.value = t('settings.autoTranslate.manualFailed')
+  }
+  finally {
+    translatingId.value = null
+  }
+}
+
+async function save(category: BoardCategory, index: number) {
+  if (translatingId.value || savingId.value) return
+  error.value = ''
+  savedId.value = null
+  savingId.value = category.id
+  category.autoTranslate = category.autoTranslate === true
+  let translateFailed = false
+  if (category.autoTranslate) {
+    try {
+      const translated = await translateBoard(category)
+      category.i18n = translated.i18n
+      category.i18nSource = translated.i18nSource
+      category.label = translated.label
+      category.description = translated.description
+    }
+    catch (cause) {
+      console.warn('[memi-board] board translation failed', cause)
+      translateFailed = true
+    }
   }
   try {
     const order = props.categoryId ? (category.order ?? index) : index
     await saveCategory(category, order)
     category.order = order
     savedId.value = category.id
+    translatedDraftIds.value.delete(category.id)
     emit('saved', draft.value)
     if (translateFailed) error.value = t('settings.autoTranslate.failed')
   }
@@ -311,21 +340,40 @@ async function runDeleteAll() {
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
-          <UInput v-model="category.label" @update:model-value="savedId = null" />
+          <div class="flex flex-wrap items-center gap-2">
+            <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id" @update:model-value="savedId = null" />
+            <UButton
+              :label="t('settings.autoTranslate.action')"
+              icon="i-lucide-languages"
+              color="neutral"
+              variant="outline"
+              :loading="translatingId === category.id"
+              :disabled="savingId !== null || translatingId !== null || !category.label.trim()"
+              @click="translateCopy(category)"
+            />
+          </div>
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
           <div><p class="text-sm font-medium">{{ t('settings.description.label') }}</p><p class="text-xs text-muted">{{ t('settings.description.help') }}</p></div>
           <div class="flex flex-col gap-2">
             <UTextarea
               v-model="category.description"
+              :disabled="translatingId === category.id"
               :rows="3"
               autoresize
               :maxrows="6"
               :placeholder="t('settings.description.placeholder')"
               @update:model-value="savedId = null"
             />
-            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
-            <p v-if="boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t('settings.autoTranslate.ready') }}</p>
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
+                <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+              </div>
+              <USwitch v-model="category.autoTranslate" size="sm" @update:model-value="savedId = null" />
+            </div>
+            <p class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
+            <p v-if="boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
           </div>
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
@@ -395,6 +443,7 @@ async function runDeleteAll() {
               icon="i-lucide-save"
               size="sm"
               :loading="savingId === category.id"
+              :disabled="translatingId !== null || savingId !== null"
               @click="save(category, index)"
             />
           </div>

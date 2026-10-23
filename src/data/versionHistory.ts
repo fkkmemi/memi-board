@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.46.2',
+    date: '2026-10-23',
+    highlights: [
+      '게시판 표시 라벨 옆 버튼으로 이름과 설명을 10개 언어로 번역할 수 있어요',
+      '저장할 때 자동으로 번역할지도 선택할 수 있어요',
+    ],
+  },
+  {
     version: '0.46.1',
     date: '2026-10-22',
     highlights: [

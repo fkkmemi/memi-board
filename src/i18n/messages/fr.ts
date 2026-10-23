@@ -548,7 +548,12 @@ const messages: MemiBoardMessages = {
       auto: 'Automatique (langue du site)',
     },
     autoTranslate: {
-      help: 'L’enregistrement traduit le nom et la description en 10 langues. Un texte inchangé n’est pas retraduit.',
+      action: "Traduire en 10 langues",
+      manualHelp: "Traduisez le libellé et la description ensemble, puis enregistrez pour appliquer.",
+      pending: "Les traductions en 10 langues sont prêtes. Enregistrez pour appliquer.",
+      manualFailed: "La traduction a échoué. Votre texte est conservé. Veuillez réessayer.",
+      label: 'Traduire en 10 langues à l’enregistrement',
+      help: 'Si activé, le nom et la description sont traduits en 10 langues. Sinon, ils ne sont pas traduits. Un texte inchangé n’est pas retraduit.',
       failed: 'Les réglages sont enregistrés, mais la traduction en 10 langues a échoué. Enregistrez à nouveau.',
       ready: 'Le nom et la description sont enregistrés en 10 langues.',
     },
