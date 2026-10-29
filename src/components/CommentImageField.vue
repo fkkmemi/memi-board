@@ -108,6 +108,22 @@ async function useFile(file: File) {
   }
 }
 
+function handlePaste(event: ClipboardEvent) {
+  if (props.disabled || uploading.value) return
+  const clipboard = event.clipboardData
+  if (!clipboard) return
+  const file = Array.from(clipboard.items)
+    .filter(item => item.kind === 'file')
+    .map(item => item.getAsFile())
+    .find((item): item is File => !!item && isCommentImageFile(item))
+    ?? Array.from(clipboard.files).find(isCommentImageFile)
+  if (!file) return
+  event.preventDefault()
+  void useFile(file)
+}
+
+defineExpose({ handlePaste })
+
 function onInput(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]

@@ -39,6 +39,7 @@ const deniedMessage = computed(() => {
 const body = ref('')
 const draftId = ref(newCommentId())
 const image = ref<Attachment | null>(null)
+const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
 const imageBusy = ref(false)
 const submitting = ref(false)
 const error = ref('')
@@ -116,11 +117,13 @@ onUnmounted(() => {
   >
     <UTextarea
       v-model="body"
+      @paste="imageField?.handlePaste($event)"
       :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
       :rows="2"
       :maxlength="COMMENT_BODY_MAX_LENGTH"
     />
     <MemiBoardCommentImageField
+      ref="imageField"
       v-model="image"
       :post-id="postId"
       :comment-id="draftId"

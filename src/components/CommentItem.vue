@@ -43,6 +43,7 @@ const editBody = ref(props.comment.body)
 const localBody = ref(props.comment.body)
 const localImage = ref<Attachment | null>(props.comment.images?.[0] ?? null)
 const editImage = ref<Attachment | null>(localImage.value)
+const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
 const imageBusy = ref(false)
 const localUpdatedAt = ref(props.comment.updatedAt)
 const localBlinded = ref(props.comment.isBlinded ?? false)
@@ -199,11 +200,13 @@ async function toggleLike() {
       >
         <UTextarea
           v-model="editBody"
+          @paste="imageField?.handlePaste($event)"
           :rows="2"
           :maxlength="COMMENT_BODY_MAX_LENGTH"
           autofocus
         />
         <MemiBoardCommentImageField
+          ref="imageField"
           v-if="comment.id"
           v-model="editImage"
           :post-id="postId"

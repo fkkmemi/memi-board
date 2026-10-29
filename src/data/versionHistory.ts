@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.48.1',
+    date: '2026-10-29',
+    highlights: [
+      '댓글·답글·댓글 수정 입력창에 이미지를 붙여넣어 첨부할 수 있어요',
+    ],
+  },
+  {
     version: '0.48.0',
     date: '2026-10-29',
     highlights: [
