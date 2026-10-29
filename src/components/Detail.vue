@@ -34,8 +34,8 @@ const emit = defineEmits<{
   navigate: [post: PostModel]
 }>()
 
-const { getAdjacentPosts, deletePost, publishPost } = useMemiBoardPosts(() => props.boardId)
-const { canEdit, canDelete } = useMemiBoardAuth()
+const { getAdjacentPosts, deletePost, publishPost, setPostPinned } = useMemiBoardPosts(() => props.boardId)
+const { canEdit, canDelete, canManageBoard } = useMemiBoardAuth()
 const { boardLabel, getBoard } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순. 댓글 등 자식 컴포넌트도 이 언어를 따른다.
 const { t, dir, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
@@ -48,6 +48,9 @@ const notFound = computed(() => !loading.value && !post.value)
 const isDraft = computed(() => post.value?.isPublished === false)
 const deleting = ref(false)
 const publishing = ref(false)
+const pinning = ref(false)
+// 공지는 게시된 글에만, 보드 매니저만 지정한다.
+const canPin = computed(() => !!post.value && !isDraft.value && canManageBoard(props.boardId))
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
 const now = ref(Date.now())
@@ -121,6 +124,17 @@ async function handlePublish() {
   }
   finally {
     publishing.value = false
+  }
+}
+
+async function handleTogglePinned() {
+  if (!post.value) return
+  pinning.value = true
+  try {
+    await setPostPinned(props.postId, !post.value.pinned)
+  }
+  finally {
+    pinning.value = false
   }
 }
 
@@ -200,6 +214,13 @@ const contentHtml = computed(() => {
     <header class="flex flex-col gap-2">
       <div class="flex items-start justify-between gap-4">
         <div class="flex items-center gap-2 min-w-0">
+          <UBadge
+            v-if="post.pinned"
+            :label="t('detail.notice')"
+            icon="i-lucide-pin"
+            variant="subtle"
+            class="shrink-0"
+          />
           <UBadge
             v-if="post.category"
             :label="shownBoardLabel"
@@ -283,7 +304,17 @@ const contentHtml = computed(() => {
           </template>
         </UPopover>
       </div>
-      <div v-if="canEdit(post) || canDelete(post)" class="flex gap-2">
+      <div v-if="canPin || canEdit(post) || canDelete(post)" class="flex gap-2">
+        <UButton
+          v-if="canPin"
+          :icon="post.pinned ? 'i-lucide-pin-off' : 'i-lucide-pin'"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          :label="post.pinned ? t('detail.unpin') : t('detail.pin')"
+          :loading="pinning"
+          @click="handleTogglePinned"
+        />
         <UButton
           v-if="canEdit(post)"
           icon="i-lucide-pencil"

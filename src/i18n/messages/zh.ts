@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: '未发布预览',
     draftNotice: '尚未发布。发布前仅作者本人可见。',
     publish: '发布',
+    notice: '公告',
+    pin: '设为公告',
+    unpin: '取消公告',
     backToList: '返回列表',
     postNav: '帖子导航',
     list: '列表',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: '设置',
     loadFailed: '无法加载列表：{error}',
     empty: '暂无帖子。',
+    notice: '公告',
     photo: '照片',
     likeCount: '点赞 {count}',
     info: {

@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: '非公開プレビュー',
     draftNotice: 'まだ公開されていません。公開するまでは投稿者だけが閲覧できます。',
     publish: '公開する',
+    notice: 'お知らせ',
+    pin: 'お知らせに指定',
+    unpin: 'お知らせを解除',
     backToList: '一覧に戻る',
     postNav: '投稿の移動',
     list: '一覧',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: '設定',
     loadFailed: '一覧を読み込めませんでした: {error}',
     empty: 'まだ投稿はありません。',
+    notice: 'お知らせ',
     photo: '写真',
     likeCount: 'いいね {count}',
     info: {

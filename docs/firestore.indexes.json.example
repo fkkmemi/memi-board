@@ -7,6 +7,29 @@
         { "fieldPath": "boardId", "order": "ASCENDING" },
         { "fieldPath": "isPublished", "order": "ASCENDING" },
         { "fieldPath": "listed", "order": "ASCENDING" },
+        { "fieldPath": "pinned", "order": "ASCENDING" },
+        { "fieldPath": "pinnedAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "memiBoardPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "boardId", "order": "ASCENDING" },
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "pinned", "order": "ASCENDING" },
+        { "fieldPath": "pinnedAt", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "memiBoardPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "boardId", "order": "ASCENDING" },
+        { "fieldPath": "isPublished", "order": "ASCENDING" },
+        { "fieldPath": "listed", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" },
         { "fieldPath": "__name__", "order": "DESCENDING" }
       ]

@@ -95,6 +95,10 @@ export interface PostModel {
    */
   isPublished: boolean
   publishedAt?: Timestamp
+  /** 공지 여부. 보드 매니저만 지정하고, 목록 맨 위에 따로 보여 준다. 미지정은 일반 글. */
+  pinned?: boolean
+  /** 공지로 지정한 시각. 공지끼리는 최근 지정 순으로 정렬한다. */
+  pinnedAt?: Timestamp
   authorUid: string
   authorName: string | null
   authorPhoto: string | null

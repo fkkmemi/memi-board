@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: 'معاينة غير منشورة',
     draftNotice: 'لم يُنشر هذا المنشور بعد. لا يمكن لأحد غيرك رؤيته حتى تنشره.',
     publish: 'نشر',
+    notice: 'إعلان',
+    pin: 'تثبيت كإعلان',
+    unpin: 'إلغاء الإعلان',
     backToList: 'العودة إلى القائمة',
     postNav: 'التنقل بين المنشورات',
     list: 'القائمة',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: 'الإعدادات',
     loadFailed: 'تعذّر تحميل القائمة: {error}',
     empty: 'لا توجد منشورات بعد.',
+    notice: 'إعلان',
     photo: 'صورة',
     likeCount: 'الإعجابات {count}',
     info: {

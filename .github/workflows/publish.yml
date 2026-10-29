@@ -74,6 +74,9 @@ jobs:
       - name: Test Firebase cleanup security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'
 
+      - name: Test Firebase notice security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
+
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts
 

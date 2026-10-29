@@ -730,6 +730,12 @@ pnpm test:cleanup
 firebase emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'
 ```
 
+공지(pinned) 권한 회귀 테스트:
+
+```bash
+firebase emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
+```
+
 ## npm 배포
 
 npm Trusted Publishing(OIDC)을 사용한다. 장기 `NPM_TOKEN`이나 로컬 OTP는 저장하지 않는다.

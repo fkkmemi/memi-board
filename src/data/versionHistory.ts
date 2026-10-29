@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.51.0',
+    date: '2026-10-29',
+    highlights: [
+      '게시판 매니저가 글을 공지로 지정하거나 해제할 수 있어요',
+      '공지는 목록 맨 위에 따로 모여 보여요',
+    ],
+    note: '호스트 프로젝트의 Firestore 규칙과 인덱스도 함께 갱신해야 합니다.',
+  },
+  {
     version: '0.50.0',
     date: '2026-10-29',
     highlights: [

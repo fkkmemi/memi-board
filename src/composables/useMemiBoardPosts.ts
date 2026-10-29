@@ -382,6 +382,13 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     })
   }
 
+  /** 공지 지정·해제. 보드 매니저만 가능(rules 가 pinned·pinnedAt 만 바꾸는 갱신으로 제한). */
+  async function setPostPinned(id: string, pinned: boolean): Promise<void> {
+    await updateDoc(postDocRef(id), pinned
+      ? { pinned: true, pinnedAt: serverTimestamp() }
+      : { pinned: deleteField(), pinnedAt: deleteField() })
+  }
+
   async function deletePost(id: string): Promise<void> {
     await deletePostCascade(db, getStorage(app), cfg(), id)
     for (const [key, value] of createdPostIds) {
@@ -401,11 +408,13 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     updatePost,
     savePostTranslations,
     publishPost,
+    setPostPinned,
     deletePost,
   }
 }
 
 const POST_PAGE_SIZE = 10
+const NOTICE_LIMIT = 10
 
 export function useMemiBoardPostList(
   boardId: MaybeRefOrGetter<string>,
@@ -431,6 +440,9 @@ export function useMemiBoardPostList(
   const olderPosts = ref<PostModel[]>([])
   /** 본인의 미게시 초안 — 목록 쿼리(isPublished==true)엔 안 걸리므로 별도 구독해 얹는다. */
   const ownDraftPosts = ref<PostModel[]>([])
+  /** 공지 — 일반 목록과 별도 쿼리로 동시에 구독하고, 일반 목록에서는 뺀다. */
+  const notices = ref<PostModel[]>([])
+  const noticesPending = ref(true)
   const headPending = ref(true)
   const hasMore = ref(true)
   const loadingMore = ref(false)
@@ -439,15 +451,17 @@ export function useMemiBoardPostList(
   let olderCursor: QueryDocumentSnapshot<DocumentData> | null = null
   let stopHeadSubscription: Unsubscribe | undefined
   let stopOwnDraftSubscription: Unsubscribe | undefined
+  let stopNoticeSubscription: Unsubscribe | undefined
 
   function createdAtMs(post: PostModel): number {
     return post.createdAt?.toMillis?.() ?? 0
   }
 
   const posts = computed(() => {
+    const noticeIds = new Set(notices.value.map(post => post.id))
     const byId = new Map<string, PostModel>()
     for (const post of [...olderPosts.value, ...headPosts.value, ...ownDraftPosts.value]) {
-      if (post.id) byId.set(post.id, post)
+      if (post.id && !noticeIds.has(post.id)) byId.set(post.id, post)
     }
     return [...byId.values()].sort((a, b) =>
       createdAtMs(b) - createdAtMs(a) || String(b.id).localeCompare(String(a.id)),
@@ -480,6 +494,25 @@ export function useMemiBoardPostList(
       console.error('[memi-board:postList] onSnapshot failed', cause)
       loadError.value = (cause as Error).message || String(cause)
       headPending.value = false
+    })
+  }
+
+  function startNoticeSubscription() {
+    stopNoticeSubscription?.()
+    stopNoticeSubscription = onSnapshot(query(
+      postsColRef(),
+      ...baseConstraints(),
+      where('pinned', '==', true),
+      orderBy('pinnedAt', 'desc'),
+      fbLimit(NOTICE_LIMIT),
+    ), (snapshot) => {
+      notices.value = snapshot.docs.map(item => ({ id: item.id, ...item.data() }) as PostModel)
+      noticesPending.value = false
+    }, (cause) => {
+      // 공지 인덱스가 아직 없어도 일반 목록은 보여 준다.
+      console.error('[memi-board:postList] notice onSnapshot failed', cause)
+      notices.value = []
+      noticesPending.value = false
     })
   }
 
@@ -543,19 +576,25 @@ export function useMemiBoardPostList(
     hasMore.value = true
     loadError.value = ''
     headPending.value = true
+    notices.value = []
+    noticesPending.value = true
     startHeadSubscription()
+    startNoticeSubscription()
     startOwnDraftSubscription()
   }
 
   watch([boardIdValue, publicOnlyValue, uidValue], reset, { immediate: true })
   onScopeDispose(() => {
     stopHeadSubscription?.()
+    stopNoticeSubscription?.()
     stopOwnDraftSubscription?.()
   })
 
   return {
     posts,
-    postsPending: headPending,
+    notices,
+    // 공지가 나중에 튀어나오지 않게 둘 다 도착한 뒤 그린다.
+    postsPending: computed(() => headPending.value || noticesPending.value),
     hasMore,
     loadingMore,
     loadError,

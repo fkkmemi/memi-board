@@ -3,6 +3,7 @@ export default {
   settings: 'Settings',
   loadFailed: 'Couldn’t load the list: {error}',
   empty: 'No posts yet.',
+  notice: 'Notice',
   photo: 'Photo',
   likeCount: 'Likes {count}',
   info: {

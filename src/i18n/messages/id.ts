@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: 'Pratinjau belum terbit',
     draftNotice: 'Postingan ini belum diterbitkan. Hanya Anda yang dapat melihatnya hingga diterbitkan.',
     publish: 'Terbitkan',
+    notice: 'Pengumuman',
+    pin: 'Jadikan pengumuman',
+    unpin: 'Hapus pengumuman',
     backToList: 'Kembali ke daftar',
     postNav: 'Navigasi postingan',
     list: 'Daftar',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: 'Pengaturan',
     loadFailed: 'Gagal memuat daftar: {error}',
     empty: 'Belum ada postingan.',
+    notice: 'Pengumuman',
     photo: 'Foto',
     likeCount: 'Suka {count}',
     info: {

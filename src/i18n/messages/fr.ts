@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: 'Aperçu non publié',
     draftNotice: 'Pas encore publiée. Vous seul pouvez la voir jusqu’à sa publication.',
     publish: 'Publier',
+    notice: 'Annonce',
+    pin: 'Épingler en annonce',
+    unpin: 'Retirer l’annonce',
     backToList: 'Retour à la liste',
     postNav: 'Navigation entre publications',
     list: 'Liste',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: 'Paramètres',
     loadFailed: 'Impossible de charger la liste : {error}',
     empty: 'Aucune publication pour l’instant.',
+    notice: 'Annonce',
     photo: 'Photo',
     likeCount: 'J’aime {count}',
     info: {

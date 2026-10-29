@@ -115,6 +115,20 @@ service cloud.firestore {
       return isBoardStaff() && isAllowedStaffForBoard(boardId);
     }
     // A visibility transition freezes new content until every listed flag is synchronized.
+    // 공지(pinned·pinnedAt)는 매니저 전용 갱신으로만 바뀐다 — 작성자의 일반 수정으로는 못 바꾼다.
+    function postPinUnchanged() {
+      return request.resource.data.get('pinned', false) == resource.data.get('pinned', false)
+        && request.resource.data.get('pinnedAt', null) == resource.data.get('pinnedAt', null);
+    }
+    function isValidPostPinUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pinned', 'pinnedAt'])
+        && (
+          (request.resource.data.get('pinned', false) == true
+            && request.resource.data.pinnedAt == request.time
+            && resource.data.isPublished == true)
+          || (!('pinned' in request.resource.data) && !('pinnedAt' in request.resource.data))
+        );
+    }
     function boardWritesOpen(boardId) {
       return get(boardSettingsPath(boardId)).data.get('visibilityTransition', '') == '';
     }
@@ -340,7 +354,9 @@ service cloud.firestore {
         && boardWritesOpen(request.resource.data.boardId)
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId)
-        && request.resource.data.isPublished == false;
+        && request.resource.data.isPublished == false
+        && !('pinned' in request.resource.data)
+        && !('pinnedAt' in request.resource.data);
 
       allow update: if (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
@@ -348,9 +364,11 @@ service cloud.firestore {
           && request.resource.data.authorUid == resource.data.authorUid
           && (
             (request.resource.data.listed == resource.data.listed
+              && postPinUnchanged()
               && boardWritesOpen(resource.data.boardId))
             || (isBoardManager(resource.data.boardId)
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listed']))
+            || (isBoardManager(resource.data.boardId) && isValidPostPinUpdate())
           )
         ) || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
       allow delete: if isOwner(resource) || isBoardManager(resource.data.boardId);

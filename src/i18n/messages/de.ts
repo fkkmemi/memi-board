@@ -150,6 +150,9 @@ const messages: MemiBoardMessages = {
     draftPreview: 'Unveröffentlichte Vorschau',
     draftNotice: 'Noch nicht veröffentlicht. Bis zur Veröffentlichung nur für dich sichtbar.',
     publish: 'Veröffentlichen',
+    notice: 'Hinweis',
+    pin: 'Als Hinweis anheften',
+    unpin: 'Hinweis lösen',
     backToList: 'Zurück zur Liste',
     postNav: 'Beitragsnavigation',
     list: 'Liste',
@@ -316,6 +319,7 @@ const messages: MemiBoardMessages = {
     settings: 'Einstellungen',
     loadFailed: 'Liste konnte nicht geladen werden: {error}',
     empty: 'Noch keine Beiträge.',
+    notice: 'Hinweis',
     photo: 'Foto',
     likeCount: 'Likes {count}',
     info: {

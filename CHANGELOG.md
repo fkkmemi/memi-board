@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+## [0.51.0] - 2026-10-29
+
+### Added
+- 공지 기능. 보드 매니저(관리자·담당 스태프)가 게시된 글 상세에서 "공지로 지정/해제"를 누를 수 있다. 글에 `pinned`·`pinnedAt` 필드가 기록된다.
+- `useMemiBoardPostList`가 공지를 별도 쿼리(최대 10개, 최근 지정 순)로 동시에 구독해 `notices`로 돌려준다. 공지는 일반 `posts`에서 빠지고, `postsPending`은 두 쿼리가 모두 도착하면 false가 된다. 공지 쿼리가 실패해도 일반 목록은 보여 준다.
+- `MemiBoardList`는 목록 뷰 종류와 상관없이 공지를 맨 위에 한 줄씩 보여 준다. `useMemiBoardPosts`에 `setPostPinned(id, pinned)`를 추가했다.
+
+### Security
+- 작성자의 일반 수정과 글 생성으로는 `pinned`·`pinnedAt`을 바꿀 수 없다. 매니저 갱신은 두 필드만 바꾸고, 게시된 글에 서버 시각으로만 지정할 수 있다. 에뮬레이터 권한 테스트를 추가했다.
+
+### 호스트 적용
+- `docs/firestore.rules.example`의 `memiBoardPosts` 규칙 변경(`postPinUnchanged`, `isValidPostPinUpdate`, create 조건)을 호스트 규칙에 병합·배포해야 한다.
+- `docs/firestore.indexes.json.example`에 추가된 `memiBoardPosts` 복합 인덱스 2개(`boardId`, `isPublished`, [`listed`], `pinned`, `pinnedAt` desc)를 배포해야 한다. 인덱스가 생성되기 전에는 공지가 보이지 않고 일반 목록만 나온다.
+
 ## [0.50.0] - 2026-10-29
 
 ### Added

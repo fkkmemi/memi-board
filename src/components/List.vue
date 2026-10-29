@@ -6,6 +6,7 @@ import type { BoardListView, PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListDense from './ListDense.vue'
 import MemiBoardListImage from './ListImage.vue'
+import MemiBoardListNotices from './ListNotices.vue'
 import MemiBoardListVideo from './ListVideo.vue'
 import MemiBoardListViewSwitch from './ListViewSwitch.vue'
 
@@ -72,7 +73,7 @@ const listDescription = computed(() => {
   if (resolvedBoardId.value) return boardDescription(resolvedBoardId.value, locale.value)
   return undefined
 })
-const { posts, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
+const { posts, notices, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
   resolvedBoardId,
   { pageSize: props.pageSize },
 )
@@ -273,15 +274,23 @@ function postTo(post: PostModel): string | undefined {
     </p>
 
     <p
-      v-else-if="!posts.length"
+      v-else-if="!posts.length && !notices.length"
       class="text-sm text-muted text-center py-8"
     >
       {{ t('list.empty') }}
     </p>
 
+    <MemiBoardListNotices
+      v-if="!postsPending && !loadError && notices.length"
+      :posts="notices"
+      :post-to="postTo"
+      :now="now"
+      @select="emit('select', $event)"
+    />
+
     <component
       :is="listComponent"
-      v-else-if="posts.length"
+      v-if="!postsPending && !loadError && posts.length"
       :posts="posts"
       :post-to="postTo"
       :now="now"
