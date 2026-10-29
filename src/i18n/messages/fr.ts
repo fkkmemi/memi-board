@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'Un forum construit avec Nuxt 4, Vue 3 et TypeScript, qui fait circuler naturellement publications et commentaires grâce à Nuxt UI et Firebase.',
     info: {
       title: 'Infos du forum',
       about: 'À propos de ce forum',

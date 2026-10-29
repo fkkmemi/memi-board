@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'لوحة مبنية على Nuxt 4 وVue 3 وTypeScript، تستخدم Nuxt UI وFirebase لتتدفق المنشورات والتعليقات بسلاسة.',
     info: {
       title: 'معلومات اللوحة',
       about: 'عن هذه اللوحة',

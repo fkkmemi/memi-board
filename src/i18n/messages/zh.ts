@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: '这是一个基于 Nuxt 4、Vue 3 和 TypeScript 构建，并借助 Nuxt UI 与 Firebase 让帖子和评论顺畅衔接的版块。',
     info: {
       title: '版块信息',
       about: '关于本版块',

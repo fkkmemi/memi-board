@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'Papan yang dibangun dengan Nuxt 4, Vue 3, dan TypeScript, memakai Nuxt UI dan Firebase agar postingan dan komentar mengalir dengan lancar.',
     info: {
       title: 'Info papan',
       about: 'Tentang papan ini',

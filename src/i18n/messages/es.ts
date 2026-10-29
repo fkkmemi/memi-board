@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'Un tablero creado con Nuxt 4, Vue 3 y TypeScript que, con Nuxt UI y Firebase, mantiene publicaciones y comentarios fluyendo con naturalidad.',
     info: {
       title: 'Información del tablero',
       about: 'Acerca de este tablero',

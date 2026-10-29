@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { versionHistory } from 'memi-board/runtime'
+import { computed } from 'vue'
+import { useMemiBoardI18n, versionHistory } from 'memi-board/runtime'
+
+// 버전 기록은 한국어·영어만 둔다. 한국어가 아니면 영어를 보여준다.
+const { locale } = useMemiBoardI18n()
+const entries = computed(() => versionHistory.map(entry => locale.value === 'ko'
+  ? entry
+  : { ...entry, highlights: entry.highlightsEn ?? entry.highlights, note: entry.noteEn ?? entry.note }))
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
     <div
-      v-for="entry in versionHistory"
+      v-for="entry in entries"
       :key="entry.version"
       class="flex flex-col gap-2"
     >

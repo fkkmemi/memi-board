@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'Nuxt 4、Vue 3、TypeScriptで作り、Nuxt UIとFirebaseで投稿とコメントを自然につなぐ掲示板です。',
     info: {
       title: '掲示板の情報',
       about: 'この掲示板について',

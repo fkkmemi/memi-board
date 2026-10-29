@@ -301,6 +301,7 @@ const messages: MemiBoardMessages = {
     },
   },
   footer: {
+    introduction: 'Ein Board auf Basis von Nuxt 4, Vue 3 und TypeScript, das mit Nuxt UI und Firebase Beiträge und Kommentare reibungslos verbindet.',
     info: {
       title: 'Board-Info',
       about: 'Über dieses Board',
