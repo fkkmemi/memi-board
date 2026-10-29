@@ -6,7 +6,6 @@ import type { BoardListView, PostModel } from 'memi-board/runtime'
 import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListDense from './ListDense.vue'
 import MemiBoardListImage from './ListImage.vue'
-import MemiBoardListNotices from './ListNotices.vue'
 import MemiBoardListVideo from './ListVideo.vue'
 import MemiBoardListViewSwitch from './ListViewSwitch.vue'
 
@@ -77,6 +76,9 @@ const { posts, notices, postsPending, hasMore, loadingMore, loadError, loadMore 
   resolvedBoardId,
   { pageSize: props.pageSize },
 )
+
+// 공지는 일반 글과 같은 목록 컴포넌트로, 맨 앞에 붙여 보여준다.
+const shownPosts = computed(() => [...notices.value, ...posts.value])
 
 const loadMoreTrigger = ref<HTMLElement | null>(null)
 let loadMoreDelayTimer: ReturnType<typeof setTimeout> | undefined
@@ -274,23 +276,16 @@ function postTo(post: PostModel): string | undefined {
     </p>
 
     <p
-      v-else-if="!posts.length && !notices.length"
+      v-else-if="!shownPosts.length"
       class="text-sm text-muted text-center py-8"
     >
       {{ t('list.empty') }}
     </p>
 
-    <MemiBoardListNotices
-      v-if="!postsPending && !loadError && notices.length"
-      :posts="notices"
-      :post-to="postTo"
-      @select="emit('select', $event)"
-    />
-
     <component
       :is="listComponent"
-      v-if="!postsPending && !loadError && posts.length"
-      :posts="posts"
+      v-else
+      :posts="shownPosts"
       :post-to="postTo"
       :now="now"
       :show-category="!category"

@@ -31,7 +31,8 @@ function image(post: PostModel): string | undefined {
       v-for="post in posts"
       :key="post.id"
       :to="postTo(post)"
-      class="group relative aspect-[4/3] overflow-hidden rounded-xl border border-default bg-elevated text-left"
+      class="group relative aspect-[4/3] overflow-hidden rounded-xl border bg-elevated text-left"
+      :class="post.pinned ? 'border-primary shadow-sm' : 'border-default'"
       @click="!postTo(post) && emit('select', post)"
     >
       <img
@@ -54,7 +55,7 @@ function image(post: PostModel): string | undefined {
 
       <!-- 좌측 상단: 초안 표시 + 제목(있을 때만) + 댓글수. 이미지 보드는 제목 없이 썸네일 중심 -->
       <div
-        v-if="post.isPublished === false || titleOf(post) || (post.commentCount ?? 0) > 0"
+        v-if="post.isPublished === false || post.pinned || titleOf(post) || (post.commentCount ?? 0) > 0"
         class="absolute left-2.5 top-2.5 right-14 flex min-w-0 items-start gap-1.5 sm:left-3 sm:top-3"
       >
         <UBadge
@@ -66,9 +67,10 @@ function image(post: PostModel): string | undefined {
           class="shrink-0"
         />
         <h3
-          v-if="titleOf(post)"
+          v-if="titleOf(post) || post.pinned"
           class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm"
         >
+          <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
           {{ titleOf(post) }}
         </h3>
         <span

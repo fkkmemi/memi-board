@@ -39,6 +39,7 @@ function image(post: PostModel): string | undefined {
       v-for="post in posts"
       :key="post.id"
       class="overflow-hidden"
+      :class="post.pinned && 'shadow-sm ring-primary'"
       :ui="{ body: 'p-0 sm:p-0' }"
     >
       <div class="flex min-h-[4.5rem]">
@@ -68,6 +69,7 @@ function image(post: PostModel): string | undefined {
                   class="mt-0.5 shrink-0"
                 />
                 <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug text-inherit sm:text-base">
+                  <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
                   {{ titleOf(post) }}
                 </h3>
                 <span

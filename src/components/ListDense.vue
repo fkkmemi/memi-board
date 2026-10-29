@@ -30,7 +30,12 @@ function thumb(post: PostModel): string | undefined {
 <template>
   <!-- 조밀 = 커뮤니티 게시판 스타일 한 줄 목록. 우측에 작은 사각 썸네일(있을 때만). -->
   <ul class="flex flex-col divide-y divide-default">
-    <li v-for="post in posts" :key="post.id" class="flex items-center gap-2 px-2 py-1.5">
+    <li
+      v-for="post in posts"
+      :key="post.id"
+      class="flex items-center gap-2 px-2 py-1.5"
+      :class="post.pinned && 'bg-primary/5'"
+    >
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
         <!-- 제목만 클릭 시 글로 이동 — 메타 줄의 시간 팝오버·작성자 메뉴는 별도 인터랙션이라 링크 밖에 둔다 -->
         <component
@@ -48,6 +53,7 @@ function thumb(post: PostModel): string | undefined {
             class="shrink-0"
           />
           <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-inherit transition-colors group-hover:text-primary">
+            <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
             {{ titleOf(post) }}
           </h3>
           <span

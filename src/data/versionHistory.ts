@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.51.2',
+    date: '2026-10-29',
+    highlights: [
+      '목록 카드의 작성자 이름이 오른쪽에 맞춰져요',
+      '작성자 메모는 작성자 메뉴에서 열 수 있어요',
+    ],
+  },
+  {
     version: '0.51.1',
     date: '2026-10-29',
     highlights: [

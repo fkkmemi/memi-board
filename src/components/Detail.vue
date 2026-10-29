@@ -215,13 +215,6 @@ const contentHtml = computed(() => {
       <div class="flex items-start justify-between gap-4">
         <div class="flex items-center gap-2 min-w-0">
           <UBadge
-            v-if="post.pinned"
-            :label="t('detail.notice')"
-            icon="i-lucide-pin"
-            variant="subtle"
-            class="shrink-0"
-          />
-          <UBadge
             v-if="post.category"
             :label="shownBoardLabel"
             variant="subtle"
@@ -230,6 +223,7 @@ const contentHtml = computed(() => {
             v-if="shownTitle"
             class="text-2xl font-semibold"
           >
+            <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('detail.notice')" />
             {{ shownTitle }}
           </h1>
         </div>

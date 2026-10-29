@@ -36,7 +36,8 @@ function cover(post: PostModel): string | undefined {
     <div
       v-for="post in posts"
       :key="post.id"
-      class="overflow-hidden rounded-xl border border-default bg-default"
+      class="overflow-hidden rounded-xl border bg-default"
+      :class="post.pinned ? 'border-primary shadow-sm' : 'border-default'"
     >
       <!-- 커버+제목+요약만 클릭 시 글로 이동 — 작성자 메뉴는 별도 인터랙션이라 링크 밖에 둔다 -->
       <component
@@ -62,7 +63,7 @@ function cover(post: PostModel): string | undefined {
               size="sm"
               class="mt-0.5 shrink-0"
             />
-            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit">{{ titleOf(post) }}</h3>
+            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit"><UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />{{ titleOf(post) }}</h3>
             <span
               v-if="(post.commentCount ?? 0) > 0"
               class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
