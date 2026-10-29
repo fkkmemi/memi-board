@@ -11,6 +11,16 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.50.0',
+    date: '2026-10-29',
+    highlights: [
+      '게시판 설정에서 고아 파일·댓글·좋아요를 조회하고 선택 삭제할 수 있어요',
+      '최근 업로드를 보호하고, 삭제 전에 연결과 관리자 권한을 다시 확인해요',
+      '파일 목록과 비공개 댓글 조회의 보안 규칙을 강화했어요',
+    ],
+    note: '호스트 프로젝트의 Firestore·Storage 규칙도 함께 갱신해야 합니다.',
+  },
+  {
     version: '0.49.0',
     date: '2026-10-29',
     highlights: [

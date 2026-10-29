@@ -385,6 +385,10 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 </template>
 ```
 
+전체 게시판 설정에는 관리자(`owner`/`admin`) 전용 **고아 파일·문서 정리**가 표시됩니다. **고아 항목 조회**를 누르면 전체 게시글·댓글·좋아요와 Storage를 읽고, 부모 글이 없는 댓글·파일, 삭제된 댓글의 이미지, 대상 글·댓글이 없는 좋아요를 표시합니다. 경로·유형·파일 크기를 확인한 뒤 개별 또는 전체 선택하여 삭제할 수 있습니다. 최근 24시간 내 갱신된 파일과 기존 본문·번역·첨부·댓글에서 참조하는 파일은 보존합니다. 신고 기록과 게시글 없는 `body` 하위 문서는 이 기능의 정리 대상이 아닙니다.
+
+사용하려면 호스트 프로젝트에 [Firestore 규칙 예제](docs/firestore.rules.example)와 [Storage 규칙 예제](docs/storage.rules.example)의 관리자 조회·삭제 권한을 반영해야 합니다. 커스텀 컬렉션을 사용하면 규칙 경로도 맞춰야 합니다. 조회는 본문을 포함한 전체 데이터를 읽으므로 데이터 규모에 따라 읽기 비용과 시간이 발생합니다. 삭제 대상은 내부 스냅샷에 고정하고, 조회 후 계정·설정 또는 파일 generation이 바뀌면 삭제를 중단합니다. 삭제 직전에 서버에서 다시 조회하며, 문서는 트랜잭션으로 부모 존재 여부를 확인합니다. 파일 삭제와 Firestore 저장은 원자적으로 묶이지 않으므로 게시판 사용이 적은 시간에 실행하세요. 실패한 항목은 목록에 남아 재시도할 수 있습니다.
+
 ```vue
 <!-- app/pages/board-users.vue -->
 <template>
@@ -718,15 +722,23 @@ firebase emulators:start --project demo-memi-board
 NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
 ```
 
+정리 기능의 권한 회귀 테스트(Java 21+와 Firebase CLI 필요):
+
+```bash
+pnpm build
+pnpm test:cleanup
+firebase emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'
+```
+
 ## npm 배포
 
 npm Trusted Publishing(OIDC)을 사용한다. 장기 `NPM_TOKEN`이나 로컬 OTP는 저장하지 않는다.
 
 1. `package.json`, `CHANGELOG.md`, 인앱 `versionHistory`의 버전을 갱신하고 `main`에 푸시한다.
-2. GitHub에서 `v{package.json version}` 태그로 Release를 발행한다(예: `v0.29.1`).
-3. `.github/workflows/publish.yml`이 태그-패키지 버전 일치, 타입 검사, 빌드, 패키지 dry-run을 확인한 뒤 npm에 배포한다.
+2. `main` 푸시로 `.github/workflows/publish.yml`이 실행된다.
+3. 이미 발행된 버전인지 확인한 뒤 빌드·타입 검사·회귀 테스트·Firebase 보안 규칙 테스트·패키지 dry-run을 거쳐 npm에 배포한다.
 
-npm 패키지 설정의 Trusted Publisher는 GitHub 저장소 `fkkmemi/memi-board`, workflow `publish.yml`로 등록한다. GitHub Environment `npm-publish`에 승인자를 지정하면 Release 발행 뒤 실제 npm 배포 전에 한 번 더 승인할 수 있다.
+npm 패키지 설정의 Trusted Publisher는 GitHub 저장소 `fkkmemi/memi-board`, workflow `publish.yml`로 등록한다. GitHub Environment `npm-publish`에 승인자를 지정하면 워크플로 실행 뒤 실제 npm 배포 전에 한 번 더 승인할 수 있다.
 
 ## 버전 · 라이선스
 

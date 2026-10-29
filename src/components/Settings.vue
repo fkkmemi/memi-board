@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { boardCopyIsTranslated, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
+import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
 
 const props = withDefaults(defineProps<{
   /** 호스트 자체 관리자 권한도 허용할 때 true. Firebase rules 권한은 호스트가 별도로 맞춰야 한다. */
@@ -467,6 +468,8 @@ async function runDeleteAll() {
     </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="savedId" color="success" variant="subtle" :description="t('settings.savedCategory', { label: draft.find(item => item.id === savedId)?.label })" />
+
+    <MemiBoardOrphanCleanup v-if="isAdmin && !categoryId" />
 
     <section v-if="deleteAll && !categoryId" class="mt-4 flex flex-col gap-3 border-t border-error/40 pt-6">
       <div>

@@ -62,6 +62,18 @@ jobs:
       - name: Test internationalization options
         run: node --test tests/i18n-options.test.mjs
 
+      - name: Test orphan cleanup
+        run: pnpm test:cleanup
+
+      - name: Set up Java for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test Firebase cleanup security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'
+
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts
 

@@ -27,9 +27,9 @@ service firebase.storage {
           && (resource == null || resource.metadata.ownerUid == request.auth.uid)));
     }
     function canDeletePostFile(postId) {
-      return isSignedIn() && (postExists(postId)
-        ? (isPostOwner(postId) || isBoardStaff())
-        : resource.metadata.ownerUid == request.auth.uid);
+      return isSignedIn() && (isBoardStaff() || (postExists(postId)
+        ? isPostOwner(postId)
+        : resource.metadata.ownerUid == request.auth.uid));
     }
     function postExists(postId) {
       return firestore.exists(/databases/(default)/documents/memiBoardPosts/$(postId));
@@ -47,20 +47,26 @@ service firebase.storage {
     // match /memiBoardPosts/{postId} { allow list } 만으로는 403 이 난다.
     // {allPaths=**} 가 0칸 이상을 받아 폴더 목록과 파일 get/delete 에 필요하다.
     // write 는 여기에 넣지 않는다 — 용량·image/* 제한은 아래 세부 match 가 담당.
+    // Global admin maintenance lists the collection root to find abandoned uploads.
+    match /memiBoardPosts/{allPaths=**} {
+      allow list: if isBoardStaff();
+    }
+
     match /memiBoardPosts/{postId}/{allPaths=**} {
-      allow list, get: if true;
+      allow get: if true;
+      allow list: if isBoardStaff() || isPostOwner(postId);
       allow delete: if canDeletePostFile(postId);
     }
 
     match /memiBoardPosts/{postId}/attachments/{fileName} {
-      allow read: if true;
+      allow get: if true;
       allow create, update: if canWritePostFile(postId)
         && request.resource.size < 20 * 1024 * 1024;
       allow delete: if canDeletePostFile(postId);
     }
 
     match /memiBoardPosts/{postId}/images/{allPaths=**} {
-      allow read: if true;
+      allow get: if true;
       // 글쓰기 화면은 Firestore 문서를 만들기 전에 Storage 경로(미리 딴 postId)로
       // 올린다. 붙여넣기 이미지는 image/png 등이 온다.
       // 기존 글은 작성자/스태프만 수정한다. 아직 저장하지 않은 파일은 ownerUid로 보호한다.
@@ -75,7 +81,7 @@ service firebase.storage {
     // 삭제는 올린 사람(ownerUid) 또는 글 작성자·전역 admin/owner.
     // 글 삭제는 글 문서가 남아 있는 동안 canDeletePostFile 로 이 폴더를 비운다.
     match /memiBoardPosts/{postId}/comment-images/{commentId}/{fileName} {
-      allow read: if true;
+      allow get: if true;
       allow create: if isSignedIn()
         && request.resource.metadata.ownerUid == request.auth.uid
         && request.resource.size < 5 * 1024 * 1024
@@ -88,7 +94,7 @@ service firebase.storage {
 
     // 프로필 사진 — 경로가 uid로 고정돼 있어 본인만 쓸 수 있다. 공개 프로필의 일부라 읽기는 전체 공개.
     match /memiBoardUsers/{uid}/avatar.jpg {
-      allow read: if true;
+      allow get: if true;
       allow write: if isSignedIn()
         && request.auth.uid == uid
         && request.resource.size < 3 * 1024 * 1024

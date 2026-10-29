@@ -219,3 +219,6 @@ export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './util
 // compressImage / EDITOR_IMAGE_*_BYTES — 'memi-board/storage' 서브패스로 이동.
 // createPasteImageExtension 은 components/editor 에 두고 SFC 가 상대경로 import —
 // core 번들에 @tiptap peer 를 넣으면 Vite optional-peer stub 으로 PluginKey 가 깨진다.
+
+export { useMemiBoardCleanup } from './composables/useMemiBoardCleanup'
+export type { OrphanItem, OrphanKind } from './utils/orphanCleanup'

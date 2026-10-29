@@ -204,7 +204,7 @@ service cloud.firestore {
     // 글 상세(postId == 상수)에서는 부모 글을 읽을 수 있으면 숨김 댓글도 볼 수 있다
     // (작성자가 담당 스태프 메모를 읽는 경우).
     function canReadComment(data) {
-      return data.get('listed', true) == true
+      return data.listed == true
         || (isSignedIn() && request.auth.uid == data.authorUid)
         || isBoardAdmin()
         || isBoardManager(data.boardId)
@@ -330,7 +330,7 @@ service cloud.firestore {
     }
 
     match /memiBoardPosts/{postId} {
-      allow read: if canReadPost(resource.data);
+      allow read: if isBoardAdmin() || canReadPost(resource.data);
 
       allow create: if isBoardWriter()
         && request.resource.data.boardId is string
@@ -356,7 +356,7 @@ service cloud.firestore {
       allow delete: if isOwner(resource) || isBoardManager(resource.data.boardId);
 
       match /body/{docId} {
-        allow read: if canReadPost(get(postPath(postId)).data);
+        allow read: if isBoardAdmin() || canReadPost(get(postPath(postId)).data);
         allow write: if isOwner(getAfter(postPath(postId)))
           || isBoardManager(getAfter(postPath(postId)).data.boardId);
       }
@@ -365,7 +365,7 @@ service cloud.firestore {
     match /memiBoardComments/{commentId} {
       // 공개 피드·작성자 댓글 목록은 where('listed','==',true) 로 숨김 보드 댓글을 걸러낸다.
       // 글 상세는 postId 동등 필터라 부모 글 권한(canReadPost)으로 숨김 댓글도 읽을 수 있다.
-      allow read: if canReadComment(resource.data);
+      allow read: if isBoardAdmin() || canReadComment(resource.data);
 
       allow create: if isBoardWriter()
         && request.resource.data.postId is string
@@ -386,7 +386,7 @@ service cloud.firestore {
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId);
 
-      allow delete: if isOwner(resource)
+      allow delete: if isBoardAdmin() || isOwner(resource)
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardManager(resource.data.boardId);
       allow update: if isReplyCountUpdate() || isReplyTargetProfileUpdate()
@@ -412,7 +412,7 @@ service cloud.firestore {
       // 정확히 알고 있는 한) 개별 get() 으로 좋아요 여부를 확인할 수 있다.
       // resource == null: 아직 없는 좋아요 문서를 트랜잭션에서 get 할 때.
       // 없으면 resource.data 접근이 실패해 일반 사용자의 첫 좋아요가 permission-denied 가 된다.
-      allow read: if (isSignedIn() && resource == null)
+      allow read: if isBoardAdmin() || (isSignedIn() && resource == null)
         || (isSignedIn() && request.auth.uid == resource.data.uid)
         || (resource != null && canReadPost(get(postPath(resource.data.postId)).data))
         || (resource != null && resource.data.get('target', '') == 'comment'
@@ -424,8 +424,8 @@ service cloud.firestore {
         && request.resource.data.boardId is string
         && (isValidPostLike(likeId) || isValidCommentLike(likeId));
 
-      allow delete: if isSignedIn()
-        && (request.auth.uid == resource.data.uid || canDeleteLike(resource.data));
+      allow delete: if isBoardAdmin() || (isSignedIn()
+        && (request.auth.uid == resource.data.uid || canDeleteLike(resource.data)));
       // update 는 허용하지 않음 — 토글은 항상 create-or-delete.
     }
 
