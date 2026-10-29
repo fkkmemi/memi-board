@@ -139,6 +139,7 @@ export default {
     moderationBlocked: 'This contains content that can’t be posted.',
   },
   hint: {
+    translating: 'Translating the post into 10 languages…',
     reviewing: 'Reviewing content…',
     saving: 'Saving…',
   },

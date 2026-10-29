@@ -80,6 +80,10 @@ export default {
     help: 'Leave empty to follow the site language. If set, this board always appears in that language.',
     auto: 'Auto (follow site language)',
   },
+  autoTranslatePosts: {
+    label: 'Automatically translate new posts',
+    help: 'When on, new post titles, summaries, and content are translated into 10 languages and saved together. Off by default.',
+  },
   autoTranslate: {
     action: "Translate into 10 languages",
     manualHelp: "Translate the display label and description together, then click Save to apply.",

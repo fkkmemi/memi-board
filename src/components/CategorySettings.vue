@@ -88,6 +88,7 @@ function emptyDraft(id: string): BoardCategory {
     allowedManagerUids: [],
     locale: '',
     autoTranslate: false,
+    autoTranslatePosts: false,
   }
 }
 
@@ -111,6 +112,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     allowedManagerUids: category.allowedManagerUids ?? [],
     locale: category.locale ?? '',
     autoTranslate: category.autoTranslate === true,
+    autoTranslatePosts: category.autoTranslatePosts === true,
   }
 }
 
@@ -308,6 +310,13 @@ async function save() {
         <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
         <p v-if="translationEnabled && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
       </div>
+    </div>
+    <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
+      <div>
+        <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help') }}</p>
+      </div>
+      <USwitch v-model="draft.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="saved = false" />
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
       <div>

@@ -1041,13 +1041,25 @@ async function handleSubmit() {
       return
     }
 
-    submitHint.value = t('editor.hint.saving')
     const bodyContent = currentBodyContent()
     const storedTitle = currentStoredTitle(bodyContent)
-    const translations = translationEnabled.value && pendingTranslations.value
+    let translations = translationEnabled.value && pendingTranslations.value
       && pendingTranslationKey.value === translationKey(bodyContent, storedTitle)
       ? pendingTranslations.value
       : undefined
+    if (!props.postId && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
+      submitHint.value = t('editor.hint.translating')
+      translations = await translatePost({
+        source: locale.value,
+        title: storedTitle,
+        summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,
+        content: plainTextFromHtml(bodyContent) ? bodyContent : '',
+      })
+      // 저장만 실패한 경우 재시도할 때 같은 내용을 다시 번역하지 않는다.
+      pendingTranslations.value = translations
+      pendingTranslationKey.value = translationKey(bodyContent, storedTitle)
+    }
+    submitHint.value = t('editor.hint.saving')
     const payload = {
       title: imageBoard ? '' : title.value.trim(),
       content: bodyContent,

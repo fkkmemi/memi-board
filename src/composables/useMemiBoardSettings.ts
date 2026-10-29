@@ -68,6 +68,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     allowedManagerUids: Array.isArray(data.allowedManagerUids) ? data.allowedManagerUids as string[] : [],
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
     autoTranslate: data.autoTranslate === true,
+    autoTranslatePosts: data.autoTranslatePosts === true,
     i18n: readLocalizedFields(data.i18n),
     i18nSource: readI18nSource(data.i18nSource),
   }
@@ -164,6 +165,7 @@ export function useMemiBoardSettings() {
       allowedManagerUids: board.allowedManagerUids ?? [],
       locale: normalizeMemiBoardLocale(board.locale) ?? '',
       autoTranslate: board.autoTranslate === true,
+      autoTranslatePosts: board.autoTranslatePosts === true,
       ...(board.i18n ? { i18n: board.i18n } : {}),
       ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,

@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.49.0',
+    date: '2026-10-29',
+    highlights: [
+      '보드 설정에서 글 작성 시 자동 번역을 켤 수 있어요. 기본값은 꺼짐이에요',
+      '새 글의 제목·요약·본문을 10개 언어로 번역해 함께 저장해요',
+    ],
+  },
+  {
     version: '0.48.1',
     date: '2026-10-29',
     highlights: [

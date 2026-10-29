@@ -251,6 +251,8 @@ export interface BoardModel {
    * 없거나 false 이면 번역하지 않는다.
    */
   autoTranslate?: boolean
+  /** 새 글 작성 시 제목·요약·본문을 번역한다. 기본 false. */
+  autoTranslatePosts?: boolean
   /** 보드 목록 정렬 */
   order?: number
 }

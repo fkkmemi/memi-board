@@ -284,6 +284,8 @@ watch([categoryId, id], async ([category, slug]) => {
 
 설정 생략 시 두 옵션은 `true`이며, `i18n.enabled: false`이면 콘텐츠 번역도 꺼진다. UI는 `locale`로 고정하고 콘텐츠는 원문을 표시한다. 기존 번역 데이터는 유지한다. 호스트의 언어 전환을 연결할 때만 `@nuxtjs/i18n`을 추가하면 된다.
 
+보드 설정의 **글 작성 시 자동 번역**(`autoTranslatePosts`)은 기본 꺼짐이다. 켜면 새 글의 제목·요약·본문을 번역해 함께 저장한다.
+
 번역 버튼은 라벨·설명을 번역해 임시 반영하고 **저장**을 눌러 적용한다. 자동 번역 토글은 기본 꺼짐이며, 켜면 **설정 저장 시** 번역한 뒤 저장한다. 문구가 같고 번역이 모두 있으면 재번역을 건너뛴다. 서비스 전체의 국제화·번역이 꺼져 있으면 자동 번역도 실행하지 않는다.
 
 ### 6. 읽은 글 표시 (선택)
@@ -421,7 +423,7 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 
 ### 보드 (구 카테고리)
 
-- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, allowedManagerUids, locale, autoTranslate, i18n, i18nSource, order, updatedAt }`
+- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, allowedManagerUids, locale, autoTranslate, autoTranslatePosts, i18n, i18nSource, order, updatedAt }`
 - 설정이 없으면 빈 목록이며 기본 보드를 자동 생성하지 않음
 - `MemiBoardSettings`에서 관리자가 보드별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
 - `boardId`는 문서 ID이자 각 글(`memiBoardPosts`)의 `boardId` 참조값이므로 생성 후 변경하지 않는 것을 권장

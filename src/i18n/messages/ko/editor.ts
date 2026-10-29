@@ -139,6 +139,7 @@ export default {
     moderationBlocked: '게시할 수 없는 내용이 포함되어 있습니다.',
   },
   hint: {
+    translating: '글을 10개 언어로 번역하는 중…',
     reviewing: '내용을 검토하는 중…',
     saving: '저장하는 중…',
   },

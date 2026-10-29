@@ -107,6 +107,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       allowedManagerUids: category.allowedManagerUids ?? [],
       locale: category.locale ?? '',
       autoTranslate: category.autoTranslate === true,
+      autoTranslatePosts: category.autoTranslatePosts === true,
     }))
   }
 }, { immediate: true })
@@ -130,6 +131,7 @@ function addCategory() {
     allowedStaffUids: [],
     allowedManagerUids: [],
     locale: '',
+    autoTranslatePosts: false,
   })
   newLabel.value = ''
 }
@@ -376,6 +378,13 @@ async function runDeleteAll() {
             <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
             <p v-if="translationEnabled && boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
           </div>
+        </div>
+        <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help') }}</p>
+          </div>
+          <USwitch v-model="category.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="savedId = null" />
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
           <div>
