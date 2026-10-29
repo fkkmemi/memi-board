@@ -1,17 +1,17 @@
 // memi-board 0.23+ Firestore Rules (flat schema)
 //
 // memiBoardUsers/{uid}
-// memiBoardSettings/{boardId}          (구 memiBoards/{id} stub + settings/config 통합)
-// memiBoardPosts/{postId}(+ body/main)  boardId 필드로 보드 스코핑
-// memiBoardComments/{commentId}         postId + boardId 필드로 스코핑
-// memiBoardLikes/{likeId}               문서ID = `${postId}_${uid}` 또는 `${commentId}_${uid}`
+// memiBoardSettings/{boardId}          (merges the old memiBoards/{id} stub + settings/config)
+// memiBoardPosts/{postId}(+ body/main)  scoped to a board by the boardId field
+// memiBoardComments/{commentId}         scoped by the postId + boardId fields
+// memiBoardLikes/{likeId}               doc ID = `${postId}_${uid}` or `${commentId}_${uid}`
 //
-// 카테고리 없음 — boardId 가 곧 예전 category id.
-// posts/comments/likes 는 모두 최상위 flat 컬렉션이다. boardId(및 postId)가 이제
-// 경로가 아니라 문서 필드이므로, list/collectionGroup 쿼리에 대한 권한 검사가
-// 아래처럼 "쿼리의 등호(==) 필터가 그 필드를 상수로 고정해 주는가"에 의존한다.
-// (구버전의 collectionGroup carve-out은 더 이상 필요 없음 — memiBoardPosts가
-// 진짜 flat 컬렉션이라 작성자 교차조회도 일반 list 쿼리로 동작한다.)
+// No categories — boardId is the old category id.
+// posts/comments/likes are all top-level flat collections. Since boardId (and postId) are now
+// document fields rather than paths, permission checks on list/collectionGroup queries
+// depend, as below, on "whether the query's equality (==) filter pins that field to a constant".
+// (The old collectionGroup carve-out is no longer needed — memiBoardPosts is
+// a true flat collection, so cross-author lookups also work as regular list queries.)
 
 rules_version = '2';
 service cloud.firestore {
@@ -20,9 +20,9 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
-    // 호스트가 다른 기능(예: 손님 대기열)에서 익명 로그인을 켜둔 경우에도
-    // 게시판 콘텐츠 생성(글/댓글/좋아요)만은 기본적으로 막는다 — 읽기·isSignedIn()
-    // 전반은 그대로 두고, 아래 3개 create 규칙에서만 이 함수를 쓴다.
+    // Even if the host app enables anonymous sign-in for another feature (e.g. a guest queue),
+    // block creating board content (posts/comments/likes) by default — reads and isSignedIn()
+    // in general are left as-is; this function is used only in the 3 create rules below.
     function isBoardWriter() {
       return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
@@ -48,8 +48,8 @@ service cloud.firestore {
     function commentPath(commentId) {
       return /databases/$(database)/documents/memiBoardComments/$(commentId);
     }
-    // 댓글 이미지 1장. 없거나 빈 목록도 허용한다. 경로는 그 댓글 폴더만.
-    // 게시물 컬렉션 이름을 바꾼 호스트는 memiBoardPosts 접두사도 맞춘다.
+    // One comment image. A missing or empty list is also allowed. The path must be that comment's folder.
+    // Host apps that renamed the posts collection must also update the memiBoardPosts prefix.
     function commentImageEntryValid(img, postId, commentId) {
       return img.keys().hasOnly(['name', 'url', 'path', 'size', 'type'])
         && img.name is string
@@ -82,7 +82,7 @@ service cloud.firestore {
         && likeId == request.resource.data.postId + '_' + request.auth.uid;
     }
     function isValidCommentLike(likeId) {
-      // 예전 댓글은 boardId 가 없을 수 있다. 스푸핑 방지는 댓글의 postId + 부모 글 boardId 로 한다.
+      // Older comments may lack boardId. Spoofing is prevented via the comment's postId + the parent post's boardId.
       return request.resource.data.keys().hasOnly(['uid', 'postId', 'boardId', 'createdAt', 'commentId', 'target'])
         && request.resource.data.target == 'comment'
         && request.resource.data.commentId is string
@@ -115,7 +115,7 @@ service cloud.firestore {
       return isBoardStaff() && isAllowedStaffForBoard(boardId);
     }
     // A visibility transition freezes new content until every listed flag is synchronized.
-    // 공지(pinned·pinnedAt)는 매니저 전용 갱신으로만 바뀐다 — 작성자의 일반 수정으로는 못 바꾼다.
+    // Notices (pinned, pinnedAt) change only via manager-only updates — an author's regular edit cannot change them.
     function postPinUnchanged() {
       return request.resource.data.get('pinned', false) == resource.data.get('pinned', false)
         && request.resource.data.get('pinnedAt', null) == resource.data.get('pinnedAt', null);
@@ -183,8 +183,8 @@ service cloud.firestore {
         && request.resource.data.viewCount is int
         && request.resource.data.viewCount == resource.data.get('viewCount', 0) + 1;
     }
-    // 답글 생성/삭제 batch에서는 대상이 최상위(root) 댓글이라 작성자가 아닌 사람도
-    // replyCount만 ±1 갱신할 수 있어야 한다 — 아니면 답글 작성 자체가 배치 전체로 막힌다.
+    // In a reply create/delete batch the target is a root comment, so users other than its author
+    // must be able to update only replyCount by ±1 — otherwise the whole batch, and thus writing a reply, is blocked.
     function isReplyCountUpdate() {
       return isSignedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount'])
@@ -193,30 +193,30 @@ service cloud.firestore {
         && (request.resource.data.replyCount == resource.data.get('replyCount', 0) + 1
           || request.resource.data.replyCount == resource.data.get('replyCount', 0) - 1);
     }
-    // 프로필 이름 변경 시 나를 답글 대상으로 가리키는 다른 사용자의 댓글에
-    // 복제된 replyToName만 동기화할 수 있다. 작성자/본문 등 다른 필드는 불변이다.
+    // When a profile name changes, only the copied replyToName in other users' comments that
+    // point to me as the reply target may be synced. Author, body, and other fields are immutable.
     function isReplyTargetProfileUpdate() {
       return isSignedIn()
         && resource.data.replyToUid == request.auth.uid
         && request.resource.data.replyToUid == resource.data.replyToUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyToName']);
     }
-    // data.boardId 는 이제 문서 필드다. list 쿼리에서 이 함수가 안전하게 평가되려면:
-    //  - isBoardAdmin()/isBoardStaff() 만으로 true 가 되는 경우는 항상 OK
-    //    (request.auth.uid 기준 get() 이라 문서 내용과 무관하게 항상 평가 가능)
-    //  - (isBoardStaff() && canWriteBoard(data.boardId)) 분기에 기대려면 쿼리에
-    //    where('boardId','==', b) 동등 필터가 있어야 한다 — 그래야 Firestore가
-    //    potential result set 전체에 대해 data.boardId == b 임을 정적으로 증명하고
-    //    get(boardSettingsPath(b))를 상수 조회로 안전하게 실행할 수 있다.
+    // data.boardId is now a document field. For this function to evaluate safely in list queries:
+    //  - cases where isBoardAdmin()/isBoardStaff() alone yields true are always OK
+    //    (get() is keyed on request.auth.uid, so it can always be evaluated regardless of document contents)
+    //  - relying on the (isBoardStaff() && canWriteBoard(data.boardId)) branch requires the query
+    //    to have a where('boardId','==', b) equality filter — that lets Firestore
+    //    statically prove data.boardId == b for the entire potential result set and
+    //    safely run get(boardSettingsPath(b)) as a constant lookup.
     function canReadPost(data) {
       return (data.get('listed', true) == true && data.isPublished == true)
         || (isSignedIn() && request.auth.uid == data.authorUid)
         || isBoardAdmin()
         || isBoardManager(data.boardId);
     }
-    // 공개 피드·작성자 댓글 목록은 listed==true 동등 필터로 숨김 보드 댓글을 뺀다.
-    // 글 상세(postId == 상수)에서는 부모 글을 읽을 수 있으면 숨김 댓글도 볼 수 있다
-    // (작성자가 담당 스태프 메모를 읽는 경우).
+    // Public feeds and author comment lists exclude hidden-board comments with a listed==true equality filter.
+    // On a post detail (postId == constant), anyone who can read the parent post can also see hidden comments
+    // (e.g. an author reading an assigned staff memo).
     function canReadComment(data) {
       return data.listed == true
         || (isSignedIn() && request.auth.uid == data.authorUid)
@@ -231,7 +231,7 @@ service cloud.firestore {
     }
 
     match /memiBoardUsers/{uid} {
-      // 이메일 말고는 다 공개 프로필 정보다 — 이메일은 private 서브컬렉션에 따로 둔다.
+      // Everything except email is public profile info — email is kept separately in a private subcollection.
       allow read: if true;
       allow create: if isSignedIn()
         && request.auth.uid == uid
@@ -252,7 +252,7 @@ service cloud.firestore {
               && request.resource.data.moderationBlockCount
                 == resource.data.get('moderationBlockCount', 0) + 1
             )
-            // 0.47.0 이하: 호출 전에 확정 횟수를 1 올린다.
+            // 0.47.0 and earlier: increment the confirmed count by 1 before the call.
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['aiWritingCount', 'aiWritingWindowAt', 'updatedAt'])
@@ -273,8 +273,8 @@ service cloud.firestore {
                 )
               )
             )
-            // 0.47.1+: 호출 전에 예약만 잡고, 성공하면 확정한다. 실패하면 예약만 내린다.
-            // 확정 횟수는 1씩만 오르고, 클라이언트가 내리지는 못한다.
+            // 0.47.1+: only reserve before the call, and confirm on success. On failure, only release the reservation.
+            // The confirmed count only increases by 1 at a time and cannot be decreased by the client.
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['aiWritingPending', 'updatedAt'])
@@ -312,23 +312,23 @@ service cloud.firestore {
             )
           ));
 
-      // 다른 작성자에 대해 나만 보는 개인 메모. 문서 ID가 targetUid라 대상당 하나로
-      // 고정된다. 관리자도 못 읽는다 — 모더레이션용이 아니라 순전히 본인 참고용이다.
+      // A private memo about another author, visible only to me. The doc ID is targetUid, so there is
+      // one per target. Even admins can't read it — it is purely for personal reference, not moderation.
       match /memos/{targetUid} {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
       }
 
-      // 이메일만 담는 비공개 서브컬렉션. 본인·관리자만 읽고 쓴다.
+      // Private subcollection holding only the email. Only the user and admins can read and write.
       match /private/{docId} {
         allow read, write: if isBoardAdmin() || (isSignedIn() && request.auth.uid == uid);
       }
     }
 
-    // 구 memiBoards/{boardId} stub + memiBoards/{boardId}/settings/config 를 하나로 합친
-    // 캐노니컬 보드 문서. 목록 렌더링과 권한 검사가 모두 이 문서 하나만 읽는다.
-    // create/update 를 분리한 이유: update 쪽 staff 분기가 resource.data(기존 값)를
-    // 참조하는데, create 시점엔 resource 가 없어 하나로 묶으면 그 분기가 에러로
-    // 평가된다 — 구버전에서도 보드 생성 자체는 admin 전용이었으므로 분리가 자연스럽다.
+    // Canonical board document that merges the old memiBoards/{boardId} stub + memiBoards/{boardId}/settings/config.
+    // List rendering and permission checks both read only this one document.
+    // Why create/update are separate: the staff branch on update references resource.data (existing values),
+    // but resource doesn't exist at create time, so combining them would make that branch evaluate
+    // to an error — board creation was admin-only in older versions too, so separating them is natural.
     match /memiBoardSettings/{boardId} {
       allow read: if true;
       allow create: if isBoardAdmin();
@@ -381,17 +381,17 @@ service cloud.firestore {
     }
 
     match /memiBoardComments/{commentId} {
-      // 공개 피드·작성자 댓글 목록은 where('listed','==',true) 로 숨김 보드 댓글을 걸러낸다.
-      // 글 상세는 postId 동등 필터라 부모 글 권한(canReadPost)으로 숨김 댓글도 읽을 수 있다.
+      // Public feeds and author comment lists filter out hidden-board comments with where('listed','==',true).
+      // Post details use a postId equality filter, so hidden comments can be read via parent post permission (canReadPost).
       allow read: if isBoardAdmin() || canReadComment(resource.data);
 
       allow create: if isBoardWriter()
         && request.resource.data.postId is string
         && request.resource.data.boardId is string
-        // boardId 는 클라이언트가 채우는 비정규화 필드라 스푸핑이 가능하다 — 실제
-        // 글의 boardId 와 다른 값을 채워 commentWriteRole 이 느슨한 다른 보드인 척
-        // canWriteBoardComment() 를 우회하는 것을 막기 위해 부모 글의 실제 boardId 와
-        // 일치하는지 확인한다(비용: 댓글 생성마다 get() 1회 추가).
+        // boardId is a denormalized field filled by the client and can be spoofed — to prevent
+        // filling in a value different from the post's actual boardId to pose as another board with a looser
+        // commentWriteRole and bypass canWriteBoardComment(), check that it matches the parent post's actual
+        // boardId (cost: one extra get() per comment creation).
         && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
         && canWriteBoardComment(request.resource.data.boardId)
         && boardWritesOpen(request.resource.data.boardId)
@@ -422,14 +422,14 @@ service cloud.firestore {
         );
     }
 
-    // 좋아요 토글 전용 flat 컬렉션. 문서ID 관례 = `${targetId}_{uid}`.
-    // 본문: target 없음(레거시) + 필드 4개. 댓글: target=='comment' + commentId.
+    // Flat collection for like toggles only. Doc ID convention = `${targetId}_{uid}`.
+    // Body: no target (legacy) + 4 fields. Comments: target=='comment' + commentId.
     match /memiBoardLikes/{likeId} {
-      // "내가 좋아요한 글/댓글" 쿼리(where uid==auth.uid)를 위해 자기 것은 항상 읽을 수
-      // 있다. 그 외에는 구버전과 동일하게, 해당 글을 읽을 수 있는 사람이면 (uid를
-      // 정확히 알고 있는 한) 개별 get() 으로 좋아요 여부를 확인할 수 있다.
-      // resource == null: 아직 없는 좋아요 문서를 트랜잭션에서 get 할 때.
-      // 없으면 resource.data 접근이 실패해 일반 사용자의 첫 좋아요가 permission-denied 가 된다.
+      // Your own likes are always readable for the "posts/comments I liked" query (where uid==auth.uid).
+      // Otherwise, as in older versions, anyone who can read the post can check whether a like exists
+      // via an individual get() (as long as they know the exact uid).
+      // resource == null: when getting a like document that doesn't exist yet in a transaction.
+      // Without this, accessing resource.data fails and a regular user's first like becomes permission-denied.
       allow read: if isBoardAdmin() || (isSignedIn() && resource == null)
         || (isSignedIn() && request.auth.uid == resource.data.uid)
         || (resource != null && canReadPost(get(postPath(resource.data.postId)).data))
@@ -444,10 +444,10 @@ service cloud.firestore {
 
       allow delete: if isBoardAdmin() || (isSignedIn()
         && (request.auth.uid == resource.data.uid || canDeleteLike(resource.data)));
-      // update 는 허용하지 않음 — 토글은 항상 create-or-delete.
+      // update is not allowed — toggling is always create-or-delete.
     }
 
-    // 글 신고. 문서ID = `${postId}_{uid}`. 내용은 본인·스태프만 읽는다.
+    // Post reports. Doc ID = `${postId}_{uid}`. Contents are readable only by the reporter and staff.
     match /memiBoardReports/{reportId} {
       allow read: if (isSignedIn() && resource == null)
         || (isSignedIn() && request.auth.uid == resource.data.uid)

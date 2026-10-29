@@ -1,854 +1,854 @@
 # Changelog
 
-이 프로젝트는 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/) 형식을, 버전 표기는 [Semantic Versioning](https://semver.org/lang/ko/)을 따른다.
+This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ## [0.52.0] - 2026-10-29
 
 ### Added
-- 보드 설정에 "번역 언어"를 추가했다(`BoardModel.translationLocales`). 보드 이름·설명 번역과 글 번역(자동 번역·글쓰기 도우미 "번역해 저장")이 고른 언어만 번역한다. 비어 있으면 지원 언어 전체(기존과 같음). 전체를 고르면 빈 배열로 저장해 나중에 추가되는 언어도 포함한다.
-- 전체 게시판 설정(`MemiBoardSettings`) 위에 "모든 게시판에 적용" 카드를 추가했다. 번역 언어·저장 시 번역·글 작성 시 자동 번역·게시판 언어 중 체크한 항목만 저장된 설정 위에 덮어쓴다(편집 중인 다른 값은 저장하지 않는다). "번역 안 된 게시판 번역" 버튼은 이름·설명 번역이 없거나 원문·번역 언어가 바뀐 게시판만 번역해 저장한다.
-- `boardTranslationLocales(board)` — 보드의 번역 대상 언어 목록. `translatePost({ targets })`, `coversLocales(i18n, fields, locales)`도 대상 언어를 받는다.
+- Added "Translation languages" to board settings (`BoardModel.translationLocales`). Board name/description translation and post translation (auto-translate and the writing assistant's "Translate and save") now translate only the selected languages. When empty, all supported languages are used (same as before). Selecting all languages saves an empty array so languages added later are included too.
+- Added an "Apply to all boards" card above the global board settings (`MemiBoardSettings`). Only the checked items among translation languages, translate on save, auto-translate on post creation, and board language are written over the saved settings (other values being edited are not saved). The "Translate untranslated boards" button translates and saves only boards with no name/description translation or whose source or translation languages changed.
+- `boardTranslationLocales(board)` — the list of a board's translation target languages. `translatePost({ targets })` and `coversLocales(i18n, fields, locales)` also accept target languages.
 
 ### Changed
-- 번역 관련 문구의 "10개 언어"를 실제 번역 언어 수로 표시한다.
-- 게시판 정보 모달의 소개 문장을 10개 언어로 채웠다(일본어·중국어·독일어·프랑스어·스페인어·포르투갈어·인도네시아어·아랍어 추가).
-- 버전 히스토리를 한국어·영어로 쓴다. `VersionHistoryEntry`에 `highlightsEn`·`noteEn`을 추가했고, 한국어가 아닌 화면 언어에서는 영어를 보여 준다.
+- Translation-related text now shows the actual number of translation languages instead of "10 languages".
+- Filled the intro sentence of the board info modal in 10 languages (added Japanese, Chinese, German, French, Spanish, Portuguese, Indonesian, Arabic).
+- Version history is now written in Korean and English. Added `highlightsEn` and `noteEn` to `VersionHistoryEntry`; English is shown for UI languages other than Korean.
 
-### 호스트(부모) 작업
-- 패키지 버전 올리기: `pnpm add memi-board@^0.52.0`. 기존 보드는 번역 언어가 비어 있어 지금처럼 10개 언어로 번역된다.
-- Firestore 규칙 변경 없음(`memiBoardSettings`의 `translationLocales` 필드는 기존 규칙으로 저장된다).
-- 호스트가 `translatePost`를 직접 부르고 있다면, 보드 설정을 따르게 하려면 `targets: boardTranslationLocales(board)`를 넘긴다.
+### Host app steps
+- Bump the package: `pnpm add memi-board@^0.52.0`. Existing boards have empty translation languages, so they keep translating into 10 languages as now.
+- No Firestore rules changes (the `translationLocales` field in `memiBoardSettings` is saved under the existing rules).
+- If the host app calls `translatePost` directly, pass `targets: boardTranslationLocales(board)` to follow the board settings.
 
 ## [0.51.2] - 2026-10-29
 
 ### Changed
-- 기본 목록 카드의 작성자 이름을 오른쪽 끝에 맞췄다.
-- 작성자 옆 메모 아이콘을 없애고, 작성자 메뉴 아래에 "나만 보는 메모" 항목으로 옮겼다. 누르면 모달에서 메모를 쓰고, 좋음·나쁨 평가는 항목 색으로 보인다. 메모는 메뉴를 열 때 불러와 목록의 카드마다 미리 조회하지 않는다.
-- 공지 전용 목록(`ListNotices`)을 없앴다. 공지는 보드의 목록 뷰 컴포넌트로 일반 글 앞에 함께 보이고, 제목 앞에 핀 아이콘이 붙는다. 상세 화면도 배지 대신 핀 아이콘을 쓴다. 핀은 제목 글자 안에서 기준선에 맞춘다.
-- 공지 글은 목록에서 테두리를 primary 색으로 바꾸고 약한 그림자를 준다. 조밀 뷰는 옅은 배경으로 구분한다.
+- Aligned the author name on default list cards to the right edge.
+- Removed the memo icon next to the author and moved it into the author menu as a "Private memo" item. Clicking it opens a modal to write the memo; good/bad ratings show as the item color. Memos are loaded when the menu opens instead of being prefetched for every card in the list.
+- Removed the notice-only list (`ListNotices`). Notices are now shown before regular posts using the board's list view component, with a pin icon before the title. The detail view also uses a pin icon instead of a badge. The pin is baseline-aligned within the title text.
+- Notice posts in lists now have a primary-colored border and a subtle shadow. The compact view distinguishes them with a light background.
 
 ## [0.51.1] - 2026-10-29
 
 ### Added
-- 글 수정 화면에 "공지로 등록" 스위치를 추가했다. 게시된 글을 수정할 때 보드 매니저에게만 보이고, 저장하면 공지 지정·해제가 함께 반영된다. 새 글은 게시 후 상세나 수정 화면에서 지정한다.
+- Added a "Pin as notice" switch to the post edit view. It is visible only to board managers when editing a published post, and pinning/unpinning is applied on save. New posts are pinned from the detail or edit view after publishing.
 
 ### Changed
-- 목록 위 공지 영역을 Nuxt UI `UNavigationMenu`(세로)로 바꿨다. 직접 만든 스타일 대신 테마 기본 모양을 따른다.
+- Replaced the notice area above the list with a vertical Nuxt UI `UNavigationMenu`. It follows the theme's default look instead of custom styles.
 
 ## [0.51.0] - 2026-10-29
 
 ### Added
-- 공지 기능. 보드 매니저(관리자·담당 스태프)가 게시된 글 상세에서 "공지로 지정/해제"를 누를 수 있다. 글에 `pinned`·`pinnedAt` 필드가 기록된다.
-- `useMemiBoardPostList`가 공지를 별도 쿼리(최대 10개, 최근 지정 순)로 동시에 구독해 `notices`로 돌려준다. 공지는 일반 `posts`에서 빠지고, `postsPending`은 두 쿼리가 모두 도착하면 false가 된다. 공지 쿼리가 실패해도 일반 목록은 보여 준다.
-- `MemiBoardList`는 목록 뷰 종류와 상관없이 공지를 맨 위에 한 줄씩 보여 준다. `useMemiBoardPosts`에 `setPostPinned(id, pinned)`를 추가했다.
+- Notices. Board managers (admins and assigned staff) can click "Pin/unpin as notice" on a published post's detail view. The post gets `pinned` and `pinnedAt` fields.
+- `useMemiBoardPostList` subscribes to notices in a separate concurrent query (up to 10, most recently pinned first) and returns them as `notices`. Notices are excluded from the regular `posts`, and `postsPending` becomes false once both queries have arrived. If the notice query fails, the regular list is still shown.
+- `MemiBoardList` shows notices at the top, one per line, regardless of list view type. Added `setPostPinned(id, pinned)` to `useMemiBoardPosts`.
 
 ### Security
-- 작성자의 일반 수정과 글 생성으로는 `pinned`·`pinnedAt`을 바꿀 수 없다. 매니저 갱신은 두 필드만 바꾸고, 게시된 글에 서버 시각으로만 지정할 수 있다. 에뮬레이터 권한 테스트를 추가했다.
+- Authors' regular edits and post creation cannot change `pinned`/`pinnedAt`. Manager updates change only those two fields, and pinning is allowed only on published posts with the server timestamp. Added emulator permission tests.
 
-### 호스트 적용
-- `docs/firestore.rules.example`의 `memiBoardPosts` 규칙 변경(`postPinUnchanged`, `isValidPostPinUpdate`, create 조건)을 호스트 규칙에 병합·배포해야 한다.
-- `docs/firestore.indexes.json.example`에 추가된 `memiBoardPosts` 복합 인덱스 2개(`boardId`, `isPublished`, [`listed`], `pinned`, `pinnedAt` desc)를 배포해야 한다. 인덱스가 생성되기 전에는 공지가 보이지 않고 일반 목록만 나온다.
+### Host app steps
+- Merge the `memiBoardPosts` rule changes in `docs/firestore.rules.example` (`postPinUnchanged`, `isValidPostPinUpdate`, create condition) into the host app rules and deploy.
+- Deploy the 2 new `memiBoardPosts` composite indexes added to `docs/firestore.indexes.json.example` (`boardId`, `isPublished`, [`listed`], `pinned`, `pinnedAt` desc). Until the indexes are built, notices are not shown and only the regular list appears.
 
 ## [0.50.0] - 2026-10-29
 
 ### Added
-- 전체 게시판 설정에 owner/admin 전용 고아 항목 조회·선택 삭제를 추가했다. 부모 글이 없는 파일·댓글, 삭제된 댓글의 이미지, 대상이 없는 좋아요를 정리한다. 신고 기록과 부모 없는 본문 하위 문서는 유지한다.
-- 최근 24시간 내 갱신된 파일, 본문·번역·첨부·댓글에서 참조하는 파일과 연결이 복구된 문서를 보호한다. 삭제 성공·제외·실패 건수를 표시하고 실패한 항목은 재시도할 수 있다.
+- Added owner/admin-only orphan lookup and selective deletion to the global board settings. Cleans up files and comments without a parent post, images of deleted comments, and likes without a target. Report records and body subdocuments without a parent are kept.
+- Protects files updated within the last 24 hours, files referenced from bodies, translations, attachments and comments, and documents whose link was restored. Shows counts of deleted, skipped and failed items, and failed items can be retried.
 
 ### Security
-- 삭제 계획을 내부 불변 스냅샷으로 유지하고 허용 컬렉션·파일 경로만 처리한다. 조회 후 계정·설정이 바뀌거나 파일 generation이 변경되면 해당 삭제를 중단한다.
-- Firestore 문서 삭제는 트랜잭션에서 부모를 다시 확인한다. 비공개 댓글 전체 조회가 허용되던 `listed` 기본값 분기를 명시적 필드 검사로 바꿨다.
-- Storage의 공개 `read`를 `get`으로 좁혀 익명·일반 사용자·담당 스태프가 전체 파일 목록을 열람하지 못하게 했다. 관리자와 해당 글 작성자는 필요한 폴더를 조회할 수 있고, 기존 공개 파일 다운로드는 유지한다.
-- Firebase 에뮬레이터 권한 테스트와 정리 경로·유예 기간 회귀 테스트를 추가했다.
+- The deletion plan is kept as an internal immutable snapshot and only allowed collections and file paths are processed. If the account or settings change after lookup, or a file's generation changes, that deletion is aborted.
+- Firestore document deletions re-check the parent in a transaction. Replaced the `listed` default-value branch, which allowed listing all private comments, with an explicit field check.
+- Narrowed Storage's public `read` to `get` so anonymous users, regular users and assigned staff cannot list all files. Admins and the post's author can list the folders they need, and existing public file downloads still work.
+- Added Firebase emulator permission tests and regression tests for cleanup paths and the grace period.
 
-### 호스트 적용
-- `docs/firestore.rules.example`와 `docs/storage.rules.example` 변경을 호스트 규칙에 병합·배포해야 한다. 패키지 푸시나 npm 갱신만으로 운영 Firebase 규칙은 바뀌지 않는다. 커스텀 컬렉션 경로도 호스트 구성에 맞춰야 한다.
-- Firestore와 Storage는 원자적으로 삭제할 수 없으므로 사용량이 적을 때 실행한다. 전체 본문과 파일을 조회하므로 읽기 비용이 발생한다.
+### Host app steps
+- Merge the changes in `docs/firestore.rules.example` and `docs/storage.rules.example` into the host app rules and deploy. Pushing the package or updating npm alone does not change production Firebase rules. Custom collection paths must also match the host app configuration.
+- Firestore and Storage cannot be deleted atomically, so run this during low usage. It reads all bodies and files, which incurs read costs.
 
 ## [0.49.0] - 2026-10-29
 
 ### Added
-- 보드 설정에 기본 꺼짐인 `autoTranslatePosts` 옵션을 추가했다. 켜면 새 글 작성 시 제목·요약·본문을 10개 언어로 번역해 함께 저장한다.
-- 번역 실패 시 입력을 유지하고 저장을 중단한다. 저장 재시도 시 내용이 같으면 준비된 번역을 재사용한다.
+- Added an `autoTranslatePosts` board setting, off by default. When on, new posts have their title, summary and body translated into 10 languages and saved together.
+- On translation failure, input is kept and saving is aborted. When saving is retried with the same content, the prepared translations are reused.
 
 ## [0.48.1] - 2026-10-29
 
 ### Added
-- 댓글·답글·댓글 수정 입력창에서 클립보드 이미지를 Ctrl+V 또는 ⌘V로 붙여넣어 첨부할 수 있다. 일반 텍스트 붙여넣기는 유지한다.
+- Clipboard images can be pasted with Ctrl+V or ⌘V to attach them in the comment, reply and comment edit inputs. Plain text pasting still works.
 
 ## [0.48.0] - 2026-10-29
 
 ### Added
-- 댓글과 답글에 이미지를 한 장 첨부할 수 있다. 본문은 필수이고, 이미지는 jpg, png, gif, webp이다. 큰 파일은 올리기 전에 5MB 이하로 줄인다.
-- 댓글 수정에서 이미지를 추가·교체·제거할 수 있다. 블라인드된 댓글에는 이미지를 보여 주지 않는다.
+- Comments and replies can have one attached image. Text is required, and images may be jpg, png, gif or webp. Large files are reduced to 5MB or less before upload.
+- Comment editing can add, replace or remove the image. Images are not shown on blinded comments.
 
 ### Changed
-- 글 삭제와 게시판 삭제는 글 문서가 남아 있는 동안 `comment-images/` 폴더와 댓글에 적힌 이미지 경로를 지운 다음 댓글 문서를 삭제한다.
+- Post deletion and board deletion delete the `comment-images/` folder and the image paths recorded in comments while the post document still exists, then delete the comment documents.
 
-### 호스트 적용
-- `docs/storage.rules.example`의 `comment-images` 규칙과 `docs/firestore.rules.example`의 댓글 `images` 검사를 호스트 규칙에 병합하고 Storage·Firestore 규칙을 배포해야 업로드가 된다. 패키지만 갱신하면 댓글 이미지 업로드는 `storage/unauthorized`가 된다.
+### Host app steps
+- Merge the `comment-images` rule in `docs/storage.rules.example` and the comment `images` check in `docs/firestore.rules.example` into the host app rules and deploy the Storage and Firestore rules for uploads to work. If only the package is updated, comment image uploads fail with `storage/unauthorized`.
 
 ## [0.47.1] - 2026-10-29
 
 ### Fixed
-- AI 글쓰기 도우미는 호출 전에 `aiWritingPending`만 예약하고, 성공하면 `aiWritingCount`로 확정한다. App Check 거부나 빈 응답처럼 실패한 호출은 예약을 되돌려 하루 10회에 넣지 않는다. 확정된 횟수는 클라이언트가 줄일 수 없다.
+- The AI writing assistant now only reserves `aiWritingPending` before the call and commits it to `aiWritingCount` on success. Failed calls such as App Check rejections or empty responses roll back the reservation and do not count toward the 10 per day. Committed counts cannot be decreased by the client.
 
 ### Documentation
-- App Check 안내를 reCAPTCHA Enterprise 점수 키와 마운트 후 한 번용 토큰 교환으로 바꿨다. Storage·Firestore 적용을 켜면 그 토큰 때문에 업로드와 글 저장이 거절된다고 적었다.
+- Changed the App Check guide to a reCAPTCHA Enterprise score key and a one-time token exchange after mount. Noted that enabling Storage/Firestore enforcement causes uploads and post saves to be rejected because of that token.
 
-### 호스트 적용
-- 0.47.1 패키지를 쓰면 `docs/firestore.rules.example`의 `memiBoardUsers` 예약 분기를 병합하고 Firestore 규칙을 배포해야 한다. 예전 규칙에서는 예약 쓰기가 거절되어 글쓰기 AI가 동작하지 않는다. 0.47.0 이하 패키지는 기존 횟수 증가 규칙으로 그대로 동작한다.
+### Host app steps
+- With the 0.47.1 package, merge the `memiBoardUsers` reservation branch from `docs/firestore.rules.example` and deploy the Firestore rules. Under the old rules, reservation writes are rejected and the writing AI does not work. Packages 0.47.0 and below keep working with the existing count-increment rule.
 
 ## [0.47.0] - 2026-10-23
 
 ### Added
-- `i18n.enabled`로 단일 UI 언어를 고정하고 국제화 UI·콘텐츠 번역을 끈다. `translation.enabled`로 콘텐츠 번역만 따로 끌 수 있다.
-- 번역 비활성화 시 저장된 번역은 보존하고 원문을 표시하며, 게시판·섹션 자동 번역과 AI 번역 요청·사용량 갱신을 차단한다.
-- 국제화 옵션의 기본 동작·언어 우선순위·원문 표시·번역 재활성화·AI 호출 차단 회귀 검사.
+- `i18n.enabled` pins a single UI language and turns off the internationalized UI and content translation. `translation.enabled` turns off content translation only.
+- When translation is disabled, saved translations are kept and the original text is shown, and automatic board/section translation, AI translation requests and usage updates are blocked.
+- Regression checks for the i18n options' default behavior, language priority, original-text display, translation re-enabling and AI call blocking.
 
 ### Documentation
-- 다른 사이트용 설치 가이드와 국제화·번역 가이드를 분리하고 README에서 연결했다. 필수 boardId, slug·문서 ID, 최초 owner, 현재 파일 권한 안내를 정정했다.
-- 0.45.1 규칙 전환 절차, `ownerUid`·교차 서비스 IAM, 공개 범위 전환 재시도, 파일 관리 권한과 신고 보존 정책을 명시하고 이전 업로드·삭제 안내를 바로잡았다.
+- Split the installation guide for other sites from the i18n/translation guide and linked them from the README. Corrected the guidance on the required boardId, slug and document ID, the initial owner, and current file permissions.
+- Documented the 0.45.1 rules migration procedure, `ownerUid` and cross-service IAM, retrying visibility changes, file management permissions and the report retention policy, and corrected earlier upload/deletion guidance.
 
 ## [0.46.2] - 2026-10-23
 
 ### Changed
-- 게시판 표시 라벨 옆의 번역 버튼으로 이름·설명을 10개 언어로 번역한 뒤 저장할 수 있다. 개별·전체 게시판 설정에 모두 제공한다.
-- 게시판 설정의 이름·설명 자동 번역은 스위치로 켜고, 기본값은 꺼짐이다.
+- The translate button next to the board display label translates the name and description into 10 languages, which can then be saved. Available in both per-board and global board settings.
+- Automatic translation of board names and descriptions in board settings is now turned on with a switch, off by default.
 
 
 ## [0.46.1] - 2026-10-22
 
 ### Added
-- 게시판 설정을 저장하면 이름과 설명을 지원 언어 10개로 번역해 `memiBoardSettings` 문서의 `i18n`에 남긴다. 문구가 그대로면 다시 번역하지 않는다.
-- 글쓰기 AI 메뉴의 언어별 번역 두 항목을 "10개 언어로 번역해 저장" 하나로 바꿨다. 제목·요약은 글 문서에, 본문은 `body/main`에 두고, 하루 사용 횟수는 1회만 차감한다.
-- 섹션을 저장하면 바뀐 제목도 같은 10개 언어로 `settings/homeLayout`에 남긴다. 목록·상세·섹션·SEO는 보는 언어의 번역을 쓰고, 원문을 고치면 옛 번역 대신 원문을 보여 준다.
+- Saving board settings translates the name and description into the 10 supported languages and stores them in the `i18n` of the `memiBoardSettings` document. Unchanged text is not retranslated.
+- Replaced the two per-language translation items in the writing AI menu with a single "Translate into 10 languages and save". Title and summary go in the post document, the body in `body/main`, and only 1 use is deducted from the daily count.
+- Saving a section also stores its changed title in the same 10 languages in `settings/homeLayout`. Lists, details, sections and SEO use the translation for the viewing language, and when the original is edited, the original is shown instead of the stale translation.
 
 ## [0.46.0] - 2026-10-21
 
-- `owner`·`manager` 추가, `allowedManagerUids`로 게시판 설정 및 스태프 배정 범위를 분리한다.
-- `roleLabels`로 호스트별 역할 표시명을 바꾼다. `canConfigureBoard()`는 설정, 기존 `canManageBoard()`는 콘텐츠 관리에 사용한다.
-- 최고 관리자만 다른 관리자 역할을 변경한다. 자기 역할 및 owner 역할 변경은 클라이언트에서 금지한다.
-- 신고 읽기를 담당 게시판으로 제한한다. 비관리자 신고 목록은 boardId가 필요하다.
-- Storage의 전역 스태프 수정 권한을 제거한다. 타인 파일 수정·삭제는 admin/owner만 가능하며, 담당자 파일 관리는 호스트의 서버 처리가 필요하다.
-- 기존 admin → owner, staff → manager 및 담당 목록 이전 절차: `docs/roles-migration.md`.
+- Added `owner` and `manager`, and separated the scope of board settings and staff assignment with `allowedManagerUids`.
+- `roleLabels` changes role display names per host app. `canConfigureBoard()` is used for settings and the existing `canManageBoard()` for content management.
+- Only the top admin can change other admins' roles. Changing one's own role and the owner role is blocked on the client.
+- Restricted report reads to the assigned boards. Non-admin report lists require a boardId.
+- Removed the global staff edit permission in Storage. Only admin/owner can modify or delete others' files; file management by assigned managers requires server-side handling in the host app.
+- Migration procedure for existing admin → owner, staff → manager and assignment lists: `docs/roles-migration.md`.
 
 ## [0.45.1] - 2026-10-15
 
 ### Fixed
-- 글 삭제 시 작성자·담당 관리자가 연관 좋아요를 정리할 수 있도록 규칙 예제를 맞추고, 신고 기록은 보존한다.
-- 기존 게시글 이미지와 저장 전 파일의 타인 덮어쓰기·삭제를 막고 업로드에 `ownerUid`를 기록한다.
-- 게시글 수정 시 보드·작성자·공개 노출 필드 변경을 제한하고, 글과 본문 동시 생성은 `getAfter()`로 검증한다.
-- 공개 범위 변경을 재시도 가능한 전환으로 처리한다. 생성·게시를 잠근 뒤 콘텐츠를 숨기고 마지막에 완료 상태를 저장한다.
-- 일반 계정의 글·초안 slug 조회를 읽기 권한에 맞춰 분리한다. 새 글 URL에는 제목과 auto-ID를 사용해 비공개 초안·동시 작성과 충돌하지 않게 한다. 기존 URL은 유지한다.
-- 태그 입력 후 Enter가 글 저장을 실행하던 문제를 고쳤다.
-- 불러온 댓글·답글 전체 범위를 구독해 이전 항목의 수정·좋아요·삭제도 다른 계정에 실시간 반영한다.
+- Aligned the rules example so authors and assigned managers can clean up related likes when deleting a post, while keeping report records.
+- Blocked others from overwriting or deleting existing post images and unsaved files, and recorded `ownerUid` on uploads.
+- Restricted changes to the board, author and public visibility fields when editing a post, and validated simultaneous creation of the post and body with `getAfter()`.
+- Visibility changes are handled as a retryable transition: creation and publishing are locked, content is hidden, and the completed state is saved last.
+- Split post/draft slug lookups for regular accounts to match read permissions. New post URLs use the title and an auto-ID so they don't collide with private drafts or concurrent writes. Existing URLs are kept.
+- Fixed pressing Enter after typing a tag triggering a post save.
+- Subscribes to the full range of loaded comments and replies so edits, likes and deletions of earlier items are reflected in real time for other accounts.
 
-### 호스트 적용
-- 패키지 갱신과 함께 Firestore·Storage 규칙 예제를 호스트 규칙에 반영해야 한다. App Hosting 푸시만으로 규칙은 배포되지 않는다.
+### Host app steps
+- Along with the package update, apply the Firestore and Storage rules examples to the host app rules. Pushing to App Hosting alone does not deploy the rules.
 
 ## [0.45.0] - 2026-10-01
 
 ### Added
-- 다국어: 게시판 UI를 10개 언어(`ko` `en` `ja` `de` `fr` `es` `pt` `zh` `ar` `id`)로 보여준다. ko·en은 전체, 나머지는 짧은 화면 문구만 번역하고 긴 안내문은 영어로 폴백한다. 언어별 번역은 별도 청크로 필요할 때만 받는다.
-- 보드 설정에 "게시판 언어"를 추가했다. 자동(사이트 언어 따름) 또는 10개 언어 중 하나로 고정할 수 있다(`BoardModel.locale`, 빈 값 = 자동).
-- 호스트에 `@nuxtjs/i18n`이 있으면 현재 locale을 자동으로 따른다. 없으면 `memiBoard.locale`(기본 `'ko'`).
-- AI 검열·글쓰기 도우미 프롬프트를 보드 언어별로 나눴다. ko는 기존 한국어 프롬프트, 그 외는 영어 프롬프트와 해당 언어 응답.
-- 아랍어 보드는 목록·상세·글쓰기 루트에 `dir="rtl"`을 붙인다.
-- `useMemiBoardAutoTranslate().translateEntries(entries, { targets })` — 메뉴·게시판 이름 같은 짧은 문구를 Firebase AI Logic으로 여러 언어로 번역해 돌려준다(저장은 호출한 쪽이 정한다). `localizedText(i18n, locale, field, fallback)`로 현재 언어 값을 고른다.
-- API: `useMemiBoardI18n()`(`t`, `locale`, `dir`, 날짜·숫자 포맷), `translate`, `loadMemiBoardLocale`, `MEMI_BOARD_LOCALES`, `normalizeMemiBoardLocale`, `boardSectionKinds`/`boardSectionSorts`, `buildModerationPrompt`.
+- i18n: the board UI is shown in 10 languages (`ko` `en` `ja` `de` `fr` `es` `pt` `zh` `ar` `id`). ko and en are fully translated; the rest translate only short UI strings, and long guidance text falls back to English. Each language's translations are loaded on demand as a separate chunk.
+- Added "Board language" to board settings. It can be automatic (follow the site language) or pinned to one of the 10 languages (`BoardModel.locale`, empty = automatic).
+- If the host app has `@nuxtjs/i18n`, the current locale is followed automatically. Otherwise `memiBoard.locale` (default `'ko'`).
+- Split the AI moderation and writing assistant prompts by board language. ko uses the existing Korean prompt; others use an English prompt with responses in that language.
+- Arabic boards add `dir="rtl"` to the list, detail and write roots.
+- `useMemiBoardAutoTranslate().translateEntries(entries, { targets })` — translates short strings such as menu and board names into several languages with Firebase AI Logic and returns them (the caller decides how to save). `localizedText(i18n, locale, field, fallback)` picks the value for the current language.
+- API: `useMemiBoardI18n()` (`t`, `locale`, `dir`, date/number formatting), `translate`, `loadMemiBoardLocale`, `MEMI_BOARD_LOCALES`, `normalizeMemiBoardLocale`, `boardSectionKinds`/`boardSectionSorts`, `buildModerationPrompt`.
 
 ### Changed
-- 날짜 표시를 dayjs 대신 `Intl`로 바꿨다. 한국어 상대 시각이 "하루 전"→"1일 전"처럼 숫자 표기로 조금 달라진다. `dayjs` peer 의존성을 뺐다.
-- `formatDate`/`formatRelativeDate`/`formatFullDate`/`formatTimestampDetails`, `reportReasonLabel`, `formatRestrictedUntilLabel`, `compressImage`, boardSeo 헬퍼, `miniPostTitle`/`miniViewLabel`에 선택 인자 `locale`을 추가했다. 생략하면 한국어로 기존과 같다.
-- `useMemiBoardModeration`·`useMemiBoardWritingAssistant`가 `{ locale }` 옵션을 받는다.
-- 전체 데이터 삭제 확인 문구가 화면 언어를 따른다(영어: "delete board data").
+- Switched date display from dayjs to `Intl`. Korean relative times change slightly to numeric forms, e.g. "하루 전" → "1일 전". Removed the `dayjs` peer dependency.
+- Added an optional `locale` argument to `formatDate`/`formatRelativeDate`/`formatFullDate`/`formatTimestampDetails`, `reportReasonLabel`, `formatRestrictedUntilLabel`, `compressImage`, the boardSeo helpers and `miniPostTitle`/`miniViewLabel`. When omitted, Korean is used as before.
+- `useMemiBoardModeration` and `useMemiBoardWritingAssistant` accept a `{ locale }` option.
+- The confirmation text for deleting all data follows the UI language (English: "delete board data").
 
-### 호스트(부모) 작업
-- 패키지 버전 올리기: `pnpm add memi-board@^0.45.0`. 이것만 해도 한국어 화면은 그대로다.
-- 다국어를 쓰려면 `pnpm add @nuxtjs/i18n` 후 `nuxt.config.ts`의 `modules`에서 `'@nuxtjs/i18n'`을 `'memi-board'`보다 앞에 두고 `i18n.locales`의 `code`를 `ko`/`en`/`ja`/`de`/`fr`/`es`/`pt`/`zh`/`ar`/`id`로 설정한다(README "다국어" 절).
-- 선택: `app.vue`에서 `<UApp :locale>`과 `<html lang dir>`를 사이트 언어에 맞춘다(README 예시). 사이트 헤더에 언어 전환 메뉴(`useI18n().setLocale`)를 둔다.
-- 선택: `@nuxtjs/i18n` 없이 한 언어로 고정하려면 `memiBoard: { locale: 'en' }`.
-- 호스트가 `dayjs`를 직접 쓰고 있다면 호스트 `package.json`에 그대로 두면 된다(memi-board는 더 이상 설치를 요구하지 않는다).
-- Firestore 규칙 변경 없음(`memiBoardSettings`의 `locale` 필드는 기존 규칙으로 저장된다).
+### Host app steps
+- Bump the package: `pnpm add memi-board@^0.45.0`. With just this, the Korean UI stays the same.
+- To use i18n, run `pnpm add @nuxtjs/i18n`, put `'@nuxtjs/i18n'` before `'memi-board'` in `modules` in `nuxt.config.ts`, and set the `code` values in `i18n.locales` to `ko`/`en`/`ja`/`de`/`fr`/`es`/`pt`/`zh`/`ar`/`id` (README "i18n" section).
+- Optional: in `app.vue`, match `<UApp :locale>` and `<html lang dir>` to the site language (README example). Add a language switcher menu (`useI18n().setLocale`) to the site header.
+- Optional: to pin a single language without `@nuxtjs/i18n`, use `memiBoard: { locale: 'en' }`.
+- If the host app uses `dayjs` directly, just keep it in the host app's `package.json` (memi-board no longer requires it to be installed).
+- No Firestore rules changes (the `locale` field in `memiBoardSettings` is saved under the existing rules).
 
 ## [0.44.1] - 2026-10-01
 
 ### Fixed
-- macOS Safari에서 한글 입력 직후(마지막 글자가 조합 중일 때) 제출 버튼을 두 번 눌러야 넘어가던 문제를 고쳤다. 첫 클릭이 조합 확정에 먹히던 것으로, 마우스는 누르는 순간(`pointerdown`) 조합을 확정하고 바로 제출한다. 터치 입력은 기존 click 그대로다. 적용 버튼: 글쓰기 "다음: 미리보기"/"수정 완료", 댓글·답글 작성, 댓글 수정 저장, 신고하기, 이메일 로그인.
-- 위 버튼들의 제출 핸들러가 처리 중에 다시 불리면 무시해 중복 저장을 막는다.
+- Fixed the submit button needing two clicks in macOS Safari right after Korean input (while the last character is still composing). The first click was consumed by committing the composition; mouse input now commits the composition on press (`pointerdown`) and submits immediately. Touch input still uses click. Applied to: write "Next: Preview"/"Save changes", comment/reply submission, comment edit save, report, and email sign-in.
+- The submit handlers of the buttons above ignore repeated calls while processing to prevent duplicate saves.
 
 ### Added
-- `imeSafeSubmitPointerDown`/`imeSafeSubmitClick` — 같은 처리를 호스트 폼에도 붙일 수 있게 내보낸다. `<UButton type="submit" @pointerdown="imeSafeSubmitPointerDown" @click="imeSafeSubmitClick" />`
+- `imeSafeSubmitPointerDown`/`imeSafeSubmitClick` — exported so the same handling can be added to host app forms. `<UButton type="submit" @pointerdown="imeSafeSubmitPointerDown" @click="imeSafeSubmitClick" />`
 
-### 호스트(부모) 작업
-- 패키지 버전 올리기: `pnpm add memi-board@^0.44.1`. 패키지 컴포넌트는 이것만으로 고쳐진다.
-- 선택: 호스트가 직접 만든 폼 중 한글을 입력하고 바로 제출 버튼을 누르는 곳이 있으면 위 두 핸들러를 `type="submit"` 버튼에 붙인다 (form `@submit.prevent` 핸들러는 그대로 불린다).
+### Host app steps
+- Bump the package: `pnpm add memi-board@^0.44.1`. This alone fixes the package components.
+- Optional: if the host app has its own forms where users type Korean and immediately press the submit button, attach the two handlers above to the `type="submit"` button (the form's `@submit.prevent` handler is still called).
 
 ## [0.44.0] - 2026-10-01
 
 ### Added
-- `useMemiBoardPosts().resolvePostIdBySlug(slug)` — slug로 글 id만 조회한다. 상세·수정 페이지처럼 id만 필요한 곳에서 본문까지 읽는 `getPostBySlug`보다 왕복이 적고, 같은 탭에서 방금 만든 글은 조회 없이 바로 돌려준다.
-- `useMemiBoardPosts().resolveUniqueSlug(title)`과 `CreatePostInput.slug` — 미리 구한 slug를 `createPost`에 넘길 수 있다.
+- `useMemiBoardPosts().resolvePostIdBySlug(slug)` — looks up only the post id by slug. Where only the id is needed, such as detail and edit pages, it takes fewer round trips than `getPostBySlug`, which also reads the body, and a post just created in the same tab is returned without a lookup.
+- `useMemiBoardPosts().resolveUniqueSlug(title)` and `CreatePostInput.slug` — a precomputed slug can be passed to `createPost`.
 
 ### Changed
-- 글쓰기 저장이 빨라졌다. slug 중복 확인을 AI 검열과 동시에 돌리고, 메타·본문 문서를 `writeBatch` 한 번으로 커밋한다.
-- `useMemiBoardPostSeo`/`useMemiBoardListSeo`는 SSR·하이드레이션에서만 데이터를 기다린다. 클라이언트 이동에서는 화면 전환을 막지 않고 메타만 뒤따라 갱신한다. 저장 후 미리보기 진입이 Safari 등 왕복이 느린 환경에서 특히 더디던 문제의 주요 원인이었다.
+- Post saving is faster. The slug uniqueness check runs concurrently with AI moderation, and the meta and body documents are committed in a single `writeBatch`.
+- `useMemiBoardPostSeo`/`useMemiBoardListSeo` wait for data only during SSR and hydration. On client navigation they no longer block the page transition and update the meta afterward. This was the main cause of the slow entry into preview after saving, especially in environments with slow round trips such as Safari.
 
-### 호스트(부모) 작업
-- 패키지 버전 올리기: `pnpm add memi-board@^0.44.0`. 올리기만 해도 저장 속도 개선과 내장 `useMemiBoardPostSeo`/`useMemiBoardListSeo`의 이동 비차단은 적용된다.
-- 글 상세(`[category]/[id]/index.vue`)·수정(`[category]/[id]/edit.vue`) 페이지에서 slug → id를 `getPostBySlug`로 구하고 있다면 `resolvePostIdBySlug`로 바꾼다. 결과는 `result.post.id` 대신 `result.id`. 상태 값(`ok`/`not-found`/`permission-denied`/`error`)은 같다. 저장 직후 미리보기 진입 시 Firestore 왕복이 2회 줄어든다.
-- SEO 컴포저블을 호스트에 복사해 쓰고 있다면(`app/composables/useMemiBoardSeo.ts` 등) 패키지와 똑같이 맞춘다. `const nuxtApp = useNuxtApp()`를 추가하고, 끝의 `await postAsync`/`await listAsync`를 `if (import.meta.server || nuxtApp.isHydrating) await …`로 바꾼다. 안 바꾸면 페이지 이동마다 SEO 조회 왕복 2회가 화면 전환을 막는다.
-- 페이지가 `await useMemiBoardPostSeo()`의 `post`로 id를 단축 조회하고 있었다면, 클라이언트 이동에서는 이 값이 처음에 `null`일 수 있다. `resolvePostIdBySlug` 폴백이 있으면 그대로 동작한다.
+### Host app steps
+- Bump the package: `pnpm add memi-board@^0.44.0`. The bump alone applies the faster saving and non-blocking navigation in the built-in `useMemiBoardPostSeo`/`useMemiBoardListSeo`.
+- If the post detail (`[category]/[id]/index.vue`) and edit (`[category]/[id]/edit.vue`) pages resolve slug → id with `getPostBySlug`, switch to `resolvePostIdBySlug`. The result is `result.id` instead of `result.post.id`. The status values (`ok`/`not-found`/`permission-denied`/`error`) are the same. Entering preview right after saving takes 2 fewer Firestore round trips.
+- If the host app uses a copy of the SEO composables (e.g. `app/composables/useMemiBoardSeo.ts`), make it match the package. Add `const nuxtApp = useNuxtApp()` and change the trailing `await postAsync`/`await listAsync` to `if (import.meta.server || nuxtApp.isHydrating) await …`. Otherwise 2 SEO lookup round trips block the transition on every page navigation.
+- If a page was shortcutting the id lookup with the `post` from `await useMemiBoardPostSeo()`, this value may initially be `null` on client navigation. With a `resolvePostIdBySlug` fallback it keeps working.
 
 ## [0.43.0] - 2026-09-19
 
 ### Changed
-- `heic2any` 의존성과 브라우저 번들 변환 코드를 제거했다. iPhone 사진 보관함에서 선택한 사진은 일반적으로 JPEG로 전달되며, 파일 앱 등에서 HEIC/HEIF 원본을 선택한 경우 JPG·PNG·WebP로 변환하라는 안내를 표시한다.
-- Nuxt 4.5.2, Nuxt UI 4.11.1, Firebase 12.19.0, Vite 8.3.0 등 개발·빌드 의존성을 최신 호환 버전으로 갱신했다. TypeScript는 `vue-tsc`가 지원하는 최신 6.0.2를 사용한다.
+- Removed the `heic2any` dependency and the in-browser bundle conversion code. Photos picked from the iPhone photo library are normally delivered as JPEG; when a HEIC/HEIF original is picked from the Files app or similar, a message asks the user to convert it to JPG, PNG or WebP.
+- Updated dev and build dependencies to the latest compatible versions, including Nuxt 4.5.2, Nuxt UI 4.11.1, Firebase 12.19.0 and Vite 8.3.0. TypeScript uses 6.0.2, the latest version supported by `vue-tsc`.
 
 ### Fixed
-- Nuxt 4.5.2의 Nitro 프리렌더 단계가 `heic2any`의 Emscripten 번들을 파싱하다 실패하던 문제를 제거했다.
+- Removed the failure where Nuxt 4.5.2's Nitro prerender step failed while parsing `heic2any`'s Emscripten bundle.
 
 ## [0.42.1] - 2026-09-18
 
 ### Fixed
-- 미니 목록(`useMemiBoardMiniLatest`/`useMemiBoardMiniPicked`)이 서버에서 쿼리를 건너뛰던 탓에 서버는 빈 상태(`<p>`)를, 클라이언트는 로딩 스켈레톤(`<div>`)을 그려 하이드레이션 mismatch와 `[VueFire SSR]: Could not get the path of the data source` 경고가 나던 문제를 고쳤다. 이제 서버에서도 쿼리를 실행하고 `ssrKey`를 부여해 첫 렌더가 항상 일치한다.
+- Fixed mini lists (`useMemiBoardMiniLatest`/`useMemiBoardMiniPicked`) skipping the query on the server, which made the server render an empty state (`<p>`) and the client a loading skeleton (`<div>`), causing a hydration mismatch and the `[VueFire SSR]: Could not get the path of the data source` warning. The query now runs on the server too with an `ssrKey`, so the first render always matches.
 
 ## [0.42.0] - 2026-08-27
 
 ### Added
-- 글쓰기 에디터에 Nuxt UI 공식 템플릿 방식의 `+`·`/` 블록 삽입 메뉴를 추가했다. 본문·제목·목록·인용·코드·이미지·YouTube·구분선과 AI 이어쓰기를 빠르게 실행할 수 있다.
-- 문단 드래그 핸들 메뉴에서 블록 형식 변경, 복제, 위·아래 이동, 삭제를 지원한다.
+- Added `+` and `/` block insertion menus to the post editor, following the official Nuxt UI template. Paragraph, headings, lists, quote, code, image, YouTube, divider and AI continue-writing can be inserted quickly.
+- The paragraph drag handle menu supports changing block type, duplicating, moving up/down and deleting.
 
 ## [0.41.0] - 2026-08-27
 
 ### Added
-- AI 글쓰기 도우미 결과를 바로 적용하지 않고 이전/이후를 나란히 보여주는 확인 모달을 추가했다. "적용"을 눌러야 에디터에 반영되고, "취소"하면 아무 변화 없이 닫힌다.
+- Added a confirmation modal that shows AI writing assistant results side by side with the before/after instead of applying them immediately. Changes reach the editor only after clicking "Apply"; "Cancel" closes it with no changes.
 
 ## [0.40.0] - 2026-08-27
 
 ### Added
-- AI 글쓰기 도우미 메뉴에 "커스텀 스타일로 바꾸기" 항목을 추가했다. 사용자가 직접 지시문(예: "경상도 사투리 스타일로")을 입력하면 뜻은 유지한 채 그 스타일로 본문을 다시 써준다.
+- Added a "Rewrite in a custom style" item to the AI writing assistant menu. When the user enters their own instruction (e.g. "in Gyeongsang dialect style"), the body is rewritten in that style while keeping its meaning.
 
 ## [0.39.1] - 2026-08-27
 
 ### Added
-- 관리자는 글쓰기 폼 하단에서 "비속어 필터 무시" 스위치를 켜 로컬 금칙어·AI 검열을 건너뛰고 글을 등록할 수 있다. `useMemiBoardModeration().checkText(text, { skipFilter })`로 노출된다.
+- Admins can turn on the "Ignore profanity filter" switch at the bottom of the write form to skip the local banned-word list and AI moderation when posting. Exposed as `useMemiBoardModeration().checkText(text, { skipFilter })`.
 
 ## [0.39.0] - 2026-08-21
 
 ### Added
-- 이미지 입력 폼에서 업로드한 사진을 `대표로` 버튼으로 선택할 수 있다. 선택한 사진은 첫 순서로 옮겨져 목록·공유 미리보기 대표 이미지로 저장된다.
-- 보드 설정에 `editorType`(`default`/`image`) 입력 폼 선택을 추가했다. `listView` 표시 방식과 독립적으로 설정할 수 있다.
+- In the image input form, an uploaded photo can be chosen with the "Set as cover" button. The chosen photo moves to the first position and is saved as the cover image for lists and share previews.
+- Added an `editorType` (`default`/`image`) input form choice to board settings. It can be set independently of the `listView` display mode.
 
 ### Compatibility
-- `editorType` 필드가 없는 기존 보드는 `listView === 'image'`일 때 이미지 입력 폼을 유지하고, 나머지는 일반 입력 폼으로 작동한다. 데이터 마이그레이션은 필요 없다.
+- Existing boards without an `editorType` field keep the image input form when `listView === 'image'` and use the regular input form otherwise. No data migration is needed.
 
 ## [0.38.1] - 2026-08-21
 
 ### Fixed
-- 글 삭제 시 Storage `listAll(memiBoardPosts/{postId})` 가 `storage/unauthorized` 나던 문제. 패키지는 `images/`·`attachments/`만 비운다.
-- `docs/storage.rules.example`: list 접두사는 `memiBoardPosts/{postId}/` 이라 `{postId}` 한 칸 `allow list` 로는 403 이다. 호스트는 `{postId}/{allPaths=**}` 의 `list`·`get`·`delete` 블록을 복사해 `firebase deploy --only storage` 해야 한다. `write` 는 이 블록에 넣지 않는다.
+- Fixed Storage `listAll(memiBoardPosts/{postId})` failing with `storage/unauthorized` on post deletion. The package empties only `images/` and `attachments/`.
+- `docs/storage.rules.example`: the list prefix is `memiBoardPosts/{postId}/`, so a single-segment `{postId}` `allow list` returns 403. The host app must copy the `list`/`get`/`delete` block for `{postId}/{allPaths=**}` and run `firebase deploy --only storage`. Do not put `write` in this block.
 
 ## [0.38.0] - 2026-08-21
 
 ### Changed
-- **숨김 게시판 댓글은 담당 스태프(또는 관리자)만 작성할 수 있다.** `commentWriteRole`과 무관하게 rules·UI가 막는다. 비밀글에는 댓글이 사실상 없고, 스태프 메모가 필요하면 지정 스태프만 남긴다.
-- **숨김 보드 댓글은 공개 피드·작성자 댓글 목록에서 빠진다.** `memiBoardComments.listed`를 글과 같이 복제하고, `docs/firestore.rules.example`의 댓글 읽기는 `canReadComment`(listed 또는 작성자·관리자·담당 스태프·부모 글 읽기 권한)로 좁혔다. 예전 `allow read: if true`는 숨김 글 댓글이 그대로 새는 구멍이었다.
-- 보드를 저장하면 해당 보드 글·댓글 `listed`를 맞춰 준다(값이 이미 같으면 건너뜀). 공개 보드의 예전 댓글은 `listed`가 없어 피드에서 빠질 수 있으니, 호스트는 공개 보드를 한 번씩 저장해 백필하면 된다.
+- **Comments on hidden boards can only be written by assigned staff (or admins).** Rules and UI block it regardless of `commentWriteRole`. Private posts effectively have no comments, and if a staff memo is needed, only designated staff can leave one.
+- **Comments on hidden boards are excluded from the public feed and author comment lists.** `memiBoardComments.listed` is copied from the post, and comment reads in `docs/firestore.rules.example` are narrowed to `canReadComment` (listed, or author/admin/assigned staff/read permission on the parent post). The old `allow read: if true` was a hole that leaked comments on hidden posts.
+- Saving a board syncs `listed` on that board's posts and comments (skipped when the value already matches). Old comments on public boards have no `listed` and may drop out of the feed, so the host app can backfill by saving each public board once.
 
 ### Breaking
-- 호스트는 `docs/firestore.rules.example`과 `docs/firestore.indexes.json.example`을 다시 배포해야 한다. 댓글 생성에 `listed` 필수, 공개 피드/작성자 댓글 목록은 `listed==true` 복합 인덱스, 답글 조회는 `postId+rootId+isReply` 인덱스가 추가됐다.
+- The host app must redeploy `docs/firestore.rules.example` and `docs/firestore.indexes.json.example`. Comment creation now requires `listed`, the public feed and author comment lists need a `listed==true` composite index, and reply lookups need a `postId+rootId+isReply` index.
 
 ## [0.37.2] - 2026-08-19
 
 ### Fixed
-- `MiniPicker.vue`가 `../utils/boardPaths`를 상대 경로로 import해서, dist로 설치한 호스트(레지스트리 버전)에서 빌드가 깨졌다(`link:` 로컬 개발에서만 우연히 통과). `postsCol`을 이미 있는 `memi-board/runtime` export로 바꿨다. 0.35.0(`MiniPicker` 도입)부터 있던 버그.
+- `MiniPicker.vue` imported `../utils/boardPaths` with a relative path, breaking the build in host apps installed from dist (registry versions); it only passed by accident in `link:` local development. Switched `postsCol` to the existing `memi-board/runtime` export. The bug existed since 0.35.0 (when `MiniPicker` was introduced).
 
 ## [0.37.1] - 2026-08-19
 
 ### Fixed
-- README의 읽은 글 표시 예시가 `:visited { color: var(...) }`를 써서 실제로는 안 먹혔다. `:visited`는 `var()`·알파값을 무시하므로 라이트/다크 리터럴 색상 예시로 고쳤다.
+- The README's read-post indicator example used `:visited { color: var(...) }`, which doesn't actually work. `:visited` ignores `var()` and alpha values, so the example now uses literal light/dark colors.
 
 ## [0.37.0] - 2026-08-19
 
 ### Added
-- 읽은 글 표시 훅. 목록·미니 컴포넌트(`ListDefault`/`ListDense`/`ListVideo`/`MiniCard`/`MiniPosts`)의 글 링크에 `.memi-board-post-link` 클래스를 붙이고, 제목 텍스트는 `text-inherit`로 부모 색을 따르게 했다. 호스트가 `.memi-board-post-link:visited`에 색을 지정하면 브라우저 네이티브 방문 기록으로 읽은 글이 흐려진다(패키지가 색을 강제하지 않음).
+- Read-post indicator hook. Post links in list and mini components (`ListDefault`/`ListDense`/`ListVideo`/`MiniCard`/`MiniPosts`) get a `.memi-board-post-link` class, and the title text follows the parent color with `text-inherit`. If the host app sets a color on `.memi-board-post-link:visited`, read posts are dimmed using the browser's native visit history (the package does not force a color).
 
 ## [0.36.0] - 2026-08-19
 
 ### Added
-- 게시물 신고. `memiBoardReports/{postId}_{uid}`에 사유·메모를 남기고, 글 상세의 신고 버튼과 스태프 `<MemiBoardReportList>`로 처리한다. 내용은 본인·스태프만 읽는다.
+- Post reports. A reason and memo are stored in `memiBoardReports/{postId}_{uid}`, handled via the report button on the post detail and the staff `<MemiBoardReportList>`. Contents are readable only by the reporter and staff.
 
 ### Changed
-- 스태프는 `allowedStaffUids`에 지정된 보드만 담당한다. 목록이 비면 관리자만 관리한다.
+- Staff manage only the boards they are listed on in `allowedStaffUids`. If the list is empty, only admins manage the board.
 
 ## [0.35.0] - 2026-08-19
 
 ### Added
-- 메인 섹션 레이아웃 컴포넌트. `<MemiBoardMini>`가 `settings/homeLayout`을 읽어 `<MemiBoardSection>`을 배치하고, 안쪽은 `<MemiBoardMiniList>` / `<MemiBoardMiniPost>`다. 관리자 글 고르기는 `<MemiBoardMiniPicker>`.
-- 섹션 kind `comments`(댓글모음). 기본 4개, 최신순/좋아요순. 더 보기는 `/boardComments`.
+- Main section layout components. `<MemiBoardMini>` reads `settings/homeLayout` and lays out `<MemiBoardSection>`s, whose contents are `<MemiBoardMiniList>` / `<MemiBoardMiniPost>`. Admin post picking is `<MemiBoardMiniPicker>`.
+- Section kind `comments` (comment collection). 4 by default, newest or most liked. "More" goes to `/boardComments`.
 
 ## [0.34.0] - 2026-08-19
 
 ### Added
-- 전체 댓글 피드 `useMemiBoardCommentFeed` / `<MemiBoardCommentFeed>`. 최신순(`createdAt`)과 좋아요순(`likeCount`)을 지원한다. 좋아요순은 `likeCount` 필드가 있는 댓글만 나온다.
+- Global comment feed `useMemiBoardCommentFeed` / `<MemiBoardCommentFeed>`. Supports newest (`createdAt`) and most liked (`likeCount`). Most liked only includes comments that have a `likeCount` field.
 
 ## [0.33.0] - 2026-08-19
 
 ### Added
-- 댓글·답글 좋아요. 본문과 같이 `memiBoardLikes` flat 컬렉션을 쓰고, 댓글은 문서ID `${commentId}_{uid}` + `target: 'comment'`다. 글 상세에서는 댓글마다 리스너를 달지 않고 `uid + postId + target` 쿼리 한 번으로 내 좋아요를 구독한다.
-- 댓글 문서에 `likeCount`를 두고 트랜잭션으로 ±1 한다. 기존 댓글은 필드가 없어도 0으로 표시된다.
-- 댓글 삭제와 글 cascade 삭제 시 해당 좋아요 문서를 함께 지운다.
+- Likes on comments and replies. Uses the same flat `memiBoardLikes` collection as posts; comment likes use document ID `${commentId}_{uid}` + `target: 'comment'`. The post detail subscribes to the user's likes with a single `uid + postId + target` query instead of a listener per comment.
+- Comment documents have a `likeCount` updated ±1 in a transaction. Existing comments without the field show 0.
+- Deleting a comment or cascade-deleting a post also deletes the related like documents.
 
 ### Compatibility
-- 호스트는 `docs/firestore.rules.example`의 댓글 `isLikeCountUpdate`와 댓글 좋아요 create 규칙을 병합·배포해야 한다.
-- 댓글 좋아요 생성은 예전 댓글의 빈 `boardId`에 의존하지 않고 부모 글의 `boardId`를 본다. 없는 좋아요 문서 `get`은 로그인 사용자에게 허용한다.
-- 글에서 내 댓글 좋아요를 보려면 `memiBoardLikes` 복합 인덱스 `uid + postId + target`이 필요하다.
+- The host app must merge and deploy the comment `isLikeCountUpdate` and comment like create rules from `docs/firestore.rules.example`.
+- Comment like creation checks the parent post's `boardId` instead of relying on the empty `boardId` of old comments. `get` on a nonexistent like document is allowed for signed-in users.
+- Showing the user's comment likes on a post requires the `memiBoardLikes` composite index `uid + postId + target`.
 
 ## [0.32.0] - 2026-08-14
 
 ### Added
-- 에디터 이미지 버튼에서 기기 파일 업로드와 외부 HTTPS 이미지 URL을 선택할 수 있다. 이미지 URL은 저장 전에 실제 표시 가능 여부를 확인하고 미리보기를 제공하며, 이미지 게시판 갤러리에도 링크 이미지를 추가할 수 있다. 첫 링크 이미지는 기존과 동일하게 목록·공유 대표 이미지로 사용한다.
+- The editor image button can choose between uploading a file from the device and an external HTTPS image URL. Image URLs are checked to actually display before saving and are previewed, and linked images can also be added to the image board gallery. As before, the first linked image is used as the cover image for lists and sharing.
 
 ### Changed
-- 게시판 설정에서 게시판을 삭제하면 설정 문서만 지우지 않고 해당 게시판의 모든 게시물, 본문, 댓글·대댓글, 본문 이미지와 첨부파일을 함께 영구 삭제한다. 삭제 전에 영향 범위와 복구 불가를 경고하며, 연결 데이터 삭제가 모두 끝난 뒤 게시판 설정을 마지막으로 삭제해 실패 시 재시도할 수 있게 했다.
-- 게시물 삭제 시 본문의 외부 이미지 URL을 Firebase Storage 객체 경로로 오인하지 않도록 Firebase Storage 호스트만 삭제 대상으로 해석한다.
+- Deleting a board in board settings now permanently deletes all of the board's posts, bodies, comments and replies, body images and attachments, not just the settings document. A warning about the scope and irreversibility is shown before deletion, and the board settings are deleted last after all linked data is gone so a failure can be retried.
+- On post deletion, only Firebase Storage hosts are treated as deletion targets so external image URLs in the body are not mistaken for Firebase Storage object paths.
 
 ## [0.31.0] - 2026-08-14
 
 ### Added
-- 에디터에 AI 글쓰기 도우미(맞춤법, 다듬기, 이어서 쓰기, 요약, 번역, 제목).
-- 로그인 사용자별 24시간에 AI 글쓰기 10회 제한 (`aiWritingCount` / `aiWritingWindowAt`). 호스트는 `docs/firestore.rules.example`을 병합·배포해야 한다.
+- AI writing assistant in the editor (spelling, polish, continue writing, summarize, translate, title).
+- AI writing limited to 10 uses per signed-in user per 24 hours (`aiWritingCount` / `aiWritingWindowAt`). The host app must merge and deploy `docs/firestore.rules.example`.
 
 ## [0.30.2] - 2026-08-14
 
 ### Changed
-- `ListDefault`(일반 뷰) 썸네일을 `size-[4.5rem]` 원형에서 `size-[3rem]` 라운드 사각(`rounded-lg`)으로 바꿨다.
-- 에디터 툴바를 좁은 화면에서 잘리지 않게 줄였다. 제목·강조·목록·인용은 `서식` 드롭다운, 막대에는 링크·이미지·유튜브·실행취소만 둔다. 모바일/데스크톱 동일.
+- Changed the `ListDefault` (default view) thumbnail from a `size-[4.5rem]` circle to a `size-[3rem]` rounded square (`rounded-lg`).
+- Slimmed the editor toolbar so it isn't cut off on narrow screens. Headings, emphasis, lists and quote moved into a "Format" dropdown; the bar keeps only link, image, YouTube and undo. Same on mobile and desktop.
 
 ### Fixed
-- 로그인할 때마다 `ensureUserDoc`이 Firebase Auth 이름·사진으로 `memiBoardUsers` 프로필을 덮어쓰던 문제를 고쳤다. 이미 있는 값은 유지하고, 비어 있을 때만 Auth 값으로 채운다.
+- Fixed `ensureUserDoc` overwriting the `memiBoardUsers` profile with the Firebase Auth name and photo on every sign-in. Existing values are kept and Auth values fill in only when empty.
 
 ## [0.30.1] - 2026-08-13
 
 ### Changed
-- 게시물 상세 상단의 목록 버튼을 텍스트 없이 왼쪽 화살표 아이콘만 표시하도록 간결하게 바꿨다. 스크린 리더용 `aria-label`은 유지한다.
-- npm 배포 워크플로를 GitHub Release 기반에서 `main` 브랜치 push 기반으로 변경했다. 배포된 버전의 중복 발행은 사전 검사에서 중단한다.
+- Simplified the list button at the top of the post detail to show only a left arrow icon without text. The `aria-label` for screen readers is kept.
+- Changed the npm publish workflow from GitHub Release-based to push-to-`main`-based. Republishing an already published version is stopped by a pre-check.
 
 ## [0.30.0] - 2026-08-13
 
 ### Added
-- 제목이 있는 일반 게시판은 본문 글자 없이 이미지 첨부만으로 글을 작성할 수 있다. 이미지 리스트뷰 게시판도 설명 글 없이 갤러리 사진만 올릴 수 있다. 빈 글이나 이미지가 아닌 파일만 첨부한 글은 계속 차단한다.
+- On regular boards with a title, posts can be written with only image attachments and no body text. Image list view boards can also post gallery photos without a description. Empty posts and posts with only non-image attachments are still blocked.
 
 ### Changed
-- 목록 상단의 리스트뷰 전환기는 보드별 표시 방식을 확인하기 위한 테스트 UI였으므로 주석 처리했다. 실제 목록은 보드 설정의 `listView`를 그대로 사용한다.
-- Storage 예시 규칙: 본문 이미지 쓰기는 로그인 + 5MB + `image/*`. 글 문서가 없는 작성 화면·붙여넣기 PNG에서 `firestore.exists()`가 통째로 `unauthorized`가 되던 경우를 피한다.
-- 문서: `firebase.json`의 Storage `bucket`을 앱 `storageBucket`과 맞출 것. 구 프로젝트의 `*.appspot.com` / `*.firebasestorage.app` 불일치와 `storage/unauthorized` 해결 절차를 README·firebase-setup에 추가.
+- Commented out the list view switcher at the top of the list, which was a test UI for checking per-board display modes. The actual list uses the board setting's `listView` as is.
+- Storage example rules: body image writes require sign-in + 5MB + `image/*`. This avoids `firestore.exists()` turning the whole request into `unauthorized` in the write screen and for pasted PNGs, where the post document doesn't exist yet.
+- Docs: match the Storage `bucket` in `firebase.json` with the app's `storageBucket`. Added steps for resolving `*.appspot.com` / `*.firebasestorage.app` mismatches in older projects and `storage/unauthorized` to the README and firebase-setup.
 
 ## [0.29.1] - 2026-08-13
 
 ### Fixed
-- 프로필에서 이름이나 사진을 변경하면 `memiBoardUsers/{uid}`만 바뀌고 기존 글·댓글에는 작성 당시 값이 계속 표시되던 문제를 수정했다. 프로필 저장 시 작성한 `memiBoardPosts`의 `authorName`/`authorPhoto`, 작성한 `memiBoardComments`의 동일 필드, 해당 사용자를 가리키는 답글의 `replyToName`을 450개 단위 Firestore batch로 함께 갱신한다. Firebase Auth 프로필은 호스트 앱의 책임으로 두며 변경하지 않는다.
+- Fixed changes to the name or photo in the profile updating only `memiBoardUsers/{uid}` while existing posts and comments kept showing the values from when they were written. Saving the profile now also updates `authorName`/`authorPhoto` on the user's `memiBoardPosts`, the same fields on the user's `memiBoardComments`, and `replyToName` on replies pointing to that user, in Firestore batches of 450. The Firebase Auth profile remains the host app's responsibility and is not changed.
 
 ### Compatibility
-- 타인이 작성한 답글에 복제된 `replyToName`을 본인이 갱신할 수 있도록 `docs/firestore.rules.example`에 해당 필드만 허용하는 좁은 규칙을 추가했다. 호스트 프로젝트의 Firestore Rules에 병합·배포해야 프로필 일괄 갱신이 정상 동작한다.
+- Added a narrow rule to `docs/firestore.rules.example` that allows only the `replyToName` field copied into replies written by others to be updated by the user themselves. It must be merged into the host project's Firestore Rules and deployed for the bulk profile update to work.
 
 ## [0.27.0] - 2026-08-12
 
 ### Breaking
-- **`AuthorMenu`의 `avatarSize` prop 제거.** 트리거를 손으로 만든 `<button>`+`UAvatar`에서 `UButton`(`:avatar`, `size="xs"`)으로 바꾸면서, 아바타 크기를 직접 지정하는 대신 Nuxt UI가 버튼 사이즈에 맞춰 자동으로 정하게 했다(`size="xs"` → `leadingAvatarSize: "3xs"`) — 직접 `size`를 넘기면 이 자동 크기보다 커져서 의미가 없어진다. 내부에서 이 prop을 쓰던 곳은 없었지만, 호스트가 직접 넘기고 있었다면 제거해야 한다.
+- **Removed the `avatarSize` prop from `AuthorMenu`.** The trigger changed from a hand-built `<button>`+`UAvatar` to `UButton` (`:avatar`, `size="xs"`), so instead of setting the avatar size directly, Nuxt UI now picks it automatically to match the button size (`size="xs"` → `leadingAvatarSize: "3xs"`); passing `size` directly would make it larger than this automatic size and defeat the purpose. Nothing internal used this prop, but if the host app was passing it, remove it.
 
 ### Changed
-- **`ListDefault`(일반 뷰) 카드 레이아웃 재구성.** 좌측 고정 정사각 썸네일(글 이미지/플레이스홀더)을 없애고, 글에 이미지가 있으면 제목 블록과 우측 메타 칸 사이에 큰 원형 썸네일(`size-[4.5rem]`)로 배치 — 없으면 그 자리 자체가 안 생긴다. 우측 메타 칸을 `w-[5.5rem]/w-24`(88~96px)에서 `w-[120px]`로 넓혀 아바타+이름이 넉넉히 들어가게 했다. 첨부파일 개수(📎)를 조회수(👁) 바로 옆으로 옮겨 같은 아이콘+숫자 스타일로 통일.
-- **`ListDense`(조밀 뷰) 전면 재설계.** 레일+원형 노드 타임라인 컨셉을 버리고 한국 커뮤니티 게시판 스타일의 한 줄 목록으로: 댓글수는 `ListDefault`와 동일한 초록 pill 배지, 첨부파일 개수도 조회수 옆에 같은 아이콘 스타일, 메타 줄은 `시간 | 작성자 | 조회 | 추천 | [카테고리]` 순서로 파이프 구분자, 글에 이미지가 있으면 우측에 작은 사각 썸네일(`size-12`, `rounded-md`). 행 사이에 `divide-y`로 구분선 추가.
-- **`AuthorMenu` 트리거를 `UButton`으로 교체.** `label`/`avatar` prop을 쓰고 `size="xs"`로 맞춤 — 커스텀 패딩(`px-1 py-1 gap-1.5`) 대신 Nuxt UI 프리셋을 그대로 쓴다. `label` 슬롯에 기본으로 들어있는 `truncate`가 `truncate` prop이 꺼진(넓은 칸) 컨텍스트에서도 항상 적용돼 있길래, 거기서는 `whitespace-normal overflow-visible text-clip`으로 명시적으로 상쇄해서 어제(`f0a348d`)의 "안 잘리고 줄바꿈" 의도를 그대로 유지했다. 이름 정렬은 `<button>`의 기본값(`text-align: center`)이 아니라 `text-left`로 명시.
-- `postPreview.ts`의 `buildPostPreview`가 `</p>`/`<br>`/`</div>` 등 문단 경계를 공백이 아니라 `\n`으로 살린다 — 안 그러면 두 문단으로 쓴 글도 서머리에서 한 줄로 뭉개져서, 목록의 2줄 클램프(`line-clamp-2`)가 "줄바꿈해서 2줄"이 아니라 "글자가 넘쳐야만" 반응했다. `ListDefault`/`ListVideo`의 서머리 `<p>`에 `whitespace-pre-line` 추가해 실제로 줄바꿈이 보이게 함. 기존에 저장된 글의 `summary` 필드는 재저장 전까지 예전 방식 그대로 남아있다.
+- **Reworked the `ListDefault` (default view) card layout.** Removed the fixed square thumbnail on the left (post image/placeholder); if the post has an image, a large circular thumbnail (`size-[4.5rem]`) is placed between the title block and the right meta column, and otherwise that slot isn't rendered at all. Widened the right meta column from `w-[5.5rem]/w-24` (88–96px) to `w-[120px]` so the avatar and name fit comfortably. Moved the attachment count (📎) right next to the view count (👁) with the same icon+number style.
+- **Fully redesigned `ListDense` (compact view).** Dropped the rail+circular-node timeline concept for a single-line list in the style of Korean community boards: the comment count uses the same green pill badge as `ListDefault`, the attachment count sits next to the view count in the same icon style, the meta line is pipe-separated in the order `time | author | views | likes | [category]`, and posts with an image show a small square thumbnail on the right (`size-12`, `rounded-md`). Added `divide-y` dividers between rows.
+- **Replaced the `AuthorMenu` trigger with `UButton`.** Uses the `label`/`avatar` props with `size="xs"`, relying on the Nuxt UI preset instead of custom padding (`px-1 py-1 gap-1.5`). The `truncate` built into the `label` slot was always applied even in contexts where the `truncate` prop is off (wide columns), so it is explicitly countered there with `whitespace-normal overflow-visible text-clip`, preserving yesterday's (`f0a348d`) "wrap instead of truncating" intent. Name alignment is set explicitly to `text-left` instead of the `<button>` default (`text-align: center`).
+- `buildPostPreview` in `postPreview.ts` now keeps paragraph boundaries such as `</p>`/`<br>`/`</div>` as `\n` instead of spaces; otherwise posts written in two paragraphs were collapsed into one line in the summary, and the list's 2-line clamp (`line-clamp-2`) only kicked in when text overflowed rather than at line breaks. Added `whitespace-pre-line` to the summary `<p>` in `ListDefault`/`ListVideo` so line breaks actually show. The `summary` field of already saved posts stays in the old format until they are saved again.
 
 ## [0.26.0] - 2026-08-12
 
 ### Added
-- **작성자 개인 메모 + 좋음/나쁨 평가** — 다른 작성자를 보다가 나만 보는 메모를 남기는 기능(한국 커뮤니티 사이트에 흔한 "이 사람 메모" 기능). `useMemiBoardAuthorMemo(targetUid)` 컴포저블 + `AuthorMenu`의 이름 옆에 메모 아이콘(`UPopover`, 열 때 로드) 추가. 별도 "저장" 버튼 없이 "좋음"(`primary`)/"나쁨"(`error`) 버튼이 곧 저장 버튼 — 텍스트+평가를 같이 저장한다. 아이콘 색이 평가를 그대로 반영(좋음=`text-primary`, 나쁨=`text-error`, 없음=`text-muted`). `AuthorMemoModel`에 `sentiment: 'good' | 'bad'` 필드 추가. `memiBoardUsers/{내uid}/memos/{targetUid}` — 문서 ID가 targetUid라 대상당 메모가 항상 하나(재저장 시 덮어씀), 삭제 버튼으로 문서 자체 삭제. 100자 제한(`AUTHOR_MEMO_MAX_LENGTH`), 비속어 필터 없음(본인만 읽으니 불필요). 본인 카드에는 아이콘 자체가 안 보인다.
-  - **마이그레이션**: `docs/firestore.rules.example`에 `memiBoardUsers/{uid}` 안에 `match /memos/{targetUid} { allow read, write: if isSignedIn() && request.auth.uid == uid; }` 추가됨 — 관리자도 못 읽는다(모더레이션용이 아니라 순전히 개인 참고용). 호스트가 배포된 규칙에 반영해야 실제로 저장/조회가 된다.
-  - `useMemiBoardAuthorMemo`는 targetUid(+viewerUid)로 키를 잡은 모듈 스코프 캐시를 공유한다 — 같은 작성자가 목록에 여러 번 나올 때(글을 여러 개 쓴 경우) 각 `AuthorMenu` 인스턴스가 따로 상태를 들고 있으면 한쪽에서 저장해도 다른 카드가 그대로 남는 문제가 있어서다.
+- **Private author memo + good/bad rating** — leave a private memo while viewing another author (the "memo on this user" feature common on Korean community sites). Added the `useMemiBoardAuthorMemo(targetUid)` composable and a memo icon next to the name in `AuthorMenu` (`UPopover`, loaded on open). There is no separate "Save" button; the "Good" (`primary`) / "Bad" (`error`) buttons are the save buttons and save the text and rating together. The icon color reflects the rating (good=`text-primary`, bad=`text-error`, none=`text-muted`). Added a `sentiment: 'good' | 'bad'` field to `AuthorMemoModel`. Stored at `memiBoardUsers/{myUid}/memos/{targetUid}`; since the document ID is targetUid there is always one memo per target (overwritten on resave), and the delete button deletes the document itself. 100-character limit (`AUTHOR_MEMO_MAX_LENGTH`), no profanity filter (unnecessary since only the user reads it). The icon is not shown on the user's own card.
+  - **Migration**: `docs/firestore.rules.example` adds `match /memos/{targetUid} { allow read, write: if isSignedIn() && request.auth.uid == uid; }` inside `memiBoardUsers/{uid}`; even admins can't read it (it's purely a personal reference, not for moderation). The host app must apply it to the deployed rules for saving and loading to actually work.
+  - `useMemiBoardAuthorMemo` shares a module-scoped cache keyed by targetUid (+viewerUid), because when the same author appears multiple times in a list (having written several posts), separate state per `AuthorMenu` instance meant saving in one left the other cards stale.
 
 ### Fixed
-- **`AuthorMenu`가 `truncate` 모드(ListDefault의 좁은 메타 칸)에서 "관리자"→"관…"처럼 실제로 필요한 폭보다 훨씬 짧게 잘리던 문제.** `f0a348d`에서 truncate를 opt-in으로 좁혀놓았지만 근본 원인은 그대로였다: wrapper가 `inline-flex`(shrink-to-fit)인 채로 이름 span에만 `flex-1 basis-0`를 줬는데, `truncate`는 min-content를 거의 0으로 만들어버려서 shrink-to-fit 체인 전체가 실제 콘텐츠보다 훨씬 작게 무너졌다(브라우저에서 직접 측정: wrapper가 31px로 계산됨, "관리자" 자체는 76px 칸에 다 들어가는데도). truncate 모드일 때 wrapper·버튼에 `w-full`/`flex-1`을 줘서 컬럼 폭(76px) 전체를 진짜 사용 가능한 공간으로 만들어 해결 — 재측정으로 `scrollWidth === clientWidth`(잘림 없음) 확인.
+- **Fixed `AuthorMenu` in `truncate` mode (ListDefault's narrow meta column) cutting text far shorter than needed, e.g. the "Admin" role label reduced to its first character plus "…".** `f0a348d` had narrowed truncate to opt-in, but the root cause remained: the wrapper stayed `inline-flex` (shrink-to-fit) while only the name span got `flex-1 basis-0`, and `truncate` reduces min-content to nearly 0, so the whole shrink-to-fit chain collapsed far below the actual content (measured in the browser: the wrapper computed to 31px even though the label itself fit in the 76px column). Fixed by giving the wrapper and button `w-full`/`flex-1` in truncate mode so the full column width (76px) is truly available; re-measuring confirmed `scrollWidth === clientWidth` (no truncation).
 
 ## [0.25.0] - 2026-08-12
 
 ### Added
-- **`useMemiBoardUserComments(uid)` + `<MemiBoardUserCommentList>`** — "작성글 보기"(`useMemiBoardUserPosts`/`UserPostList`)와 같은 패턴으로, 작성자 uid 하나로 모든 보드를 가로질러 댓글을 모은다. `AuthorMenu`에 `authorCommentsTo` prop을 추가해 "작성한 댓글 보기" 메뉴 항목을 연결할 수 있게 했다(`List`/`ListDefault`/`ListDense`/`ListVideo`/`Detail`/`UserPostList`까지 전부 스레딩).
-- `<MemiBoardUserCommentList>`는 각 댓글에 호스트가 만든 링크(`getPostLink`)를 붙여 원문 글로 이동시키는 구조 — 글의 slug를 들고 있지 않으므로, 호스트가 `boardId`+`postId`로 영구링크를 만들어 클릭 시점에 실제 글의 접근 상태(찾을 수 없음/비공개 등)를 판단하는 걸 권장한다.
+- **`useMemiBoardUserComments(uid)` + `<MemiBoardUserCommentList>`** — same pattern as "View posts" (`useMemiBoardUserPosts`/`UserPostList`), collecting comments across all boards by a single author uid. Added an `authorCommentsTo` prop to `AuthorMenu` so a "View comments" menu item can be wired up (threaded through `List`/`ListDefault`/`ListDense`/`ListVideo`/`Detail`/`UserPostList`).
+- `<MemiBoardUserCommentList>` attaches a host-app-built link (`getPostLink`) to each comment to navigate to the original post. Since it doesn't hold the post's slug, the host app is advised to build a permalink from `boardId`+`postId` and decide the post's actual access state (not found/private, etc.) at click time.
 
 ### Changed
-- **`docs/firestore.rules.example`: `memiBoardComments`의 `allow read`가 더 이상 부모 글을 `get()`하지 않고 항상 허용(`allow read: if true`).** `useMemiBoardUserComments`가 `where('authorUid','==',uid)`로 여러 글에 걸친 댓글을 한 번에 조회하는데, 예전 규칙(`canReadPost(get(postPath(resource.data.postId)).data)`)은 postId가 동등(`==`) 필터로 고정된 쿼리에서만 성립해서 이 cross-post 쿼리 자체가 permission-denied로 거부됐다. 이제 댓글 본문은 부모 글의 공개 상태와 무관하게 항상 노출되고, 실제 글로 이동했을 때(글 상세 페이지의 기존 not-found/permission-denied 처리) 접근 상태가 대신 표현된다.
-  - **마이그레이션**: 이 기능을 쓰려면 호스트가 배포된 Firestore 규칙을 이 예시대로 갱신해야 한다 — 규칙을 안 바꾸면 새 컴포저블/컴포넌트는 그대로 permission-denied가 난다. 기존 글 상세 페이지의 댓글 스레드 읽기는 그대로 동작(권한이 좁아지지 않고 넓어지는 방향).
-  - `docs/firestore.indexes.json.example`에 `memiBoardComments(authorUid asc, createdAt desc)` 복합 인덱스 추가 — 이것도 배포 안 하면 조회 자체가 "The query requires an index" 에러로 막힌다.
+- **`docs/firestore.rules.example`: `allow read` on `memiBoardComments` no longer `get()`s the parent post and always allows (`allow read: if true`).** `useMemiBoardUserComments` queries comments across many posts at once with `where('authorUid','==',uid)`, and the old rule (`canReadPost(get(postPath(resource.data.postId)).data)`) only held for queries with postId fixed by an equality (`==`) filter, so this cross-post query was rejected with permission-denied. Comment text is now always exposed regardless of the parent post's visibility, and the access state is expressed when navigating to the actual post instead (the post detail page's existing not-found/permission-denied handling).
+  - **Migration**: to use this feature, the host app must update its deployed Firestore rules to match this example; without it, the new composable/component get permission-denied. Reading comment threads on the existing post detail page keeps working (permissions widen rather than narrow).
+  - Added a `memiBoardComments(authorUid asc, createdAt desc)` composite index to `docs/firestore.indexes.json.example`; without deploying it, the query fails with "The query requires an index".
 
 ## [0.24.0] - 2026-08-11
 
 ### Breaking
-- **`useMemiBoardStorage`(+ `compressImage`, `EDITOR_IMAGE_MAX_BYTES`, `EDITOR_IMAGE_SOURCE_MAX_BYTES`)를 `memi-board/runtime`에서 신규 `memi-board/storage` 서브패스로 이동.**
-  - 원인: `useMemiBoardStorage`가 동적 `import('heic2any')`를 갖고 있는데, heic2any는 WASM glue 코드가 문자열로 통째로 박혀 있어서 이 청크가 `dist/index.js`(SSR로도 로드됨)에 섞이면 Nitro의 rollup commonjs 파서가 그 청크를 파싱하다 프로덕션 빌드 자체가 깨진다 — 런타임에 실제로 호출되지 않아도 빌드 타임에 파싱을 시도하다 실패한다.
-  - `dist/index.js`는 이제 heic2any/canvas 관련 코드를 전혀 참조하지 않는다(빌드 후 grep으로 확인). 무거운 브라우저 전용 코드(`storage.js`, ~1.36MB)는 `Editor.vue`/`Attachments.vue`가 클라이언트에서만 동적으로 불러온다.
-  - 마이그레이션: `import { useMemiBoardStorage } from 'memi-board/runtime'` → `from 'memi-board/storage'`. 호스트가 직접 이 composable을 쓰고 있었다면(패키지 내부 컴포넌트 전용이라 흔하지 않음) import 경로만 바꾸면 된다.
-  - 호스트에서 Nitro `rollupConfig.external`로 heic2any를 강제로 external 처리하던 임시 우회가 있었다면 이제 제거해도 된다(더 이상 SSR 번들에 섞이지 않으므로).
+- **Moved `useMemiBoardStorage` (+ `compressImage`, `EDITOR_IMAGE_MAX_BYTES`, `EDITOR_IMAGE_SOURCE_MAX_BYTES`) from `memi-board/runtime` to the new `memi-board/storage` subpath.**
+  - Cause: `useMemiBoardStorage` has a dynamic `import('heic2any')`, and heic2any embeds its WASM glue code as a whole string, so when that chunk ended up in `dist/index.js` (also loaded for SSR), Nitro's rollup commonjs parser broke the production build while parsing it — failing at build time even though it's never actually called at runtime.
+  - `dist/index.js` no longer references any heic2any/canvas code (verified with grep after building). The heavy browser-only code (`storage.js`, ~1.36MB) is loaded dynamically by `Editor.vue`/`Attachments.vue` on the client only.
+  - Migration: `import { useMemiBoardStorage } from 'memi-board/runtime'` → `from 'memi-board/storage'`. If the host app used this composable directly (uncommon, as it's meant for the package's internal components), only the import path needs to change.
+  - If the host app had a temporary workaround forcing heic2any external via Nitro `rollupConfig.external`, it can now be removed (it no longer ends up in the SSR bundle).
 
 ## [0.23.0] - 2026-08-11
 
 ### Breaking
-- **Firestore 스키마 완전 평탄화 — `memiBoards/{boardId}/…` 중첩 구조 폐지.** 마이그레이션 없음 — 기존 데이터 삭제 전제.
-  - `memiBoardPosts/{postId}` (+ 서브컬렉션 `body/main`), `memiBoardComments/{commentId}`, `memiBoardLikes/{postId}_{uid}` — 전부 최상위 flat 컬렉션. `memiBoardSettings/{boardId}`가 구 `memiBoards/{boardId}` stub + `settings/config` 이중 문서를 하나로 통합.
-  - `PostModel.boardId`, `CommentModel.boardId` 필드 추가(필수) — 경로 대신 필드로 보드/글을 스코핑한다. 보드/글 단위 조회는 전부 `where('boardId','==',…)` / `where('postId','==',…)` 동등 필터로 바뀜.
-  - `useMemiBoardUserPosts()`가 더 이상 `collectionGroup('posts')`를 쓰지 않는다 — flat 컬렉션이라 일반 `where('authorUid',...)` 쿼리로 충분. `UserPostModel`은 `PostModel`의 deprecated 별칭이 됨(둘 다 이미 `boardId` 필드를 가짐).
-  - `docs/firestore.rules.example`/`docs/storage.rules.example` 전면 재작성 — 구버전의 collectionGroup carve-out(`match /{path=**}/posts/{postId}`)이 완전히 사라짐. 댓글 생성 시 클라이언트가 채우는 `boardId`가 부모 글의 실제 `boardId`와 일치하는지 검증(스푸핑으로 `commentWriteRole` 우회 방지). 좋아요는 문서ID `${postId}_${uid}` 관례를 규칙에서 강제.
-  - 신규 `docs/firestore.indexes.json.example` — 패키지가 실제로 실행하는 쿼리 기준 복합 인덱스 목록. 호스트는 이 파일을 `firestore.indexes.json`에 병합·배포해야 한다.
-  - `MemiBoardConfig`: `boardsCollection` 옵션 제거, `postsCollection`/`commentsCollection`/`likesCollection`/`settingsCollection` 옵션 추가(전부 기본값 있음, 커스터마이즈 선택).
-  - Storage 경로 단순화: `memiBoards/{boardId}/posts/{postId}/…` → `memiBoardPosts/{postId}/…` (postId가 전역 고유라 boardId prefix 불필요). `useMemiBoardStorage().uploadAttachment()`/`uploadEditorImage()` 시그니처에서 `boardId` 인자 제거.
-  - 신규 `memiBoardLikes` flat 컬렉션 — "내가 좋아요한 글" 같은 uid 기준 교차 조회를 위한 것. 인기순 정렬은 여전히 post 문서의 `likeCount` 카운터 필드로 한다(변경 없음).
-  - `docs/firestore.rules.example`: 익명(anonymous) 로그인 계정은 글/댓글/좋아요를 생성할 수 없도록 `isBoardWriter()`(= `isSignedIn() && sign_in_provider != 'anonymous'`) 가드 추가 — 호스트가 다른 기능(예: 손님 대기열)에서 익명 로그인을 켜둔 경우에도 게시판 콘텐츠 생성만 기본 차단된다. 읽기·`isSignedIn()` 전반은 영향 없음.
-  - `docs/firestore.indexes.json.example`: `getAdjacentPosts()`의 "다음 글"(`endBefore`+`limitToLast`) 쿼리에 필요한 오름차순 인덱스 2개 추가 — Firestore는 `limitToLast()`를 정렬을 뒤집어 실행하기 때문에, `orderBy('createdAt','desc')`로 작성된 쿼리라도 실제로는 `createdAt` **오름차순** 인덱스가 필요하다. 기존엔 내림차순만 있어서 실사용 중 `failed-precondition` 에러가 났다.
+- **Fully flattened the Firestore schema — removed the nested `memiBoards/{boardId}/…` structure.** No migration — assumes existing data is deleted.
+  - `memiBoardPosts/{postId}` (+ subcollection `body/main`), `memiBoardComments/{commentId}`, `memiBoardLikes/{postId}_{uid}` — all top-level flat collections. `memiBoardSettings/{boardId}` merges the old `memiBoards/{boardId}` stub + `settings/config` double document into one.
+  - Added `PostModel.boardId` and `CommentModel.boardId` fields (required) — boards/posts are scoped by field instead of path. All per-board/per-post queries became `where('boardId','==',…)` / `where('postId','==',…)` equality filters.
+  - `useMemiBoardUserPosts()` no longer uses `collectionGroup('posts')`; with a flat collection, a regular `where('authorUid',...)` query is enough. `UserPostModel` became a deprecated alias of `PostModel` (both already have the `boardId` field).
+  - Fully rewrote `docs/firestore.rules.example`/`docs/storage.rules.example`; the old collectionGroup carve-out (`match /{path=**}/posts/{postId}`) is gone. On comment creation, the client-supplied `boardId` is checked against the parent post's actual `boardId` (preventing spoofing to bypass `commentWriteRole`). The rules enforce the `${postId}_${uid}` document ID convention for likes.
+  - New `docs/firestore.indexes.json.example` — the list of composite indexes based on the queries the package actually runs. The host app must merge this file into `firestore.indexes.json` and deploy it.
+  - `MemiBoardConfig`: removed the `boardsCollection` option and added `postsCollection`/`commentsCollection`/`likesCollection`/`settingsCollection` options (all with defaults, customization optional).
+  - Simplified Storage paths: `memiBoards/{boardId}/posts/{postId}/…` → `memiBoardPosts/{postId}/…` (postId is globally unique, so the boardId prefix is unnecessary). Removed the `boardId` argument from the `useMemiBoardStorage().uploadAttachment()`/`uploadEditorImage()` signatures.
+  - New flat `memiBoardLikes` collection — for uid-based cross queries such as "posts I liked". Popularity sorting still uses the `likeCount` counter field on the post document (unchanged).
+  - `docs/firestore.rules.example`: added an `isBoardWriter()` (= `isSignedIn() && sign_in_provider != 'anonymous'`) guard so anonymous sign-in accounts cannot create posts, comments or likes; even if the host app enables anonymous sign-in for other features (e.g. a guest queue), only board content creation is blocked by default. Reads and `isSignedIn()` in general are unaffected.
+  - `docs/firestore.indexes.json.example`: added 2 ascending indexes needed by the "next post" (`endBefore`+`limitToLast`) query in `getAdjacentPosts()`. Firestore runs `limitToLast()` by reversing the order, so even a query written with `orderBy('createdAt','desc')` actually needs a `createdAt` **ascending** index. Previously only descending existed, causing `failed-precondition` errors in real use.
 
 ### Changed
-- 게시물·댓글 날짜 표시의 상세 시각 툴팁을 호버(`UTooltip`)에서 클릭(`UPopover`, mode 기본값 `click`)으로 교체 — 호버가 없는 모바일 터치에서도 탭 한 번으로 동일하게 동작한다. `CommentItem.vue`/`ListVideo.vue`/`ListDense.vue`/`Detail.vue`/`ListDefault.vue` 5곳. 보드 제목 설명 툴팁(`List.vue`)은 별개 기능이라 그대로 둠.
+- Switched the detailed-time tooltip on post and comment dates from hover (`UTooltip`) to click (`UPopover`, mode default `click`) so it works the same with a single tap on mobile touch, where there is no hover. 5 places: `CommentItem.vue`/`ListVideo.vue`/`ListDense.vue`/`Detail.vue`/`ListDefault.vue`. The board title description tooltip (`List.vue`) is a separate feature and was left as is.
 
 ## [0.22.0] - 2026-08-11
 
 ### Breaking
-- 글 작성 → 초안(미리보기) → 게시 플로우 추가. 마이그레이션 없음 — 기존 데이터 삭제 전제.
-  - `PostModel.isPublished: boolean` 필수 필드 추가 (+ `publishedAt?`). `createPost()`는 항상 `isPublished: false`로 문서를 생성 — 더는 작성 즉시 공개되지 않는다.
-  - 신규 `publishPost(id)` — `isPublished: true`로 전환. `Editor.vue`는 여전히 작성만 담당(라벨 "게시하기" → "다음: 미리보기"), 게시 액션은 `Detail.vue`가 초안일 때 보여주는 미리보기 배너의 "게시하기" 버튼이 담당(작성자만 노출, 좋아요·댓글은 게시 전 숨김).
-  - `getPosts()` / `useMemiBoardPostList()` / `getAdjacentPosts()` 쿼리에 `where('isPublished','==',true)` 추가 — **`isPublished` 필드가 없는 기존 문서는 목록·인접글에서 조회되지 않는다.**
-  - `docs/firestore.rules.example`: `canReadPost`에 `isPublished == true` 조건 추가(비작성자 읽기), `posts` `create`에 `isPublished == false` 강제(생성 시점엔 항상 초안).
-  - 호스트는 `firestore.indexes.json`에 `isPublished` 복합 인덱스(예: `isPublished+listed+createdAt`, `isPublished+createdAt`, `__name__` tie-break 변형 포함) 추가·배포 필요.
-  - `useMemiBoardPostList()`가 로그인한 작성자 본인의 미게시 초안을 별도 구독으로 목록에 함께 얹어준다 — 안 그러면 게시하기 전에 목록으로 나가면 다시 찾을 방법이 없었음. `List*.vue` 4종(Default/Dense/Image/Video)에 "초안" 배지 추가. 호스트는 `authorUid+isPublished+createdAt` 복합 인덱스 추가·배포 필요.
+- Added a write → draft (preview) → publish flow. No migration — assumes existing data is deleted.
+  - Added the required field `PostModel.isPublished: boolean` (+ `publishedAt?`). `createPost()` always creates the document with `isPublished: false`; posts are no longer public immediately on writing.
+  - New `publishPost(id)` — switches to `isPublished: true`. `Editor.vue` still only handles writing (label "Publish" → "Next: Preview"); publishing is handled by the "Publish" button in the preview banner that `Detail.vue` shows for drafts (shown only to the author; likes and comments are hidden before publishing).
+  - Added `where('isPublished','==',true)` to the `getPosts()` / `useMemiBoardPostList()` / `getAdjacentPosts()` queries — **existing documents without the `isPublished` field are not returned in lists or adjacent posts.**
+  - `docs/firestore.rules.example`: added an `isPublished == true` condition to `canReadPost` (reads by non-authors), and `posts` `create` enforces `isPublished == false` (always a draft at creation).
+  - The host app must add and deploy `isPublished` composite indexes in `firestore.indexes.json` (e.g. `isPublished+listed+createdAt`, `isPublished+createdAt`, including `__name__` tie-break variants).
+  - `useMemiBoardPostList()` adds the signed-in author's own unpublished drafts to the list via a separate subscription; otherwise, leaving to the list before publishing left no way to find the draft again. Added a "Draft" badge to the 4 `List*.vue` components (Default/Dense/Image/Video). The host app must add and deploy an `authorUid+isPublished+createdAt` composite index.
 
 ## [0.21.1] - 2026-08-07
 
 ### Fixed
-- `docs/firestore.rules.example`의 댓글 `update` 규칙 회귀 — v0.21.0에서 `isOwner(resource) || isBoardStaff()`로 정리하면서 답글 batch(생성 시 최상위 댓글 `replyCount` +1, 삭제 시 -1)를 허용하던 `isReplyCountUpdate()` 카브아웃이 통째로 빠짐. 최상위 댓글 작성자·스태프가 아닌 사용자가 답글을 달면 그 batch 전체가 거부돼(`permission-denied`) 답글 작성이 막힘 — 관리자가 쓴 최상위 댓글에 일반 사용자가 답글을 달 때 항상 재현. `isReplyCountUpdate()`를 되살려 `allow update`에 다시 OR
+- Regression in the comment `update` rule in `docs/firestore.rules.example`: when v0.21.0 cleaned it up to `isOwner(resource) || isBoardStaff()`, the `isReplyCountUpdate()` carve-out that allowed the reply batch (top-level comment `replyCount` +1 on create, -1 on delete) was dropped entirely. When a user other than the top-level comment's author or staff replied, the whole batch was rejected (`permission-denied`) and replying was blocked — always reproducible when a regular user replied to a top-level comment written by an admin. Restored `isReplyCountUpdate()` and OR'd it back into `allow update`
 
 ## [0.21.0] - 2026-08-06
 
 ### Breaking
-- **카테고리 개념 제거** — 예전 category id 가 곧 `boardId`
+- **Removed the category concept** — the old category id is now the `boardId`
   - `memiBoards/{boardId}/posts/{postId}` (+ body/comments/likes)
-  - `memiBoards/{boardId}/settings/config` (보드 설정·메타)
-  - `memiBoardUsers/{uid}` (역할, top-level — 보드 밖)
-- 설정 키 `boardId` 제거 → 활성 보드는 composable/컴포넌트 인자
-- `useMemiBoardPosts(boardId)`, `useMemiBoardPostList(boardId)`, `useMemiBoardLikes(boardId, postId)` 등 시그니처 변경
-- `MemiBoardList` / `Detail` / `Editor` 에 `boardId` prop 필수
+  - `memiBoards/{boardId}/settings/config` (board settings/meta)
+  - `memiBoardUsers/{uid}` (roles, top-level — outside boards)
+- Removed the `boardId` config key → the active board is a composable/component argument
+- Changed signatures such as `useMemiBoardPosts(boardId)`, `useMemiBoardPostList(boardId)`, `useMemiBoardLikes(boardId, postId)`
+- `boardId` prop is required on `MemiBoardList` / `Detail` / `Editor`
 
 ### Added
-- `BoardModel` 타입 (`BoardCategory` 는 deprecated 별칭)
+- `BoardModel` type (`BoardCategory` is a deprecated alias)
 
 ## [0.20.0] - 2026-08-06
 
 ### Breaking
-- Firestore/Storage 경로를 multi-board 트리로 변경 (마이그레이션 없음 — 기존 데이터 삭제 전제)
+- Changed Firestore/Storage paths to a multi-board tree (no migration — assumes existing data is deleted)
   - `memiBoards/{boardId}/posts/{postId}` (+ `body/main`, `comments`, `likes`)
-  - `memiBoards/{boardId}/settings/config` (+ `categories`) — 구 `boardSettings`
-  - `memiBoards/{boardId}/users/{uid}` — 구 `{prefix}Users`
+  - `memiBoards/{boardId}/settings/config` (+ `categories`) — formerly `boardSettings`
+  - `memiBoards/{boardId}/users/{uid}` — formerly `{prefix}Users`
   - Storage: `memiBoards/{boardId}/posts/{postId}/…`
-- 설정 키 `collectionPrefix` 제거 → `boardsCollection`(기본 `memiBoards`) + **`boardId`**(기본 `default`)
-- `docs/firestore.rules.example` · `storage.rules.example` 경로 전면 개편
-- 복합 인덱스 collection group: `posts` (구 `boardPosts` 등 prefix 컬렉션 ID 폐기)
+- Removed the `collectionPrefix` config key → `boardsCollection` (default `memiBoards`) + **`boardId`** (default `default`)
+- Overhauled all paths in `docs/firestore.rules.example` · `storage.rules.example`
+- Composite index collection group: `posts` (dropped the prefixed collection IDs such as the old `boardPosts`)
 
 ### Added
-- `src/utils/boardPaths.ts` — 경로 헬퍼 + `useBoardPathConfig()`
+- `src/utils/boardPaths.ts` — path helpers + `useBoardPathConfig()`
 - runtime export: path helpers (`boardPostsCol`, `boardSettingsDoc`, …)
 
 ## [0.19.3] - 2026-08-06
 
 ### Added
-- 카테고리 `listView: 'image'` — 인스타형 글쓰기 (제목 입력 없음, **이미지+내용 필수**, slug=문서 ID)
-- 이미지 보드: **여러 장 갤러리** (드롭·붙여넣기·추가, 최대 20장, 첫 장=대표)
-- 갤러리 **드래그로 순서 변경** (파일 재업로드/복사 없음)
-- TipTap 본문에는 사진·유튜브 삽입 불가 (사진은 갤러리만)
-- `hasBodyImage` / `titleFromBody` — 이미지 여부, 본문 앞 40자로 title 자동 생성
+- Category `listView: 'image'` — Instagram-style writing (no title input, **image + text required**, slug = document ID)
+- Image boards: **multi-image gallery** (drop, paste, add; up to 20 images; first = cover)
+- **Drag to reorder** the gallery (no file re-upload/copy)
+- No photo or YouTube embedding in the TipTap body (photos go in the gallery only)
+- `hasBodyImage` / `titleFromBody` — whether there is an image; auto-generates the title from the first 40 characters of the body
 
 ### Changed
-- 이미지 보드: Editor 제목·파일첨부 숨김, 저장 시 `title` = 본문 plain 앞부분
+- Image boards: hide the Editor title and file attachments; on save, `title` = start of the plain-text body
 
 ## [0.19.2] - 2026-08-06
 
 ### Fixed
-- 본문에 **글자 없이 이미지만** 있는 글 작성·수정 차단 (안내 문구 포함)
-- `hasBodyText` / `plainTextFromHtml` — 이미지·iframe·유튜브만 있으면 빈 본문으로 처리
+- Blocked writing/editing posts whose body has **only images and no text** (with a guidance message)
+- `hasBodyText` / `plainTextFromHtml` — a body with only images, iframes or YouTube is treated as empty
 
 ## [0.19.1] - 2026-08-06
 
 ### Changed
-- 공유 OG 이미지: 본문 원본 대신 Storage **썸네일** (`images/thumbnails/*`, 약 400px) 사용
-- `toBoardOgImageUrl` — Firebase download URL → 공개 `?alt=media` 썸네일 URL
+- Share OG image: uses the Storage **thumbnail** (`images/thumbnails/*`, about 400px) instead of the original body image
+- `toBoardOgImageUrl` — Firebase download URL → public `?alt=media` thumbnail URL
 
 ## [0.19.0] - 2026-08-06
 
 ### Added
-- 호스트 API 없이 쓰는 게시판 SEO — `useMemiBoardPostSeo` / `useMemiBoardListSeo`
-- Firestore 직조회 `fetchPublicPostForSeo` / `fetchPublicListForSeo` (`listed` 만)
-- `memiBoard.seo` 설정: `siteName`, `siteUrl`, `defaultOgImage`, `basePath`
-- OG 헬퍼: 제목·설명·절대 URL (`previewImage` → og:image)
+- Board SEO without a host app API — `useMemiBoardPostSeo` / `useMemiBoardListSeo`
+- Direct Firestore lookups `fetchPublicPostForSeo` / `fetchPublicListForSeo` (`listed` only)
+- `memiBoard.seo` config: `siteName`, `siteUrl`, `defaultOgImage`, `basePath`
+- OG helpers: title, description, absolute URL (`previewImage` → og:image)
 
 ### Notes
-- 호스트는 공개 board 경로 SSR on + `seo.siteUrl`/`siteName` 만 맞추면 됨 (커스텀 `/api/board/**` 불필요)
-- SEO composable 은 호스트 Nuxt 가 소스를 컴파일 (`#imports`) — monorepo `link:` 에서도 Nuxt 이중 로딩 없음
+- The host app only needs SSR on for public board routes + `seo.siteUrl`/`siteName` set (no custom `/api/board/**` needed)
+- The SEO composables are compiled from source by the host app's Nuxt (`#imports`) — no double Nuxt loading even with monorepo `link:`
 
 ## [0.18.0] - 2026-08-06
 
 ### Added
-- 카테고리 공개 범위 `visibility: public | hidden` (일기장·비공개 게시판)
-- 글 `listed` 필드 복제 — 숨김 시 목록 쿼리·rules 로 일반 열람 차단
-- 설정 UI 보임/숨김, `publicCategories` / `isCategoryHidden` 헬퍼
-- `getPostBySlug` 가 `ok | not-found | permission-denied | error` 로 구분 반환
+- Category visibility `visibility: public | hidden` (diaries, private boards)
+- Copied the post `listed` field — when hidden, list queries and rules block regular viewing
+- Show/hide in the settings UI, `publicCategories` / `isCategoryHidden` helpers
+- `getPostBySlug` returns distinct `ok | not-found | permission-denied | error` results
 
 ### Security
-- 숨김 글 읽기: 작성자·관리자·해당 카테고리 글쓰기 권한 스태프만 (스태프 전체 열람 금지)
+- Reading hidden posts: only the author, admins, and staff with write permission on that category (no viewing by all staff)
 
 ## [0.17.0] - 2026-08-06
 
 ### Added
-- 게시글 조회수(`viewCount`) — 상세 진입 시 로그인 없이 +1, 세션당 1회(`useMemiBoardViews`)
-- 목록(일반·조밀·영상)·상세에 조회수 표시, 댓글 수는 모든 리스트뷰에서 제목 옆 pill로 통일
-- `docs/firestore.rules.example`에 익명 `viewCount` +1 허용
+- Post view count (`viewCount`) — +1 on entering the detail without sign-in, once per session (`useMemiBoardViews`)
+- View count shown in lists (default, compact, video) and detail; the comment count is unified as a pill next to the title in all list views
+- `docs/firestore.rules.example` allows anonymous `viewCount` +1
 
 ## [0.16.0] - 2026-08-06
 
 ### Added
-- 조밀(`dense`) 리스트뷰 — 카드 간격 없는 한 줄 행(좋아요·카테고리·제목·이미지 아이콘·댓글수·작성자·시간)
-- 영상 목록 YouTube 커버 우선(`videoListCoverUrl`) — `videoUrl`이 있으면 썸네일을 본문/첨부 이미지보다 먼저 사용
+- Compact (`dense`) list view — single-line rows without card gaps (likes, category, title, image icon, comment count, author, time)
+- YouTube cover first in video lists (`videoListCoverUrl`) — if there is a `videoUrl`, its thumbnail is used before body/attachment images
 
 ### Changed
-- 이미지 리스트뷰 — 카드 전체가 이미지, 좌측 상단 제목·우측 상단 좋아요 오버레이
-- 모든 `UTooltip`에 `:delay-duration="0"` — 호버 즉시 표시
+- Image list view — the whole card is the image, with a title overlay at the top left and likes at the top right
+- `:delay-duration="0"` on all `UTooltip`s — shown immediately on hover
 
 ## [0.15.0] - 2026-08-06
 
 ### Added
-- 카테고리 설명 필드(`BoardCategory.description`) — 설정 화면에서 입력·저장, `categoryDescription()` 헬퍼
-- 목록 헤더 제목에 설명이 있으면 호버 툴팁으로 표시(자리 차지 없음, 시간 필드와 같은 패턴)
-- `docs/firestore.rules.example`에 카테고리 `description` 키 허용
+- Category description field (`BoardCategory.description`) — entered and saved in the settings screen, `categoryDescription()` helper
+- If there is a description, it is shown as a hover tooltip on the list header title (takes no space, same pattern as the time field)
+- `docs/firestore.rules.example` allows the category `description` key
 
 ### Changed
-- `ListDefault` 카드 — 썸네일을 카드 좌·상·하에 밀착(행 높이 스트레치), 제목·요약 최대 2줄·overflow 방지, 텍스트 좌우 여백 조정
-- `CategorySettings` 저장 직후 draft가 스냅샷으로 비워지지 않도록 watch 보강
+- `ListDefault` card — thumbnail flush to the card's left, top and bottom (stretched to row height), title and summary up to 2 lines with overflow prevented, adjusted horizontal text padding
+- Strengthened the watch in `CategorySettings` so the draft isn't cleared by a snapshot right after saving
 
 ## [0.14.1] - 2026-08-06
 
 ### Changed
-- `ListDefault`(일반 리스트뷰) 카드 레이아웃 재구성 — 왼쪽에 정사각형 썸네일(이미지 없으면 아이콘 플레이스홀더), 오른쪽에 작성자·시간·좋아요·댓글수를 세로로 배치, 카드 안쪽 여백 축소
-- `List`가 이미 특정 카테고리로 필터된 목록에서는 카테고리 뱃지를 숨기도록 `show-category`를 하위 리스트뷰에 전달(카테고리 페이지 안에서 같은 뱃지가 매 글마다 반복 노출되던 중복 제거)
+- Reworked the `ListDefault` (default list view) card layout — square thumbnail on the left (icon placeholder if no image), author, time, likes and comment count stacked vertically on the right, reduced card inner padding
+- `List` passes `show-category` to the child list views so the category badge is hidden in lists already filtered to a specific category (removing the same badge repeated on every post inside a category page)
 
 ## [0.14.0] - 2026-08-06
 
 ### Added
-- `Settings`/`CategorySettings`의 글쓰기 권한·댓글쓰기 권한·리스트뷰 선택을 `USelect` 대신 카드형 선택지(`OptionCards`)로 변경 — 3개 선택지를 한 화면에서 바로 비교하고 고를 수 있고, 라벨을 필드 위쪽에 고정
-- `List`가 목록 위 헤더(제목·"게시판 설정"·"새 글쓰기" 버튼)를 직접 그리도록 `title`/`settingsTo`/`canManageSettings`/`writeTo`/`canWrite` prop 추가 — 호스트는 링크와 권한 값만 넘기면 되고 버튼 배치를 직접 조립할 필요가 없다
-- `List`에 일반/이미지/영상 뷰 전환 아이콘 버튼(`ListViewSwitch`) 추가 — 카테고리의 `listView` 설정은 처음 진입 시 기본값으로만 쓰이고, 화면에서 즉시 다른 방식으로 바꿔 볼 수 있다(새로고침하면 다시 설정값으로 돌아감)
+- Changed the write permission, comment permission and list view choices in `Settings`/`CategorySettings` from `USelect` to card-style options (`OptionCards`) — the 3 options can be compared and chosen on one screen, with the label fixed above the field
+- Added `title`/`settingsTo`/`canManageSettings`/`writeTo`/`canWrite` props so `List` draws the header above the list itself (title, "Board settings" and "New post" buttons) — the host app only passes links and permission values and doesn't need to assemble the button layout
+- Added default/image/video view switch icon buttons (`ListViewSwitch`) to `List` — the category's `listView` setting is only the default on first entry, and the view can be switched on screen immediately (it reverts to the setting on refresh)
 
 ## [0.13.3] - 2026-08-06
 
 ### Fixed
-- `Detail`/`Editor`의 유튜브 반응형 `iframe` 스타일이 실제로는 `youtube.com` 도메인에만 적용되고 `youtube-nocookie.com`/`youtu.be`에는 적용되지 않던 문제 — Vue `:deep()`은 콤마로 구분한 여러 셀렉터를 한 번에 받지 못해 첫 셀렉터만 유효했다. 셀렉터별로 `:deep()`을 각각 감싸도록 수정
+- The responsive YouTube `iframe` style in `Detail`/`Editor` actually applied only to the `youtube.com` domain and not to `youtube-nocookie.com`/`youtu.be` — Vue `:deep()` can't take multiple comma-separated selectors at once, so only the first selector was effective. Fixed by wrapping each selector in its own `:deep()`
 
 ## [0.13.2] - 2026-08-06
 
 ### Fixed
-- 글쓰기 화면(`Editor`)에 삽입한 유튜브 임베드가 모바일에서 고정 640px 너비로 넘치던 문제 — 상세 화면(`Detail`)에만 있던 반응형 `iframe` 스타일(`board-content` 클래스 + `width:100%; aspect-ratio:16/9`)을 `Editor`에도 동일하게 적용
+- YouTube embeds inserted in the write screen (`Editor`) overflowed on mobile at a fixed 640px width — applied the responsive `iframe` style (`board-content` class + `width:100%; aspect-ratio:16/9`), previously only in the detail screen (`Detail`), to `Editor` as well
 
 ## [0.13.1] - 2026-08-06
 
 ### Fixed
-- `useMemiBoardUsers()`가 호출되는 즉시 `boardUsers` 컬렉션 전체를 필터 없이 구독해서, 관리자가 아니거나 role을 아직 확인 중인 사용자가 `Users`/`Settings`/`CategorySettings`를 열면 `permission-denied`로 화면이 죽었다(로컬 테스트로 직접 재현·확인함). `enabled` 옵션을 추가해 실제로 볼 권한이 있을 때만 쿼리를 시작하도록 수정 — 세 컴포넌트 모두 자신의 `canManage`/`canManageStaff` 값을 넘기게 함
+- `useMemiBoardUsers()` subscribed to the entire `boardUsers` collection without a filter as soon as it was called, so when a non-admin user or one whose role was still being checked opened `Users`/`Settings`/`CategorySettings`, the screen crashed with `permission-denied` (reproduced and confirmed in local testing). Added an `enabled` option so the query starts only when the user actually has permission to view — all three components now pass their own `canManage`/`canManageStaff` value
 
 ## [0.13.0] - 2026-08-06
 
 ### Added
-- 카테고리별 "허용 스태프" 지정(`BoardCategory.allowedStaffUids`) — `writeRole`/`commentWriteRole`가 'staff'일 때, 지정하면 그 uid 목록에 있는 스태프만 해당 카테고리에 글/댓글을 쓸 수 있다(비어있으면 지금처럼 스태프 전체 허용). 게시판마다 다른 소운영자를 두는 용도(예: A는 staff1·staff2, B는 staff2·staff3). `Settings`/`CategorySettings`에 스태프 멀티선택 UI 추가(`useMemiBoardUsers`로 스태프 목록 조회)
-- `docs/firestore.rules.example`에 `isAllowedStaffForCategory` 추가 — `canWriteCategory`/`canWriteComment`의 'staff' 분기에서 함께 검증(관리자는 항상 통과)
+- Per-category "allowed staff" (`BoardCategory.allowedStaffUids`) — when `writeRole`/`commentWriteRole` is 'staff' and the list is set, only staff in that uid list can post/comment in that category (if empty, all staff are allowed as before). Meant for having different sub-operators per board (e.g. A has staff1·staff2, B has staff2·staff3). Added a staff multi-select UI to `Settings`/`CategorySettings` (staff list loaded with `useMemiBoardUsers`)
+- Added `isAllowedStaffForCategory` to `docs/firestore.rules.example` — checked together in the 'staff' branch of `canWriteCategory`/`canWriteComment` (admins always pass)
 
 ### Fixed
-- 스태프 본인이 `allowedStaffUids`(자기 접근 범위)를 직접 넓히지 못하도록 카테고리 문서 `update` 규칙을 관리자/스태프로 분리 — 스태프는 이 필드 값을 실제로 바꿀 수 없다(값이 기존과 같아야만 통과). `Settings`/`CategorySettings`도 `canManageStaff` prop(기본값은 board-role 관리자 여부)이 없으면 스태프에게 이 필드 자체를 숨긴다
+- Split the category document `update` rule into admin/staff so staff can't widen their own `allowedStaffUids` (their own access scope) — staff can't actually change this field's value (it passes only if unchanged). `Settings`/`CategorySettings` also hide this field from staff entirely unless the `canManageStaff` prop is set (defaults to whether the user is a board-role admin)
 
 ## [0.12.0] - 2026-08-06
 
 ### Added
-- 카테고리별 댓글쓰기 권한(`BoardCategory.commentWriteRole`) — 글쓰기 권한(`writeRole`)과 동일한 등급(일반/스태프/관리자)으로 댓글·답글 작성 최소 역할을 설정. `Settings`/`CategorySettings`에 "댓글쓰기 권한" 필드 추가, `docs/firestore.rules.example`에 `canWriteComment`/`canCommentOnPost` 규칙 추가(댓글의 부모 글 카테고리를 조회해 검증)
-- `CommentForm`이 이제 `category` prop을 받아 클라이언트에서도 권한 없는 카테고리면 폼 대신 안내 문구를 보여준다(서버 쪽 실제 검증은 rules가 담당, UI는 편의 기능) — `Detail`/`CommentList`/`CommentThread`가 `category`를 전달하도록 함께 수정
+- Per-category comment permission (`BoardCategory.commentWriteRole`) — sets the minimum role for writing comments and replies using the same levels as the write permission (`writeRole`) (user/staff/admin). Added a "Comment permission" field to `Settings`/`CategorySettings`, and `canWriteComment`/`canCommentOnPost` rules to `docs/firestore.rules.example` (validated by looking up the category of the comment's parent post)
+- `CommentForm` now takes a `category` prop and shows a guidance message instead of the form on the client too when the user lacks permission for the category (actual server-side enforcement is done by the rules; the UI is a convenience) — also updated `Detail`/`CommentList`/`CommentThread` to pass `category`
 
 ## [0.11.1] - 2026-08-05
 
 ### Changed
-- 게시글 목록(`List`) 로딩 방식을 변경 — 최신 글 `pageSize`(기본 10)개는 `onSnapshot`으로 실시간 구독해 목록에 보이는 동안 좋아요·댓글 수가 바로 갱신되고, 그 이전 글은 "더보기" 클릭 시에만 1회성 조회로 이어서 불러온다
-- "더보기"에 `CommentList`와 동일한 `IntersectionObserver` 자동 로드를 추가하고, 트리거가 보인 뒤 500ms 지나도 계속 보일 때만 실제로 불러오게 해 스크롤 중 반복 요청을 방지
-- 게시글 상세(`Detail`)를 1회성 조회 대신 VueFire `useDocument`로 실시간 구독하도록 변경(`useMemiBoardPost`) — 좋아요·댓글 수가 별도 로컬 갱신 없이 화면에 바로 반영된다
+- Changed how the post list (`List`) loads — the latest `pageSize` (default 10) posts are subscribed in real time with `onSnapshot` so like and comment counts update immediately while visible, and older posts are loaded with one-time queries only when "Load more" is clicked
+- Added the same `IntersectionObserver` auto-loading as `CommentList` to "Load more", loading only when the trigger stays visible for 500ms after appearing, to prevent repeated requests while scrolling
+- Changed the post detail (`Detail`) to a real-time subscription with VueFire `useDocument` instead of a one-time query (`useMemiBoardPost`) — like and comment counts show on screen immediately without separate local updates
 
 ## [0.11.0] - 2026-08-05
 
 ### Added
-- 게시글 좋아요 버튼(`LikeButton`, `useMemiBoardLikes`) — `likes/{uid}` 서브컬렉션으로 1인 1좋아요를 보장하고, 트랜잭션으로 토글해 대량(1000+) 좋아요에서도 카운터가 실제 문서 수와 어긋나지 않게 처리
-- `PostModel.likeCount` 필드, 게시글 목록(`ListDefault`)에 좋아요 수 뱃지 노출
+- Post like button (`LikeButton`, `useMemiBoardLikes`) — the `likes/{uid}` subcollection guarantees one like per person, and toggling in a transaction keeps the counter consistent with the actual document count even with large numbers (1000+) of likes
+- `PostModel.likeCount` field, like count badge shown in the post list (`ListDefault`)
 
 ### Compatibility
-- `docs/firestore.rules.example`에 `isLikeCountUpdate()`와 `memiBoardPosts/{postId}/likes/{uid}` 규칙 추가 — 설치 프로젝트가 실제 배포하는 `firestore.rules`에도 병합해야 좋아요가 동작한다
+- Added `isLikeCountUpdate()` and `memiBoardPosts/{postId}/likes/{uid}` rules to `docs/firestore.rules.example` — they must also be merged into the `firestore.rules` the installing project actually deploys for likes to work
 
 ## [0.10.1] - 2026-08-05
 
 ### Added
-- 게시글 목록·상세·댓글의 작성 시각을 Day.js 한국어 상대시간으로 표시하고 1분마다 갱신
-- 댓글 모델에 향후 수정 기능을 위한 선택적 `updatedAt` 필드 추가, 새 댓글·답글 생성 시 초기값 저장
-- 생성·수정 시각이 다를 때 두 시간을 구분해 보여주는 공통 `formatTimestampDetails` 런타임 유틸
+- Post list, detail and comment timestamps are shown as Day.js Korean relative times and updated every minute
+- Added an optional `updatedAt` field to the comment model for a future edit feature; it is initialized when new comments and replies are created
+- Common `formatTimestampDetails` runtime utility that shows the created and updated times separately when they differ
 
 ### Changed
-- 게시글 목록·상세·댓글 시간 툴팁을 동일한 Nuxt UI 기본 툴팁 표현으로 통일
-- 생성·수정 시각이 같거나 기존 데이터에 수정 시각이 없으면 전체 날짜·시간 하나만 표시
+- Unified the post list, detail and comment time tooltips to the same default Nuxt UI tooltip presentation
+- When the created and updated times are the same, or existing data has no updated time, only one full date/time is shown
 
 ### Fixed
-- 여러 줄 시간 툴팁이 Nuxt UI 기본 고정 높이를 벗어나 테두리 밖으로 넘치던 문제
+- Multi-line time tooltips overflowed past the border beyond Nuxt UI's default fixed height
 
 ## [0.10.0] - 2026-08-05
 
 ### Added
-- 패키지 루트 `memi-board`를 Nuxt 모듈 진입점으로 제공하고 런타임 API는 `memi-board/runtime`으로 분리
-- `nuxt.config.ts`의 `memiBoard` 옵션을 런타임 설정으로 자동 연결하는 Nuxt 플러그인 생성
-- 모듈이 필요한 Day.js 최적화와 Vue·Firebase·TipTap 의존성 중복 제거 설정을 자동 적용
-- 게시판 하단 `powered by memi` 정보창에 기술 스택 카드와 버전 히스토리 탭 제공
-- OTP 한 번으로 빌드·타입 검사·패키지 점검 후 배포하는 `pnpm release` 명령
+- The package root `memi-board` is provided as the Nuxt module entry point, with the runtime API split into `memi-board/runtime`
+- Generates a Nuxt plugin that automatically wires the `memiBoard` options in `nuxt.config.ts` into the runtime config
+- The module automatically applies the needed Day.js optimization and Vue/Firebase/TipTap dependency deduplication settings
+- Tech stack cards and a version history tab in the `powered by memi` info panel at the bottom of the board
+- `pnpm release` command that builds, type-checks, checks the package and publishes with a single OTP
 
 ### Changed
-- 별도 `configureMemiBoard` 플러그인 없이 `nuxt.config.ts` 한 곳에서 게시판을 설치하고 설정하도록 단순화
-- 게시글 목록 이동을 NuxtLink 기반으로 통일해 SSR·CSR 환경에서 동일하게 동작
-- TipTap 핵심 패키지를 설치 프로젝트가 직접 버전에 맞춰 설치하지 않아도 되도록 패키지 내부 의존성으로 정리
-- README와 Firebase 설정 문서를 Nuxt 4 설치, 관리자 초기화, 로컬 링크 개발 흐름에 맞게 전면 개편
+- Simplified installation and configuration of the board to one place in `nuxt.config.ts`, without a separate `configureMemiBoard` plugin
+- Unified post list navigation on NuxtLink so it behaves the same in SSR and CSR
+- Made the core TipTap packages internal dependencies so installing projects don't have to install matching versions themselves
+- Fully overhauled the README and Firebase setup docs for Nuxt 4 installation, admin initialization and the local link development flow
 
 ### Fixed
-- 설치 프로젝트의 Day.js 중복 인스턴스로 상세 페이지 이동이 멈출 수 있던 문제
+- Navigation to the detail page could hang due to duplicate Day.js instances in the installing project
 
 ### Compatibility
-- 기존 `memi-board/nuxt` 모듈 경로는 호환 별칭으로 유지
+- The existing `memi-board/nuxt` module path is kept as a compatibility alias
 
 ## [0.9.1] - 2026-08-04
 
 ### Fixed
-- npm 설치 환경에서 `MemiBoardUsers`가 패키지에 없는 상대경로 composable을 참조해 호스트 빌드가 실패하던 문제
+- In npm-installed environments, `MemiBoardUsers` referenced a relative-path composable not included in the package, failing the host app build
 
 ## [0.9.0] - 2026-08-04
 
 ### Added
-- 댓글 답글 스레드: 대상 사용자 표시, 최대 2단계 들여쓰기, 자동 펼침
-- 댓글·대댓글 cursor 페이지네이션 종료 후 최신 1개 실시간 구독
-- 뷰포트에 들어오면 자동 동작하는 실제 댓글 더보기 버튼과 로딩 스켈레톤
+- Comment reply threads: shows the target user, up to 2 levels of indentation, auto-expanded
+- After cursor pagination of comments and replies ends, the latest 1 item is subscribed in real time
+- A real "load more comments" button that triggers automatically when it enters the viewport, with loading skeletons
 
 ### Changed
-- 일반 댓글은 시간순 10개, 대댓글은 시간순 5개 단위로 조회
-- 라이브 데이터는 기존 페이지를 모두 읽은 뒤에만 누적해 페이지 데이터와 순서가 섞이지 않도록 변경
-- 댓글과 대댓글 작성 폼·항목·스레드 컴포넌트를 유지보수 가능한 단위로 분리
+- Regular comments are loaded 10 at a time and replies 5 at a time, in chronological order
+- Live data is accumulated only after all existing pages are read, so it doesn't get out of order with page data
+- Split the comment and reply forms, items and thread components into maintainable units
 
 ### Fixed
-- 최신 1개 실시간 결과가 기존 댓글을 교체하던 문제
-- 답글 작성 브라우저만 첫 페이지로 초기화되던 문제
-- 라이브 답글과 더보기 답글의 시간순서 및 불필요한 더보기 버튼 표시 문제
+- The latest-1 real-time result replaced existing comments
+- Only the browser that wrote a reply was reset to the first page
+- Chronological order of live replies and load-more replies, and an unnecessary load-more button being shown
 
 ## [0.8.0] - 2026-08-04
 
 ### Added
-- 최근 댓글 5개 실시간 구독과 이전 댓글 5개 cursor 조회를 결합한 하이브리드 목록
-- Day.js 한국어 상대시간과 전체 날짜·시간 툴팁
-- 개별 댓글과 로딩 스켈레톤 컴포넌트
+- Hybrid list combining a real-time subscription to the 5 latest comments with cursor queries for 5 older comments at a time
+- Day.js Korean relative times and full date/time tooltips
+- Individual comment and loading skeleton components
 
 ### Changed
-- 댓글 작성 폼을 시간순 목록 아래로 이동
-- 이전 댓글 더보기와 5개 스켈레톤을 목록 상단에 배치
-- 일반 사용자의 댓글 batch가 부모 게시글 `commentCount`만 ±1 갱신할 수 있도록 규칙 예제 보완
+- Moved the comment form below the chronological list
+- Placed load-older-comments and 5 skeletons at the top of the list
+- Improved the rules example so regular users' comment batches can update only the parent post's `commentCount` by ±1
 
 ### Fixed
-- 일반 사용자의 댓글 작성·삭제 batch가 게시글 update 권한에서 거부되던 문제
+- Regular users' comment create/delete batches were rejected by post update permissions
 
 ## [0.7.0] - 2026-08-04
 
 ### Added
-- 카테고리별 글쓰기 최소 역할: 일반 이상·스태프 이상·관리자만
-- VueFire 카테고리 쿼리의 명시적 SSR key
+- Per-category minimum write role: user and above, staff and above, admins only
+- Explicit SSR key for VueFire category queries
 
 ### Fixed
-- 게시판 설정에서 서버와 클라이언트의 로딩 상태가 달라 발생하던 hydration 경고
-- Nuxt 모듈 선언 생성 시 발생하던 비이식 타입 추론 경고
+- Hydration warning in board settings caused by differing loading states on server and client
+- Non-portable type inference warning when generating the Nuxt module declarations
 
 ## [0.6.0] - 2026-08-04
 
 ### Added
-- `MemiBoardUsers` 관리자 사용자 목록·역할 변경 UI
-- `useMemiBoardUsers()` 실시간 사용자 구독과 역할 변경 API
-- `admin`·`staff`·`user` 역할별 권한 설명
+- `MemiBoardUsers` admin user list and role change UI
+- `useMemiBoardUsers()` real-time user subscription and role change API
+- Permission descriptions per `admin`, `staff` and `user` role
 
 ### Changed
-- `staff`가 모든 게시글·댓글과 관련 Storage 파일을 관리할 수 있도록 권한 모델 확장
-- 로그인 시 boardUsers 문서에 이메일과 프로필 사진 메타데이터 동기화
-- 사용자 목록 읽기를 관리자 또는 본인 문서로 제한
+- Extended the permission model so `staff` can manage all posts, comments and related Storage files
+- Syncs email and profile photo metadata to the boardUsers document on sign-in
+- Restricted reading the user list to admins or the user's own document
 
 ## [0.5.0] - 2026-08-04
 
 ### Added
-- 일반·이미지·영상 전용 리스트뷰 컴포넌트와 카테고리 설정 기반 자동 분기
-- 공식 TipTap YouTube 확장: 툴바 입력·URL 붙여넣기 자동 임베드·반응형 읽기 화면
-- 상세 하단 이전·목록·다음 탐색
-- 게시글 목록용 요약·대표 이미지·영상 URL 메타데이터
-- 카테고리 설정 패널별 저장·삭제·이동 및 해당 게시판 바로가기
+- Dedicated default, image and video list view components with automatic switching based on category settings
+- Official TipTap YouTube extension: toolbar input, automatic embedding on URL paste, responsive read view
+- Previous / list / next navigation at the bottom of the detail
+- Summary, cover image and video URL metadata for the post list
+- Per-panel save, delete and reorder in category settings, plus a shortcut to that board
 
 ### Changed
-- Firestore 자동 ID를 게시글·Storage의 영구 내부 ID로 사용하고 공개 URL은 `category + slug`로 조회
-- 카테고리를 `{prefix}Settings/config/categories/{categoryId}` 개별 문서로 저장하고 `order`로 실시간 정렬
-- 상세 본문을 Nuxt UI Editor 읽기 전용 모드로 표시해 작성 화면과 문단 간격·서식을 통일
-- 고정 카테고리 작성·수정 UI와 상세 작성자·관리 버튼 배치 정리
-- 카테고리 기본값 자동 생성 및 프론트 fallback 제거
+- The Firestore auto ID is used as the permanent internal ID for posts and Storage, and public URLs are looked up by `category + slug`
+- Categories are stored as individual documents at `{prefix}Settings/config/categories/{categoryId}` and sorted in real time by `order`
+- The detail body is shown in Nuxt UI Editor read-only mode so paragraph spacing and formatting match the write screen
+- Cleaned up the fixed category write/edit UI and the layout of the author and management buttons in the detail
+- Removed automatic creation of default categories and the frontend fallback
 
 ### Fixed
-- 새 글 이미지·첨부파일이 `new-{timestamp}` 임시 폴더에 영구 잔류하던 구조
-- 제목 수정 시 내부 문서·Storage 식별자가 달라질 수 있던 구조
+- Images and attachments of new posts were permanently left in the `new-{timestamp}` temporary folder
+- Internal document and Storage identifiers could change when the title was edited
 
 ## [0.4.15] - 2026-08-03
 
 ### Fixed
-- npm 설치 환경에서 `MemiBoardSettings`가 배포되지 않은 상대경로 모듈을 참조해 호스트 빌드가 실패하던 문제
+- In npm-installed environments, `MemiBoardSettings` referenced an unpublished relative-path module, failing the host app build
 
 ## [0.4.14] - 2026-08-03
 
 ### Added
-- `MemiBoardSettings` 관리자 설정 컴포넌트: ID 기준 카테고리 확장 패널, 라벨·순서·삭제 관리
-- 카테고리별 `listView`: `default`(일반)·`image`(이미지)·`video`(영상)
-- `useMemiBoardSettings().saveCategories()` 일괄 저장 API
+- `MemiBoardSettings` admin settings component: category expansion panels by ID, managing labels, order and deletion
+- Per-category `listView`: `default` (default), `image` (image), `video` (video)
+- `useMemiBoardSettings().saveCategories()` bulk save API
 
 ## [0.4.13] - 2026-08-03
 
 ### Fixed
-- `deletePost`: 댓글·본문·`posts/{id}` Storage 폴더 외에, 첨부 path·본문 이미지 URL(임시 `new-*` 네임스페이스 포함)까지 삭제
+- `deletePost`: besides comments, the body and the `posts/{id}` Storage folder, also deletes attachment paths and body image URLs (including the temporary `new-*` namespace)
 
 ## [0.4.12] - 2026-08-03
 
 ### Changed
-- 에디터를 **Nuxt UI / shineb 축으로 슬림화** (유지보수)
+- **Slimmed the editor down around Nuxt UI / shineb** (maintainability)
   - `UEditor` + `UEditorToolbar` + `UEditorDragHandle`, `content-type="html"`
-  - 이미지: 공식 `handlers.image` + 앱 레벨 paste/drop (TipTap Extension 없음)
-  - 상세: 정적 HTML 렌더 유지 (읽기 전용 UEditor 미사용)
-  - textarea 폴백 / PluginKey Extension 제거
+  - Images: official `handlers.image` + app-level paste/drop (no TipTap Extension)
+  - Detail: keeps static HTML rendering (no read-only UEditor)
+  - Removed the textarea fallback / PluginKey Extension
 
 ## [0.4.11] - 2026-08-03
 
 ### Added
-- 에디터 이미지 업로드 (shineb 동일 모델)
-  - 원본 + 400px JPEG 썸네일 → Storage `{prefix}/posts/{id}/images/` · `.../thumbnails/`
-  - 툴바 이미지 버튼 · 붙여넣기 · 드래그 앤 드롭
+- Editor image upload (same model as shineb)
+  - Original + 400px JPEG thumbnail → Storage `{prefix}/posts/{id}/images/` · `.../thumbnails/`
+  - Toolbar image button · paste · drag and drop
   - `uploadEditorImage` / `deleteEditorImage` / `extractEditorImageUrls`
-  - 본문에서 빠진 고아 파일은 호스트 스케줄러로 정리 예정
-- storage.rules 예시: `images/{allPaths=**}` (5MB, image/*)
+  - Orphan files removed from the body are to be cleaned up by a host app scheduler
+- storage.rules example: `images/{allPaths=**}` (5MB, image/*)
 
 ## [0.4.10] - 2026-08-03
 
 ### Changed
-- 글쓰기 본문: `UTextarea` → **Nuxt UI `UEditor`** (TipTap, markdown)
-  - 툴바·드래그 핸들 (shineb `PostEditor` 패턴)
-  - 상세 보기: 읽기 전용 `UEditor` 로 마크다운 렌더
-  - 기존 일반 텍스트 글도 markdown 으로 호환 표시
+- Post body: `UTextarea` → **Nuxt UI `UEditor`** (TipTap, markdown)
+  - Toolbar and drag handle (shineb `PostEditor` pattern)
+  - Detail view: renders markdown with a read-only `UEditor`
+  - Existing plain-text posts are also displayed compatibly as markdown
 
 ## [0.4.9] - 2026-08-03
 
 ### Changed
-- 검열 차단 메시지에 **무엇이 문제인지** 표시
-  - 로컬 금칙어: 걸린 표현 안내 (예: 「시발」 같은 표현은…)
-  - AI: reason/category 기반 사용자용 문구 + 경고 n/3 접미
+- Moderation block messages show **what the problem is**
+  - Local banned words: points out the matched expression (e.g. expressions like 「시발」 are…)
+  - AI: user-facing text based on reason/category + a warning n/3 suffix
 
 ## [0.4.8] - 2026-08-03
 
 ### Added
-- 콘텐츠 검열 차단 누적 제한: `{prefix}Users.moderationBlockCount` / `moderationBlockAt`
-  - 로컬·AI `flagged` 시 +1 (API 오류는 제외)
-  - 기본 3회 이상 → 글·댓글 작성 약 24시간 제한 (24h lazy 차감, 매장 contentWarning 과 동일 모델)
-  - `moderation.blockBanThreshold` / `blockBanDecayMs` (0 이면 off)
-- Rules 예시: 경고 필드는 +1 만 허용, 감소·리셋은 admin
+- Cumulative limit on content moderation blocks: `{prefix}Users.moderationBlockCount` / `moderationBlockAt`
+  - +1 on local or AI `flagged` (API errors excluded)
+  - 3 or more by default → posting and commenting restricted for about 24 hours (lazy decrement after 24h, same model as the store contentWarning)
+  - `moderation.blockBanThreshold` / `blockBanDecayMs` (0 turns it off)
+- Rules example: warning fields allow only +1; decreasing/resetting is admin-only
 
 ## [0.4.7] - 2026-08-03
 
 ### Changed
-- README 전면 정리 — 다른 Nuxt 호스트 재사용 체크리스트, 잘못된 `import { MemiBoardEditor }` 제거, List/Editor props, 검열 옵션·모델, App Check 실제 절차
-- npm 패키지에 `docs/` 포함 (rules 예시·firebase-setup)
-- firebase-setup: AI 모델·App Check·카테고리 인덱스 절 보강
+- Fully cleaned up the README — reuse checklist for other Nuxt host apps, removed the incorrect `import { MemiBoardEditor }`, List/Editor props, moderation options and model, actual App Check procedure
+- Included `docs/` in the npm package (rules examples, firebase-setup)
+- firebase-setup: expanded the AI model, App Check and category index sections
 
 ## [0.4.6] - 2026-08-03
 
 ### Removed
-- 검열 단계별 콘솔 스팸 (`[memi-board:moderation] start/local-pass/ai-raw` 등)
-- 에디터 화면의 **검열 디버그** 줄 (via/flagged 요약)
+- Per-step moderation console spam (`[memi-board:moderation] start/local-pass/ai-raw`, etc.)
+- The **moderation debug** line in the editor screen (via/flagged summary)
 
 ### Changed
-- AI 실패 시만 `console.warn` 한 줄; 사용자 메시지는 기술 용어 없이 안내
+- Only a single `console.warn` line on AI failure; user messages avoid technical terms
 
 ## [0.4.5] - 2026-08-03
 
 ### Changed
-- 기본 AI 검열 모델: `gemini-2.5-flash` → `gemini-3.5-flash-lite` (신규 프로젝트에서 2.5 Flash 미제공)
-- `moderation.useLimitedUseAppCheckTokens` — App Check limited-use 토큰 on/off (기본 true)
+- Default AI moderation model: `gemini-2.5-flash` → `gemini-3.5-flash-lite` (2.5 Flash is not available for new projects)
+- `moderation.useLimitedUseAppCheckTokens` — App Check limited-use tokens on/off (default true)
 
 ### Fixed
-- 로컬 금칙어 목록 보강 (`시이발` 등)
+- Expanded the local banned word list (`시이발`, etc.)
 
 ## [0.4.4] - 2026-08-03
 
 ### Added
-- 검열 디버그: `via`(local/ai/ai-error-allow 등), 콘솔 `[memi-board:moderation]` 단계 로그, 에디터 화면에 검열 결과 요약
+- Moderation debugging: `via` (local/ai/ai-error-allow, etc.), per-step console `[memi-board:moderation]` logs, moderation result summary in the editor screen
 
 ### Fixed
-- 댓글 삭제 전 confirm
-- 카테고리 추가 시에도 AI Logic 검열
+- Confirm before deleting a comment
+- AI Logic moderation also when adding a category
 
 ## [0.4.3] - 2026-08-03
 
 ### Added
-- `getPosts({ category })` — 카테고리 필터 목록 조회
-- `MemiBoardList`: `category`, `postLinkBase`, `getPostLink(post)` (호스트가 `/board/:cat/:id` 등 자유 구성)
-- `MemiBoardEditor` `fixedCategory` — path 로 카테고리 고정 시 선택 UI 숨김·그 값으로 저장
+- `getPosts({ category })` — list query filtered by category
+- `MemiBoardList`: `category`, `postLinkBase`, `getPostLink(post)` (the host app freely builds routes such as `/board/:cat/:id`)
+- `MemiBoardEditor` `fixedCategory` — when the category is fixed by path, hides the selection UI and saves with that value
 
 ### Deprecated
-- `MemiBoardList` 의 `linkBase` — `getPostLink` / `postLinkBase` 사용 권장
+- `linkBase` on `MemiBoardList` — use `getPostLink` / `postLinkBase` instead
 
 ## [0.4.2] - 2026-08-03
 
 
 ### Added
-- **카테고리 관리 (`boardSettings` / `{prefix}Settings/config`)**: `useMemiBoardSettings().addCategory()` · `ensureSettings()` — 로그인 사용자가 옵션 추가 가능
-- 글 작성/수정 에디터: 카테고리는 설정 문서 목록에서만 선택, **카테고리 추가** UI 제공 (목록에 없는 임의 값 저장 불가)
+- **Category management (`boardSettings` / `{prefix}Settings/config`)**: `useMemiBoardSettings().addCategory()` · `ensureSettings()` — signed-in users can add options
+- Post write/edit editor: categories can only be chosen from the settings document list, with an **Add category** UI (arbitrary values not in the list can't be saved)
 
 ### Changed
-- 설정 문서 시드: 관리자만이 아니라 로그인 사용자 방문/추가 시에도 기본 카테고리 생성
-- `docs/firestore.rules.example` — boardSettings 쓰기를 로그인 사용자 + categories 필드 제한으로 완화
+- Settings document seeding: default categories are created not only by admins but also when signed-in users visit/add
+- `docs/firestore.rules.example` — relaxed boardSettings writes to signed-in users + restricted to the categories field
 
 ## [0.4.1] - 2026-08-03
 
 
 ### Fixed
-- **글 수정 로드**: `postId` prop 을 `onMounted` 한 번만 보던 것을 `watch(..., { immediate: true })` 로 바꿔 라우트/prop 타이밍에 글이 안 불러와지던 경우 수정
-- **수정 저장 에러 메시지**: `permission-denied` 를 한국어로 안내
-- **updatePost**: 본문 `setDoc` 에 `merge: true`, 카테고리 미선택 시 `deleteField()` 로 정리
+- **Loading a post for editing**: changed the `postId` prop from being read only once in `onMounted` to `watch(..., { immediate: true })`, fixing cases where the post wasn't loaded due to route/prop timing
+- **Edit save error message**: `permission-denied` is explained in Korean
+- **updatePost**: `merge: true` on the body `setDoc`, and cleans up with `deleteField()` when no category is selected
 
 ## [0.4.0] - 2026-08-03
 
 ### Changed (Breaking)
 
-- **UI 전달 방식 재설계**: Vite 로 Vue SFC 를 한 파일에 prebundle 하던 방식을 폐기. prebundle 결과의 `resolveComponent('UButton')` 은 Nuxt UI 자동 import 와 맞지 않아 호스트에서 빈 화면이 났음
-- **thin Nuxt 모듈 추가** (`memi-board/nuxt`): `addComponentsDir` 로 소스 SFC 만 호스트 파이프라인에 올림 → 호스트가 컴파일하므로 `<UButton>` 등 auto-import 정상. **vuefire / 라우트 / 미들웨어 / Firebase config 는 건드리지 않음**
-- 메인 엔트리(`memi-board`)는 **core 전용** (configure / composables / types). 컴포넌트 named export 제거 — Nuxt 모듈 auto-import 사용 (`MemiBoardList` 등)
-- 런타임 설정은 기존과 동일하게 호스트 플러그인의 `configureMemiBoard()` 만 사용 (모듈 options 로 흡수하지 않음)
-- Tailwind `@source` 대상: `node_modules/memi-board/dist/runtime/components`
+- **Redesigned how the UI is delivered**: dropped prebundling the Vue SFCs into a single file with Vite. The prebundled `resolveComponent('UButton')` didn't work with Nuxt UI auto-imports, causing a blank screen in the host app
+- **Added a thin Nuxt module** (`memi-board/nuxt`): `addComponentsDir` puts only the source SFCs into the host app pipeline → the host app compiles them, so `<UButton>` and other auto-imports work. **Does not touch vuefire / routes / middleware / Firebase config**
+- The main entry (`memi-board`) is **core only** (configure / composables / types). Removed the component named exports — use Nuxt module auto-imports (`MemiBoardList`, etc.)
+- Runtime configuration still uses only `configureMemiBoard()` in a host app plugin, as before (not absorbed into module options)
+- Tailwind `@source` target: `node_modules/memi-board/dist/runtime/components`
 
 ### Migration
 
 ```ts
 // nuxt.config.ts
 modules: ['@nuxt/ui', 'nuxt-vuefire', 'memi-board/nuxt']
-// U* global hooks / transpile 핵 불필요
+// No U* global hooks / transpile hacks needed
 ```
 
 ```css
@@ -857,7 +857,7 @@ modules: ['@nuxt/ui', 'nuxt-vuefire', 'memi-board/nuxt']
 
 ```vue
 <script setup>
-// 컴포넌트는 모듈 auto-import — from 'memi-board' 로 가져오지 않음
+// Components are auto-imported by the module — don't import them from 'memi-board'
 import { useMemiBoardAuth } from 'memi-board'
 </script>
 <template>
@@ -867,102 +867,102 @@ import { useMemiBoardAuth } from 'memi-board'
 
 ## [0.3.1] - 2026-08-03
 
-같은 목표(Nuxt 모듈 제거)로 독립적으로 작업된 다른 세션의 커밋(`abd8ef0`)과 히스토리가 갈라져 병합하며 발견한 것들. 두 구현을 비교해 실제 버그 2개를 찾아 고치고, 설계상 더 나은 선택 몇 가지를 반영했다.
+Findings from merging after history diverged from a commit (`abd8ef0`) made independently in another session toward the same goal (removing the Nuxt module). Comparing the two implementations found and fixed 2 real bugs, and adopted a few better design choices.
 
 ### Fixed
 
-- **글 삭제 시 다른 사람이 쓴 댓글에서 `permission-denied`**: 댓글 삭제 규칙이 댓글 작성자·관리자만 허용했는데, `deletePost()`는 글쓴이가 다른 사용자의 댓글까지 한꺼번에 지운다 — 글쓴이 본인도 지울 수 있도록 `docs/firestore.rules.example`에 `isOwner(parent post)` 조건 추가
-- **댓글 500개 넘는 글 삭제 시 실패**: Firestore write batch는 최대 500건인데 `deletePost()`가 댓글을 전부 한 batch에 넣었음 — 450건씩 나눠 커밋하도록 수정
-- **글 삭제 순서로 인한 permission-denied**: 본문(`body`)·첨부파일 Storage 규칙이 부모 글 문서의 소유권을 조회하는데, `deletePost()`가 부모 문서를 다른 것들과 동시에(병렬로) 지워서 순서에 따라 조회가 실패할 수 있었음 — 본문 → Storage → 부모 문서 순으로 고정
-- Tailwind v4는 기본적으로 `node_modules`를 스캔하지 않아 memi-board 컴포넌트의 유틸리티 클래스가 호스트 CSS에서 통째로 누락될 수 있음 — README에 `@source` 설정 안내 추가, playground/README 예시에도 반영
+- **`permission-denied` on comments written by others when deleting a post**: the comment delete rule allowed only the comment author and admins, but `deletePost()` has the post author delete other users' comments too — added an `isOwner(parent post)` condition to `docs/firestore.rules.example` so the post author can delete them
+- **Deleting posts with more than 500 comments failed**: Firestore write batches are limited to 500 operations, but `deletePost()` put all comments in one batch — now commits in chunks of 450
+- **permission-denied caused by post deletion order**: the body (`body`) and attachment Storage rules look up ownership on the parent post document, but `deletePost()` deleted the parent document concurrently (in parallel) with the rest, so the lookup could fail depending on order — fixed the order to body → Storage → parent document
+- Tailwind v4 doesn't scan `node_modules` by default, so memi-board components' utility classes could be entirely missing from the host app CSS — added `@source` setup guidance to the README, also reflected in the playground/README examples
 
 ### Changed
 
-- `List.vue`의 내부 링크를 `resolveComponent('NuxtLink')`(Nuxt 전용) 대신 `vue-router`의 `RouterLink`로 변경 — Nuxt 의존을 한 겹 더 걷어냄
-- `peerDependencies`에서 `nuxt`/`nuxt-vuefire` 제거(코드에서 직접 import한 적이 없어 불필요했음), `vue-router` 추가(RouterLink 직접 import로 실제 필요해짐). `vite.config.ts`의 external 목록에도 `vue-router` 추가 — 빠뜨리면 vue-router가 번들에 같이 딸려 들어가 호스트와 다른 라우터 인스턴스가 되는, vuefire/firebase 때와 같은 부류의 버그가 남
-- `tsconfig.json`을 playground의 Nuxt 생성 tsconfig 확장 대신 `src/`만 보는 독립 설정으로 교체 — `pnpm typecheck`가 이제 실제로 라이브러리 소스를 검사한다(이전엔 playground 앱 코드만 검사되고 있었음)
-- `package.json`에 `sideEffects: false`, `keywords` 추가
+- Changed internal links in `List.vue` from `resolveComponent('NuxtLink')` (Nuxt-only) to `vue-router`'s `RouterLink` — removing one more layer of Nuxt dependency
+- Removed `nuxt`/`nuxt-vuefire` from `peerDependencies` (never imported directly in code, so unnecessary) and added `vue-router` (now actually needed by the direct RouterLink import). Also added `vue-router` to the external list in `vite.config.ts` — omitting it bundles vue-router in, creating a different router instance from the host app's, the same class of bug as with vuefire/firebase
+- Replaced `tsconfig.json`, which extended the playground's Nuxt-generated tsconfig, with a standalone config covering only `src/` — `pnpm typecheck` now actually checks the library source (previously only the playground app code was being checked)
+- Added `sideEffects: false` and `keywords` to `package.json`
 
 ## [0.3.0] - 2026-07-31
 
 ### Changed (Breaking)
 
-- **Nuxt 모듈 구조를 전부 제거하고 순수 Vue 3 컴포넌트/composable 패키지로 전환**. `src/module.ts`(`defineNuxtModule`), `installModule('nuxt-vuefire', ...)`, `nuxt.config`의 `memiBoard` 커스텀 키, `pages: true` 자동 라우트 등록, `memi-board-auth` 라우트 미들웨어를 모두 삭제
-- 목적: 같은 플랫폼(Nuxt+Firebase)을 쓰는 여러 프로젝트에서 게시판을 재사용할 때, 호스트가 이미 갖추고 있는 nuxt-vuefire 설정과 memi-board의 설정이 서로 다른 지점(모듈 설치 vs nuxt.config 키)에서 충돌할 여지를 없앤다 — 이제 Firebase/nuxt-vuefire 설정은 항상 호스트 프로젝트 하나에만 있다
-- 설정 방식 변경: `nuxt.config.ts`의 `memiBoard: {...}` 대신 `configureMemiBoard({ collectionPrefix, auth, moderation })`를 호스트가 직접 만든 Nuxt 플러그인에서 앱 부팅 시 한 번 호출
-- 라우팅 변경: 자동 페이지 등록(`pages: true`) 제거 — 컴포넌트를 호스트가 자신의 `pages/`에 직접 배치하는 방식만 남음(기존에도 지원하던 방식). 글쓰기/수정 라우트 가드도 호스트가 직접 작성(README에 `vuefire`의 `getCurrentUser()`를 쓰는 예시 미들웨어 수록)
-- 빌드 도구 교체: `@nuxt/module-builder`(`nuxt-module-build`) → 플레인 Vite 라이브러리 빌드(`@vitejs/plugin-vue` + `vite-plugin-dts`). `dist/module.mjs` → `dist/index.js`
-- `src/runtime/*` 디렉터리 구조를 `src/*`로 평탄화(Nuxt 모듈 관례였던 `runtime/` 접두사 제거)
-- 모든 컴포넌트/composable이 Nuxt 자동 임포트(`useRuntimeConfig`, `ref`/`computed`/`watch`, `useFirestore` 등)에 의존하지 않도록 명시적 `import`로 전환 — 플레인 Vite로 라이브러리를 빌드할 수 있게 됐고, 어떤 Nuxt 프로젝트 설정에서도 동일하게 동작함이 보장됨
+- **Removed the entire Nuxt module structure and switched to a pure Vue 3 component/composable package**. Deleted `src/module.ts` (`defineNuxtModule`), `installModule('nuxt-vuefire', ...)`, the custom `memiBoard` key in `nuxt.config`, automatic route registration via `pages: true`, and the `memi-board-auth` route middleware
+- Goal: when reusing the board across multiple projects on the same platform (Nuxt+Firebase), eliminate the chance of the host app's existing nuxt-vuefire config and memi-board's config conflicting at different points (module installation vs nuxt.config key) — Firebase/nuxt-vuefire config now always lives only in the host project
+- Configuration change: instead of `memiBoard: {...}` in `nuxt.config.ts`, the host app calls `configureMemiBoard({ collectionPrefix, auth, moderation })` once at app boot from a Nuxt plugin it writes itself
+- Routing change: removed automatic page registration (`pages: true`) — only the approach where the host app places components in its own `pages/` remains (already supported before). The host app also writes the write/edit route guards itself (the README includes an example middleware using `vuefire`'s `getCurrentUser()`)
+- Replaced the build tool: `@nuxt/module-builder` (`nuxt-module-build`) → plain Vite library build (`@vitejs/plugin-vue` + `vite-plugin-dts`). `dist/module.mjs` → `dist/index.js`
+- Flattened the `src/runtime/*` directory structure to `src/*` (removed the `runtime/` prefix, a Nuxt module convention)
+- Switched all components/composables to explicit `import`s so they don't depend on Nuxt auto-imports (`useRuntimeConfig`, `ref`/`computed`/`watch`, `useFirestore`, etc.) — the library can now be built with plain Vite and is guaranteed to behave the same under any Nuxt project configuration
 
 ## [0.2.4] - 2026-07-31
 
 ### Fixed
 
-- `firebase`/`vuefire`/`nuxt-vuefire`를 `dependencies`에서 `peerDependencies`로 이동 — memi-board가 이 패키지들을 자체 번들하고 있으면, 호스트 프로젝트가 설치한 버전과 서로 다른 모듈 인스턴스가 생겨 `useCurrentUser()`가 항상 `undefined`를 반환하거나 `useCurrentUser() called before the VueFireAuth module was added` 에러가 나는 문제가 실제로 재현됨(vuefire의 인증 상태가 모듈 인스턴스별 WeakMap으로 관리되기 때문). 설치 안내와 README에 문제 해결 섹션 추가
+- Moved `firebase`/`vuefire`/`nuxt-vuefire` from `dependencies` to `peerDependencies` — when memi-board bundled these packages itself, module instances separate from the versions installed by the host project were created, and the problem of `useCurrentUser()` always returning `undefined` or the error `useCurrentUser() called before the VueFireAuth module was added` was actually reproduced (because vuefire's auth state is managed in a per-module-instance WeakMap). Added a troubleshooting section to the installation guide and README
 
 ## [0.2.3] - 2026-07-31
 
 ### Changed
 
-- 신규 설치 시나리오를 처음부터 검토해 README의 설치 안내 공백 6가지를 보완: Firebase CLI/`.firebaserc`/`firebase.json` 사전 준비, 신규 프로젝트에서 Firestore/Storage/Auth 활성화, `firebaseConfig` 값 위치, AI Logic의 Blaze 요금제 필요 가능성, App Check는 옵션을 켜는 것만으론 강제되지 않고 콘솔에서 Enforce를 따로 켜야 한다는 점, Node/Nuxt 버전 요구사항
-- 위 내용 중 상세 설명(Firebase 콘솔 클릭 경로, Apple 로그인 발급 절차 등)은 README를 간결하게 유지하기 위해 새 문서 [`docs/firebase-setup.md`](docs/firebase-setup.md)로 분리하고 README에서는 짧은 요약 + 링크만 남김
+- Reviewed the fresh installation scenario from scratch and filled 6 gaps in the README's installation guide: preparing the Firebase CLI/`.firebaserc`/`firebase.json`, enabling Firestore/Storage/Auth in a new project, where to find the `firebaseConfig` values, AI Logic possibly requiring the Blaze plan, App Check not being enforced just by turning on the option (Enforce must be turned on separately in the console), and Node/Nuxt version requirements
+- To keep the README concise, the detailed explanations above (Firebase console click paths, Apple sign-in setup steps, etc.) were split into a new document [`docs/firebase-setup.md`](docs/firebase-setup.md), leaving only a short summary + link in the README
 
 ## [0.2.2] - 2026-07-31
 
 ### Added
 
-- 게시글 카테고리 — `{prefix}Settings/config` 문서에 카테고리 목록을 두고, 글쓰기/목록/상세에서 선택·표시(`useMemiBoardSettings`, `BoardCategory`/`BoardSettingsModel` 타입, `PostModel.category`)
-- 설정 문서가 없으면 코드 내장 기본 카테고리(자유/공지/질문)로 계속 동작하다가, 관리자(`role: 'admin'`)가 게시판에 처음 들어오는 순간 그 기본값으로 문서를 자동 생성 — 일반 사용자는 이 문서를 절대 쓰지 않음
-- `docs/firestore.rules.example`에 `{prefix}Settings` 규칙 추가 (읽기 전체 공개, 쓰기는 관리자만)
+- Post categories — a category list in the `{prefix}Settings/config` document, selected and shown in write/list/detail (`useMemiBoardSettings`, `BoardCategory`/`BoardSettingsModel` types, `PostModel.category`)
+- Without a settings document, it keeps working with built-in default categories (Free/Notice/Question) until an admin (`role: 'admin'`) first enters the board, at which point the document is created automatically with those defaults — regular users never write this document
+- Added `{prefix}Settings` rules to `docs/firestore.rules.example` (public read, admin-only write)
 
 ## [0.2.1] - 2026-07-31
 
 ### Fixed
 
-- 호스트 프로젝트가 이미 `nuxt-vuefire`를 쓰고 있으면(자체 Admin SDK 서버 기능이 있는 앱 등) 모듈이 `installModule('nuxt-vuefire', ...)`을 또 호출해 setup()이 두 번 실행되던 문제 — `nuxt-vuefire`엔 중복 설치 가드가 없어 플러그인·서버 라우트(`/api/__session` 등)가 중복 등록될 수 있었음. `hasNuxtModule()`로 이미 등록돼 있는지 확인해 있으면 재사용, 없으면 기존처럼 설치
+- If the host project already used `nuxt-vuefire` (e.g. apps with their own Admin SDK server features), the module called `installModule('nuxt-vuefire', ...)` again and setup() ran twice — `nuxt-vuefire` has no duplicate-install guard, so plugins and server routes (`/api/__session`, etc.) could be registered twice. Now checks with `hasNuxtModule()` whether it's already registered and reuses it if so; otherwise installs as before
 
 ### Changed
 
-- README에 "이미 nuxt-vuefire를 쓰는 프로젝트에 붙이는 경우" 섹션 추가 — 호스트 쪽 설정에 `auth.enabled: true`가 필요하다는 점 명시
-- README에 Security Rules를 **배포까지 해야 함**을 명확히 함 — 예시 규칙을 프로젝트 파일에 병합만 하고 `firebase deploy --only firestore:rules,storage`를 안 돌리면 글쓰기 시 `permission-denied`가 나는 실수가 실제로 재현돼서, 설치 섹션 상단에 경고를 추가하고 배포 명령을 명시함
+- Added a "Adding to a project that already uses nuxt-vuefire" section to the README — states that the host app config needs `auth.enabled: true`
+- Made it clear in the README that Security Rules must be **deployed** — the mistake of only merging the example rules into the project files without running `firebase deploy --only firestore:rules,storage`, resulting in `permission-denied` when posting, was actually reproduced, so a warning was added at the top of the installation section along with the explicit deploy command
 
 ## [0.2.0] - 2026-07-31
 
 ### Added
 
-- Nuxt 모듈 스캐폴딩: `@nuxt/module-builder` 기반 `src/module.ts` + `src/runtime/` 구조, `playground/`로 개발용 앱 분리
-- `defineNuxtModule` 옵션 스키마 (`MemiBoardModuleOptions`): `firebaseConfig`, `appCheck`, `collectionPrefix`, `auth`, `moderation`, `pages`, `emulators`
-- `setup()`에서 `installModule('nuxt-vuefire', ...)` 호출로 Firebase Auth/Firestore/Storage 연동 (Admin SDK 미사용, 클라이언트 전용)
-- 게시글 CRUD — `useMemiBoardPosts`
-  - `{prefix}Posts/{slug}` (메타) + `{prefix}Posts/{slug}/body/main` (본문) 문서 분리
-  - `slugify()` 기반 문서 ID, 충돌 시 `-2`, `-3`… 접미사
-  - 목록 커서 페이지네이션 (`getPosts`), 캐스케이드 삭제(댓글 서브컬렉션 batch 삭제 → 메타/본문 삭제 → Storage 폴더 재귀 삭제)
-- 첨부파일 — `useMemiBoardStorage`, `MemiBoardAttachments`
-  - `uploadBytesResumable` 기반 업로드/진행률, 이미지 인라인 미리보기, 비이미지 다운로드 링크
-- 댓글 — `useMemiBoardComments`, `MemiBoardCommentList`, `MemiBoardCommentForm`
-  - `{prefix}Posts/{slug}/comments/{commentId}` 서브컬렉션, `vuefire`의 `useCollection`으로 실시간 반영
-  - 댓글 작성/삭제 시 부모 글 `commentCount`를 같은 `writeBatch`로 증감
-- 인증/권한 — `useMemiBoardAuth`, `MemiBoardSignIn`
-  - Google / 이메일·비밀번호 로그인
-  - `{prefix}Users/{uid}.role` 문서 기반 역할(`user`/`admin`), 최초 로그인 시 `role: 'user'`로 자동 생성, 모듈은 `admin` 승격을 절대 수행하지 않음
-  - `canEdit`/`canDelete`/`canDeleteComment` — 작성자 본인 또는 admin만 허용
-- AI 검열 — `useMemiBoardModeration`
-  - 로컬 비속어 블록리스트(기본 제공 + `moderation.localBlocklist`로 확장) 1차 필터
-  - Firebase AI Logic(`firebase/ai`, Gemini) 구조화 JSON 응답(`flagged`/`category`/`reason`) 2차 검열
-  - `moderation.onError`(`'allow' | 'block'`)로 검열 API 장애 시 정책 선택, 기본값 `'allow'`
-  - 글쓰기/댓글 작성 모두 제출 전 블로킹 검사 (Firestore/Storage 쓰기 전 차단)
-- `pages: true` 옵션 — `extendPages`로 `/board`, `/board/new`, `/board/:id`, `/board/:id/edit` 자동 등록, 글쓰기/수정 라우트에 `memi-board-auth` 미들웨어 적용
-- Security Rules 예시 — `docs/firestore.rules.example`, `docs/storage.rules.example`
-- Firebase Local Emulator Suite 연동 — `emulators: true` 옵션, `firebase.json`
-- 버전 히스토리 — `MemiBoardVersionHistory` 컴포넌트(`src/runtime/data/versionHistory.ts`가 단일 소스), `pages: true`일 때 `${base}/version-history`에 자동 등록. 게시판을 설치한 사이트에서도 비개발자가 markdown 없이 바로 볼 수 있게 하기 위함
+- Nuxt module scaffolding: `src/module.ts` + `src/runtime/` structure based on `@nuxt/module-builder`, with a separate `playground/` development app
+- `defineNuxtModule` options schema (`MemiBoardModuleOptions`): `firebaseConfig`, `appCheck`, `collectionPrefix`, `auth`, `moderation`, `pages`, `emulators`
+- Firebase Auth/Firestore/Storage integration by calling `installModule('nuxt-vuefire', ...)` in `setup()` (no Admin SDK, client-only)
+- Post CRUD — `useMemiBoardPosts`
+  - Separate `{prefix}Posts/{slug}` (meta) + `{prefix}Posts/{slug}/body/main` (body) documents
+  - `slugify()`-based document IDs, with `-2`, `-3`… suffixes on collision
+  - List cursor pagination (`getPosts`), cascade deletion (batch-delete the comments subcollection → delete meta/body → recursively delete the Storage folder)
+- Attachments — `useMemiBoardStorage`, `MemiBoardAttachments`
+  - `uploadBytesResumable`-based upload/progress, inline image previews, download links for non-images
+- Comments — `useMemiBoardComments`, `MemiBoardCommentList`, `MemiBoardCommentForm`
+  - `{prefix}Posts/{slug}/comments/{commentId}` subcollection, reflected in real time with `vuefire`'s `useCollection`
+  - The parent post's `commentCount` is incremented/decremented in the same `writeBatch` on comment create/delete
+- Auth/permissions — `useMemiBoardAuth`, `MemiBoardSignIn`
+  - Google / email-password sign-in
+  - Roles (`user`/`admin`) based on the `{prefix}Users/{uid}.role` document, auto-created with `role: 'user'` on first sign-in; the module never promotes to `admin`
+  - `canEdit`/`canDelete`/`canDeleteComment` — allowed only for the author or admin
+- AI moderation — `useMemiBoardModeration`
+  - First-pass filter with a local profanity blocklist (built-in + extendable via `moderation.localBlocklist`)
+  - Second-pass moderation with structured JSON responses (`flagged`/`category`/`reason`) from Firebase AI Logic (`firebase/ai`, Gemini)
+  - `moderation.onError` (`'allow' | 'block'`) chooses the policy when the moderation API fails, default `'allow'`
+  - Blocking check before submitting both posts and comments (blocked before any Firestore/Storage writes)
+- `pages: true` option — automatically registers `/board`, `/board/new`, `/board/:id`, `/board/:id/edit` with `extendPages`, applying the `memi-board-auth` middleware to the write/edit routes
+- Security Rules examples — `docs/firestore.rules.example`, `docs/storage.rules.example`
+- Firebase Local Emulator Suite integration — `emulators: true` option, `firebase.json`
+- Version history — `MemiBoardVersionHistory` component (`src/runtime/data/versionHistory.ts` is the single source), automatically registered at `${base}/version-history` when `pages: true`. So that non-developers on sites with the board installed can view it directly without markdown
 
 ### Fixed
 
-- `pages: true` 라우트에서 한글 slug가 포함된 경로의 `base` 계산을 문자열 슬라이싱으로 하던 방식이 깨지는 문제 → 각 페이지의 `route.meta.memiBoardBase`를 모듈에서 직접 주입하는 방식으로 교체
-- `MemiBoardList`에서 `<component :is="'NuxtLink'">`처럼 문자열로 동적 컴포넌트를 지정하면 Nuxt의 컴파일타임 auto-import 컴포넌트가 해석되지 않아 실제 링크가 렌더링되지 않던 문제 → `#components`에서 `NuxtLink`를 직접 import해서 컴포넌트 참조로 전달
-- `vuefire`가 `nuxt-vuefire`의 전이 의존성으로만 존재해 `src/runtime/*`에서 직접 import 시 타입체크가 깨지던 문제 → `vuefire`를 직접 의존성으로 추가
+- Computing `base` by string slicing broke for paths containing Korean slugs in `pages: true` routes → replaced with the module directly injecting `route.meta.memiBoardBase` into each page
+- In `MemiBoardList`, specifying a dynamic component by string like `<component :is="'NuxtLink'">` didn't resolve Nuxt's compile-time auto-imported component, so no actual link was rendered → `NuxtLink` is imported directly from `#components` and passed as a component reference
+- `vuefire` existed only as a transitive dependency of `nuxt-vuefire`, breaking type checking when importing it directly in `src/runtime/*` → added `vuefire` as a direct dependency
 
 ## [0.1.0] - 2026-07-27
 
-- `nuxi init`으로 프로젝트 최초 생성 (Nuxt 4 기본 스타터, 게시판 기능 없음)
+- Initial project creation with `nuxi init` (default Nuxt 4 starter, no board features)

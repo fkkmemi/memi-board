@@ -1,36 +1,36 @@
-# 0.46 역할 마이그레이션
+# 0.46 role migration
 
-[호스트 설치 가이드](host-integration.md) · [국제화·번역 설정](internationalization.md) · [Firebase 준비](firebase-setup.md)
+[Host installation guide](host-integration.md) · [Internationalization and translation](internationalization.md) · [Firebase setup](firebase-setup.md)
 
-신규 설치는 로그인으로 생성된 사용자 문서의 역할을 신뢰할 수 있는 콘솔 또는 서버에서 `owner`로 지정한다. 아래 admin → owner·staff → manager 이전은 기존 3개 역할을 쓰던 호스트에만 필요하다. 새로 만든 admin을 반복해서 owner로 바꾸는 작업이 아니다.
+For a new install, set the role of the user document created on sign-in to `owner` from a trusted console or server. The admin → owner and staff → manager migration below is needed only for host apps that used the previous 3 roles. It is not a task of repeatedly converting newly created admins to owner.
 
-역할: user(일반 사용자), staff(콘텐츠 담당), manager(담당 게시판 설정·스태프 배정), admin(전체 관리), owner(관리자 지정).
+Roles: user (regular user), staff (content), manager (settings and staff assignment for assigned boards), admin (full management), owner (assigns administrators).
 
-`allowedStaffUids`는 콘텐츠 담당자, `allowedManagerUids`는 설정 담당자다. manager도 다른 게시판의 allowedStaffUids에만 배정되면 그 게시판에서는 콘텐츠만 관리한다. 글로벌 역할은 자격이고 실제 범위는 게시판 문서가 정한다. 매장 등 호스트의 조직을 게시판에 연결하고 배정을 동기화하는 책임은 호스트에 있다.
+`allowedStaffUids` lists content staff, and `allowedManagerUids` lists settings managers. If a manager is assigned only to another board's allowedStaffUids, they manage only content on that board. The global role is an eligibility; the actual scope is determined by the board document. Linking the host's organizations, such as stores, to boards and syncing assignments is the host app's responsibility.
 
-호환성을 위해 `isAdmin`은 owner를, `isStaff`는 manager를 포함한다. 정확한 역할은 `role`, `isOwner`, `isManager`로 확인한다. 설정 화면 진입에는 `canConfigureBoard(boardId)`, 콘텐츠 관리에는 `canManageBoard(boardId)`를 사용한다. 글·댓글 작성 최소 역할은 기존 user/staff/admin을 유지한다(manager는 staff 수준, owner는 admin 수준).
+For compatibility, `isAdmin` includes owner and `isStaff` includes manager. Check the exact role with `role`, `isOwner`, and `isManager`. Use `canConfigureBoard(boardId)` for entering the settings screen and `canManageBoard(boardId)` for content management. The minimum roles for writing posts and comments remain user/staff/admin (manager counts as staff level, owner as admin level).
 
 ```ts
 // nuxt.config.ts
 memiBoard: {
-  roleLabels: { user: '고객', staff: '매장 직원', manager: '매장 관리자', admin: '운영자', owner: '최고 관리자' }
+  roleLabels: { user: 'Customer', staff: 'Store staff', manager: 'Store manager', admin: 'Operator', owner: 'Super admin' }
 }
 ```
 
-생략하면 언어별 기본 명칭을 쓴다. 커스텀 명칭은 모든 언어에 동일하게 적용된다.
+If omitted, the default labels for each language are used. Custom labels apply identically to all languages.
 
-## 적용 순서
+## Rollout order
 
-1. 호스트에 새 패키지와 역할 인식 코드를 반영한다.
-2. Firestore·Storage 규칙 예제를 호스트의 기존 규칙에 병합하고 에뮬레이터로 검사한다.
-3. 새 규칙을 배포한다. App Hosting 배포만으로 규칙이 갱신되지 않는다.
-4. 신뢰할 수 있는 Admin SDK로 기존 admin을 owner로, 기존 staff를 manager로 옮긴다. 각 게시판의 기존 staff UID를 allowedManagerUids로 이전한다. 일반 사용자는 그대로 둔다. 기존 admin이 여럿이면 모두 owner로 이전하므로 사전에 수량을 검토한다.
-5. 새 호스트를 배포하고 로그인 상태를 새로고침한다.
+1. Apply the new package and role-aware code to the host app.
+2. Merge the Firestore and Storage rule examples into the host's existing rules and test them in the emulator.
+3. Deploy the new rules. An App Hosting deployment alone does not update the rules.
+4. With a trusted Admin SDK, move existing admins to owner and existing staff to manager. Move each board's existing staff UIDs to allowedManagerUids. Leave regular users as they are. If there are several existing admins, all of them become owners, so review the count beforehand.
+5. Deploy the new host app and refresh sign-in state.
 
-memi-dev의 scripts/migrate-board-roles.mjs는 기본 dry-run, --apply로 트랜잭션 적용한다. 이전 역할·배정은 클라이언트 접근이 막힌 memiBoardMigrations/roles-v046에 기록한다. 완료 마커가 있으면 재실행해도 신규 역할을 재승격하지 않는다. owner의 신규 지정·이관은 신뢰할 수 있는 서버 작업으로만 수행한다.
+memi-dev's scripts/migrate-board-roles.mjs runs as a dry run by default and applies changes in a transaction with --apply. Previous roles and assignments are recorded in memiBoardMigrations/roles-v046, which is blocked from client access. If the completion marker exists, rerunning does not re-promote new roles. Assigning or transferring owner must be done only through trusted server operations.
 
-## 파일 권한
+## File permissions
 
-Storage 규칙의 Firestore 조회 제한 때문에 기본 규칙은 작성자와 전역 admin/owner만 타인 파일을 수정·삭제할 수 있게 한다. staff/manager에게 전역 파일 권한을 주지 않는다. staff/manager의 타인 글 삭제 시 파일 정리는 기존 best-effort 방식이므로 남은 파일은 호스트 서버에서 정리해야 한다. 담당자의 타인 이미지·첨부 교체가 필요한 호스트는 토큰과 해당 게시판 배정을 검증하는 서버 API를 구현해야 한다.
+Because of the Firestore read limit in Storage rules, the default rules let only the author and a global admin/owner modify or delete other users' files. Do not give staff/manager global file permissions. When staff/manager delete other users' posts, file cleanup uses the existing best-effort approach, so remaining files must be cleaned up by the host server. Host apps where assigned staff need to replace other users' images or attachments must implement a server API that verifies the token and the assignment to that board.
 
-매니저는 공개 범위 변경·게시판 생성/삭제·자신의 매니저 배정 변경·전역 역할 변경을 할 수 없다. 담당 스태프 배정은 이미 staff/manager 자격을 가진 계정을 대상으로 한다.
+Managers cannot change visibility, create or delete boards, change their own manager assignment, or change global roles. Assigned staff can only be chosen from accounts that already have staff/manager eligibility.

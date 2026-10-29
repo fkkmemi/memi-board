@@ -1,75 +1,75 @@
 # memi-board
 
-Nuxt 4 + Nuxt UI + Firebase 프로젝트에 게시판을 붙이는 npm 패키지.
+An npm package that adds a board to Nuxt 4 + Nuxt UI + Firebase projects.
 
-- 게시글 CRUD · 댓글 · Storage 첨부 · 카테고리 · 조회수
-- 작성자/관리자 권한 (Firestore Rules)
-- 로컬 비속어 + Firebase AI Logic(Gemini) 검열 (선택)
-- **공유 미리보기(OG)** — 호스트 SEO API 없이 목록·상세 메타 (`useMemiBoard*Seo`)
+- Post CRUD · comments · Storage attachments · categories · view counts
+- Author/admin permissions (Firestore Rules)
+- Local profanity filter + Firebase AI Logic (Gemini) moderation (optional)
+- **Share previews (OG)** — list and detail meta without a host SEO API (`useMemiBoard*Seo`)
 
-**서버 / Firebase Admin 불필요** (권한은 Rules, 검열은 브라우저 — 우회 가능, 아래 한계 참고).  
-공개 목록·글 상세만 SSR로 OG를 채우고, 쓰기·설정은 CSR로 두면 된다.
+**No server or Firebase Admin required** (permissions live in Rules, moderation runs in the browser — it can be bypassed; see the limitations below).  
+Only the public list and post detail pages need SSR to fill OG tags; writing and settings pages can stay CSR.
 
-같은 스택(Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase)이면 **다른 호스트 앱에도 그대로 재사용** 가능하다. Firebase 프로젝트는 호스트마다 달라도 되고, 같은 프로젝트에서는 `boardId`로 게시판 인스턴스를 나눈다 — `memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`는 모두 최상위 flat 컬렉션이고 `boardId`는 각 문서의 필드다(경로 세그먼트가 아니다).
+Any host app on the same stack (Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Firebase) **can reuse it as is**. Each host can use its own Firebase project, and within one project board instances are separated by `boardId` — `memiBoardPosts`/`memiBoardComments`/`memiBoardLikes` are all top-level flat collections, and `boardId` is a field on each document (not a path segment).
 
-## 안내 문서
+## Guides
 
-| 필요한 작업 | 문서 |
+| Task | Guide |
 |---|---|
-| 다른 사이트에 처음 설치 | [호스트 설치 가이드](docs/host-integration.md) — 최소 설정, 라우트, 첫 게시판 |
-| 한 언어만 사용하거나 다국어·번역 선택 | [국제화·콘텐츠 번역](docs/internationalization.md) — 모드별 설정과 저장 시점 |
-| Firebase 연결과 규칙·인덱스 배포 | [Firebase 준비](docs/firebase-setup.md) |
-| 매장·조직별 담당 권한, 기존 역할 이전 | [역할과 마이그레이션](docs/roles-migration.md) |
-| 설정·API·문제 해결 상세 | 이 README의 [호스트 설정](#부모호스트-앱-설정), [API](#제공하는-api), [문제 해결](#문제-해결) |
+| First install on another site | [Host integration guide](docs/host-integration.md) — minimal setup, routes, first board |
+| Single language, or choosing multilingual UI and translation | [Internationalization and content translation](docs/internationalization.md) — per-mode setup and when translations are saved |
+| Connecting Firebase and deploying rules and indexes | [Firebase setup](docs/firebase-setup.md) |
+| Per-store/organization assigned permissions, migrating existing roles | [Roles and migration](docs/roles-migration.md) |
+| Configuration, API, and troubleshooting details | This README's [host setup](#host-app-setup), [API](#provided-api), [troubleshooting](#troubleshooting) |
 
-`i18n.enabled`·`translation.enabled`는 **0.47.0 이상**에서 지원한다. 해당 옵션을 사용할 호스트는 `pnpm add memi-board@^0.47.0`으로 설치하거나 업데이트한다.
+`i18n.enabled` and `translation.enabled` are supported in **0.47.0 and later**. Hosts that use these options should install or update with `pnpm add memi-board@^0.47.0`.
 
-## 플랫폼 요구사항
+## Platform requirements
 
-| 항목 | 요구 |
+| Item | Requirement |
 |------|------|
-| 런타임 | Nuxt **4+** |
-| UI | `@nuxt/ui` **4+** (컴포넌트가 `UButton` 등 auto-import 전제) |
-| 데이터 | Firebase **Firestore + Auth + Storage** |
+| Runtime | Nuxt **4+** |
+| UI | `@nuxt/ui` **4+** (components assume auto-imports such as `UButton`) |
+| Data | Firebase **Firestore + Auth + Storage** |
 | Vue | `vue` 3.5+, `vuefire` 3.2+, `firebase` 12+ |
-| 모듈 | `nuxt-vuefire` (호스트가 설치·설정) |
+| Module | `nuxt-vuefire` (installed and configured by the host) |
 
-**의도적으로 하지 않는 일:** Firebase 초기화, 라우트/미들웨어 등록, App Check 초기화, 서버 검열.
+**Intentionally out of scope:** Firebase initialization, registering routes/middleware, App Check initialization, server-side moderation.
 
-## 구조
+## Structure
 
-| 엔트리 | 역할 |
+| Entry | Role |
 |--------|------|
-| `memi-board` | **Nuxt 모듈** — 설정, SFC auto-import, peer dedupe |
-| `memi-board/runtime` | composables, types, 유틸리티 (**Vue 컴포넌트 export 없음**) |
+| `memi-board` | **Nuxt module** — configuration, SFC auto-import, peer dedupe |
+| `memi-board/runtime` | composables, types, utilities (**no Vue component exports**) |
 
-일반 사용자는 `nuxt.config.ts`의 `memiBoard`만 설정한다. 별도 Nuxt 플러그인은 필요 없다.
+Most users only configure `memiBoard` in `nuxt.config.ts`. No separate Nuxt plugin is needed.
 
 ```
-호스트 Nuxt 앱
-├── nuxt-vuefire + firebaseConfig     ← 인증·Firestore
-├── (선택) App Check 플러그인         ← AI Logic Enforce 시 필수에 가까움
-├── memi-board                        ← Nuxt 모듈 + 런타임 설정
-├── pages/board/*                     ← 라우트는 호스트 소유 (+ SEO 한 줄)
-└── firestore.rules + storage.rules   ← docs 예시 병합 후 배포
+Host Nuxt app
+├── nuxt-vuefire + firebaseConfig     ← auth · Firestore
+├── (optional) App Check plugin       ← practically required with AI Logic Enforce
+├── memi-board                        ← Nuxt module + runtime config
+├── pages/board/*                     ← routes are owned by the host (+ one SEO line)
+└── firestore.rules + storage.rules   ← merge the docs examples, then deploy
 ```
 
-## 설치
+## Installation
 
-**사전 준비:** Node + pnpm, Firebase 프로젝트(Firestore·Storage·Auth). 처음부터면 → [docs/firebase-setup.md](docs/firebase-setup.md).
+**Prerequisites:** Node + pnpm, a Firebase project (Firestore · Storage · Auth). Starting from scratch → [docs/firebase-setup.md](docs/firebase-setup.md).
 
 ```bash
 pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase
 ```
 
-`vuefire` / `firebase` / `nuxt-vuefire`는 **호스트에 직접 설치**한다. TipTap은 `@nuxt/ui`와 `memi-board`가 관리하므로 호스트에서 별도로 설치하거나 버전을 맞출 필요가 없다. 날짜 표시는 `Intl`을 사용하므로 `dayjs`는 필요 없다.
+Install `vuefire` / `firebase` / `nuxt-vuefire` **directly in the host**. TipTap is managed by `@nuxt/ui` and `memi-board`, so the host does not need to install it or align its version. Dates are formatted with `Intl`, so `dayjs` is not needed.
 
 ---
 
-## 부모(호스트) 앱 설정
+## Host app setup
 
-호스트가 하는 일만 정리한다. **호스트 전용 SEO API·서버 라우트는 필요 없다.**  
-Firestore `listed === true` 공개 글을 패키지가 직접 읽고 `useSeoMeta`로 OG를 채운다.
+This covers only what the host does. **No host-specific SEO API or server routes are needed.**  
+The package reads public posts (`listed === true`) from Firestore directly and fills OG tags with `useSeoMeta`.
 
 ### 1. `nuxt.config.ts` — modules + `memiBoard` + vuefire + routeRules
 
@@ -83,11 +83,11 @@ export default defineNuxtConfig({
   ],
 
   memiBoard: {
-    // 단일 언어 예시. 다국어 서비스는 아래 국제화 가이드 참고
+    // Single-language example. For multilingual services, see the internationalization guide below
     locale: 'ko',
     i18n: { enabled: false },
     // Firestore: memiBoardPosts / memiBoardComments / memiBoardLikes / memiBoardSettings / memiBoardUsers
-    // (전부 flat 컬렉션 — boardId 는 각 문서의 필드. 컴포저블 호출 시 boardId 인자로 지정)
+    // (all flat collections — boardId is a field on each document. Pass it as the boardId argument when calling composables)
     auth: { providers: ['google', 'apple'] }, // + 'emailPassword'
     moderation: {
       enabled: true,
@@ -95,22 +95,22 @@ export default defineNuxtConfig({
       onError: 'block', // 'allow' | 'block'
       moderateImages: false,
       useLimitedUseAppCheckTokens: false,
-      // localBlocklist: ['금칙어'],
+      // localBlocklist: ['banned-word'],
       // blockBanThreshold: 10,
       // blockBanDecayMs: 24 * 60 * 60 * 1000,
     },
-    // 공유 미리보기(OG) — 호스트 API 없이 패키지 composable 사용
+    // Share previews (OG) — use the package composables, no host API
     seo: {
       enabled: true,
-      siteName: 'My App',                           // og:site_name · title 접미사
+      siteName: 'My App',                           // og:site_name · title suffix
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL
-        || 'https://example.com',                   // 절대 URL origin (trailing slash 없음)
-      defaultOgImage: '/images/og-default.jpg',     // 글에 previewImage 없을 때
-      basePath: '/board',                           // canonical 경로 prefix
+        || 'https://example.com',                   // absolute URL origin (no trailing slash)
+      defaultOgImage: '/images/og-default.jpg',     // when the post has no previewImage
+      basePath: '/board',                           // canonical path prefix
     },
   },
 
-  // (선택) 호스트 전역 siteUrl — SEO가 memiBoard.seo.siteUrl 다음으로 참고할 수 있음
+  // (optional) host-wide siteUrl — SEO may fall back to it after memiBoard.seo.siteUrl
   runtimeConfig: {
     public: {
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'https://example.com',
@@ -118,8 +118,8 @@ export default defineNuxtConfig({
   },
 
   vuefire: {
-    // 콘솔 → 프로젝트 설정 → 내 앱 → 웹 앱 SDK snippet 과 동일해야 함
-    // (appId 가 다른 웹 앱이면 App Check / AI Logic 이 실패한다)
+    // Must match Console → Project settings → Your apps → web app SDK snippet
+    // (if it is a web app with a different appId, App Check / AI Logic fails)
     config: {
       apiKey: '...',
       authDomain: '...',
@@ -132,8 +132,8 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // 공개 목록·글 상세: SSR 유지(기본) → 카톡/OG 크롤러가 HTML 메타를 읽음
-    // 쓰기·설정만 CSR
+    // Public list and post detail: keep SSR (default) → link preview / OG crawlers read the HTML meta
+    // Only writing and settings pages are CSR
     '/board/**/new': { ssr: false },
     '/board/**/**/edit': { ssr: false },
     '/board/version-history': { ssr: false },
@@ -143,54 +143,54 @@ export default defineNuxtConfig({
 })
 ```
 
-`memiBoard` 옵션은 Nuxt 모듈이 런타임 플러그인으로 자동 전달한다. **`app/plugins/memi-board.ts`를 만들지 않는다.**
+The Nuxt module passes the `memiBoard` options to the runtime plugin automatically. **Do not create `app/plugins/memi-board.ts`.**
 
-#### `memiBoard` 옵션 요약
+#### `memiBoard` options summary
 
-| 키 | 기본 | 설명 |
+| Key | Default | Description |
 |----|------|------|
-| `postsCollection` | `'memiBoardPosts'` | 글 컬렉션 이름 |
-| `commentsCollection` | `'memiBoardComments'` | 댓글 컬렉션 이름 |
-| `likesCollection` | `'memiBoardLikes'` | 좋아요 컬렉션 이름 |
-| `reportsCollection` | `'memiBoardReports'` | 신고 컬렉션 이름 |
-| `settingsCollection` | `'memiBoardSettings'` | 보드 설정 컬렉션 이름 |
-| `usersCollection` | `'memiBoardUsers'` | 역할 문서 컬렉션 이름 |
-| `auth.providers` | `['google','apple']` | 로그인 공급자 |
-| `moderation.*` | (아래 AI 절) | 로컬·Gemini 검열 |
-| `seo.enabled` | `true` | `false`면 SEO composable no-op |
-| `seo.siteName` | `'Board'` | OG 사이트명·title 접미사 |
-| `seo.siteUrl` | `''` | 절대 URL origin. 비우면 `runtimeConfig.public.siteUrl` → 요청 origin 순 |
-| `seo.defaultOgImage` | `''` | 대표 이미지 없을 때 (상대경로 또는 `https://…`) |
+| `postsCollection` | `'memiBoardPosts'` | Posts collection name |
+| `commentsCollection` | `'memiBoardComments'` | Comments collection name |
+| `likesCollection` | `'memiBoardLikes'` | Likes collection name |
+| `reportsCollection` | `'memiBoardReports'` | Reports collection name |
+| `settingsCollection` | `'memiBoardSettings'` | Board settings collection name |
+| `usersCollection` | `'memiBoardUsers'` | Role documents collection name |
+| `auth.providers` | `['google','apple']` | Sign-in providers |
+| `moderation.*` | (AI section below) | Local · Gemini moderation |
+| `seo.enabled` | `true` | When `false`, the SEO composables are no-ops |
+| `seo.siteName` | `'Board'` | OG site name · title suffix |
+| `seo.siteUrl` | `''` | Absolute URL origin. If empty, falls back to `runtimeConfig.public.siteUrl` → request origin |
+| `seo.defaultOgImage` | `''` | Used when there is no preview image (relative path or `https://…`) |
 | `seo.basePath` | `'/board'` | canonical: `{base}`, `{base}/{category}`, `{base}/{category}/{slug}` |
-| `i18n.enabled` | `true` | `false`면 UI를 `locale`로 고정하고 언어 선택·콘텐츠 번역을 끈다 |
-| `translation.enabled` | `true` | `false`면 UI 언어 전환은 유지하고 콘텐츠 번역 생성·표시를 끈다 |
-| `locale` | `'ko'` | 국제화가 켜져 있으면 게시판·호스트 언어 다음의 기본값. 꺼져 있으면 고정 UI 언어 |
-| `roleLabels` | 언어별 기본 명칭 | 서비스별 역할 표시 이름. 권한과 담당 범위는 바꾸지 않음 |
+| `i18n.enabled` | `true` | When `false`, fixes the UI to `locale` and disables language selection and content translation |
+| `translation.enabled` | `true` | When `false`, keeps UI language switching but disables generating and showing content translations |
+| `locale` | `'ko'` | With internationalization on, the fallback after the board and host languages. With it off, the fixed UI language |
+| `roleLabels` | Default names per language | Per-service role display names. Does not change permissions or assignment scope |
 
-#### routeRules 원칙
+#### routeRules principles
 
-| 경로 | SSR | 이유 |
+| Path | SSR | Reason |
 |------|-----|------|
-| `/board`, `/board/{category}`, `/board/{category}/{slug}` | **on** (기본) | OG/카톡 미리보기 |
-| `/board/**/new`, `…/edit`, 설정·유저 관리 | **off** | 로그인·권한 UI, SEO 불필요 |
+| `/board`, `/board/{category}`, `/board/{category}/{slug}` | **on** (default) | OG / link previews (e.g. KakaoTalk, Slack) |
+| `/board/**/new`, `…/edit`, settings · user management | **off** | Sign-in and permission UI, no SEO needed |
 
-> 예전 가이드의 `/board/**: { ssr: false }` 전부 CSR은 **공유 미리보기가 비게 된다.** 공개 읽기 경로는 SSR을 켠다.
+> The older guide's all-CSR `/board/**: { ssr: false }` **leaves share previews empty.** Keep SSR on for public read paths.
 
-### 2. 페이지에서 SEO 한 줄 (auto-import)
+### 2. One SEO line per page (auto-import)
 
-모듈이 `useMemiBoardListSeo` / `useMemiBoardPostSeo`를 auto-import한다.  
-**호스트 `/server/api/board/**` SEO 엔드포인트는 만들지 않는다.**
+The module auto-imports `useMemiBoardListSeo` / `useMemiBoardPostSeo`.  
+**Do not create host `/server/api/board/**` SEO endpoints.**
 
 ```vue
-<!-- app/pages/board/index.vue — 전체 목록 -->
+<!-- app/pages/board/index.vue — full list -->
 <script setup lang="ts">
 await useMemiBoardListSeo({ path: '/board' })
-// … MemiBoardList 등
+// … MemiBoardList, etc.
 </script>
 ```
 
 ```vue
-<!-- app/pages/board/[category]/index.vue — 카테고리 목록 -->
+<!-- app/pages/board/[category]/index.vue — category list -->
 <script setup lang="ts">
 const route = useRoute()
 const categoryId = computed(() => String(route.params.category || ''))
@@ -203,7 +203,7 @@ await useMemiBoardListSeo({
 ```
 
 ```vue
-<!-- app/pages/board/[category]/[id]/index.vue — 글 상세 (id 자리 = slug) -->
+<!-- app/pages/board/[category]/[id]/index.vue — post detail (the id slot = slug) -->
 <script setup lang="ts">
 const route = useRoute()
 const categoryId = computed(() => String(route.params.category || ''))
@@ -216,8 +216,8 @@ const { post: postSeo } = await useMemiBoardPostSeo({
     `/board/${encodeURIComponent(categoryId.value)}/${encodeURIComponent(id.value)}`,
   ),
 })
-// postSeo: id · title · previewImage 등 — SSR 첫 로드에서는 바로 채워진다.
-// 클라이언트 이동에서는 화면 전환을 막지 않으려고 기다리지 않으므로 처음엔 null 일 수 있다.
+// postSeo: id · title · previewImage, etc. — filled immediately on the first SSR load.
+// On client navigation it is not awaited so page transitions are not blocked, so it may be null at first.
 
 const { resolvePostIdBySlug } = useMemiBoardPosts(categoryId)
 const internalId = ref('')
@@ -227,43 +227,43 @@ watch([categoryId, id], async ([category, slug]) => {
     return
   }
   if (import.meta.server) return
-  // id 만 조회 (본문은 MemiBoardDetail 이 구독). 방금 작성한 글은 조회 없이 바로 나온다.
+  // Look up the id only (MemiBoardDetail subscribes to the body). A just-written post resolves without a lookup.
   const result = await resolvePostIdBySlug(slug)
   internalId.value = result.status === 'ok' ? result.id : ''
 }, { immediate: true })
 </script>
 ```
 
-> 상세·수정 페이지에서 slug → id 는 `getPostBySlug`(본문까지 읽음) 대신 `resolvePostIdBySlug` 를 쓴다. 저장 직후 미리보기 진입이 Firestore 왕복 2회만큼 빨라진다.
+> On detail and edit pages, resolve slug → id with `resolvePostIdBySlug` instead of `getPostBySlug` (which also reads the body). Opening the preview right after saving becomes faster by two Firestore round trips.
 
-| composable | 대상 | OG 요약 |
+| composable | Target | OG summary |
 |------------|------|---------|
-| `useMemiBoardListSeo` | 목록 | 카테고리 label·description, 최근 공개 글 이미지 |
-| `useMemiBoardPostSeo` | 상세 | 제목·요약·작성자, **`previewImage` → og:image** |
+| `useMemiBoardListSeo` | List | Category label · description, image from the latest public post |
+| `useMemiBoardPostSeo` | Detail | Title · summary · author, **`previewImage` → og:image** |
 
-- 공개(`listed`) 글만 조회. **숨김 게시판**은 메타를 비우고 `noindex` 쪽에 가깝게 동작한다.
-- 글 상세 `og:type` = `article`, 목록 = `website`.
-- 로컬 확인:  
+- Only public (`listed`) posts are queried. **Hidden boards** leave the meta empty and behave closer to `noindex`.
+- Post detail `og:type` = `article`, list = `website`.
+- Local check:  
   `curl -sL 'http://localhost:3000/board/…' | grep og:title`  
-  또는 브라우저 **페이지 소스 보기** (`view-source:`). DevTools Elements만 보면 하이드레이션 이후와 헷갈릴 수 있다.
-- 카톡·슬랙 미리보기는 **배포 URL**로 확인 (localhost 크롤 불가).
+  or the browser's **View Page Source** (`view-source:`). Looking only at DevTools Elements can be confused with the post-hydration DOM.
+- Check link previews (e.g. KakaoTalk, Slack) with the **deployed URL** (localhost cannot be crawled).
 
-### 3. 부모 설정 체크리스트
+### 3. Host setup checklist
 
-- [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
+- [ ] `@nuxt/ui`, `nuxt-vuefire`, `memi-board` in `modules`
 - [ ] `memiBoard.auth` · `moderation` · **`seo`**
 - [ ] `seo.siteUrl` / `seo.siteName` / `seo.defaultOgImage` / `seo.basePath`
-- [ ] 공개 board 경로 **SSR on**, 쓰기·설정만 `ssr: false`
-- [ ] 목록·상세 페이지에 `await useMemiBoard*Seo(…)` 한 줄
-- [ ] 호스트 SEO API **만들지 않음**
-- [ ] CSS `@source` (아래)
-- [ ] (선택) 읽은 글 표시 CSS (아래)
-- [ ] Rules·indexes **deploy**
-- [ ] 최초 owner + 첫 게시판
+- [ ] **SSR on** for public board paths, `ssr: false` only for writing and settings
+- [ ] One `await useMemiBoard*Seo(…)` line on list and detail pages
+- [ ] **No** host SEO API
+- [ ] CSS `@source` (below)
+- [ ] (optional) Read-post styling CSS (below)
+- [ ] **Deploy** Rules and indexes
+- [ ] Initial owner + first board
 
-### 4. Tailwind `@source` (필수)
+### 4. Tailwind `@source` (required)
 
-패키지 SFC 안의 클래스가 purge되지 않도록:
+So classes inside the package SFCs are not purged:
 
 ```css
 /* app/assets/css/main.css */
@@ -272,25 +272,25 @@ watch([categoryId, id], async ([category, slug]) => {
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### 5. 국제화와 콘텐츠 번역 (선택)
+### 5. Internationalization and content translation (optional)
 
-[국제화·번역 가이드](docs/internationalization.md)에 모드별 복사 예제, 호스트 언어 연결, 번역 저장 시점, 오류 처리와 기존 데이터 유지 정책을 정리했다.
+The [internationalization and translation guide](docs/internationalization.md) covers copy-paste examples per mode, connecting the host language, when translations are saved, error handling, and the policy for keeping existing data.
 
-| 목적 | `memiBoard` 설정 |
+| Goal | `memiBoard` config |
 |---|---|
-| 한국어 전용 | `locale: 'ko', i18n: { enabled: false }` |
-| UI만 다국어 | `i18n: { enabled: true }, translation: { enabled: false }` |
-| UI·콘텐츠 모두 다국어 | `i18n: { enabled: true }, translation: { enabled: true }` |
+| Korean only | `locale: 'ko', i18n: { enabled: false }` |
+| Multilingual UI only | `i18n: { enabled: true }, translation: { enabled: false }` |
+| Multilingual UI and content | `i18n: { enabled: true }, translation: { enabled: true }` |
 
-설정 생략 시 두 옵션은 `true`이며, `i18n.enabled: false`이면 콘텐츠 번역도 꺼진다. UI는 `locale`로 고정하고 콘텐츠는 원문을 표시한다. 기존 번역 데이터는 유지한다. 호스트의 언어 전환을 연결할 때만 `@nuxtjs/i18n`을 추가하면 된다.
+If omitted, both options are `true`; with `i18n.enabled: false`, content translation is also off. The UI is fixed to `locale` and content is shown in the original. Existing translation data is kept. Add `@nuxtjs/i18n` only when connecting the host's language switcher.
 
-보드 설정의 **글 작성 시 자동 번역**(`autoTranslatePosts`)은 기본 꺼짐이다. 켜면 새 글의 제목·요약·본문을 번역해 함께 저장한다.
+The board setting **Auto-translate posts on write** (`autoTranslatePosts`) is off by default. When on, the title, summary, and body of new posts are translated and saved together.
 
-번역 버튼은 라벨·설명을 번역해 임시 반영하고 **저장**을 눌러 적용한다. 자동 번역 토글은 기본 꺼짐이며, 켜면 **설정 저장 시** 번역한 뒤 저장한다. 문구가 같고 번역이 모두 있으면 재번역을 건너뛴다. 서비스 전체의 국제화·번역이 꺼져 있으면 자동 번역도 실행하지 않는다.
+The translate button translates labels and descriptions as a temporary change; press **Save** to apply. The auto-translate toggle is off by default; when on, it translates **when settings are saved** and then saves. Retranslation is skipped when the text is unchanged and all translations exist. If internationalization or translation is turned off service-wide, auto-translation does not run either.
 
-### 6. 읽은 글 표시 (선택)
+### 6. Read-post styling (optional)
 
-목록·미니 컴포넌트의 글 링크는 `.memi-board-post-link` 클래스가 붙어 있고, 제목 텍스트는 `text-inherit`로 링크 색을 따른다. 패키지는 색을 강제하지 않으므로, 방문한 글을 흐리게 보이고 싶으면 호스트 CSS에 `:visited` 스타일만 추가하면 된다.
+Post links in the list and mini components carry the `.memi-board-post-link` class, and the title text uses `text-inherit` to follow the link color. The package does not force a color, so to dim visited posts, just add a `:visited` style to the host CSS.
 
 ```css
 /* app/assets/css/main.css */
@@ -303,57 +303,57 @@ a.memi-board-post-link:visited {
 }
 ```
 
-**`:visited`는 `color`만 허용하고, 그마저도 `var()`·알파값은 브라우저가 무시한다** (히스토리 스니핑 방지). 그래서 Nuxt UI 토큰(`var(--ui-text-muted)`)을 그대로 못 쓰고 라이트/다크용 리터럴 색상을 각각 지정해야 한다(위 값은 Tailwind `neutral-500`/`neutral-400`).
+**`:visited` only allows `color`, and browsers even ignore `var()` and alpha values there** (to prevent history sniffing). So Nuxt UI tokens (`var(--ui-text-muted)`) cannot be used directly; specify literal colors for light and dark separately (the values above are Tailwind `neutral-500`/`neutral-400`).
 
-브라우저 네이티브 `:visited` 라서 서버·DB 저장이 필요 없다. 단, SPA 클라이언트 라우팅(`NuxtLink`)으로만 이동한 경우 브라우저에 "실제 방문"으로 기록되지 않을 수 있어 완전히 신뢰할 수는 없다 — 정확한 읽음 추적이 필요하면 별도로 방문 글 ID를 저장하는 방식을 구현해야 한다.
+Because it is the browser's native `:visited`, no server or DB storage is needed. However, navigation only via SPA client routing (`NuxtLink`) may not be recorded by the browser as a "real visit", so it is not fully reliable — if you need accurate read tracking, implement a separate mechanism that stores visited post IDs.
 
-### 7. Security Rules + 인덱스 배포
+### 7. Deploying Security Rules + indexes
 
-1. [docs/firestore.rules.example](docs/firestore.rules.example) → 호스트 `firestore.rules`에 병합  
-   (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardReports`/`memiBoardSettings`/`memiBoardUsers` — 전부 최상위 flat 컬렉션)
-2. [docs/storage.rules.example](docs/storage.rules.example) → `storage.rules` 병합
-3. `firebase.json`의 Storage `bucket`이 `vuefire.config.storageBucket`과 같은지 확인
-   (`*.appspot.com` vs `*.firebasestorage.app` — [firebase-setup.md](docs/firebase-setup.md) 참고)
-4. 목록/작성자별 쿼리에 필요한 복합 인덱스 배포 (아래)
-5. 배포:
+1. Merge [docs/firestore.rules.example](docs/firestore.rules.example) → host `firestore.rules`  
+   (`memiBoardPosts`/`memiBoardComments`/`memiBoardLikes`/`memiBoardReports`/`memiBoardSettings`/`memiBoardUsers` — all top-level flat collections)
+2. Merge [docs/storage.rules.example](docs/storage.rules.example) → `storage.rules`
+3. Check that the Storage `bucket` in `firebase.json` matches `vuefire.config.storageBucket`
+   (`*.appspot.com` vs `*.firebasestorage.app` — see [firebase-setup.md](docs/firebase-setup.md))
+4. Deploy the composite indexes needed for list and per-author queries (below)
+5. Deploy:
    ```bash
    firebase deploy --only firestore:rules,storage,firestore:indexes
    ```
-6. Storage의 Firestore 조회 권한 설정: 배포 시 교차 서비스 IAM 역할 추가 안내를 승인하고, 호스트 Firebase 프로젝트의 Storage 서비스 계정에 `roles/firebaserules.firestoreServiceAgent`가 있는지 확인한다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정) 참고. CI 배포 성공만으로 이 권한 설정을 보장하지 않는다.
+6. Grant Storage permission to read Firestore: approve the prompt to add the cross-service IAM role during deploy, and check that the Storage service account of the host Firebase project has `roles/firebaserules.firestoreServiceAgent`. See the [host setup procedure](docs/firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup). A successful CI deploy alone does not guarantee this permission.
 
-0.45.1로 갱신하는 호스트는 [새 규칙 적용·전환 절차](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 함께 확인한다. 패키지 설치나 사이트 푸시만으로 Firebase 규칙은 배포되지 않는다.
+Hosts updating to 0.45.1 should also check the [procedure for applying the new rules and migrating](docs/firebase-setup.md#0451-rule-changes-and-migrating-existing-hosts). Installing the package or pushing the site does not deploy Firebase rules.
 
-**Rules를 파일에만 넣고 배포 안 하면** 글쓰기에서 `permission-denied` — 가장 흔한 설치 실수.
-**Storage 규칙을 앱이 쓰는 버킷이 아닌 곳에 배포하면** 본문 이미지에서 `storage/unauthorized`.
+**If Rules are only in the file and not deployed**, writing posts fails with `permission-denied` — the most common installation mistake.
+**If Storage rules are deployed to a bucket other than the one the app uses**, body images fail with `storage/unauthorized`.
 
-#### 복합 인덱스
+#### Composite indexes
 
-[docs/firestore.indexes.json.example](docs/firestore.indexes.json.example) 를 호스트 `firestore.indexes.json`에 병합한다. 컬렉션 이름을 커스터마이즈했다면(`memiBoard.postsCollection` 등) 인덱스의 `collectionGroup` 값도 그에 맞게 바꿔야 한다.
+Merge [docs/firestore.indexes.json.example](docs/firestore.indexes.json.example) into the host `firestore.indexes.json`. If you customized collection names (`memiBoard.postsCollection`, etc.), change the indexes' `collectionGroup` values to match.
 
-> ⚠️ npm 패키지 tarball에도 `docs/` 가 포함된다(0.4.7+). 구버전이면 GitHub의 `docs/`를 보면 된다.
+> ⚠️ The npm package tarball also includes `docs/` (0.4.7+). For older versions, see `docs/` on GitHub.
 
-### 8. 최초 관리자와 카테고리 만들기
+### 8. Creating the initial admin and categories
 
-Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따라서 최초 한 번은 다음 순서가 필요하다.
+Rules prevent regular users from making themselves admins. So the first time, follow these steps:
 
-1. 아래 게시판 페이지를 만든 뒤 Google 또는 Apple로 로그인한다.
-2. Firebase Console → Firestore에서 `memiBoardUsers/{uid}` 문서를 찾는다.
-3. 해당 문서의 `role`을 문자열 `owner`로 변경한다.
-   - UID는 Firebase Console → Authentication → Users에서도 확인할 수 있다.
-4. `/board-settings`에서 첫 카테고리를 만든다. 카테고리가 없으면 글을 작성할 수 없다.
-5. 이후 역할 변경은 `/board-users`의 `MemiBoardUsers`에서 처리한다.
+1. After creating the board pages below, sign in with Google or Apple.
+2. In Firebase Console → Firestore, find the `memiBoardUsers/{uid}` document.
+3. Change that document's `role` to the string `owner`.
+   - You can also find the UID in Firebase Console → Authentication → Users.
+4. Create the first category at `/board-settings`. Posts cannot be written without a category.
+5. After that, change roles in `MemiBoardUsers` at `/board-users`.
 
-> 최초 관리자 지정은 신뢰할 수 있는 프로젝트 운영자가 Firebase Console에서만 수행한다. 클라이언트 코드에 관리자 UID나 우회 규칙을 넣지 않는다.
+> Only a trusted project operator should assign the initial admin, and only in Firebase Console. Do not put admin UIDs or bypass rules in client code.
 
-## 사용법
+## Usage
 
-라우팅·미들웨어는 **호스트 소유**. 컴포넌트는 모듈 auto-import (`MemiBoardList` 등).  
-`import { MemiBoardEditor } from 'memi-board/runtime'`는 **안 된다**. 컴포넌트는 모듈이 auto-import하고, composable과 type만 `memi-board/runtime`에서 명시적으로 가져올 수 있다.
+Routing and middleware are **owned by the host**. Components are auto-imported by the module (`MemiBoardList`, etc.).  
+`import { MemiBoardEditor } from 'memi-board/runtime'` **does not work**. Components are auto-imported by the module; only composables and types can be imported explicitly from `memi-board/runtime`.
 
-라우트별 완성 예제는 [호스트 설치 가이드](docs/host-integration.md#7-목록글쓰기상세-페이지-연결)에 있다. 목록·에디터·상세에는 `boardId`를 전달한다.
+Complete per-route examples are in the [host integration guide](docs/host-integration.md#7-list-new-post-and-detail-pages). Pass `boardId` to the list, editor, and detail.
 
 ```vue
-<!-- free 게시판 목록: 게시판 설정에서 먼저 free를 만든다 -->
+<!-- free board list: create "free" in the board settings first -->
 <template>
   <MemiBoardList
     board-id="free"
@@ -363,7 +363,7 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 ```
 
 ```vue
-<!-- 새 글: saved는 새 글의 slug를 전달한다 -->
+<!-- New post: saved emits the new post's slug -->
 <template>
   <MemiBoardEditor
     board-id="free"
@@ -372,11 +372,11 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 </template>
 ```
 
-상세에는 `<MemiBoardDetail :board-id="boardId" :post-id="postId" />`를 사용한다. URL의 slug는 `resolvePostIdBySlug()`로 Firestore 문서 ID로 바꾼다. 기존 글 수정의 `saved` 이벤트는 문서 ID를 전달하므로 현재 상세 URL의 slug를 유지한다. 공개 페이지의 SEO와 로그인·관리 페이지 가드까지 포함한 연결 순서는 설치 가이드를 따른다.
+For the detail page, use `<MemiBoardDetail :board-id="boardId" :post-id="postId" />`. Convert the URL slug to the Firestore document ID with `resolvePostIdBySlug()`. When editing an existing post, the `saved` event emits the document ID, so keep the slug of the current detail URL. Follow the installation guide for the full wiring order, including SEO for public pages and guards for sign-in and admin pages.
 
-### 관리 페이지
+### Admin pages
 
-전체 설정·사용자 관리는 `owner` 또는 `admin` 역할을 사용한다. 기본 설치에서는 `authorized`를 전달하지 않는다. 관리자 역할 지정은 owner만 가능하고, owner 자체 변경은 신뢰할 수 있는 서버나 콘솔에서 한다. 담당 manager의 개별 게시판 설정은 `MemiBoardCategorySettings`와 `canConfigureBoard(boardId)`를 사용한다.
+Global settings and user management use the `owner` or `admin` role. In a default install, do not pass `authorized`. Only the owner can assign the admin role, and changing the owner itself is done from a trusted server or the console. For per-board settings by an assigned manager, use `MemiBoardCategorySettings` and `canConfigureBoard(boardId)`.
 
 ```vue
 <!-- app/pages/board-settings.vue -->
@@ -385,9 +385,9 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 </template>
 ```
 
-전체 게시판 설정에는 관리자(`owner`/`admin`) 전용 **고아 파일·문서 정리**가 표시됩니다. **고아 항목 조회**를 누르면 전체 게시글·댓글·좋아요와 Storage를 읽고, 부모 글이 없는 댓글·파일, 삭제된 댓글의 이미지, 대상 글·댓글이 없는 좋아요를 표시합니다. 경로·유형·파일 크기를 확인한 뒤 개별 또는 전체 선택하여 삭제할 수 있습니다. 최근 24시간 내 갱신된 파일과 기존 본문·번역·첨부·댓글에서 참조하는 파일은 보존합니다. 신고 기록과 게시글 없는 `body` 하위 문서는 이 기능의 정리 대상이 아닙니다.
+The global board settings show an admin-only (`owner`/`admin`) **orphaned file and document cleanup**. Pressing **Find orphaned items** reads all posts, comments, likes, and Storage, and lists comments and files whose parent post is missing, images of deleted comments, and likes whose target post or comment is missing. After reviewing the path, type, and file size, you can delete items individually or select all. Files updated within the last 24 hours and files referenced by existing bodies, translations, attachments, or comments are preserved. Report records and `body` subdocuments without a post are not cleaned up by this feature.
 
-사용하려면 호스트 프로젝트에 [Firestore 규칙 예제](docs/firestore.rules.example)와 [Storage 규칙 예제](docs/storage.rules.example)의 관리자 조회·삭제 권한을 반영해야 합니다. 커스텀 컬렉션을 사용하면 규칙 경로도 맞춰야 합니다. 조회는 본문을 포함한 전체 데이터를 읽으므로 데이터 규모에 따라 읽기 비용과 시간이 발생합니다. 삭제 대상은 내부 스냅샷에 고정하고, 조회 후 계정·설정 또는 파일 generation이 바뀌면 삭제를 중단합니다. 삭제 직전에 서버에서 다시 조회하며, 문서는 트랜잭션으로 부모 존재 여부를 확인합니다. 파일 삭제와 Firestore 저장은 원자적으로 묶이지 않으므로 게시판 사용이 적은 시간에 실행하세요. 실패한 항목은 목록에 남아 재시도할 수 있습니다.
+To use it, apply the admin read and delete permissions from the [Firestore rules example](docs/firestore.rules.example) and the [Storage rules example](docs/storage.rules.example) to the host project. If you use custom collections, update the rule paths as well. The scan reads all data including bodies, so it incurs read costs and time depending on data size. Deletion targets are pinned to an internal snapshot, and deletion stops if the account, settings, or file generation changes after the scan. Items are re-fetched from the server right before deletion, and documents check for the parent's existence in a transaction. File deletion and Firestore writes are not atomic, so run it when board usage is low. Failed items stay in the list and can be retried.
 
 ```vue
 <!-- app/pages/board-users.vue -->
@@ -396,116 +396,116 @@ Rules는 일반 사용자가 스스로 관리자가 되는 것을 막는다. 따
 </template>
 ```
 
-호스트의 별도 사이트 관리자 체계를 연동할 때만 `authorized`를 사용할 수 있다. 이 prop은 UI 표시만 허용하며 Firestore Rules를 우회하지 않는다. 이 경우에도 해당 사용자를 게시판 admin/owner로 등록하거나 호스트 Rules를 같은 관리자 체계에 맞게 수정해야 한다. 관리 URL이 일반 사용자에게 노출되지 않도록 호스트 라우트 가드를 추가하는 것을 권장한다.
+Use `authorized` only when integrating the host's own site-admin system. This prop only allows the UI to be shown and does not bypass Firestore Rules. Even then, you must register those users as board admin/owner or change the host Rules to match the same admin system. Adding host route guards is recommended so admin URLs are not exposed to regular users.
 
-### 제공하는 API
+### Provided API
 
-**컴포넌트 (auto-import):**  
+**Components (auto-import):**  
 `MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardSettings`, `MemiBoardUsers`, `MemiBoardVersionHistory`
 
-**List props:** `boardId`(필수), `pageSize`, `category`(이전 이름), `postLinkBase`, `getPostLink(post)`, `linkBase`(deprecated)
+**List props:** `boardId` (required), `pageSize`, `category` (former name), `postLinkBase`, `getPostLink(post)`, `linkBase` (deprecated)
 
-**Editor props:** `boardId`, `postId`(수정), `fixedCategory`(path 고정 시 선택 UI 숨김)
-본문은 Nuxt UI **`UEditor`**(TipTap, `content-type="html"`). 호스트 `@nuxt/ui` 4.x 에 Editor 포함 필요.
+**Editor props:** `boardId`, `postId` (edit), `fixedCategory` (hides the selector when the path fixes it)
+The body uses Nuxt UI **`UEditor`** (TipTap, `content-type="html"`). The host's `@nuxt/ui` 4.x must include Editor.
 
-**에디터 이미지:** 툴바에서 기기 파일 또는 외부 HTTPS 이미지 URL을 추가할 수 있고, 붙여넣기 / 드롭 파일은 Firebase Storage에 업로드한다. 외부 URL은 Storage에 복사하지 않으며 원본이 삭제되거나 핫링크가 차단되면 표시되지 않는다. 첫 본문 이미지는 업로드·외부 링크 구분 없이 목록과 공유 대표 이미지로 사용한다.
+**Editor images:** From the toolbar you can add a file from the device or an external HTTPS image URL; pasted and dropped files are uploaded to Firebase Storage. External URLs are not copied to Storage and stop displaying if the original is deleted or hotlinking is blocked. The first body image, whether uploaded or external, is used as the list and share preview image.
 
-`memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (최적화 이미지+썸네일).
-글 문서는 아직 없을 수 있고, 붙여넣기는 `image/png` 등이 온다. Storage 예시 규칙은 쓰기를 **로그인 + 5MiB 미만 + `image/*` + 소유권 검증**으로 제한한다. 기존 글은 작성자 또는 전역 admin·owner만 수정할 수 있다. 글 저장 전에는 파일의 `customMetadata.ownerUid`가 로그인 UID와 같아야 하며, 기존 파일을 덮어쓸 때는 기존 메타데이터도 같아야 한다. 이미지 업로드도 Firestore의 글 존재 여부·소유권을 조회한다. 규칙은 **앱 `storageBucket`과 같은 버킷**에 배포해야 한다.
+`memiBoardPosts/{postId}/images/*` + `.../images/thumbnails/*` (optimized image + thumbnail).
+The post document may not exist yet, and pastes arrive as `image/png` and similar. The example Storage rules limit writes to **signed-in + under 5MiB + `image/*` + ownership check**. Existing posts can only be modified by the author or a global admin/owner. Before the post is saved, the file's `customMetadata.ownerUid` must equal the signed-in UID, and when overwriting an existing file, the existing metadata must match too. Image uploads also check the post's existence and ownership in Firestore. The rules must be deployed to **the same bucket as the app's `storageBucket`**.
 
-본문 이미지는 휴대폰 원본 기준 최대 25MB까지 선택할 수 있다. 5MB를 넘으면 브라우저에서 최대 2560px·JPEG 85%로 최적화하고, 결과가 여전히 5MB를 넘으면 2048px·75%로 한 번 더 줄인 뒤 업로드한다. 5MB 이하 이미지는 원본을 유지한다.
-본문 HTML에는 원본 URL. 수정 중 버려진 파일은 호스트 스케줄러로 정리 (`extractEditorImageUrls` 로 본문 참조 비교).
+Body images can be selected up to 25MB, based on phone originals. Over 5MB, the browser optimizes them to at most 2560px · JPEG 85%; if the result is still over 5MB, it shrinks once more to 2048px · 75% before uploading. Images of 5MB or less are kept as is.
+The body HTML holds the original URL. Clean up files abandoned during editing with a host scheduler (compare body references with `extractEditorImageUrls`).
 
 **composables:**  
 `useMemiBoardAuth`, `useMemiBoardPosts`, `useMemiBoardComments`, `useMemiBoardStorage`, `useMemiBoardModeration`, `useMemiBoardSettings`, `useMemiBoardUsers`, `useMemiBoardViews`  
-**SEO (auto-import, 호스트 파이프라인):**  
+**SEO (auto-import, host pipeline):**  
 `useMemiBoardListSeo`, `useMemiBoardPostSeo`  
-**SEO fetch (필요 시):**  
+**SEO fetch (when needed):**  
 `fetchPublicListForSeo`, `fetchPublicPostForSeo`, `resolvePublicSeoDb`
 
-댓글은 시간순으로 10개씩 cursor 조회하며, 실제 `댓글 더보기` 버튼이 화면에 들어오면 1초 후 자동으로 다음 페이지를 읽는다. 기존 댓글을 모두 읽은 뒤에만 최신 댓글 1개를 실시간 구독한다. 대댓글은 5개씩 조회하고 모두 읽은 뒤 최신 답글 1개를 실시간 구독하며, 화면 깊이는 최대 2단계로 표시한다.
+Comments are fetched chronologically, 10 at a time with a cursor; when the actual `More comments` button enters the viewport, the next page is loaded automatically after 1 second. Only after all existing comments are loaded does it subscribe in real time to the single latest comment. Replies are fetched 5 at a time, and after all are loaded it subscribes in real time to the single latest reply; nesting is displayed up to 2 levels deep.
 
-### 보드 (구 카테고리)
+### Boards (formerly categories)
 
-- 문서: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, allowedManagerUids, locale, autoTranslate, autoTranslatePosts, i18n, i18nSource, order, updatedAt }`
-- 설정이 없으면 빈 목록이며 기본 보드를 자동 생성하지 않음
-- `MemiBoardSettings`에서 관리자가 보드별 저장·삭제·순서·리스트뷰·글쓰기 최소 역할 관리
-- `boardId`는 문서 ID이자 각 글(`memiBoardPosts`)의 `boardId` 참조값이므로 생성 후 변경하지 않는 것을 권장
+- Document: `memiBoardSettings/{boardId}` → `{ label, listView, editorType, writeRole, commentWriteRole, visibility, allowedStaffUids, allowedManagerUids, locale, autoTranslate, autoTranslatePosts, i18n, i18nSource, order, updatedAt }`
+- With no settings, the list is empty; no default board is created automatically
+- In `MemiBoardSettings`, admins save, delete, reorder boards and manage the list view and minimum write role per board
+- `boardId` is both the document ID and the `boardId` reference on each post (`memiBoardPosts`), so changing it after creation is not recommended
 
-### 로그인 공급자
+### Sign-in providers
 
-`auth.providers` 기본 `['google', 'apple']`, `'emailPassword'` 추가 가능.
+`auth.providers` defaults to `['google', 'apple']`; `'emailPassword'` can be added.
 
-- **Google:** 콘솔 Sign-in method 활성화
-- **Apple:** Services ID·키 등 추가 설정 → [docs/firebase-setup.md#apple](docs/firebase-setup.md#apple)
+- **Google:** enable it under Sign-in method in the console
+- **Apple:** needs extra setup such as a Services ID and key → [docs/firebase-setup.md#apple](docs/firebase-setup.md#apple)
 
-### 버전 히스토리
+### Version history
 
-`<MemiBoardVersionHistory />` 를 페이지에 두면 패키지 기능 변경을 방문자에게 보여줄 수 있다.
+Place `<MemiBoardVersionHistory />` on a page to show package feature changes to visitors.
 
 ## Security Model
 
-서버가 없으므로 **Rules가 전부**다.
+With no server, **Rules are everything**.
 
-권한 요약:
+Permission summary:
 
-| 동작 | 조건 |
+| Action | Condition |
 |------|------|
-| 글 읽기 | 공개(`listed`·게시됨) 또는 작성자·관리자·담당 스태프. 숨김 보드는 작성자·관리자·담당 스태프만 |
-| 댓글 읽기 | 공개(`listed`) 또는 작성자·관리자·담당 스태프·부모 글을 읽을 수 있는 사람 |
-| 글 작성 | 로그인 + 보드 `writeRole` 충족 + `moderationStatus == 'approved'` |
-| 댓글 작성 | 로그인 + 보드 `commentWriteRole` 충족. **숨김 보드는 담당 스태프만** (`commentWriteRole` 무시) |
-| 글 수정·삭제 | 작성자 또는 해당 보드 관리자·담당 스태프 |
-| 댓글 삭제 | 댓글 작성자 · 글 작성자 · 해당 보드 관리자·담당 스태프 |
-| 연관 좋아요 정리 | 좋아요 작성자 또는 부모 글 작성자·해당 보드 관리자·담당 스태프. 댓글 좋아요는 댓글 작성자도 정리 가능 |
-| 파일 업로드·삭제 | 기존 글은 글 작성자 또는 전역 admin·owner. 글 문서가 없으면 파일의 `ownerUid`로 검증 |
-| 역할 관리 | owner는 다른 admin 지정 가능. admin은 manager·staff·user 관리. 자기 역할과 owner 변경은 클라이언트에서 금지 |
+| Read post | Public (`listed` · published), or author · admin · assigned staff. Hidden boards: author · admin · assigned staff only |
+| Read comment | Public (`listed`), or author · admin · assigned staff · anyone who can read the parent post |
+| Create post | Signed in + meets the board's `writeRole` + `moderationStatus == 'approved'` |
+| Create comment | Signed in + meets the board's `commentWriteRole`. **Hidden boards: assigned staff only** (`commentWriteRole` ignored) |
+| Edit/delete post | Author, or that board's admin · assigned staff |
+| Delete comment | Comment author · post author · that board's admin · assigned staff |
+| Clean up related likes | Like author, or parent post author · that board's admin · assigned staff. Comment likes can also be cleaned up by the comment author |
+| Upload/delete file | For existing posts, the post author or a global admin/owner. If there is no post document, verified by the file's `ownerUid` |
+| Role management | The owner can assign other admins. Admins manage manager · staff · user. Changing your own role or the owner is forbidden from the client |
 
-글 수정 시 `boardId`·`authorUid`는 바꿀 수 없고 `listed`는 공개 범위 전환 규칙을 따른다. 공개 범위 변경은 `visibilityTransition`을 기록해 새 글·댓글 생성과 일반 글 수정을 잠근 뒤 완료한다. 실패 시 같은 목표 공개 범위로 다시 저장한다. 글과 본문을 한 batch에서 만들 수 있도록 본문 쓰기는 `getAfter()`로 부모 글을 검증한다. 글 삭제 후에도 신고 기록은 보존한다.
+When editing a post, `boardId` and `authorUid` cannot change, and `listed` follows the visibility transition rules. A visibility change records `visibilityTransition`, which locks new post/comment creation and regular post edits, and then completes. On failure, save again with the same target visibility. So that the post and its body can be created in one batch, body writes verify the parent post with `getAfter()`. Report records are kept even after a post is deleted.
 
-Storage 예제의 파일 읽기·목록 조회는 공개다. 숨김 보드·비공개 초안의 Firestore 읽기 제한이 첨부파일에도 적용되는 것은 아니다. Storage의 admin·owner 권한은 보드 담당 여부와 무관한 전역 권한이다. 담당 staff/manager의 타인 파일 관리에는 별도 서버 API가 필요하다. 상세한 이유와 전환 방법은 [규칙 변경 안내](docs/firebase-setup.md#0451-규칙-변경과-기존-호스트-전환)를 참고한다.
+File reads and listing in the Storage example are public. The Firestore read restrictions for hidden boards and private drafts do not extend to attachments. Storage admin/owner permissions are global, regardless of board assignment. Managing other users' files as assigned staff/manager requires a separate server API. For the detailed reasoning and how to migrate, see the [rule change notes](docs/firebase-setup.md#0451-rule-changes-and-migrating-existing-hosts).
 
-**알려진 한계:** AI 검열은 클라이언트 전용. SDK로 직접 write 하면 우회 가능. 중요 서비스면 Cloud Functions 검증을 호스트가 추가(패키지 범위 밖).
+**Known limitation:** AI moderation is client-only. Writing directly via the SDK bypasses it. For critical services, the host should add Cloud Functions validation (outside the package's scope).
 
-## Firebase AI Logic (검열)
+## Firebase AI Logic (moderation)
 
-흐름: **로컬 금칙어 → Gemini 구조화 JSON** → 걸리면 저장 안 함.
+Flow: **local blocklist → Gemini structured JSON** → if flagged, nothing is saved.
 
-| 옵션 | 기본 | 설명 |
+| Option | Default | Description |
 |------|------|------|
-| `enabled` | `true` | 끄면 로컬만 / 또는 전부 통과에 가깝게 |
-| `model` | `gemini-3.5-flash-lite` | Firebase AI Logic 지원 모델명 |
-| `onError` | `'allow'` | AI 실패 시 `'block'` 이면 저장 거부 |
-| `localBlocklist` | `[]` | 기본 목록에 문자열 추가 |
-| `useLimitedUseAppCheckTokens` | `true` | `false`면 일반 App Check 세션 토큰 |
-| `blockBanThreshold` | `10` | 콘텐츠 차단(local/ai) 누적 이상이면 글·댓글 제한. `0` = off |
-| `blockBanDecayMs` | `86400000` | 경고 1회 차감 간격(기본 24h) |
+| `enabled` | `true` | When off, local only / or close to letting everything through |
+| `model` | `gemini-3.5-flash-lite` | A model name supported by Firebase AI Logic |
+| `onError` | `'allow'` | On AI failure, `'block'` rejects the save |
+| `localBlocklist` | `[]` | Strings added to the default list |
+| `useLimitedUseAppCheckTokens` | `true` | When `false`, uses regular App Check session tokens |
+| `blockBanThreshold` | `10` | Restricts posts and comments once accumulated content blocks (local/ai) reach this. `0` = off |
+| `blockBanDecayMs` | `86400000` | Interval for removing one warning (default 24h) |
 
-콘텐츠 차단이 누적되면 `memiBoardUsers/{uid}` 에 `moderationBlockCount` / `moderationBlockAt` 이 기록된다.  
-10회면 약 하루 동안 작성 불가(24h마다 1 차감). Rules 예시에서 본인은 **+1만** 가능하고 감소·리셋은 admin.
+As content blocks accumulate, `moderationBlockCount` / `moderationBlockAt` are recorded in `memiBoardUsers/{uid}`.  
+At 10, the user cannot write for about a day (one is removed every 24h). In the example Rules, users can only **+1** their own count; decreasing or resetting is for admins.
 
-### 관리자 검열 우회
+### Admin moderation bypass
 
-글쓰기 폼(`Editor.vue`) 하단, 제출 버튼 위에 `isAdmin`인 사용자에게만 "비속어 필터 무시" 스위치가 보인다. 켜고 제출하면 로컬 금칙어·AI 검열을 모두 건너뛰고 저장한다(`via: 'admin-override'`, 경고 카운트도 쌓이지 않음). 댓글 폼(`CommentForm.vue`)에는 없다.
+At the bottom of the post form (`Editor.vue`), above the submit button, a "Ignore profanity filter" switch is shown only to `isAdmin` users. Submitting with it on skips both the local blocklist and AI moderation and saves (`via: 'admin-override'`; the warning count does not increase either). The comment form (`CommentForm.vue`) does not have it.
 
-직접 호출할 때는 `useMemiBoardModeration().checkText(text, { skipFilter: true })`로 우회한다. `skipFilter`는 호스트가 넘긴 값 그대로 신뢰하므로, admin 여부 판정은 호출부(호스트)의 책임이다.
+When calling directly, bypass with `useMemiBoardModeration().checkText(text, { skipFilter: true })`. `skipFilter` trusts whatever value the host passes, so deciding whether the user is an admin is the caller's (host's) responsibility.
 
-### AI 글쓰기 도우미 사용 제한
+### AI writing assistant usage limit
 
-에디터의 AI 글쓰기 도우미는 로그인 사용자별 24시간 구간에 최대 **10회** 사용할 수 있다. 호출 전에는 `aiWritingPending` 예약만 잡고, 모델 호출이 성공하면 `aiWritingCount`로 확정한다. 호출이 실패하면 예약만 되돌린다. 확정된 횟수는 내려가지 않는다. 예약과 확정은 `memiBoardUsers/{uid}`를 Firestore 트랜잭션으로 갱신하므로 여러 탭이 동시에 실행해도 합이 10을 넘지 않는다.
+The editor's AI writing assistant can be used up to **10 times** per signed-in user in each 24-hour window. Before the call, only an `aiWritingPending` reservation is made; when the model call succeeds, it is committed to `aiWritingCount`. If the call fails, only the reservation is rolled back. Committed counts never go down. Reservation and commit update `memiBoardUsers/{uid}` in a Firestore transaction, so the total cannot exceed 10 even when several tabs run at once.
 
-호스트는 반드시 최신 `docs/firestore.rules.example`의 `memiBoardUsers/{uid}` 규칙을 실제 Firestore Rules에 병합·배포해야 한다. 0.47.1부터는 예약 필드가 추가됐다. 규칙을 배포하지 않으면 새 패키지의 글쓰기 AI 횟수 갱신이 거절되거나, 예전 규칙만 있는 동안 클라이언트가 카운터를 임의로 수정해 제한을 우회할 수 있다.
+The host must merge and deploy the `memiBoardUsers/{uid}` rules from the latest `docs/firestore.rules.example` into its actual Firestore Rules. Reservation fields were added in 0.47.1. Without deploying the rules, the new package's AI writing count updates are rejected, or, while only the old rules are in place, clients can modify the counter arbitrarily and bypass the limit.
 
-콘솔에서 **AI Logic(Gemini Developer API)** 활성화. 신규 프로젝트는 구형 `gemini-2.5-flash` 가 404 날 수 있음 → 3.x Flash / Flash-Lite 사용.
+Enable **AI Logic (Gemini Developer API)** in the console. New projects may get 404 for the old `gemini-2.5-flash` → use 3.x Flash / Flash-Lite.
 
-### App Check (AI Enforce 시 사실상 필수)
+### App Check (effectively required with AI Enforce)
 
-`firebaseml` / AI Logic 이 **Enforce** 되어 있으면 App Check 토큰 없이 `generateContent` 가 실패한다. memi-board는 App Check를 초기화하지 않는다. 기본값 `moderation.useLimitedUseAppCheckTokens: true` 는 **한 번만 쓰는 토큰**을 요구한다. reCAPTCHA v3의 `ReCaptchaV3Provider` 는 이 토큰을 만들지 않는다.
+If `firebaseml` / AI Logic is **Enforced**, `generateContent` fails without an App Check token. memi-board does not initialize App Check. The default `moderation.useLimitedUseAppCheckTokens: true` requires **limited-use tokens**. reCAPTCHA v3's `ReCaptchaV3Provider` does not produce these tokens.
 
-1. reCAPTCHA Enterprise에서 **점수형** 웹 키를 만든다. 체크박스 키와 v3 공급자는 쓰지 않는다. 도메인에는 실제 사이트 주소만 넣는다. 사이트 키는 공개 값이라 클라이언트 설정에 둔다. 시크릿 키는 클라이언트에 넣지 않는다. Firebase가 토큰을 교환한다.
-2. Firebase 콘솔 → App Check → 웹 앱에 그 사이트 키를 등록한다. 등록하는 웹 앱의 `appId` 가 `vuefire.config.appId` 와 같아야 한다.
-3. 브라우저 API 키의 API 제한에 **Firebase App Check API** 를 포함한다. 기존에 허용한 API는 빼지 않는다.
-4. 호스트 플러그인에서 마운트 후에 Enterprise 토큰을 교환한다. SPA는 첫 페인트 전에 `document.body` 가 비어 있어 `ReCaptchaEnterpriseProvider` 의 숨은 위젯이 `appCheck/recaptcha-error` 로 실패한다.
+1. Create a **score-based** web key in reCAPTCHA Enterprise. Do not use checkbox keys or the v3 provider. Add only the real site addresses as domains. The site key is a public value, so keep it in client config. Never put the secret key in the client. Firebase exchanges the token.
+2. Firebase console → App Check → register that site key on the web app. The registered web app's `appId` must equal `vuefire.config.appId`.
+3. Include **Firebase App Check API** in the browser API key's API restrictions. Do not remove previously allowed APIs.
+4. Exchange the Enterprise token in a host plugin after mount. In an SPA, `document.body` is empty before the first paint, so the hidden widget of `ReCaptchaEnterpriseProvider` fails with `appCheck/recaptcha-error`.
 
 ```ts
 // app/plugins/app-check.client.ts
@@ -523,7 +523,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       provider: new CustomProvider({
         getToken: () => exchangeEnterpriseToken(app, siteKey),
       }),
-      // 한 번용 토큰은 세션으로 갱신하지 않는다. AI SDK가 호출마다 getToken 한다.
+      // Limited-use tokens are not refreshed as a session. The AI SDK calls getToken per request.
       isTokenAutoRefreshEnabled: false,
     })
   })
@@ -547,7 +547,7 @@ function loadEnterprise(siteKey: string) {
     const ready = () => {
       const enterprise = window.grecaptcha?.enterprise
       if (!enterprise) {
-        reject(new Error('reCAPTCHA Enterprise가 로드되지 않았습니다.'))
+        reject(new Error('reCAPTCHA Enterprise failed to load.'))
         return
       }
       enterprise.ready(() => resolve())
@@ -560,7 +560,7 @@ function loadEnterprise(siteKey: string) {
     script.src = `https://www.google.com/recaptcha/enterprise.js?render=${encodeURIComponent(siteKey)}`
     script.async = true
     script.onload = ready
-    script.onerror = () => reject(new Error('reCAPTCHA Enterprise 스크립트를 불러오지 못했습니다.'))
+    script.onerror = () => reject(new Error('Failed to load the reCAPTCHA Enterprise script.'))
     document.head.appendChild(script)
   })
   return enterpriseReady
@@ -569,7 +569,7 @@ function loadEnterprise(siteKey: string) {
 async function exchangeEnterpriseToken(app: FirebaseApp, siteKey: string) {
   await loadEnterprise(siteKey)
   const enterprise = window.grecaptcha?.enterprise
-  if (!enterprise) throw new Error('reCAPTCHA Enterprise가 로드되지 않았습니다.')
+  if (!enterprise) throw new Error('reCAPTCHA Enterprise failed to load.')
   const recaptchaToken = await enterprise.execute(siteKey, { action: 'fire_app_check' })
   const { projectId, appId, apiKey } = app.options
   const response = await fetch(
@@ -590,68 +590,68 @@ async function exchangeEnterpriseToken(app: FirebaseApp, siteKey: string) {
 }
 ```
 
-일반 세션 토큰을 쓰려면 `useLimitedUseAppCheckTokens: false` 로 바꾸고, 교환 본문의 `limited_use` 도 빼야 한다.
+To use regular session tokens, change to `useLimitedUseAppCheckTokens: false` and remove `limited_use` from the exchange body.
 
-5. App Check 적용은 **Firebase AI Logic만** 켠다. Cloud Storage와 Cloud Firestore는 모니터링으로 둔다. 한 번용 토큰은 AI Logic만 받는다. Storage나 Firestore에 적용을 켜면 이미지 업로드와 글 저장이 `storage/unauthorized` 또는 권한 오류로 거절된다.
-6. 로컬은 `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true` 로 나온 UUID를 콘솔 디버그 토큰에 등록한다. 프로덕션 빌드에서는 디버그 토큰을 켜지 않는다.
+5. Enable App Check enforcement **only for Firebase AI Logic**. Leave Cloud Storage and Cloud Firestore on monitoring. Only AI Logic accepts limited-use tokens. If you enforce it on Storage or Firestore, image uploads and post saves are rejected with `storage/unauthorized` or permission errors.
+6. Locally, register the UUID printed by `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true` as a debug token in the console. Do not enable the debug token in production builds.
 
-## 다른 프로젝트에 붙일 때 체크리스트
+## Checklist for adding it to another project
 
-- [ ] 동일 스택: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
+- [ ] Same stack: Nuxt 4 + `@nuxt/ui` 4 + `nuxt-vuefire` + Firebase
 - [ ] `pnpm add memi-board @nuxt/ui nuxt-vuefire vuefire firebase`
-- [ ] `modules`에 `@nuxt/ui`, `nuxt-vuefire`, `memi-board`
+- [ ] `@nuxt/ui`, `nuxt-vuefire`, `memi-board` in `modules`
 - [ ] `memiBoard` (`boardId` · `auth` · `moderation` · **`seo`**)
-- [ ] 공개 목록·상세 **SSR on**, 쓰기·설정만 `ssr: false` (전 경로 CSR 금지)
-- [ ] 목록·상세 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo`
-- [ ] 호스트 SEO API 없음
+- [ ] **SSR on** for public list and detail, `ssr: false` only for writing and settings (no all-CSR routes)
+- [ ] `await useMemiBoardListSeo` / `useMemiBoardPostSeo` on list and detail pages
+- [ ] No host SEO API
 - [ ] CSS `@source` …/memi-board/dist/runtime/components
-- [ ] (선택) `.memi-board-post-link:visited` 읽은 글 표시 CSS
-- [ ] Rules 예시 병합 + **deploy**
-- [ ] Storage 서비스 계정의 Firestore 조회 IAM 역할 확인 ([호스트 설정](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정))
-- [ ] 카테고리·listed 쿼리 사용 시 indexes deploy
-- [ ] 페이지·미들웨어 직접 작성 (또는 playground 복사)
-- [ ] 최초 로그인 후 Firebase Console에서 `memiBoardUsers/{uid}.role = 'owner'`
-- [ ] 설정 페이지에서 첫 카테고리 생성
-- [ ] (검열) AI Logic 활성화 + 권장 모델 + App Check
-- [ ] `pnpm why vuefire` 로 이중 인스턴스 없는지 확인
+- [ ] (optional) `.memi-board-post-link:visited` read-post styling CSS
+- [ ] Merge the Rules examples + **deploy**
+- [ ] Check the Firestore read IAM role on the Storage service account ([host setup](docs/firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup))
+- [ ] Deploy indexes when using category / listed queries
+- [ ] Write pages and middleware yourself (or copy from the playground)
+- [ ] After the first sign-in, set `memiBoardUsers/{uid}.role = 'owner'` in Firebase Console
+- [ ] Create the first category on the settings page
+- [ ] (moderation) Enable AI Logic + recommended model + App Check
+- [ ] Check for duplicate instances with `pnpm why vuefire`
 
-같은 Firebase 프로젝트에 호스트 앱 유저 컬렉션이 있어도 무방 — 게시판 역할은 **`memiBoardUsers` 전용**이다.
+It is fine if the same Firebase project has a host app user collection — board roles are **exclusive to `memiBoardUsers`**.
 
-## 문제 해결
+## Troubleshooting
 
 ### `useCurrentUser() called before the VueFireAuth module...`
 
-`vuefire.auth.enabled` 미설정, 또는 `vuefire`/`firebase` 이중 설치. `pnpm why vuefire` → 하나로. 모듈이 `vite.resolve.dedupe`에 vue/vuefire/firebase를 넣지만, **호스트 peer 설치**가 우선이다.
+`vuefire.auth.enabled` is not set, or `vuefire`/`firebase` is installed twice. `pnpm why vuefire` → reduce to one. The module adds vue/vuefire/firebase to `vite.resolve.dedupe`, but **the host's peer installation** takes precedence.
 
-### 카테고리 필터 쿼리 에러 / 인덱스 링크
+### Category filter query error / index link
 
-콘솔이 안내하는 복합 인덱스 생성, 또는 위 `firestore.indexes.json` 배포.
+Create the composite index the console suggests, or deploy the `firestore.indexes.json` above.
 
-### AI 검열 실패 / 글 안 올라감 (`onError: 'block'`)
+### AI moderation fails / post not published (`onError: 'block'`)
 
-App Check 토큰, `appId` 일치, 모델명(3.x), AI Logic 활성화, 네트워크. 브라우저 콘솔의 `moderation AI failed` warn 확인.
+Check the App Check token, matching `appId`, model name (3.x), AI Logic enabled, and network. Look for the `moderation AI failed` warning in the browser console.
 
-### 에디터 이미지 `storage/unauthorized`
+### Editor images `storage/unauthorized`
 
-본문 붙여넣기·업로드가 `User does not have permission to access 'memiBoardPosts/…/images/…'` 로 실패하면:
+If body pastes or uploads fail with `User does not have permission to access 'memiBoardPosts/…/images/…'`:
 
-1. 로그인 상태인지 확인
-2. `vuefire.config.storageBucket`과 `firebase.json` `storage.bucket`이 **같은 이름**인지 확인. 구 프로젝트는 `*.appspot.com`(앱)과 `*.firebasestorage.app`(CLI 기본)이 갈라질 수 있다 — 앱이 쓰는 쪽에 규칙을 배포한다.
-3. 호스트 `storage.rules`에 `docs/storage.rules.example`의 `memiBoardPosts/{postId}/images` 규칙이 있는지 확인. 쓰기는 `image/*` 이어야 한다(붙여넣기 PNG).
-4. 저장 전 파일에 `customMetadata.ownerUid`가 있는지 확인한다. 0.45.1 이상 패키지는 이를 자동으로 넣는다. 기존 글은 작성자·전역 admin·owner인지 확인한다.
-5. 이미지 규칙도 Firestore를 조회하므로 [교차 서비스 IAM 역할](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)을 확인하고, `firebase deploy --only storage` 후 다시 올려 본다.
+1. Check that you are signed in
+2. Check that `vuefire.config.storageBucket` and `firebase.json` `storage.bucket` have **the same name**. Older projects may split between `*.appspot.com` (app) and `*.firebasestorage.app` (CLI default) — deploy the rules to the one the app uses.
+3. Check that the host `storage.rules` has the `memiBoardPosts/{postId}/images` rules from `docs/storage.rules.example`. Writes must be `image/*` (pasted PNG).
+4. Check that the file has `customMetadata.ownerUid` before the post is saved. Packages 0.45.1 and later add it automatically. For existing posts, check that the user is the author or a global admin/owner.
+5. Image rules also query Firestore, so check the [cross-service IAM role](docs/firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup), run `firebase deploy --only storage`, and try uploading again.
 
-### ZIP 등 첨부파일 `storage/unauthorized`
+### `storage/unauthorized` on attachments such as ZIP
 
-`memiBoardPosts/{postId}/attachments/...`에서 실패하면 로그인 상태, 앱이 쓰는 버킷에 배포된 첨부 규칙, **파일당 20MiB 미만** 조건을 먼저 확인한다. 예시 규칙은 ZIP의 MIME 형식이나 `.exe.zip` 이름을 차단하지 않는다.
+If `memiBoardPosts/{postId}/attachments/...` fails, first check the sign-in state, that the attachment rules are deployed to the bucket the app uses, and the **under 20MiB per file** condition. The example rules do not block ZIP MIME types or `.exe.zip` names.
 
-조건을 충족해도 실패하면 **호스트 Firebase 프로젝트의 Storage 서비스 계정에 Firestore 조회 역할이 있는지** 확인한다. 이미지·첨부 규칙은 `canWritePostFile`에서 `postExists`·`isPostOwner`·`isBoardStaff`를 통해 Firestore를 조회한다. 조회 권한이 없으면 새 글의 문서 존재 여부 확인부터 실패할 수 있다. [부모/호스트 설정 절차](docs/firebase-setup.md#storage-규칙의-firestore-조회-권한-부모호스트-프로젝트-필수-설정)에 따라 `roles/firebaserules.firestoreServiceAgent`를 설정한다.
+If it still fails with those conditions met, check that **the Storage service account of the host Firebase project has the Firestore read role**. Image and attachment rules query Firestore in `canWritePostFile` via `postExists` · `isPostOwner` · `isBoardStaff`. Without read permission, even the existence check for a new post's document can fail. Set `roles/firebaserules.firestoreServiceAgent` following the [host setup procedure](docs/firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup).
 
-### 글 삭제 `storage/unauthorized`
+### Post deletion `storage/unauthorized`
 
-작성자 본인 글 삭제가 `User does not have permission to access 'memiBoardPosts/{postId}'` 로 실패하면, 파일 삭제가 아니라 **폴더 목록(`listAll`)** 이 막힌 것이다.
+If an author deleting their own post fails with `User does not have permission to access 'memiBoardPosts/{postId}'`, it is not the file deletion but **folder listing (`listAll`)** that is blocked.
 
-요청은 `prefix=memiBoardPosts/{postId}/`(끝 슬래시)다. `match /memiBoardPosts/{postId} { allow list }` 만 있으면 이 접두사와 안 맞는다. 호스트 `storage.rules`에 예시와 같은 블록이 있어야 한다.
+The request is `prefix=memiBoardPosts/{postId}/` (trailing slash). `match /memiBoardPosts/{postId} { allow list }` alone does not match this prefix. The host `storage.rules` needs a block like the example:
 
 ```
 match /memiBoardPosts/{postId}/{allPaths=**} {
@@ -660,69 +660,69 @@ match /memiBoardPosts/{postId}/{allPaths=**} {
 }
 ```
 
-`canDeletePostFile`과 관련 함수도 최신 `docs/storage.rules.example`에서 함께 병합한다. 글 문서가 없으면 로그인만으로 삭제를 허용하던 예전 조건(`!postExists`)은 사용하지 않는다.
+Also merge `canDeletePostFile` and related functions from the latest `docs/storage.rules.example`. Do not use the old condition (`!postExists`) that allowed deletion with just a sign-in when the post document is missing.
 
-`write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments`/`comment-images` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 패키지는 `images/`·`attachments/`·`comment-images/` 만 목록으로 비운다. 댓글 이미지는 글 문서가 남아 있는 동안 지운다. 글 문서가 먼저 사라지면 댓글 작성자가 아닌 파일은 글 작성자가 지우지 못한다.
+Do not put `write` in this block (size and `image/*` limits are handled by the `images`/`attachments`/`comment-images` matches). Run `firebase deploy --only storage` and delete again. The package empties only `images/` · `attachments/` · `comment-images/` by listing. Comment images are deleted while the post document still exists. If the post document disappears first, the post author can no longer delete comment files uploaded by other commenters.
 
-목록 조회는 성공하지만 **개별 파일 삭제**가 거부되면, 위 [첨부파일 오류](#zip-등-첨부파일-storageunauthorized)와 같은 Firestore 조회 IAM 역할도 확인한다. 삭제 규칙 역시 글 소유권·사용자 역할을 Firestore에서 읽는다.
+If listing succeeds but **individual file deletion** is denied, also check the same Firestore read IAM role as in the [attachment error](#storageunauthorized-on-attachments-such-as-zip) above. Deletion rules also read post ownership and user roles from Firestore.
 
-### monorepo `link:` / `file:` 로 개발할 때
+### Developing with monorepo `link:` / `file:`
 
-링크하기 전에 패키지 의존성과 `dist`를 준비한다.
+Prepare the package dependencies and `dist` before linking.
 
 ```bash
-# memi-board 저장소
+# memi-board repository
 pnpm install
 pnpm build
 
-# 호스트 저장소
+# host repository
 pnpm add link:../memi-board
 ```
 
-| 수정 대상 | 반영 |
+| What you change | When it takes effect |
 |-----------|------|
-| `src/components/*` | 모듈이 링크 소스 직독 → **즉시** (dev HMR) |
-| `useMemiBoard*Seo` (`src/composables/useMemiBoardSeo.ts`) | 호스트 Nuxt가 소스 컴파일 → **즉시** (dev 재시작이 필요할 수 있음) |
-| `src/module.ts` · 그 외 core composable (`dist`) | **`pnpm build`** 후 호스트 dev 재시작 |
+| `src/components/*` | The module reads the linked source directly → **immediately** (dev HMR) |
+| `useMemiBoard*Seo` (`src/composables/useMemiBoardSeo.ts`) | The host Nuxt compiles the source → **immediately** (may need a dev restart) |
+| `src/module.ts` · other core composables (`dist`) | After **`pnpm build`**, restart the host dev server |
 
-SEO composable은 `#imports`로 호스트 Nuxt 인스턴스를 쓴다. `dist/index.js`에 `nuxt/app`을 넣지 않으므로 link 시 Nuxt 이중 로딩(E1001)이 나지 않는다.
+The SEO composables use the host Nuxt instance via `#imports`. `nuxt/app` is not bundled into `dist/index.js`, so linking does not cause duplicate Nuxt loading (E1001).
 
-모듈이 Vue·Vue Router·VueFire·Firebase·TipTap dedupe를 자동 적용한다. 배포 전에는 의존성을 **npm 버전**으로 되돌린다.
+The module automatically dedupes Vue · Vue Router · VueFire · Firebase · TipTap. Before deploying, switch dependencies back to **npm versions**.
 
-링크 상태에서 새 Tailwind 클래스를 바로 시험하려면 호스트 CSS에 소스 경로를 하나 더 둔다.
+To try new Tailwind classes right away while linked, add one more source path to the host CSS.
 
 ```css
 @source "../../../node_modules/memi-board/src/components";
 @source "../../../node_modules/memi-board/dist/runtime/components";
 ```
 
-### OG 메타가 비어 있거나 카톡 미리보기가 안 될 때
+### OG meta is empty or link previews do not work
 
-1. 공개 경로가 `ssr: false`로 꺼져 있지 않은지 (`routeRules`)
-2. 페이지에 `await useMemiBoardListSeo` / `useMemiBoardPostSeo` 호출 여부
+1. Check that public paths are not turned off with `ssr: false` (`routeRules`)
+2. Check that the page calls `await useMemiBoardListSeo` / `useMemiBoardPostSeo`
 3. `memiBoard.seo.siteUrl` · `siteName` · `defaultOgImage`
-4. `curl` / view-source 에 `og:title` 이 있는지 (Elements만 보지 말 것)
-5. 글이 `listed` / 숨김 게시판이 아닌지 (숨김은 noindex)
-6. 배포 URL로 재스크랩 (카톡·FB 캐시)
+4. Check that `og:title` is in `curl` / view-source (don't look only at Elements)
+5. Check that the post is `listed` / not on a hidden board (hidden boards are noindex)
+6. Re-scrape with the deployed URL (KakaoTalk / Facebook caches)
 
-## 로컬 개발 (이 리포)
+## Local development (this repo)
 
 ```bash
 pnpm install
 pnpm build
 pnpm dev:prepare
 pnpm dev           # playground
-pnpm build:watch   # src 변경 시 dist 갱신
+pnpm build:watch   # rebuild dist when src changes
 ```
 
-에뮬레이터:
+Emulators:
 
 ```bash
 firebase emulators:start --project demo-memi-board
 NUXT_PUBLIC_USE_EMULATORS=1 pnpm dev
 ```
 
-정리 기능의 권한 회귀 테스트(Java 21+와 Firebase CLI 필요):
+Permission regression tests for the cleanup feature (requires Java 21+ and the Firebase CLI):
 
 ```bash
 pnpm build
@@ -730,28 +730,28 @@ pnpm test:cleanup
 firebase emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'
 ```
 
-공지(pinned) 권한 회귀 테스트:
+Notice (pinned) permission regression tests:
 
 ```bash
 firebase emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
 ```
 
-## npm 배포
+## Publishing to npm
 
-npm Trusted Publishing(OIDC)을 사용한다. 장기 `NPM_TOKEN`이나 로컬 OTP는 저장하지 않는다.
+npm Trusted Publishing (OIDC) is used. No long-lived `NPM_TOKEN` or local OTP is stored.
 
-1. `package.json`, `CHANGELOG.md`, 인앱 `versionHistory`의 버전을 갱신하고 `main`에 푸시한다.
-2. `main` 푸시로 `.github/workflows/publish.yml`이 실행된다.
-3. 이미 발행된 버전인지 확인한 뒤 빌드·타입 검사·회귀 테스트·Firebase 보안 규칙 테스트·패키지 dry-run을 거쳐 npm에 배포한다.
+1. Update the version in `package.json`, `CHANGELOG.md`, and the in-app `versionHistory`, then push to `main`.
+2. Pushing to `main` runs `.github/workflows/publish.yml`.
+3. After checking whether the version is already published, it builds, type-checks, runs regression tests, Firebase security rules tests, and a package dry-run, then publishes to npm.
 
-npm 패키지 설정의 Trusted Publisher는 GitHub 저장소 `fkkmemi/memi-board`, workflow `publish.yml`로 등록한다. GitHub Environment `npm-publish`에 승인자를 지정하면 워크플로 실행 뒤 실제 npm 배포 전에 한 번 더 승인할 수 있다.
+In the npm package settings, register the Trusted Publisher as GitHub repository `fkkmemi/memi-board`, workflow `publish.yml`. If you assign approvers to the GitHub Environment `npm-publish`, you can approve once more after the workflow runs and before the actual npm publish.
 
-## 버전 · 라이선스
+## Version · License
 
 - UI: `<MemiBoardVersionHistory />`
-- 상세: [CHANGELOG.md](CHANGELOG.md)
+- Details: [CHANGELOG.md](CHANGELOG.md)
 - **MIT**
 
-### 0.46 역할 및 서비스별 명칭
+### 0.46 roles and per-service names
 
-5개 역할과 게시판별 매니저 범위, `roleLabels`, 호스트 마이그레이션 절차는 [역할 마이그레이션](docs/roles-migration.md)을 참고한다. 설정 접근에는 `canConfigureBoard()`를 사용한다.
+For the 5 roles, per-board manager scope, `roleLabels`, and the host migration procedure, see [role migration](docs/roles-migration.md). Use `canConfigureBoard()` for settings access.

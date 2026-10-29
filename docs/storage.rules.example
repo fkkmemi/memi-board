@@ -1,10 +1,10 @@
 // memi-board 0.45.1+ Storage Rules (flat schema, ownerUid metadata)
 // memiBoardPosts/{postId}/attachments|images|comment-images/...
-// postId 가 전역 고유이므로 boardId prefix 는 더 이상 필요 없음.
-// 부모/호스트 Firebase 프로젝트에서 Storage 서비스 계정에
-// roles/firebaserules.firestoreServiceAgent 역할을 설정해야 한다.
-// firestore.exists/get 조회 권한이 없으면 이미지·첨부 업로드·파일 삭제가 unauthorized로 실패한다.
-// 설정 및 확인 절차: docs/firebase-setup.md의 Storage 규칙의 Firestore 조회 권한 절.
+// postId is globally unique, so the boardId prefix is no longer needed.
+// In the host app's Firebase project, the Storage service account must be granted
+// the roles/firebaserules.firestoreServiceAgent role.
+// Without firestore.exists/get read access, image/attachment uploads and file deletes fail as unauthorized.
+// Setup and verification: the "Firestore read access for Storage rules" section of docs/firebase-setup.md.
 
 rules_version = '2';
 service firebase.storage {
@@ -41,12 +41,12 @@ service firebase.storage {
         && firestore.get(postPath).data.authorUid == request.auth.uid;
     }
 
-    // 글 삭제 시 패키지가 images/·attachments/·comment-images/ 를 listAll 한다.
-    // 0.38.0 이하는 부모 경로 listAll(memiBoardPosts/{postId}) 를 쓴다.
-    // 요청 접두사는 항상 memiBoardPosts/{postId}/ (끝 슬래시) 이라
-    // match /memiBoardPosts/{postId} { allow list } 만으로는 403 이 난다.
-    // {allPaths=**} 가 0칸 이상을 받아 폴더 목록과 파일 get/delete 에 필요하다.
-    // write 는 여기에 넣지 않는다 — 용량·image/* 제한은 아래 세부 match 가 담당.
+    // When a post is deleted, the package runs listAll on images/, attachments/, and comment-images/.
+    // 0.38.0 and earlier use listAll on the parent path (memiBoardPosts/{postId}).
+    // The request prefix is always memiBoardPosts/{postId}/ (with a trailing slash), so
+    // match /memiBoardPosts/{postId} { allow list } alone results in a 403.
+    // {allPaths=**} matches zero or more segments and is needed for folder listing and file get/delete.
+    // Don't put write here — the size and image/* limits are handled by the more specific matches below.
     // Global admin maintenance lists the collection root to find abandoned uploads.
     match /memiBoardPosts/{allPaths=**} {
       allow list: if isBoardStaff();
@@ -67,9 +67,9 @@ service firebase.storage {
 
     match /memiBoardPosts/{postId}/images/{allPaths=**} {
       allow get: if true;
-      // 글쓰기 화면은 Firestore 문서를 만들기 전에 Storage 경로(미리 딴 postId)로
-      // 올린다. 붙여넣기 이미지는 image/png 등이 온다.
-      // 기존 글은 작성자/스태프만 수정한다. 아직 저장하지 않은 파일은 ownerUid로 보호한다.
+      // The editor uploads to the Storage path (using a pre-generated postId) before creating the
+      // Firestore document. Pasted images arrive as image/png, etc.
+      // Existing posts can be modified only by the author/staff. Files not yet saved are protected by ownerUid.
       allow create, update: if canWritePostFile(postId)
         && request.resource != null
         && request.resource.size < 5 * 1024 * 1024
@@ -77,9 +77,9 @@ service firebase.storage {
       allow delete: if canDeletePostFile(postId);
     }
 
-    // 댓글 이미지. 댓글 문서보다 먼저 올라오므로 여기서는 Firestore를 읽지 않는다.
-    // 삭제는 올린 사람(ownerUid) 또는 글 작성자·전역 admin/owner.
-    // 글 삭제는 글 문서가 남아 있는 동안 canDeletePostFile 로 이 폴더를 비운다.
+    // Comment images. These are uploaded before the comment document, so Firestore is not read here.
+    // Deletion: the uploader (ownerUid), or the post author / a global admin/owner.
+    // Post deletion empties this folder via canDeletePostFile while the post document still exists.
     match /memiBoardPosts/{postId}/comment-images/{commentId}/{fileName} {
       allow get: if true;
       allow create: if isSignedIn()
@@ -92,7 +92,7 @@ service firebase.storage {
       );
     }
 
-    // 프로필 사진 — 경로가 uid로 고정돼 있어 본인만 쓸 수 있다. 공개 프로필의 일부라 읽기는 전체 공개.
+    // Profile photo — the path is fixed to the uid, so only the user can write. Reads are public since it is part of the public profile.
     match /memiBoardUsers/{uid}/avatar.jpg {
       allow get: if true;
       allow write: if isSignedIn()
