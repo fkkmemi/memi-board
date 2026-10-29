@@ -81,10 +81,35 @@ export function mergeSourceFields(
   return out
 }
 
-/** 지원 언어 10개 모두 해당 필드를 가졌는지. */
-export function coversLocales(i18n: MemiBoardI18nMap | undefined, fields: string[]): boolean {
+/**
+ * 보드가 번역할 언어. `translationLocales` 가 비어 있으면 지원 언어 전체.
+ * 지원하지 않는 코드와 중복은 버리고 MEMI_BOARD_LOCALES 순서로 돌려준다.
+ */
+export function boardTranslationLocales(board?: { translationLocales?: readonly string[] | null } | null): MemiBoardLocale[] {
+  const picked = new Set(
+    (board?.translationLocales ?? [])
+      .map(code => normalizeMemiBoardLocale(code))
+      .filter((code): code is MemiBoardLocale => !!code),
+  )
+  const all = MEMI_BOARD_LOCALES.map(item => item.code)
+  return picked.size ? all.filter(code => picked.has(code)) : all
+}
+
+/** Firestore 값 → 저장용 번역 언어 목록. 전체를 고른 경우는 빈 배열(= 전체)로 둔다. */
+export function readTranslationLocales(raw: unknown): MemiBoardLocale[] {
+  if (!Array.isArray(raw)) return []
+  const picked = boardTranslationLocales({ translationLocales: raw.filter((v): v is string => typeof v === 'string') })
+  return picked.length === MEMI_BOARD_LOCALES.length ? [] : picked
+}
+
+/** locales(기본: 지원 언어 전체)가 모두 해당 필드를 가졌는지. */
+export function coversLocales(
+  i18n: MemiBoardI18nMap | undefined,
+  fields: string[],
+  locales: readonly MemiBoardLocale[] = MEMI_BOARD_LOCALES.map(item => item.code),
+): boolean {
   if (!i18n || !fields.length) return false
-  return MEMI_BOARD_LOCALES.every(item => fields.every(field => !!pickField(i18n[item.code], field)))
+  return locales.every(code => fields.every(field => !!pickField(i18n[code], field)))
 }
 
 /**
@@ -158,11 +183,12 @@ export function boardCopyIsTranslated(board: {
   description?: string
   i18n?: MemiBoardI18nMap
   i18nSource?: MemiBoardI18nSource
+  translationLocales?: readonly string[]
 }): boolean {
   const label = board.label.trim()
   const description = (board.description ?? '').trim()
   if (!label || !board.i18nSource) return false
   if (board.i18nSource.label !== label) return false
   if ((board.i18nSource.description ?? '') !== description) return false
-  return coversLocales(board.i18n, description ? ['label', 'description'] : ['label'])
+  return coversLocales(board.i18n, description ? ['label', 'description'] : ['label'], boardTranslationLocales(board))
 }

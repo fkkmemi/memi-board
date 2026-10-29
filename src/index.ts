@@ -185,6 +185,7 @@ export {
   readI18nSource,
   mergeSourceFields,
   coversLocales,
+  boardTranslationLocales,
   displayStoredField,
   displayPostTitle,
   displayPostSummary,

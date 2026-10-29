@@ -17,6 +17,7 @@ import {
   useMemiBoardAuth,
   useMemiBoardPosts,
   useMemiBoardModeration,
+  boardTranslationLocales,
   useMemiBoardI18n,
   useMemiBoardSettings,
   hasBodyImage,
@@ -59,6 +60,8 @@ const attachments = ref<Attachment[]>([])
 
 /** 이미지 리스트뷰 보드 — 제목 없음, 이미지만 있어도 작성 가능 */
 const isImageEditor = computed(() => getBoard(resolvedBoardId.value)?.editorType === 'image')
+/** 보드 설정의 번역 언어(비어 있으면 전체) */
+const translationTargets = computed(() => boardTranslationLocales(getBoard(resolvedBoardId.value)))
 const isEdit = computed(() => Boolean(props.postId))
 
 const loading = ref(false)
@@ -663,7 +666,7 @@ const aiMenuItems = computed(() => [
     { label: t('editor.ai.summarize'), icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
   ],
   ...(translationEnabled.value ? [[
-    { label: t('editor.ai.translateAll'), icon: 'i-lucide-languages', onSelect: () => translateAllLocales() },
+    { label: t('editor.ai.translateAll', { count: translationTargets.value.length }), icon: 'i-lucide-languages', onSelect: () => translateAllLocales() },
   ]] : []),
   [
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
@@ -757,6 +760,7 @@ async function translateAllLocales() {
   try {
     const translations = await translatePost({
       source: locale.value,
+      targets: translationTargets.value,
       title: storedTitle,
       summary,
       content: plainTextFromHtml(body) ? body : '',
@@ -765,12 +769,12 @@ async function translateAllLocales() {
       await savePostTranslations(props.postId, translations)
       pendingTranslations.value = null
       pendingTranslationKey.value = ''
-      aiNotice.value = t('editor.ai.translateSaved')
+      aiNotice.value = t('editor.ai.translateSaved', { count: translationTargets.value.length })
     }
     else {
       pendingTranslations.value = translations
       pendingTranslationKey.value = translationKey(body, storedTitle)
-      aiNotice.value = t('editor.ai.translatePending')
+      aiNotice.value = t('editor.ai.translatePending', { count: translationTargets.value.length })
     }
   }
   catch (cause) {
@@ -1055,9 +1059,10 @@ async function handleSubmit() {
       ? pendingTranslations.value
       : undefined
     if (!props.postId && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
-      submitHint.value = t('editor.hint.translating')
+      submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
       translations = await translatePost({
         source: locale.value,
+        targets: translationTargets.value,
         title: storedTitle,
         summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,
         content: plainTextFromHtml(bodyContent) ? bodyContent : '',

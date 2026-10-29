@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { boardCopyIsTranslated, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 
@@ -53,6 +53,17 @@ function fromLocaleOption(value: string) {
   return value === LOCALE_AUTO ? '' : value
 }
 
+// 번역 언어: 보드 이름·설명과 글을 이 언어들로만 번역한다. 전체를 고르면 빈 배열(= 전체)로 저장한다.
+const translationLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
+function translationCount(board: { translationLocales?: string[] }) {
+  return boardTranslationLocales(board).length
+}
+function setTranslationLocales(board: { translationLocales?: string[] }, value: unknown) {
+  const codes = Array.isArray(value) ? value.filter((code): code is string => typeof code === 'string') : []
+  if (!codes.length) return
+  board.translationLocales = (codes.length === MEMI_BOARD_LOCALES.length ? [] : codes) as typeof board.translationLocales
+}
+
 const { isAdmin, canConfigureBoard, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, translateBoard } = useMemiBoardSettings()
 const canManage = computed(() => canConfigureBoard(props.categoryId) || props.authorized)
@@ -89,6 +100,7 @@ function emptyDraft(id: string): BoardCategory {
     locale: '',
     autoTranslate: false,
     autoTranslatePosts: false,
+    translationLocales: [],
   }
 }
 
@@ -113,6 +125,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     locale: category.locale ?? '',
     autoTranslate: category.autoTranslate === true,
     autoTranslatePosts: category.autoTranslatePosts === true,
+    translationLocales: [...(category.translationLocales ?? [])],
   }
 }
 
@@ -165,7 +178,7 @@ async function translateCopy() {
   }
   catch (cause) {
     console.warn('[memi-board] board translation failed', cause)
-    if (draft.value === current) error.value = t('settings.autoTranslate.manualFailed')
+    if (draft.value === current) error.value = t('settings.autoTranslate.manualFailed', { count: translationCount(current ?? {}) })
   }
   finally {
     translating.value = false
@@ -202,7 +215,7 @@ async function save() {
     saved.value = true
     translatedDraft.value = false
     emit('saved', snapshot)
-    if (translateFailed) error.value = t('settings.autoTranslate.failed')
+    if (translateFailed) error.value = t('settings.autoTranslate.failed', { count: translationCount(snapshot) })
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
@@ -278,7 +291,7 @@ async function save() {
         <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating" @update:model-value="saved = false" />
         <UButton
           v-if="translationEnabled"
-          :label="t('settings.autoTranslate.action')"
+          :label="t('settings.autoTranslate.action', { count: translationCount(draft) })"
           icon="i-lucide-languages"
           color="neutral"
           variant="outline"
@@ -302,21 +315,36 @@ async function save() {
         />
         <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
-            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+            <p class="text-sm font-medium">{{ t('settings.autoTranslate.label', { count: translationCount(draft) }) }}</p>
+            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help', { count: translationCount(draft) }) }}</p>
           </div>
           <USwitch v-model="draft.autoTranslate" size="sm" @update:model-value="saved = false" />
         </div>
-        <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
-        <p v-if="translationEnabled && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
+        <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp', { count: translationCount(draft) }) }}</p>
+        <p v-if="translationEnabled && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready', { count: translationCount(draft) }) }}</p>
       </div>
     </div>
     <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
       <div>
         <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
-        <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help', { count: translationCount(draft) }) }}</p>
       </div>
       <USwitch v-model="draft.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="saved = false" />
+    </div>
+    <div v-if="translationEnabled" class="flex flex-col gap-2">
+      <div>
+        <p class="text-sm font-medium">{{ t('settings.translationLocales.label') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.translationLocales.help') }}</p>
+      </div>
+      <USelectMenu
+        :model-value="boardTranslationLocales(draft)"
+        :items="translationLocaleItems"
+        value-key="value"
+        multiple
+        class="w-full"
+        :aria-label="t('settings.translationLocales.label')"
+        @update:model-value="setTranslationLocales(draft, $event); saved = false"
+      />
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
       <div>

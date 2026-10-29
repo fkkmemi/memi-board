@@ -4,9 +4,19 @@
 
 ## [Unreleased]
 
+### Added
+- 보드 설정에 "번역 언어"를 추가했다(`BoardModel.translationLocales`). 보드 이름·설명 번역과 글 번역(자동 번역·글쓰기 도우미 "번역해 저장")이 고른 언어만 번역한다. 비어 있으면 지원 언어 전체(기존과 같음). 전체를 고르면 빈 배열로 저장해 나중에 추가되는 언어도 포함한다.
+- `boardTranslationLocales(board)` — 보드의 번역 대상 언어 목록. `translatePost({ targets })`, `coversLocales(i18n, fields, locales)`도 대상 언어를 받는다.
+
 ### Changed
+- 번역 관련 문구의 "10개 언어"를 실제 번역 언어 수로 표시한다.
 - 게시판 정보 모달의 소개 문장을 10개 언어로 채웠다(일본어·중국어·독일어·프랑스어·스페인어·포르투갈어·인도네시아어·아랍어 추가).
 - 버전 히스토리를 한국어·영어로 쓴다. `VersionHistoryEntry`에 `highlightsEn`·`noteEn`을 추가했고, 한국어가 아닌 화면 언어에서는 영어를 보여 준다.
+
+### 호스트(부모) 작업
+- 패키지 버전 올리기. 기존 보드는 번역 언어가 비어 있어 지금처럼 10개 언어로 번역된다.
+- Firestore 규칙 변경 없음(`memiBoardSettings`의 `translationLocales` 필드는 기존 규칙으로 저장된다).
+- 호스트가 `translatePost`를 직접 부르고 있다면, 보드 설정을 따르게 하려면 `targets: boardTranslationLocales(board)`를 넘긴다.
 
 ## [0.51.2] - 2026-10-29
 

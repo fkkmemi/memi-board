@@ -6,7 +6,7 @@ import { assertMemiBoardTranslationEnabled, useBoardPathConfig, useMemiBoardConf
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
 import { plainTextFromHtml } from '../utils/postBody'
-import { coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
+import { boardTranslationLocales, coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { translate, type MemiBoardMessageParams } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -263,12 +263,16 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
    */
   async function translatePost(input: {
     source?: MemiBoardLocale
+    /** 번역할 언어. 기본: 지원 언어 전체(보드 설정은 boardTranslationLocales 로 넘긴다) */
+    targets?: MemiBoardLocale[]
     title?: string
     summary?: string
     content?: string
   }): Promise<PostTranslationSet> {
     assertMemiBoardTranslationEnabled()
     const source = input.source ?? locale.value
+    const targets = input.targets?.length ? input.targets : boardTranslationLocales()
+    const required = [...targets, source]
     const title = input.title?.trim() ?? ''
     const summary = input.summary?.trim() ?? ''
     const content = input.content ?? ''
@@ -278,7 +282,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     const hasText = !!plainTextFromHtml(content)
     if (!Object.keys(fields).length && !hasText) throw new Error(t('writingAssistant.translateEmpty'))
     if (hasText && content.length > HTML_MAX_CHARS) {
-      throw new Error(t('writingAssistant.translateTooLong', { limit: HTML_MAX_CHARS }))
+      throw new Error(t('writingAssistant.translateTooLong', { limit: HTML_MAX_CHARS, count: targets.length }))
     }
 
     return withDailyUse(async () => {
@@ -291,14 +295,15 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
               context: 'message board post title and short summary',
             }], {
               source,
+              targets,
               purpose: 'message board post title and short summary',
             })
           : Promise.resolve(emptyFields),
-        hasText ? translateHtml(content, { source }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
+        hasText ? translateHtml(content, { source, targets }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
       ])
 
       const i18n = mergeSourceFields(source, fields, fieldMap.post)
-      if (Object.keys(fields).length && !coversLocales(i18n, Object.keys(fields))) {
+      if (Object.keys(fields).length && !coversLocales(i18n, Object.keys(fields), required)) {
         throw new Error(t('writingAssistant.translateIncomplete'))
       }
 
@@ -313,7 +318,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
           if (localeCode && typeof text === 'string' && text.trim()) htmlFields[localeCode] = { content: text.trim() }
         }
         const contentI18n = mergeSourceFields(source, { content }, htmlFields)
-        if (!coversLocales(contentI18n, ['content'])) throw new Error(t('writingAssistant.translateIncomplete'))
+        if (!coversLocales(contentI18n, ['content'], required)) throw new Error(t('writingAssistant.translateIncomplete'))
         result.contentI18n = contentI18n
         result.contentI18nSource = { locale: source, hash: hashText(content) }
       }

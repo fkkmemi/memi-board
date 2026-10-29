@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { boardCopyIsTranslated, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
@@ -58,6 +58,17 @@ function fromLocaleOption(value: string) {
   return value === LOCALE_AUTO ? '' : value
 }
 
+// 번역 언어: 보드 이름·설명과 글을 이 언어들로만 번역한다. 전체를 고르면 빈 배열(= 전체)로 저장한다.
+const translationLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
+function translationCount(board: { translationLocales?: string[] }) {
+  return boardTranslationLocales(board).length
+}
+function setTranslationLocales(board: { translationLocales?: string[] }, value: unknown) {
+  const codes = Array.isArray(value) ? value.filter((code): code is string => typeof code === 'string') : []
+  if (!codes.length) return
+  board.translationLocales = (codes.length === MEMI_BOARD_LOCALES.length ? [] : codes) as typeof board.translationLocales
+}
+
 const { isAdmin, rolePending } = useMemiBoardAuth()
 const { categories, settingsPending, saveCategory, saveCategories, deleteCategory, translateBoard } = useMemiBoardSettings()
 const canManage = computed(() => isAdmin.value || props.authorized)
@@ -109,6 +120,7 @@ watch([categories, settingsPending], ([list, loading]) => {
       locale: category.locale ?? '',
       autoTranslate: category.autoTranslate === true,
       autoTranslatePosts: category.autoTranslatePosts === true,
+      translationLocales: [...(category.translationLocales ?? [])],
     }))
   }
 }, { immediate: true })
@@ -133,6 +145,7 @@ function addCategory() {
     allowedManagerUids: [],
     locale: '',
     autoTranslatePosts: false,
+    translationLocales: [],
   })
   newLabel.value = ''
 }
@@ -194,7 +207,7 @@ async function translateCopy(category: BoardCategory) {
   }
   catch (cause) {
     console.warn('[memi-board] board translation failed', cause)
-    error.value = t('settings.autoTranslate.manualFailed')
+    error.value = t('settings.autoTranslate.manualFailed', { count: translationCount(category) })
   }
   finally {
     translatingId.value = null
@@ -228,7 +241,7 @@ async function save(category: BoardCategory, index: number) {
     savedId.value = category.id
     translatedDraftIds.value.delete(category.id)
     emit('saved', draft.value)
-    if (translateFailed) error.value = t('settings.autoTranslate.failed')
+    if (translateFailed) error.value = t('settings.autoTranslate.failed', { count: translationCount(category) })
   }
   catch (cause) {
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
@@ -347,7 +360,7 @@ async function runDeleteAll() {
             <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id" @update:model-value="savedId = null" />
             <UButton
               v-if="translationEnabled"
-              :label="t('settings.autoTranslate.action')"
+              :label="t('settings.autoTranslate.action', { count: translationCount(category) })"
               icon="i-lucide-languages"
               color="neutral"
               variant="outline"
@@ -371,21 +384,36 @@ async function runDeleteAll() {
             />
             <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
               <div>
-                <p class="text-sm font-medium">{{ t('settings.autoTranslate.label') }}</p>
-                <p class="text-xs text-muted">{{ t('settings.autoTranslate.help') }}</p>
+                <p class="text-sm font-medium">{{ t('settings.autoTranslate.label', { count: translationCount(category) }) }}</p>
+                <p class="text-xs text-muted">{{ t('settings.autoTranslate.help', { count: translationCount(category) }) }}</p>
               </div>
               <USwitch v-model="category.autoTranslate" size="sm" @update:model-value="savedId = null" />
             </div>
-            <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp') }}</p>
-            <p v-if="translationEnabled && boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready') }}</p>
+            <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp', { count: translationCount(category) }) }}</p>
+            <p v-if="translationEnabled && boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready', { count: translationCount(category) }) }}</p>
           </div>
         </div>
         <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
           <div>
             <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
-            <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help', { count: translationCount(category) }) }}</p>
           </div>
           <USwitch v-model="category.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="savedId = null" />
+        </div>
+        <div v-if="translationEnabled" class="flex flex-col gap-2">
+          <div>
+            <p class="text-sm font-medium">{{ t('settings.translationLocales.label') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.translationLocales.help') }}</p>
+          </div>
+          <USelectMenu
+            :model-value="boardTranslationLocales(category)"
+            :items="translationLocaleItems"
+            value-key="value"
+            multiple
+            class="w-full"
+            :aria-label="t('settings.translationLocales.label')"
+            @update:model-value="setTranslationLocales(category, $event); savedId = null"
+          />
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">
           <div>

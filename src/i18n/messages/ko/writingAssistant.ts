@@ -6,7 +6,7 @@ export default {
   customRequired: '어떻게 바꿀지 지시문을 입력해 주세요.',
   emptyResult: 'AI가 결과를 만들지 못했습니다. 다시 시도해 주세요.',
   translateEmpty: '번역할 제목이나 본문을 먼저 입력해 주세요.',
-  translateTooLong: '본문이 {limit}자를 넘으면 10개 언어로 저장할 수 없습니다. 줄인 뒤 다시 시도해 주세요.',
+  translateTooLong: '본문이 {limit}자를 넘으면 {count}개 언어로 저장할 수 없습니다. 줄인 뒤 다시 시도해 주세요.',
   translateIncomplete: '일부 언어 번역이 비었습니다. 다시 시도해 주세요.',
   failed: 'AI 작업에 실패했습니다. 다시 시도해 주세요.',
   actions: {
@@ -16,7 +16,7 @@ export default {
     summarize: '짧게 요약하기',
     translateEn: '영어로 번역',
     translateKo: '한국어로 번역',
-    translateAll: '10개 언어로 번역해 저장',
+    translateAll: '{count}개 언어로 번역해 저장',
     title: '본문에서 제목 만들기',
     custom: '커스텀 스타일로 바꾸기…',
   },

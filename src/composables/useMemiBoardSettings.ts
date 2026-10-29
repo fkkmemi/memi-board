@@ -28,11 +28,13 @@ import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { BoardModel, BoardVisibility } from '../types'
 import {
   boardCopyIsTranslated,
+  boardTranslationLocales,
   coversLocales,
   displayStoredField,
   mergeSourceFields,
   readI18nSource,
   readLocalizedFields,
+  readTranslationLocales,
 } from '../utils/localizedFields'
 import { useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
@@ -69,6 +71,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
     autoTranslate: data.autoTranslate === true,
     autoTranslatePosts: data.autoTranslatePosts === true,
+    translationLocales: readTranslationLocales(data.translationLocales),
     i18n: readLocalizedFields(data.i18n),
     i18nSource: readI18nSource(data.i18nSource),
   }
@@ -166,6 +169,8 @@ export function useMemiBoardSettings() {
       locale: normalizeMemiBoardLocale(board.locale) ?? '',
       autoTranslate: board.autoTranslate === true,
       autoTranslatePosts: board.autoTranslatePosts === true,
+      // 빈 배열 = 지원 언어 전체. 전체로 되돌릴 때도 이전 목록을 지우도록 항상 쓴다.
+      translationLocales: readTranslationLocales(board.translationLocales),
       ...(board.i18n ? { i18n: board.i18n } : {}),
       ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,
@@ -174,7 +179,7 @@ export function useMemiBoardSettings() {
   }
 
   /**
-   * 이름·설명이 바뀌었으면 10개 언어로 번역해 보드에 붙인다.
+   * 이름·설명이 바뀌었거나 번역 언어가 늘었으면 보드의 번역 언어로 번역해 붙인다.
    * 문구가 같으면 기존 번역을 그대로 둔다. 저장은 호출한 쪽이 한다.
    */
   async function translateBoard(board: BoardModel): Promise<BoardModel> {
@@ -185,6 +190,7 @@ export function useMemiBoardSettings() {
     if (boardCopyIsTranslated({ ...board, label, description })) return { ...board, label, description }
 
     const source = locale.value
+    const targets = boardTranslationLocales(board)
     const fields: Record<string, string> = { label }
     if (description) fields.description = description
     const translated = await translateEntries([{
@@ -193,11 +199,12 @@ export function useMemiBoardSettings() {
       context: board.id,
     }], {
       source,
+      targets,
       purpose: 'board name and short description shown in navigation and page headers',
     })
     const i18n = mergeSourceFields(source, fields, translated[board.id || 'board'])
-    if (!coversLocales(i18n, Object.keys(fields))) {
-      throw new Error(t('settings.autoTranslate.failed'))
+    if (!coversLocales(i18n, Object.keys(fields), [...targets, source])) {
+      throw new Error(t('settings.autoTranslate.failed', { count: targets.length }))
     }
     return {
       ...board,

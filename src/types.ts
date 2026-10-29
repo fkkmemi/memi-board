@@ -257,6 +257,11 @@ export interface BoardModel {
   autoTranslate?: boolean
   /** 새 글 작성 시 제목·요약·본문을 번역한다. 기본 false. */
   autoTranslatePosts?: boolean
+  /**
+   * 이름·설명과 글을 번역할 언어(MEMI_BOARD_LOCALES 코드).
+   * 비어 있거나 없으면 지원 언어 전체. 글쓴 언어(원문)는 번역하지 않는다.
+   */
+  translationLocales?: MemiBoardLocale[]
   /** 보드 목록 정렬 */
   order?: number
 }
