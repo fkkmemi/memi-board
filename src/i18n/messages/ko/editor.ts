@@ -4,6 +4,7 @@ export default {
   imageContentPlaceholder: '내용을 입력하세요…',
   tagsPlaceholder: '태그 입력 후 Enter',
   skipModeration: '비속어 필터 무시 (관리자)',
+  pinNotice: '공지로 등록',
   submitEdit: '수정 완료',
   submitNext: '다음: 미리보기',
   apply: '적용',

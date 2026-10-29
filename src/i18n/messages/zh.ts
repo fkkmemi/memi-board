@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: '输入内容…',
     tagsPlaceholder: '输入标签后按 Enter',
     skipModeration: '跳过敏感词过滤（管理员）',
+    pinNotice: '设为公告',
     submitEdit: '完成修改',
     submitNext: '下一步：预览',
     apply: '应用',

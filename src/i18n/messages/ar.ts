@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'اكتب شيئًا…',
     tagsPlaceholder: 'اكتب وسمًا واضغط Enter',
     skipModeration: 'تجاوز فلتر الألفاظ النابية (للمشرف)',
+    pinNotice: 'تثبيت كإعلان',
     submitEdit: 'حفظ التغييرات',
     submitNext: 'التالي: معاينة',
     apply: 'تطبيق',

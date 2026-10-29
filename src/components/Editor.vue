@@ -40,9 +40,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
-const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
+const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage, canManageBoard } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
-const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug } = useMemiBoardPosts(resolvedBoardId)
+const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순.
 const { t, dir, locale, translationEnabled } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
@@ -108,6 +108,11 @@ const aiPreviewLabels = computed(() => {
 })
 /** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
 const adminSkipModeration = ref(false)
+/** 공지 지정 — 게시된 글을 수정할 때 보드 매니저에게만 보인다. 새 글은 게시 후 상세에서 지정한다. */
+const pinned = ref(false)
+const loadedPinned = ref(false)
+const loadedPublished = ref(false)
+const canPin = computed(() => isEdit.value && loadedPublished.value && canManageBoard(resolvedBoardId.value))
 
 const attachmentNamespace = ref(props.postId ?? createPostId())
 const uploadedEditorImages = ref<EditorImageEntry[]>([])
@@ -944,6 +949,8 @@ async function loadPost(id: string) {
       return
     }
     title.value = post.title
+    pinned.value = loadedPinned.value = post.pinned === true
+    loadedPublished.value = post.isPublished === true
     tags.value = post.tags ?? []
     attachments.value = post.attachments ?? []
     attachmentNamespace.value = id
@@ -1071,6 +1078,10 @@ async function handleSubmit() {
 
     if (props.postId) {
       await updatePost(props.postId, payload)
+      if (canPin.value && pinned.value !== loadedPinned.value) {
+        await setPostPinned(props.postId, pinned.value)
+        loadedPinned.value = pinned.value
+      }
       emit('saved', props.postId)
     }
     else {
@@ -1422,10 +1433,17 @@ async function handleSubmit() {
     </p>
 
     <div
-      v-if="isAdmin"
-      class="flex items-center gap-2"
+      v-if="isAdmin || canPin"
+      class="flex flex-wrap items-center gap-x-6 gap-y-2"
     >
       <USwitch
+        v-if="canPin"
+        v-model="pinned"
+        size="sm"
+        :label="t('editor.pinNotice')"
+      />
+      <USwitch
+        v-if="isAdmin"
         v-model="adminSkipModeration"
         size="sm"
         :label="t('editor.skipModeration')"

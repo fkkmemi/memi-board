@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Écrivez quelque chose…',
     tagsPlaceholder: 'Saisissez un tag puis Entrée',
     skipModeration: 'Ignorer le filtre de grossièretés (admin)',
+    pinNotice: 'Épingler en annonce',
     submitEdit: 'Enregistrer les modifications',
     submitNext: 'Suivant : aperçu',
     apply: 'Appliquer',

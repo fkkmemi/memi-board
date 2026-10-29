@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Escribe algo…',
     tagsPlaceholder: 'Escribe una etiqueta y presiona Enter',
     skipModeration: 'Omitir filtro de groserías (admin)',
+    pinNotice: 'Fijar como aviso',
     submitEdit: 'Guardar cambios',
     submitNext: 'Siguiente: vista previa',
     apply: 'Aplicar',

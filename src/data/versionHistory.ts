@@ -11,6 +11,13 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.51.1',
+    date: '2026-10-29',
+    highlights: [
+      '글 수정 화면에서도 공지로 등록하거나 해제할 수 있어요',
+    ],
+  },
+  {
     version: '0.51.0',
     date: '2026-10-29',
     highlights: [

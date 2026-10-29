@@ -4,6 +4,7 @@ export default {
   imageContentPlaceholder: 'Write something…',
   tagsPlaceholder: 'Type a tag and press Enter',
   skipModeration: 'Skip profanity filter (admin)',
+  pinNotice: 'Pin as notice',
   submitEdit: 'Save changes',
   submitNext: 'Next: Preview',
   apply: 'Apply',

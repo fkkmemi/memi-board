@@ -284,7 +284,6 @@ function postTo(post: PostModel): string | undefined {
       v-if="!postsPending && !loadError && notices.length"
       :posts="notices"
       :post-to="postTo"
-      :now="now"
       @select="emit('select', $event)"
     />
 

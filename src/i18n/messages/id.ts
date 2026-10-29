@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Tulis sesuatu…',
     tagsPlaceholder: 'Ketik tag lalu tekan Enter',
     skipModeration: 'Lewati filter kata kasar (admin)',
+    pinNotice: 'Jadikan pengumuman',
     submitEdit: 'Simpan perubahan',
     submitNext: 'Berikutnya: Pratinjau',
     apply: 'Terapkan',

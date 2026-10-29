@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: '内容を入力…',
     tagsPlaceholder: 'タグを入力してEnter',
     skipModeration: '不適切表現フィルターを無視（管理者）',
+    pinNotice: 'お知らせとして固定',
     submitEdit: '編集を完了',
     submitNext: '次へ: プレビュー',
     apply: '適用',

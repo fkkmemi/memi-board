@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Escreva algo…',
     tagsPlaceholder: 'Digite uma tag e pressione Enter',
     skipModeration: 'Ignorar filtro de palavrões (admin)',
+    pinNotice: 'Fixar como aviso',
     submitEdit: 'Salvar alterações',
     submitNext: 'Próximo: prévia',
     apply: 'Aplicar',

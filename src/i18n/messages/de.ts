@@ -164,6 +164,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Text eingeben…',
     tagsPlaceholder: 'Tag eingeben, dann Enter',
     skipModeration: 'Schimpfwortfilter umgehen (Admin)',
+    pinNotice: 'Als Hinweis anheften',
     submitEdit: 'Änderungen speichern',
     submitNext: 'Weiter: Vorschau',
     apply: 'Übernehmen',
