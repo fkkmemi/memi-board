@@ -11,6 +11,15 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.48.0',
+    date: '2026-10-29',
+    highlights: [
+      '댓글과 답글에 이미지를 한 장 첨부할 수 있어요',
+      '큰 이미지는 올리기 전에 5MB 이하로 줄여요',
+      '글을 지우면 댓글 이미지도 함께 지워요',
+    ],
+  },
+  {
     version: '0.47.1',
     date: '2026-10-29',
     highlights: [

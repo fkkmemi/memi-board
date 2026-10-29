@@ -9,6 +9,7 @@ import {
 import type { UploadTask } from 'firebase/storage'
 import { useFirebaseApp } from 'vuefire'
 import { getAuth } from 'firebase/auth'
+import { isCommentImageFile } from '../utils/commentImages'
 import { safeFileName } from '../utils/slugify'
 import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
@@ -126,6 +127,87 @@ export function useMemiBoardStorage() {
   }
 
   /**
+   * 댓글 이미지 1장.
+   * `memiBoardPosts/{postId}/comment-images/{commentId}/{ts}-{name}.ext`
+   * 댓글 문서보다 먼저 올릴 수 있다. 저장 상한은 본문 이미지와 같은 5MB.
+   */
+  function uploadCommentImage(
+    file: File,
+    postId: string,
+    commentId: string,
+    onProgress?: (ratio: number) => void,
+  ): { promise: Promise<Attachment>, cancel: () => void } {
+    if (!isCommentImageFile(file)) throw new Error(t('commentForm.imageOnly'))
+    if (!/^[A-Za-z0-9]{10,128}$/.test(postId) || !/^[A-Za-z0-9]{10,128}$/.test(commentId)) {
+      throw new Error(t('commentForm.uploadFailed'))
+    }
+
+    const metadata = uploadMetadata()
+    const storage = getStorage(app)
+    let task: UploadTask | undefined
+    let cancelled = false
+    const promise = (async () => {
+      const optimized = await optimizeEditorImage(file, locale.value)
+      if (cancelled) throw new Error(t('commentForm.uploadFailed'))
+      let blob = optimized.blob
+      if (blob.size >= EDITOR_IMAGE_MAX_BYTES) {
+        blob = await compressImage(blob, { maxWidth: 2048, quality: 0.75 }, locale.value)
+      }
+      if (cancelled) throw new Error(t('commentForm.uploadFailed'))
+      if (blob.size >= EDITOR_IMAGE_MAX_BYTES) {
+        throw new Error(t('storage.tooLargeAfterCompress'))
+      }
+      const type = (blob.type || file.type || 'image/jpeg').toLowerCase()
+      const ext = type === 'image/png'
+        ? 'png'
+        : type === 'image/gif'
+          ? 'gif'
+          : type === 'image/webp'
+            ? 'webp'
+            : 'jpg'
+      const stem = safeFileName(file.name.replace(/\.[^.]+$/, '') || 'image', 40) || 'image'
+      const path = `${postStorageFolder(cfg(), postId)}/comment-images/${commentId}/${Date.now()}-${stem}.${ext}`
+      const fileRef = storageRef(storage, path)
+      task = uploadBytesResumable(fileRef, blob, {
+        customMetadata: metadata,
+        contentType: type,
+      })
+      if (cancelled) {
+        task.cancel()
+        throw new Error(t('commentForm.uploadFailed'))
+      }
+      await new Promise<void>((resolve, reject) => {
+        task!.on(
+          'state_changed',
+          (snapshot) => {
+            if (onProgress && snapshot.totalBytes > 0) {
+              onProgress(snapshot.bytesTransferred / snapshot.totalBytes)
+            }
+          },
+          reject,
+          () => resolve(),
+        )
+      })
+      const url = await getDownloadURL(fileRef)
+      return {
+        name: file.name || `image.${ext}`,
+        url,
+        path,
+        size: blob.size,
+        type,
+      }
+    })()
+
+    return {
+      promise,
+      cancel: () => {
+        cancelled = true
+        task?.cancel()
+      },
+    }
+  }
+
+  /**
    * 에디터 본문 이미지: 원본 + 400px JPEG 썸네일.
    * Storage:
    *   `memiBoardPosts/{postId}/images/{ts}-{name}.ext`
@@ -187,6 +269,7 @@ export function useMemiBoardStorage() {
   return {
     uploadAttachment,
     deleteAttachment,
+    uploadCommentImage,
     uploadEditorImage,
     deleteEditorImage,
     uploadAvatar,

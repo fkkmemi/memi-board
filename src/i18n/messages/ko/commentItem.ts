@@ -7,6 +7,7 @@ export default {
   blindFailed: '블라인드 상태를 변경하지 못했습니다.',
   likeFailed: '좋아요를 처리하지 못했습니다.',
   blinded: '관리자에 의해 블라인드된 댓글입니다.',
+  attachedImage: '댓글에 첨부된 이미지',
   edit: '댓글 수정',
   blind: '댓글 블라인드',
   unblind: '댓글 블라인드 해제',

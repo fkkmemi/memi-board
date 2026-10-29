@@ -158,6 +158,11 @@ export interface CommentModel {
   isReply?: boolean
   /** 클라이언트 트랜잭션으로 증감하는 UI 편의 필드. 기존 댓글에는 없을 수 있음(표시 시 0). */
   likeCount?: number
+  /**
+   * 댓글 이미지 1장. 없는 기존 댓글은 필드 자체가 없다.
+   * Storage: `{postsCollection}/{postId}/comment-images/{commentId}/...`
+   */
+  images?: Attachment[]
 }
 
 export type BoardUserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'user'

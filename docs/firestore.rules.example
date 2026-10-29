@@ -48,6 +48,35 @@ service cloud.firestore {
     function commentPath(commentId) {
       return /databases/$(database)/documents/memiBoardComments/$(commentId);
     }
+    // 댓글 이미지 1장. 없거나 빈 목록도 허용한다. 경로는 그 댓글 폴더만.
+    // 게시물 컬렉션 이름을 바꾼 호스트는 memiBoardPosts 접두사도 맞춘다.
+    function commentImageEntryValid(img, postId, commentId) {
+      return img.keys().hasOnly(['name', 'url', 'path', 'size', 'type'])
+        && img.name is string
+        && img.name.size() > 0
+        && img.name.size() <= 200
+        && img.url is string
+        && img.url.matches('https://.*')
+        && img.url.size() <= 2000
+        && img.path is string
+        && img.path.matches('^memiBoardPosts/' + postId + '/comment-images/' + commentId + '/[^/]+$')
+        && img.size is int
+        && img.size > 0
+        && img.size < 5 * 1024 * 1024
+        && img.type is string
+        && img.type.matches('image/.*');
+    }
+    function commentImagesValid(postId, commentId) {
+      return !request.resource.data.keys().hasAny(['images'])
+        || (
+          request.resource.data.images is list
+          && request.resource.data.images.size() <= 1
+          && (
+            request.resource.data.images.size() == 0
+            || commentImageEntryValid(request.resource.data.images[0], postId, commentId)
+          )
+        );
+    }
     function isValidPostLike(likeId) {
       return request.resource.data.keys().hasOnly(['uid', 'postId', 'boardId', 'createdAt'])
         && likeId == request.resource.data.postId + '_' + request.auth.uid;
@@ -352,6 +381,7 @@ service cloud.firestore {
         && request.resource.data.body is string
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
+        && commentImagesValid(request.resource.data.postId, commentId)
         && request.resource.data.moderationStatus == 'approved'
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId);
@@ -366,6 +396,7 @@ service cloud.firestore {
           && request.resource.data.postId == resource.data.postId
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
+          && commentImagesValid(request.resource.data.postId, commentId)
           && (
             request.resource.data.get('listed', true) == resource.data.get('listed', true)
             || isBoardManager(resource.data.boardId)

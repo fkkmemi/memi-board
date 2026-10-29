@@ -656,7 +656,7 @@ match /memiBoardPosts/{postId}/{allPaths=**} {
 
 `canDeletePostFile`과 관련 함수도 최신 `docs/storage.rules.example`에서 함께 병합한다. 글 문서가 없으면 로그인만으로 삭제를 허용하던 예전 조건(`!postExists`)은 사용하지 않는다.
 
-`write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 0.38.1+ 패키지는 `images/`·`attachments/`만 목록으로 비운다.
+`write` 는 이 블록에 넣지 않는다(용량·`image/*` 제한은 `images`/`attachments`/`comment-images` match 가 담당). `firebase deploy --only storage` 후 다시 삭제한다. 패키지는 `images/`·`attachments/`·`comment-images/` 만 목록으로 비운다. 댓글 이미지는 글 문서가 남아 있는 동안 지운다. 글 문서가 먼저 사라지면 댓글 작성자가 아닌 파일은 글 작성자가 지우지 못한다.
 
 목록 조회는 성공하지만 **개별 파일 삭제**가 거부되면, 위 [첨부파일 오류](#zip-등-첨부파일-storageunauthorized)와 같은 Firestore 조회 IAM 역할도 확인한다. 삭제 규칙 역시 글 소유권·사용자 역할을 Firestore에서 읽는다.
 

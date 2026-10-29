@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.48.0] - 2026-10-29
+
+### Added
+- 댓글과 답글에 이미지를 한 장 첨부할 수 있다. 본문은 필수이고, 이미지는 jpg, png, gif, webp이다. 큰 파일은 올리기 전에 5MB 이하로 줄인다.
+- 댓글 수정에서 이미지를 추가·교체·제거할 수 있다. 블라인드된 댓글에는 이미지를 보여 주지 않는다.
+
+### Changed
+- 글 삭제와 게시판 삭제는 글 문서가 남아 있는 동안 `comment-images/` 폴더와 댓글에 적힌 이미지 경로를 지운 다음 댓글 문서를 삭제한다.
+
+### 호스트 적용
+- `docs/storage.rules.example`의 `comment-images` 규칙과 `docs/firestore.rules.example`의 댓글 `images` 검사를 호스트 규칙에 병합하고 Storage·Firestore 규칙을 배포해야 업로드가 된다. 패키지만 갱신하면 댓글 이미지 업로드는 `storage/unauthorized`가 된다.
+
 ## [0.47.1] - 2026-10-29
 
 ### Fixed

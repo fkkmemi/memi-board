@@ -2,7 +2,8 @@
 import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, inject, ref, watch } from 'vue'
 import { Timestamp } from 'firebase/firestore'
-import type { CommentModel } from 'memi-board/runtime'
+import type { Attachment, CommentModel } from 'memi-board/runtime'
+import { useMemiBoardStorage } from 'memi-board/storage'
 import {
   COMMENT_BODY_MAX_LENGTH,
   memiBoardCommentLikesKey,
@@ -11,6 +12,7 @@ import {
   useMemiBoardI18n,
   useMemiBoardModeration,
 } from 'memi-board/runtime'
+import MemiBoardCommentImageField from './CommentImageField.vue'
 
 const props = defineProps<{
   comment: CommentModel
@@ -32,12 +34,16 @@ const { updateComment, setCommentBlinded } = useMemiBoardComments(
   { subscribe: false },
 )
 const { checkText } = useMemiBoardModeration()
+const { deleteAttachment } = useMemiBoardStorage()
 const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 const commentLikes = inject(memiBoardCommentLikesKey, null)
 
 const editing = ref(false)
 const editBody = ref(props.comment.body)
 const localBody = ref(props.comment.body)
+const localImage = ref<Attachment | null>(props.comment.images?.[0] ?? null)
+const editImage = ref<Attachment | null>(localImage.value)
+const imageBusy = ref(false)
 const localUpdatedAt = ref(props.comment.updatedAt)
 const localBlinded = ref(props.comment.isBlinded ?? false)
 const saving = ref(false)
@@ -48,9 +54,16 @@ const localLikeCount = ref(props.comment.likeCount ?? 0)
 const isLiked = computed(() => commentLikes?.isLiked(props.comment.id) ?? false)
 const likePending = computed(() => commentLikes?.isPending(props.comment.id) ?? false)
 
+const imageChanged = computed(() => (editImage.value?.path ?? '') !== (localImage.value?.path ?? ''))
+
 watch(() => props.comment.body, (body) => {
   localBody.value = body
   if (!editing.value) editBody.value = body
+})
+watch(() => props.comment.images, (images) => {
+  if (editing.value) return
+  localImage.value = images?.[0] ?? null
+  editImage.value = localImage.value
 })
 watch(() => props.comment.updatedAt, (updatedAt) => { localUpdatedAt.value = updatedAt })
 watch(() => props.comment.isBlinded, (isBlinded) => { localBlinded.value = isBlinded ?? false })
@@ -65,21 +78,27 @@ const blindLines = computed(() => Math.min(3, Math.max(1, Math.ceil(localBody.va
 
 function startEdit() {
   editBody.value = localBody.value
+  editImage.value = localImage.value
   editError.value = ''
   editing.value = true
 }
 
-function cancelEdit() {
+async function cancelEdit() {
+  const draft = editImage.value
+  const original = localImage.value
   editBody.value = localBody.value
+  editImage.value = original
   editError.value = ''
   editing.value = false
+  if (draft?.path && draft.path !== original?.path) await deleteAttachment(draft)
 }
 
 async function saveEdit() {
-  if (saving.value) return
+  if (saving.value || imageBusy.value) return
   const body = editBody.value.trim()
-  if (!props.comment.id || !body || body === localBody.value) {
-    if (body === localBody.value) editing.value = false
+  if (!props.comment.id || !body) return
+  if (body === localBody.value && !imageChanged.value) {
+    editing.value = false
     return
   }
   if (isWriteRestricted.value) {
@@ -95,10 +114,14 @@ async function saveEdit() {
       editError.value = moderation.reason || t('commentItem.moderationBlocked')
       return
     }
-    await updateComment(props.comment.id, body)
+    const previous = localImage.value
+    const next = editImage.value
+    await updateComment(props.comment.id, body, next ? [next] : [])
     localBody.value = body
+    localImage.value = next
     localUpdatedAt.value = Timestamp.now()
     editing.value = false
+    if (previous?.path && previous.path !== next?.path) await deleteAttachment(previous)
   }
   catch (cause) {
     editError.value = cause instanceof Error ? cause.message : t('commentItem.editFailed')
@@ -180,6 +203,14 @@ async function toggleLike() {
           :maxlength="COMMENT_BODY_MAX_LENGTH"
           autofocus
         />
+        <MemiBoardCommentImageField
+          v-if="comment.id"
+          v-model="editImage"
+          :post-id="postId"
+          :comment-id="comment.id"
+          :disabled="saving"
+          @busy="imageBusy = $event"
+        />
         <p class="text-right text-xs text-dimmed">
           {{ editBody.length.toLocaleString() }} / {{ COMMENT_BODY_MAX_LENGTH.toLocaleString() }}
         </p>
@@ -193,7 +224,7 @@ async function toggleLike() {
             size="xs"
             color="neutral"
             variant="ghost"
-            :disabled="saving"
+            :disabled="saving || imageBusy"
             @click="cancelEdit"
           />
           <UButton
@@ -203,7 +234,7 @@ async function toggleLike() {
             :label="t('common.action.save')"
             size="xs"
             :loading="saving"
-            :disabled="!editBody.trim() || editBody.trim() === localBody"
+            :disabled="!editBody.trim() || imageBusy || (editBody.trim() === localBody && !imageChanged)"
           />
         </div>
       </form>
@@ -223,10 +254,25 @@ async function toggleLike() {
           {{ t('commentItem.blinded') }}
         </div>
       </div>
-      <p v-else class="whitespace-pre-wrap break-words text-sm">
+      <div v-else>
+        <p class="whitespace-pre-wrap break-words text-sm">
           <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
           {{ localBody }}
-      </p>
+        </p>
+        <a
+          v-if="localImage"
+          :href="localImage.url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-2 inline-block"
+        >
+          <img
+            :src="localImage.url"
+            :alt="t('commentItem.attachedImage')"
+            class="max-h-60 max-w-full rounded-md border border-default object-contain"
+          >
+        </a>
+      </div>
       <p v-if="likeError" class="mt-1 text-xs text-error">
         {{ likeError }}
       </p>

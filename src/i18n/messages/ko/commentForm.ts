@@ -9,4 +9,10 @@ export default {
   submitReply: '답글 작성',
   submit: '댓글 작성',
   signInToComment: '댓글을 작성하려면 로그인이 필요합니다.',
+  attachHint: '여기에 이미지를 드롭하거나 클릭하세요.',
+  attachNote: 'jpg, png, gif, webp · 큰 이미지는 5MB 이하로 조정됩니다.',
+  removeImage: '첨부 이미지 제거',
+  imageOnly: 'jpg, png, gif, webp 이미지만 첨부할 수 있습니다.',
+  uploadFailed: '이미지를 올리지 못했습니다.',
+  uploading: '이미지 올리는 중…',
 }

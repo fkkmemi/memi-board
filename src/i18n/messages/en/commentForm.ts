@@ -9,4 +9,10 @@ export default {
   submitReply: 'Reply',
   submit: 'Comment',
   signInToComment: 'Sign in to leave a comment.',
+  attachHint: 'Drop an image here or click to choose one.',
+  attachNote: 'jpg, png, gif, webp. Large images are resized to 5MB or less.',
+  removeImage: 'Remove attached image',
+  imageOnly: 'Only jpg, png, gif, and webp images can be attached.',
+  uploadFailed: 'Couldn’t upload the image.',
+  uploading: 'Uploading image…',
 }

@@ -97,7 +97,7 @@ export default {
     create: '만들기',
   },
   newCategoryPlaceholder: '새 카테고리 이름',
-  deleteConfirm: '‘{label}’ 게시판을 삭제하시겠습니까?\n\n이 게시판의 모든 게시물, 댓글, 대댓글, 본문 이미지와 첨부파일이 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
+  deleteConfirm: '‘{label}’ 게시판을 삭제하시겠습니까?\n\n이 게시판의 모든 게시물, 댓글, 대댓글, 본문 이미지, 댓글 이미지와 첨부파일이 영구 삭제됩니다. 이 작업은 되돌릴 수 없습니다.',
   savedCategory: '‘{label}’ 카테고리를 저장했습니다.',
   savedSettings: '게시판 설정을 저장했습니다.',
   created: '게시판을 만들었습니다.',
@@ -109,7 +109,7 @@ export default {
   },
   danger: {
     title: '위험 영역',
-    description: '모든 게시글, 댓글, 첨부파일과 카테고리 설정을 영구 삭제합니다. 게시판 사용자와 관리자 권한은 유지합니다.',
+    description: '모든 게시글, 댓글, 댓글 이미지, 첨부파일과 카테고리 설정을 영구 삭제합니다. 게시판 사용자와 관리자 권한은 유지합니다.',
     confirmLabel: '확인을 위해 ‘{phrase}’를 입력하세요',
     phrase: '게시판 데이터 삭제',
     button: '모든 데이터 삭제',

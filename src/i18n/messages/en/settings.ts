@@ -97,7 +97,7 @@ export default {
     create: 'Create',
   },
   newCategoryPlaceholder: 'New category name',
-  deleteConfirm: 'Delete the “{label}” board?\n\nAll posts, comments, replies, inline images, and attachments on this board will be permanently deleted. This can’t be undone.',
+  deleteConfirm: 'Delete the “{label}” board?\n\nAll posts, comments, replies, inline images, comment images, and attachments on this board will be permanently deleted. This can’t be undone.',
   savedCategory: 'Saved the “{label}” category.',
   savedSettings: 'Board settings saved.',
   created: 'Board created.',
@@ -109,7 +109,7 @@ export default {
   },
   danger: {
     title: 'Danger zone',
-    description: 'Permanently deletes all posts, comments, attachments, and category settings. Board users and admin roles are kept.',
+    description: 'Permanently deletes all posts, comments, comment images, attachments, and category settings. Board users and admin roles are kept.',
     confirmLabel: 'Type “{phrase}” to confirm',
     phrase: 'delete board data',
     button: 'Delete all data',

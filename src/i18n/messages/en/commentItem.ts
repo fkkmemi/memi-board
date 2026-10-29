@@ -7,6 +7,7 @@ export default {
   blindFailed: 'Couldn’t change the hidden state.',
   likeFailed: 'Couldn’t process the like.',
   blinded: 'This comment was hidden by an admin.',
+  attachedImage: 'Image attached to the comment',
   edit: 'Edit comment',
   blind: 'Hide comment',
   unblind: 'Unhide comment',

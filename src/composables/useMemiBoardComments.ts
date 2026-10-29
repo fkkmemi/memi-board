@@ -1,8 +1,10 @@
 import { computed, onScopeDispose, ref, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter, Ref } from 'vue'
 import type { DocumentData, QueryDocumentSnapshot, Unsubscribe } from 'firebase/firestore'
-import { useFirestore } from 'vuefire'
+import { deleteObject, getStorage, ref as storageRef } from 'firebase/storage'
+import { useFirebaseApp, useFirestore } from 'vuefire'
 import {
+  deleteField,
   doc,
   documentId,
   getDocs,
@@ -21,11 +23,13 @@ import {
   commentDoc,
   commentsCol,
   postDoc,
+  postStorageFolder,
 } from '../utils/boardPaths'
+import { commentImagePathsUnder, normalizeCommentImages } from '../utils/commentImages'
 import { deleteLikesForComment } from '../utils/deletePostCascade'
 import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
-import type { CommentModel } from '../types'
+import type { Attachment, CommentModel } from '../types'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { MemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
@@ -34,6 +38,9 @@ export interface AddCommentInput {
   authorUid: string
   authorName: string | null
   authorPhoto: string | null
+  /** 이미지를 먼저 올린 경우 그 경로에 쓴 댓글 ID */
+  id?: string
+  images?: Attachment[]
 }
 
 export interface AddReplyInput extends AddCommentInput {
@@ -60,6 +67,7 @@ export function useMemiBoardComments(
   options: { subscribe?: boolean } = {},
 ) {
   const db = useFirestore()
+  const firebaseApp = useFirebaseApp()
   const cfg = () => useBoardPathConfig()
   const { isBoardHidden } = useMemiBoardSettings()
   const i18n = useMemiBoardI18n()
@@ -182,39 +190,66 @@ export function useMemiBoardComments(
     stopLiveSubscription?.()
   })
 
-  async function addComment(input: AddCommentInput): Promise<void> {
-    const body = normalizedCommentBody(input.body, i18n)
-    const batch = writeBatch(db)
-    const commentRef = doc(commentsColRef())
-    batch.set(commentRef, {
+  function newCommentId(): string {
+    return doc(commentsColRef()).id
+  }
+
+  function commentRefFor(inputId?: string) {
+    if (!inputId) return doc(commentsColRef())
+    if (!/^[A-Za-z0-9]{10,128}$/.test(inputId)) throw new Error(t('commentForm.uploadFailed'))
+    return commentDoc(db, cfg(), inputId)
+  }
+
+  function imagesFor(commentId: string, images: Attachment[] | null | undefined): Attachment[] {
+    const prefix = `${postStorageFolder(cfg(), id.value)}/comment-images/${commentId}/`
+    return normalizeCommentImages(images).filter(item => item.path.startsWith(prefix))
+  }
+
+  function commentPayload(input: AddCommentInput, commentId: string) {
+    const images = imagesFor(commentId, input.images)
+    return {
       postId: id.value,
       boardId: bid.value,
       listed: listedForBoard(),
-      body,
+      body: normalizedCommentBody(input.body, i18n),
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
-      moderationStatus: 'approved',
+      moderationStatus: 'approved' as const,
+      replyCount: 0,
+      likeCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...(images.length ? { images } : {}),
+    }
+  }
+
+  async function deleteStoredCommentImages(paths: string[]): Promise<void> {
+    if (!paths.length) return
+    const storage = getStorage(firebaseApp)
+    await Promise.all(paths.map(path => deleteObject(storageRef(storage, path)).catch(() => {})))
+  }
+
+  async function addComment(input: AddCommentInput): Promise<void> {
+    const batch = writeBatch(db)
+    const commentRef = commentRefFor(input.id)
+    batch.set(commentRef, {
+      ...commentPayload(input, commentRef.id),
       parentId: null,
       rootId: commentRef.id,
       depth: 0,
       replyToUid: null,
       replyToName: null,
-      replyCount: 0,
-      likeCount: 0,
       isReply: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     })
     batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(1) })
     await batch.commit()
   }
 
   async function addReply(input: AddReplyInput): Promise<void> {
-    const body = normalizedCommentBody(input.body, i18n)
     if (!input.parent.id) throw new Error(t('comments.replyTargetNotFound'))
     const batch = writeBatch(db)
-    const replyRef = doc(commentsColRef())
+    const replyRef = commentRefFor(input.id)
     const rootId = input.parent.parentId == null
       ? input.parent.id
       : input.parent.rootId
@@ -222,24 +257,13 @@ export function useMemiBoardComments(
     const depth = Math.min((input.parent.depth ?? 0) + 1, 2)
 
     batch.set(replyRef, {
-      postId: id.value,
-      boardId: bid.value,
-      listed: listedForBoard(),
-      body,
-      authorUid: input.authorUid,
-      authorName: input.authorName,
-      authorPhoto: input.authorPhoto,
-      moderationStatus: 'approved',
+      ...commentPayload(input, replyRef.id),
       parentId: input.parent.id,
       rootId,
       depth,
       replyToUid: input.parent.authorUid,
       replyToName: input.parent.authorName,
-      replyCount: 0,
-      likeCount: 0,
       isReply: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
     })
     batch.update(commentDoc(db, cfg(), rootId), { replyCount: increment(1) })
     batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(1) })
@@ -251,6 +275,10 @@ export function useMemiBoardComments(
     if (comment.parentId == null && (comment.replyCount ?? 0) > 0) {
       throw new Error(t('comments.hasRepliesCannotDelete'))
     }
+    const imagePaths = commentImagePathsUnder(
+      comment.images,
+      `${postStorageFolder(cfg(), id.value)}/comment-images/${comment.id}/`,
+    )
     await deleteLikesForComment(db, cfg(), comment.id)
     const batch = writeBatch(db)
     batch.delete(commentDoc(db, cfg(), comment.id))
@@ -259,16 +287,26 @@ export function useMemiBoardComments(
     }
     batch.update(postDoc(db, cfg(), id.value), { commentCount: increment(-1) })
     await batch.commit()
+    await deleteStoredCommentImages(imagePaths)
     pagedComments.value = pagedComments.value.filter(item => item.id !== comment.id)
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
   }
 
-  async function updateComment(commentId: string, body: string): Promise<void> {
+  async function updateComment(commentId: string, body: string, images?: Attachment[] | null): Promise<void> {
     const trimmed = normalizedCommentBody(body, i18n)
-    await updateDoc(commentDoc(db, cfg(), commentId), {
+    const patch: {
+      body: string
+      updatedAt: ReturnType<typeof serverTimestamp>
+      images?: Attachment[] | ReturnType<typeof deleteField>
+    } = {
       body: trimmed,
       updatedAt: serverTimestamp(),
-    })
+    }
+    if (images !== undefined) {
+      const normalized = imagesFor(commentId, images)
+      patch.images = normalized.length ? normalized : deleteField()
+    }
+    await updateDoc(commentDoc(db, cfg(), commentId), patch)
   }
 
   async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {
@@ -285,6 +323,7 @@ export function useMemiBoardComments(
     hasMore,
     loadingMore,
     loadMore,
+    newCommentId,
     addComment,
     addReply,
     updateComment,
