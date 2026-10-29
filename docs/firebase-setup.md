@@ -157,15 +157,14 @@ Google보다 손이 더 간다:
 
 ## 8. App Check 설정 (AI Logic Enforce 시 사실상 필수)
 
-AI Logic / `firebaseml` 이 **Enforce** 이면 App Check 토큰 없이 검열 API가 실패한다. memi-board는 App Check를 초기화하지 않는다 — **호스트 책임**.
+AI Logic / `firebaseml` 이 **Enforce** 이면 App Check 토큰 없이 검열 API가 실패한다. memi-board는 App Check를 초기화하지 않는다. **호스트 책임**이다. 기본값은 한 번만 쓰는 토큰(`useLimitedUseAppCheckTokens: true`)이라 reCAPTCHA v3 공급자로는 맞지 않는다. 플러그인 예시는 [README App Check 절](../README.md#app-check-ai-enforce-시-사실상-필수)을 따른다.
 
-1. Firebase 콘솔 → App Check → **웹 앱**에 reCAPTCHA v3 등록 (사이트 키·시크릿).  
-   등록하는 웹 앱의 **appId** 가 호스트 `vuefire.config.appId` 와 같아야 한다.
-2. 호스트 클라이언트 플러그인에서 `initializeAppCheck` + `ReCaptchaV3Provider` (README App Check 절 예시).  
-   `vuefire.appCheck` 옵션만 쓰는 방법도 있으나, AI Logic 연동 이슈 시 명시적 `initializeAppCheck` 를 쓴다.
-3. **로컬:** `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true`(콘솔에 UUID 출력 후 App Check → 디버그 토큰 등록) 또는 등록된 고정 UUID.
-4. **프로덕션:** 디버그 토큰 사용 금지. reCAPTCHA 도메인에 실제 호스트 도메인 등록.
-5. (선택) Firestore/Storage Enforce — 켜면 토큰 없는 요청 거부. AI Logic 과 별개 토글이다.
+1. reCAPTCHA Enterprise **점수형** 웹 키를 만들고, Firebase 콘솔 App Check의 웹 앱에 그 사이트 키를 등록한다. 등록하는 웹 앱의 **appId** 가 호스트 `vuefire.config.appId` 와 같아야 한다. 시크릿 키는 클라이언트에 넣지 않는다.
+2. 브라우저 API 키 제한에 **Firebase App Check API** 를 포함한다. 이미 허용한 API는 유지한다.
+3. SPA는 `app:mounted` 이후에 `enterprise.execute` 로 토큰을 만들어 `exchangeRecaptchaEnterpriseToken` 에 `limited_use: true` 로 교환한다. `ReCaptchaEnterpriseProvider` 는 마운트 전 빈 `document.body` 에 숨은 위젯을 그리다 `appCheck/recaptcha-error` 가 난다.
+4. **로컬:** `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true`(콘솔에 UUID 출력 후 App Check → 디버그 토큰 등록) 또는 등록된 고정 UUID.
+5. **프로덕션:** 디버그 토큰 사용 금지. reCAPTCHA 도메인에 실제 호스트 도메인 등록.
+6. 적용은 **AI Logic만** 켠다. Cloud Storage와 Cloud Firestore는 모니터링으로 둔다. 한 번용 토큰은 AI Logic만 받는다. Storage나 Firestore에 적용하면 이미지 업로드와 글 쓰기가 거절된다.
 
 ## 9. Firestore 복합 인덱스
 

@@ -486,40 +486,108 @@ Storage 예제의 파일 읽기·목록 조회는 공개다. 숨김 보드·비�
 
 ### AI 글쓰기 도우미 사용 제한
 
-에디터의 AI 글쓰기 도우미는 로그인 사용자별 24시간 구간에 최대 **10회** 사용할 수 있다.
-`memiBoardUsers/{uid}`의 `aiWritingCount` / `aiWritingWindowAt`을 Firestore 트랜잭션으로 갱신하므로 여러 탭에서 동시에 실행해도 제한을 넘지 않는다.
+에디터의 AI 글쓰기 도우미는 로그인 사용자별 24시간 구간에 최대 **10회** 사용할 수 있다. 호출 전에는 `aiWritingPending` 예약만 잡고, 모델 호출이 성공하면 `aiWritingCount`로 확정한다. 호출이 실패하면 예약만 되돌린다. 확정된 횟수는 내려가지 않는다. 예약과 확정은 `memiBoardUsers/{uid}`를 Firestore 트랜잭션으로 갱신하므로 여러 탭이 동시에 실행해도 합이 10을 넘지 않는다.
 
-호스트는 반드시 최신 `docs/firestore.rules.example`의 `memiBoardUsers/{uid}` 규칙을 실제 Firestore Rules에 병합·배포해야 한다. 규칙을 배포하지 않으면 클라이언트가 카운터를 임의로 수정해 제한을 우회할 수 있다.
+호스트는 반드시 최신 `docs/firestore.rules.example`의 `memiBoardUsers/{uid}` 규칙을 실제 Firestore Rules에 병합·배포해야 한다. 0.47.1부터는 예약 필드가 추가됐다. 규칙을 배포하지 않으면 새 패키지의 글쓰기 AI 횟수 갱신이 거절되거나, 예전 규칙만 있는 동안 클라이언트가 카운터를 임의로 수정해 제한을 우회할 수 있다.
 
 콘솔에서 **AI Logic(Gemini Developer API)** 활성화. 신규 프로젝트는 구형 `gemini-2.5-flash` 가 404 날 수 있음 → 3.x Flash / Flash-Lite 사용.
 
 ### App Check (AI Enforce 시 사실상 필수)
 
-`firebaseml` / AI Logic 이 **Enforce** 되어 있으면 App Check 토큰 없이 `generateContent` 가 실패한다.
+`firebaseml` / AI Logic 이 **Enforce** 되어 있으면 App Check 토큰 없이 `generateContent` 가 실패한다. memi-board는 App Check를 초기화하지 않는다. 기본값 `moderation.useLimitedUseAppCheckTokens: true` 는 **한 번만 쓰는 토큰**을 요구한다. reCAPTCHA v3의 `ReCaptchaV3Provider` 는 이 토큰을 만들지 않는다.
 
-1. 콘솔 App Check → 웹 앱에 **reCAPTCHA v3** 등록 (사이트 키·시크릿)
-2. 호스트에서 **`initializeAppCheck`** (memi-board 밖). 예:
+1. reCAPTCHA Enterprise에서 **점수형** 웹 키를 만든다. 체크박스 키와 v3 공급자는 쓰지 않는다. 도메인에는 실제 사이트 주소만 넣는다. 사이트 키는 공개 값이라 클라이언트 설정에 둔다. 시크릿 키는 클라이언트에 넣지 않는다. Firebase가 토큰을 교환한다.
+2. Firebase 콘솔 → App Check → 웹 앱에 그 사이트 키를 등록한다. 등록하는 웹 앱의 `appId` 가 `vuefire.config.appId` 와 같아야 한다.
+3. 브라우저 API 키의 API 제한에 **Firebase App Check API** 를 포함한다. 기존에 허용한 API는 빼지 않는다.
+4. 호스트 플러그인에서 마운트 후에 Enterprise 토큰을 교환한다. SPA는 첫 페인트 전에 `document.body` 가 비어 있어 `ReCaptchaEnterpriseProvider` 의 숨은 위젯이 `appCheck/recaptcha-error` 로 실패한다.
 
 ```ts
 // app/plugins/app-check.client.ts
-import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check'
+import { initializeAppCheck, CustomProvider } from 'firebase/app-check'
+import type { FirebaseApp } from 'firebase/app'
 import { useFirebaseApp } from 'vuefire'
 
-export default defineNuxtPlugin(() => {
-  if (!import.meta.client) return
-  // 로컬: self.FIREBASE_APPCHECK_DEBUG_TOKEN = true | '<등록된-uuid>'
-  initializeAppCheck(useFirebaseApp(), {
-    provider: new ReCaptchaV3Provider('<RECAPTCHA_SITE_KEY>'),
-    isTokenAutoRefreshEnabled: true,
+export default defineNuxtPlugin((nuxtApp) => {
+  const siteKey = String(useRuntimeConfig().public.recaptchaSiteKey || '').trim()
+  if (!siteKey) return
+  const app = useFirebaseApp()
+
+  nuxtApp.hook('app:mounted', () => {
+    initializeAppCheck(app, {
+      provider: new CustomProvider({
+        getToken: () => exchangeEnterpriseToken(app, siteKey),
+      }),
+      // 한 번용 토큰은 세션으로 갱신하지 않는다. AI SDK가 호출마다 getToken 한다.
+      isTokenAutoRefreshEnabled: false,
+    })
   })
 })
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      enterprise?: {
+        ready: (callback: () => void) => void
+        execute: (siteKey: string, options: { action: string }) => Promise<string>
+      }
+    }
+  }
+}
+
+let enterpriseReady: Promise<void> | undefined
+
+function loadEnterprise(siteKey: string) {
+  enterpriseReady ??= new Promise((resolve, reject) => {
+    const ready = () => {
+      const enterprise = window.grecaptcha?.enterprise
+      if (!enterprise) {
+        reject(new Error('reCAPTCHA Enterprise가 로드되지 않았습니다.'))
+        return
+      }
+      enterprise.ready(() => resolve())
+    }
+    if (window.grecaptcha?.enterprise) {
+      ready()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = `https://www.google.com/recaptcha/enterprise.js?render=${encodeURIComponent(siteKey)}`
+    script.async = true
+    script.onload = ready
+    script.onerror = () => reject(new Error('reCAPTCHA Enterprise 스크립트를 불러오지 못했습니다.'))
+    document.head.appendChild(script)
+  })
+  return enterpriseReady
+}
+
+async function exchangeEnterpriseToken(app: FirebaseApp, siteKey: string) {
+  await loadEnterprise(siteKey)
+  const enterprise = window.grecaptcha?.enterprise
+  if (!enterprise) throw new Error('reCAPTCHA Enterprise가 로드되지 않았습니다.')
+  const recaptchaToken = await enterprise.execute(siteKey, { action: 'fire_app_check' })
+  const { projectId, appId, apiKey } = app.options
+  const response = await fetch(
+    `https://content-firebaseappcheck.googleapis.com/v1/projects/${projectId}/apps/${appId}:exchangeRecaptchaEnterpriseToken?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recaptcha_enterprise_token: recaptchaToken, limited_use: true }),
+    },
+  )
+  if (!response.ok) throw new Error(`App Check token exchange failed (${response.status})`)
+  const data = await response.json() as { token: string, ttl?: string }
+  const seconds = Number(/^([\d.]+)s$/.exec(data.ttl ?? '')?.[1])
+  return {
+    token: data.token,
+    expireTimeMillis: Date.now() + (Number.isFinite(seconds) ? seconds * 1000 : 60 * 60 * 1000),
+  }
+}
 ```
 
-3. 로컬: 디버그 토큰을 콘솔에 등록 (또는 고정 UUID)
-4. `firebaseConfig.appId` 가 App Check에 등록한 **웹 앱과 동일**한지 확인
-5. (선택) Firestore/Storage 에도 Enforce — 켜면 토큰 없는 요청 거부
+일반 세션 토큰을 쓰려면 `useLimitedUseAppCheckTokens: false` 로 바꾸고, 교환 본문의 `limited_use` 도 빼야 한다.
 
-> `nuxt-vuefire` 의 `vuefire.appCheck` 옵션만으로 AI Logic까지 충분한지는 SDK/버전에 따라 다를 수 있다. 문제가 있으면 위처럼 명시적 `initializeAppCheck` 를 권장한다.
+5. App Check 적용은 **Firebase AI Logic만** 켠다. Cloud Storage와 Cloud Firestore는 모니터링으로 둔다. 한 번용 토큰은 AI Logic만 받는다. Storage나 Firestore에 적용을 켜면 이미지 업로드와 글 저장이 `storage/unauthorized` 또는 권한 오류로 거절된다.
+6. 로컬은 `self.FIREBASE_APPCHECK_DEBUG_TOKEN = true` 로 나온 UUID를 콘솔 디버그 토큰에 등록한다. 프로덕션 빌드에서는 디버그 토큰을 켜지 않는다.
 
 ## 다른 프로젝트에 붙일 때 체크리스트
 

@@ -116,7 +116,28 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   const config = useMemiBoardConfig()
   const { translateEntries, translateHtml } = useMemiBoardAutoTranslate()
 
-  async function reserveDailyUse(): Promise<void> {
+  function usageOf(data: Record<string, unknown>, now: number) {
+    const windowAt = timestampMs(data.aiWritingWindowAt)
+    const active = windowAt != null && now - windowAt < WRITING_ASSISTANT_WINDOW_MS
+    const count = Math.max(0, Math.floor(Number(data.aiWritingCount) || 0))
+    const pending = Math.max(0, Math.floor(Number(data.aiWritingPending) || 0))
+    return {
+      active,
+      windowAt,
+      count: active ? count : 0,
+      pending: active ? pending : 0,
+    }
+  }
+
+  function dailyLimitError(windowAt: number, now: number): Error {
+    const resetAt = windowAt + WRITING_ASSISTANT_WINDOW_MS
+    const hours = Math.max(1, Math.ceil((resetAt - now) / (60 * 60 * 1000)))
+    return new Error(t('writingAssistant.dailyLimit', { limit: WRITING_ASSISTANT_DAILY_LIMIT, hours }))
+  }
+
+  async function mutateDailyUse(
+    apply: (usage: ReturnType<typeof usageOf>, data: Record<string, unknown>) => Record<string, unknown> | null,
+  ): Promise<void> {
     const uid = user.value?.uid
     if (!uid) throw new Error(t('writingAssistant.loginRequired'))
 
@@ -124,24 +145,63 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       const ref = boardUserDoc(db, useBoardPathConfig(), uid)
       const snapshot = await transaction.get(ref)
       if (!snapshot.exists()) throw new Error(t('writingAssistant.userMissing'))
-
       const data = snapshot.data() as Record<string, unknown>
-      const previousAt = timestampMs(data.aiWritingWindowAt)
-      const previousCount = Math.max(0, Math.floor(Number(data.aiWritingCount) || 0))
-      const now = Date.now()
-      const activeWindow = previousAt != null && now - previousAt < WRITING_ASSISTANT_WINDOW_MS
-      if (activeWindow && previousCount >= WRITING_ASSISTANT_DAILY_LIMIT) {
-        const resetAt = previousAt + WRITING_ASSISTANT_WINDOW_MS
-        const hours = Math.max(1, Math.ceil((resetAt - now) / (60 * 60 * 1000)))
-        throw new Error(t('writingAssistant.dailyLimit', { limit: WRITING_ASSISTANT_DAILY_LIMIT, hours }))
-      }
-
-      transaction.update(ref, {
-        aiWritingCount: activeWindow ? previousCount + 1 : 1,
-        aiWritingWindowAt: activeWindow ? data.aiWritingWindowAt : serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
+      const patch = apply(usageOf(data, Date.now()), data)
+      if (!patch) return
+      transaction.update(ref, { ...patch, updatedAt: serverTimestamp() })
     })
+  }
+
+  /** 모델 호출 전에 자리를 잡는다. 확정 횟수는 아직 올리지 않는다. */
+  async function reserveDailyUse(): Promise<void> {
+    await mutateDailyUse((usage) => {
+      if (usage.active && usage.windowAt != null && usage.count + usage.pending >= WRITING_ASSISTANT_DAILY_LIMIT) {
+        throw dailyLimitError(usage.windowAt, Date.now())
+      }
+      if (usage.active) return { aiWritingPending: usage.pending + 1 }
+      return {
+        aiWritingCount: 0,
+        aiWritingPending: 1,
+        aiWritingWindowAt: serverTimestamp(),
+      }
+    })
+  }
+
+  /** 호출이 성공하면 예약을 확정 횟수로 옮긴다. */
+  async function commitDailyUse(): Promise<void> {
+    await mutateDailyUse((usage) => {
+      if (!usage.active || usage.pending < 1 || usage.count >= WRITING_ASSISTANT_DAILY_LIMIT) return null
+      return {
+        aiWritingCount: usage.count + 1,
+        aiWritingPending: usage.pending - 1,
+      }
+    })
+  }
+
+  /** 호출이 실패하면 예약만 되돌린다. 확정 횟수는 그대로다. */
+  async function releaseDailyUse(): Promise<void> {
+    await mutateDailyUse((usage) => {
+      if (!usage.active || usage.pending < 1) return null
+      return { aiWritingPending: usage.pending - 1 }
+    })
+  }
+
+  async function withDailyUse<T>(task: () => Promise<T>): Promise<T> {
+    await reserveDailyUse()
+    try {
+      const result = await task()
+      try {
+        await commitDailyUse()
+      }
+      catch {
+        // 결과는 이미 나왔다. 예약은 남겨 그 자리를 횟수로 유지한다.
+      }
+      return result
+    }
+    catch (error) {
+      await releaseDailyUse().catch(() => {})
+      throw error
+    }
   }
 
   async function assist(input: WritingAssistantInput): Promise<string> {
@@ -150,50 +210,51 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     const ko = lang === 'ko'
     const instruction = resolveInstruction(input, lang, t)
     if (!input.content.trim()) throw new Error(t('writingAssistant.contentRequired'))
-    await reserveDailyUse()
-    const moderation = config.moderation ?? {}
-    const ai = getAI(app, {
-      backend: new GoogleAIBackend(),
-      useLimitedUseAppCheckTokens: moderation.useLimitedUseAppCheckTokens !== false,
-    })
-    const model = getGenerativeModel(ai, {
-      model: moderation.model ?? 'gemini-3.5-flash-lite',
-      systemInstruction: (ko
+    return withDailyUse(async () => {
+      const moderation = config.moderation ?? {}
+      const ai = getAI(app, {
+        backend: new GoogleAIBackend(),
+        useLimitedUseAppCheckTokens: moderation.useLimitedUseAppCheckTokens !== false,
+      })
+      const model = getGenerativeModel(ai, {
+        model: moderation.model ?? 'gemini-3.5-flash-lite',
+        systemInstruction: (ko
+          ? [
+              '너는 게시판 글쓰기 편집 도우미다.',
+              '사용자가 요청한 편집 결과만 출력하고 설명, 인사, 마크다운 코드 펜스를 붙이지 마라.',
+              input.action === 'title' || input.selection
+                ? '출력은 일반 텍스트로 작성하라.'
+                : '입력의 HTML 구조와 링크, 이미지 태그를 보존하고 결과도 HTML 조각으로 출력하라.',
+            ]
+          : [
+              'You are an editing assistant for writing message board posts.',
+              'Output only the requested edit result. Do not add explanations, greetings, or markdown code fences.',
+              input.action === 'title' || input.selection
+                ? 'Write the output as plain text.'
+                : 'Preserve the HTML structure, links, and image tags of the input, and output the result as an HTML fragment as well.',
+            ]).join('\n'),
+        generationConfig: {
+          temperature: input.action === 'continue' || input.action === 'title' || input.action === 'custom' ? 0.6 : 0.2,
+          maxOutputTokens: 2048,
+        },
+      })
+      const source = input.content.trim()
+      const prompt = (ko
         ? [
-            '너는 게시판 글쓰기 편집 도우미다.',
-            '사용자가 요청한 편집 결과만 출력하고 설명, 인사, 마크다운 코드 펜스를 붙이지 마라.',
-            input.action === 'title' || input.selection
-              ? '출력은 일반 텍스트로 작성하라.'
-              : '입력의 HTML 구조와 링크, 이미지 태그를 보존하고 결과도 HTML 조각으로 출력하라.',
+            `작업: ${instruction}`,
+            input.title ? `현재 제목: ${input.title}` : '',
+            `본문:\n${source.slice(0, 12000)}`,
           ]
         : [
-            'You are an editing assistant for writing message board posts.',
-            'Output only the requested edit result. Do not add explanations, greetings, or markdown code fences.',
-            input.action === 'title' || input.selection
-              ? 'Write the output as plain text.'
-              : 'Preserve the HTML structure, links, and image tags of the input, and output the result as an HTML fragment as well.',
-          ]).join('\n'),
-      generationConfig: {
-        temperature: input.action === 'continue' || input.action === 'title' || input.action === 'custom' ? 0.6 : 0.2,
-        maxOutputTokens: 2048,
-      },
+            `Task: ${instruction}`,
+            input.title ? `Current title: ${input.title}` : '',
+            `Body:\n${source.slice(0, 12000)}`,
+          ]).filter(Boolean).join('\n\n')
+      const result = await model.generateContent(prompt)
+      const output = cleanModelOutput(result.response.text())
+      if (!output) throw new Error(t('writingAssistant.emptyResult'))
+      return output
     })
-    const source = input.content.trim()
-    const prompt = (ko
-      ? [
-          `작업: ${instruction}`,
-          input.title ? `현재 제목: ${input.title}` : '',
-          `본문:\n${source.slice(0, 12000)}`,
-        ]
-      : [
-          `Task: ${instruction}`,
-          input.title ? `Current title: ${input.title}` : '',
-          `Body:\n${source.slice(0, 12000)}`,
-        ]).filter(Boolean).join('\n\n')
-    const result = await model.generateContent(prompt)
-    const output = cleanModelOutput(result.response.text())
-    if (!output) throw new Error(t('writingAssistant.emptyResult'))
-    return output
   }
 
   /**
@@ -220,43 +281,44 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       throw new Error(t('writingAssistant.translateTooLong', { limit: HTML_MAX_CHARS }))
     }
 
-    await reserveDailyUse()
-    const emptyFields: Record<string, MemiBoardI18nMap> = {}
-    const [fieldMap, htmlMap] = await Promise.all([
-      Object.keys(fields).length
-        ? translateEntries([{
-            id: 'post',
-            fields,
-            context: 'message board post title and short summary',
-          }], {
-            source,
-            purpose: 'message board post title and short summary',
-          })
-        : Promise.resolve(emptyFields),
-      hasText ? translateHtml(content, { source }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
-    ])
+    return withDailyUse(async () => {
+      const emptyFields: Record<string, MemiBoardI18nMap> = {}
+      const [fieldMap, htmlMap] = await Promise.all([
+        Object.keys(fields).length
+          ? translateEntries([{
+              id: 'post',
+              fields,
+              context: 'message board post title and short summary',
+            }], {
+              source,
+              purpose: 'message board post title and short summary',
+            })
+          : Promise.resolve(emptyFields),
+        hasText ? translateHtml(content, { source }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
+      ])
 
-    const i18n = mergeSourceFields(source, fields, fieldMap.post)
-    if (Object.keys(fields).length && !coversLocales(i18n, Object.keys(fields))) {
-      throw new Error(t('writingAssistant.translateIncomplete'))
-    }
-
-    const result: PostTranslationSet = {
-      i18n,
-      i18nSource: { locale: source, title, summary },
-    }
-    if (hasText) {
-      const htmlFields: MemiBoardI18nMap = {}
-      for (const [code, text] of Object.entries(htmlMap)) {
-        const localeCode = normalizeMemiBoardLocale(code)
-        if (localeCode && typeof text === 'string' && text.trim()) htmlFields[localeCode] = { content: text.trim() }
+      const i18n = mergeSourceFields(source, fields, fieldMap.post)
+      if (Object.keys(fields).length && !coversLocales(i18n, Object.keys(fields))) {
+        throw new Error(t('writingAssistant.translateIncomplete'))
       }
-      const contentI18n = mergeSourceFields(source, { content }, htmlFields)
-      if (!coversLocales(contentI18n, ['content'])) throw new Error(t('writingAssistant.translateIncomplete'))
-      result.contentI18n = contentI18n
-      result.contentI18nSource = { locale: source, hash: hashText(content) }
-    }
-    return result
+
+      const result: PostTranslationSet = {
+        i18n,
+        i18nSource: { locale: source, title, summary },
+      }
+      if (hasText) {
+        const htmlFields: MemiBoardI18nMap = {}
+        for (const [code, text] of Object.entries(htmlMap)) {
+          const localeCode = normalizeMemiBoardLocale(code)
+          if (localeCode && typeof text === 'string' && text.trim()) htmlFields[localeCode] = { content: text.trim() }
+        }
+        const contentI18n = mergeSourceFields(source, { content }, htmlFields)
+        if (!coversLocales(contentI18n, ['content'])) throw new Error(t('writingAssistant.translateIncomplete'))
+        result.contentI18n = contentI18n
+        result.contentI18nSource = { locale: source, hash: hashText(content) }
+      }
+      return result
+    })
   }
 
   return { assist, translatePost }

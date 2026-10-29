@@ -169,8 +169,10 @@ export interface BoardUserModel {
   displayName?: string | null
   photoURL?: string | null
   moderationBlockCount?: number
-  /** AI 글쓰기 도우미 24시간 사용 횟수. */
+  /** AI 글쓰기 도우미 24시간 확정 사용 횟수. 성공한 호출만 올라가고 줄지 않는다. */
   aiWritingCount?: number
+  /** 아직 결과가 나지 않은 AI 글쓰기 예약. 실패하면 줄고, 성공하면 확정 횟수로 넘어간다. */
+  aiWritingPending?: number
   /** AI 글쓰기 도우미 현재 24시간 구간 시작 시각. */
   aiWritingWindowAt?: Timestamp
   updatedAt?: Timestamp

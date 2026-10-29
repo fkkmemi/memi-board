@@ -11,6 +11,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.47.1',
+    date: '2026-10-29',
+    highlights: [
+      'AI 글쓰기 도우미가 실패하면 그 시도는 하루 횟수에서 빠져요',
+      'App Check 연결 안내를 한 번용 토큰과 SPA에 맞게 고쳤어요',
+    ],
+  },
+  {
     version: '0.47.0',
     date: '2026-10-23',
     highlights: [

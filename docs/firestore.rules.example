@@ -202,13 +202,14 @@ service cloud.firestore {
           && request.resource.data.role == resource.data.role
           && (
             !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['moderationBlockCount', 'moderationBlockAt', 'aiWritingCount', 'aiWritingWindowAt'])
+              .hasAny(['moderationBlockCount', 'moderationBlockAt', 'aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt'])
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
               && request.resource.data.moderationBlockCount
                 == resource.data.get('moderationBlockCount', 0) + 1
             )
+            // 0.47.0 이하: 호출 전에 확정 횟수를 1 올린다.
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['aiWritingCount', 'aiWritingWindowAt', 'updatedAt'])
@@ -228,6 +229,43 @@ service cloud.firestore {
                   && request.resource.data.aiWritingCount == 1
                 )
               )
+            )
+            // 0.47.1+: 호출 전에 예약만 잡고, 성공하면 확정한다. 실패하면 예약만 내린다.
+            // 확정 횟수는 1씩만 오르고, 클라이언트가 내리지는 못한다.
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiWritingPending', 'updatedAt'])
+              && 'aiWritingWindowAt' in resource.data
+              && request.time < resource.data.aiWritingWindowAt + duration.value(24, 'h')
+              && (
+                (
+                  request.resource.data.aiWritingPending == resource.data.get('aiWritingPending', 0) + 1
+                  && resource.data.get('aiWritingCount', 0) + request.resource.data.aiWritingPending <= 10
+                )
+                || (
+                  resource.data.get('aiWritingPending', 0) >= 1
+                  && request.resource.data.aiWritingPending == resource.data.get('aiWritingPending', 0) - 1
+                )
+              )
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiWritingCount', 'aiWritingPending', 'updatedAt'])
+              && 'aiWritingWindowAt' in resource.data
+              && request.time < resource.data.aiWritingWindowAt + duration.value(24, 'h')
+              && resource.data.get('aiWritingPending', 0) >= 1
+              && request.resource.data.aiWritingPending == resource.data.get('aiWritingPending', 0) - 1
+              && request.resource.data.aiWritingCount == resource.data.get('aiWritingCount', 0) + 1
+              && request.resource.data.aiWritingCount <= 10
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt', 'updatedAt'])
+              && (!('aiWritingWindowAt' in resource.data)
+                || request.time >= resource.data.aiWritingWindowAt + duration.value(24, 'h'))
+              && request.resource.data.aiWritingWindowAt == request.time
+              && request.resource.data.aiWritingCount == 0
+              && request.resource.data.aiWritingPending == 1
             )
           ));
 

@@ -4,6 +4,17 @@
 
 ## [Unreleased]
 
+## [0.47.1] - 2026-10-29
+
+### Fixed
+- AI 글쓰기 도우미는 호출 전에 `aiWritingPending`만 예약하고, 성공하면 `aiWritingCount`로 확정한다. App Check 거부나 빈 응답처럼 실패한 호출은 예약을 되돌려 하루 10회에 넣지 않는다. 확정된 횟수는 클라이언트가 줄일 수 없다.
+
+### Documentation
+- App Check 안내를 reCAPTCHA Enterprise 점수 키와 마운트 후 한 번용 토큰 교환으로 바꿨다. Storage·Firestore 적용을 켜면 그 토큰 때문에 업로드와 글 저장이 거절된다고 적었다.
+
+### 호스트 적용
+- 0.47.1 패키지를 쓰면 `docs/firestore.rules.example`의 `memiBoardUsers` 예약 분기를 병합하고 Firestore 규칙을 배포해야 한다. 예전 규칙에서는 예약 쓰기가 거절되어 글쓰기 AI가 동작하지 않는다. 0.47.0 이하 패키지는 기존 횟수 증가 규칙으로 그대로 동작한다.
+
 ## [0.47.0] - 2026-10-23
 
 ### Added
