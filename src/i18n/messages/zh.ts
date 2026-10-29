@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: '上传多张照片并设置封面',
       },
     },
+    bulk: {
+      title: '应用到所有版块',
+      apply: '应用到 {count} 个版块',
+      applyShort: '应用',
+      confirmTitle: '应用到所有版块',
+      translateUntranslated: '翻译未翻译的版块 ({count})',
+    },
     translationLocales: {
       label: '翻译语言',
     },

@@ -80,6 +80,18 @@ export default {
     help: '비우면 사이트 언어를 따릅니다. 고르면 이 게시판은 항상 그 언어로 보입니다.',
     auto: '자동 (사이트 언어 따름)',
   },
+  bulk: {
+    title: '모든 게시판에 적용',
+    help: '체크한 항목만 모든 게시판에 덮어씁니다. 게시판별로 편집 중인 다른 값은 저장하지 않습니다.',
+    apply: '게시판 {count}개에 적용',
+    applyShort: '적용',
+    confirmTitle: '모든 게시판에 적용',
+    confirm: '체크한 항목을 게시판 {count}개에 적용할까요?',
+    applied: '게시판 {count}개에 적용했습니다.',
+    translateUntranslated: '번역 안 된 게시판 번역 ({count})',
+    translated: '게시판 {count}개의 이름·설명을 번역해 저장했습니다.',
+    translateFailed: '게시판 {count}개는 번역하지 못했습니다. 다시 시도해 주세요.',
+  },
   translationLocales: {
     label: '번역 언어',
     help: '이름·설명과 글을 이 언어들로 번역합니다. 글을 쓴 언어는 번역하지 않습니다. 모두 고르면 나중에 추가되는 언어도 포함됩니다.',

@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: 'Agregar varias fotos y una foto de portada',
       },
     },
+    bulk: {
+      title: 'Aplicar a todos los tableros',
+      apply: 'Aplicar a {count} tableros',
+      applyShort: 'Aplicar',
+      confirmTitle: 'Aplicar a todos los tableros',
+      translateUntranslated: 'Traducir tableros sin traducir ({count})',
+    },
     translationLocales: {
       label: 'Idiomas de traducción',
     },

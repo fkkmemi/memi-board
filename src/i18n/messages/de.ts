@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: 'Mehrere Fotos und ein Titelbild hinzufügen',
       },
     },
+    bulk: {
+      title: 'Auf alle Boards anwenden',
+      apply: 'Auf {count} Boards anwenden',
+      applyShort: 'Anwenden',
+      confirmTitle: 'Auf alle Boards anwenden',
+      translateUntranslated: 'Unübersetzte Boards übersetzen ({count})',
+    },
     translationLocales: {
       label: 'Übersetzungssprachen',
     },

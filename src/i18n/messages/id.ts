@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: 'Tambahkan beberapa foto dan foto sampul',
       },
     },
+    bulk: {
+      title: 'Terapkan ke semua papan',
+      apply: 'Terapkan ke {count} papan',
+      applyShort: 'Terapkan',
+      confirmTitle: 'Terapkan ke semua papan',
+      translateUntranslated: 'Terjemahkan papan yang belum diterjemahkan ({count})',
+    },
     translationLocales: {
       label: 'Bahasa terjemahan',
     },

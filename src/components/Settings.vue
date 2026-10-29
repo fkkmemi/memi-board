@@ -251,6 +251,93 @@ async function save(category: BoardCategory, index: number) {
   }
 }
 
+// --- 모든 게시판에 적용: 체크한 항목만 저장된 설정 위에 덮어쓴다(편집 중인 다른 값은 저장하지 않는다) ---
+const bulk = ref({
+  translationLocalesOn: false,
+  translationLocales: [] as string[],
+  autoTranslateOn: false,
+  autoTranslate: false,
+  autoTranslatePostsOn: false,
+  autoTranslatePosts: false,
+  localeOn: false,
+  locale: '',
+})
+const bulkConfirmOpen = ref(false)
+const bulkRunning = ref<'apply' | 'translate' | null>(null)
+const bulkNotice = ref('')
+const showBulk = computed(() => !props.categoryId && draft.value.length > 0 && (translationEnabled.value || i18nEnabled.value))
+const bulkHasChanges = computed(() => bulk.value.translationLocalesOn || bulk.value.autoTranslateOn
+  || bulk.value.autoTranslatePostsOn || bulk.value.localeOn)
+const untranslatedBoards = computed(() => categories.value.filter(board => board.label.trim() && !boardCopyIsTranslated(board)))
+
+function bulkPatch(): Partial<BoardCategory> {
+  const patch: Partial<BoardCategory> = {}
+  if (bulk.value.translationLocalesOn) patch.translationLocales = [...bulk.value.translationLocales] as BoardCategory['translationLocales']
+  if (bulk.value.autoTranslateOn) patch.autoTranslate = bulk.value.autoTranslate
+  if (bulk.value.autoTranslatePostsOn) patch.autoTranslatePosts = bulk.value.autoTranslatePosts
+  if (bulk.value.localeOn) patch.locale = bulk.value.locale
+  return patch
+}
+
+/** 편집 화면(draft)에도 같은 값을 반영한다. 다른 필드의 편집 중인 값은 그대로 둔다. */
+function syncDraft(id: string, fields: Partial<BoardCategory>) {
+  const target = draft.value.find(item => item.id === id)
+  if (target) Object.assign(target, fields)
+}
+
+async function applyBulk() {
+  bulkConfirmOpen.value = false
+  if (!bulkHasChanges.value || bulkRunning.value) return
+  const patch = bulkPatch()
+  bulkRunning.value = 'apply'
+  bulkNotice.value = ''
+  error.value = ''
+  try {
+    for (const [index, stored] of categories.value.entries()) {
+      await saveCategory({ ...stored, ...patch }, stored.order ?? index)
+      syncDraft(stored.id, patch)
+    }
+    bulkNotice.value = t('settings.bulk.applied', { count: categories.value.length })
+  }
+  catch (cause) {
+    error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
+  }
+  finally {
+    bulkRunning.value = null
+  }
+}
+
+/** 이름·설명 번역이 없거나 원문·번역 언어가 바뀐 게시판만 번역해 저장한다. */
+async function translateUntranslated() {
+  if (!translationEnabled.value || bulkRunning.value) return
+  const targets = [...untranslatedBoards.value]
+  if (!targets.length) return
+  bulkRunning.value = 'translate'
+  bulkNotice.value = ''
+  error.value = ''
+  let done = 0
+  let failed = 0
+  try {
+    for (const stored of targets) {
+      try {
+        const translated = await translateBoard(stored)
+        await saveCategory(translated, stored.order ?? categories.value.indexOf(stored))
+        syncDraft(stored.id, { i18n: translated.i18n, i18nSource: translated.i18nSource })
+        done++
+      }
+      catch (cause) {
+        console.warn('[memi-board] bulk board translation failed', stored.id, cause)
+        failed++
+      }
+    }
+    bulkNotice.value = t('settings.bulk.translated', { count: done })
+    if (failed) error.value = t('settings.bulk.translateFailed', { count: failed })
+  }
+  finally {
+    bulkRunning.value = null
+  }
+}
+
 async function runDeleteAll() {
   if (!props.deleteAll || deleteConfirm.value !== t('settings.danger.phrase')) return
   deletingAll.value = true
@@ -289,6 +376,80 @@ async function runDeleteAll() {
       :title="t('settings.notFound.title')"
       :description="t('settings.notFound.checkBoardAddress')"
     />
+    <UCard v-if="showBulk" :ui="{ body: 'flex flex-col gap-4' }">
+      <template #header>
+        <p class="text-sm font-semibold text-highlighted">{{ t('settings.bulk.title') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.bulk.help') }}</p>
+      </template>
+
+      <div v-if="translationEnabled" class="grid gap-2 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <UCheckbox v-model="bulk.translationLocalesOn" :label="t('settings.translationLocales.label')" />
+        <USelectMenu
+          :model-value="boardTranslationLocales(bulk)"
+          :items="translationLocaleItems"
+          value-key="value"
+          multiple
+          class="w-full"
+          :disabled="!bulk.translationLocalesOn"
+          :aria-label="t('settings.translationLocales.label')"
+          @update:model-value="setTranslationLocales(bulk, $event)"
+        />
+      </div>
+      <div v-if="translationEnabled" class="grid gap-2 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <UCheckbox v-model="bulk.autoTranslateOn" :label="t('settings.autoTranslate.label', { count: translationCount(bulk) })" />
+        <USwitch v-model="bulk.autoTranslate" size="sm" :disabled="!bulk.autoTranslateOn" />
+      </div>
+      <div v-if="translationEnabled" class="grid gap-2 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <UCheckbox v-model="bulk.autoTranslatePostsOn" :label="t('settings.autoTranslatePosts.label')" />
+        <USwitch v-model="bulk.autoTranslatePosts" size="sm" :disabled="!bulk.autoTranslatePostsOn" />
+      </div>
+      <div v-if="i18nEnabled" class="grid gap-2 sm:grid-cols-[12rem_1fr] sm:items-center">
+        <UCheckbox v-model="bulk.localeOn" :label="t('settings.locale.label')" />
+        <USelect
+          :model-value="bulk.locale || LOCALE_AUTO"
+          :items="localeOptions"
+          value-key="value"
+          class="w-full"
+          :disabled="!bulk.localeOn"
+          @update:model-value="bulk.locale = fromLocaleOption($event as string)"
+        />
+      </div>
+
+      <UAlert v-if="bulkNotice" color="success" variant="subtle" icon="i-lucide-check" :title="bulkNotice" />
+
+      <template #footer>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <UButton
+            v-if="translationEnabled"
+            icon="i-lucide-languages"
+            color="neutral"
+            variant="outline"
+            :label="t('settings.bulk.translateUntranslated', { count: untranslatedBoards.length })"
+            :loading="bulkRunning === 'translate'"
+            :disabled="!untranslatedBoards.length || bulkRunning !== null"
+            @click="translateUntranslated"
+          />
+          <UButton
+            icon="i-lucide-check-check"
+            :label="t('settings.bulk.apply', { count: categories.length })"
+            :loading="bulkRunning === 'apply'"
+            :disabled="!bulkHasChanges || bulkRunning !== null"
+            class="ms-auto"
+            @click="bulkConfirmOpen = true"
+          />
+        </div>
+      </template>
+    </UCard>
+
+    <UModal v-model:open="bulkConfirmOpen" :title="t('settings.bulk.confirmTitle')" :description="t('settings.bulk.confirm', { count: categories.length })">
+      <template #footer>
+        <div class="flex w-full justify-end gap-2">
+          <UButton color="neutral" variant="outline" :label="t('common.action.cancel')" @click="bulkConfirmOpen = false" />
+          <UButton :label="t('settings.bulk.applyShort')" @click="applyBulk" />
+        </div>
+      </template>
+    </UModal>
+
     <details
       v-for="(category, index) in draft"
       :key="category.id"

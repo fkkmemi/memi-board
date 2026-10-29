@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.0',
+    date: '2026-10-29',
+    highlights: [
+      '게시판마다 번역할 언어를 골라 원하는 언어로만 번역할 수 있어요',
+      '전체 게시판 설정에서 번역 언어·자동 번역·게시판 언어를 모든 게시판에 한 번에 적용할 수 있어요',
+      '번역이 안 된 게시판 이름·설명을 한 번에 번역할 수 있어요',
+      '게시판 소개 문장이 10개 언어로 보이고, 버전 기록은 영어로도 볼 수 있어요',
+    ],
+    highlightsEn: [
+      'Choose which languages each board is translated into',
+      'Apply translation languages, auto-translation, and board language to all boards at once',
+      'Translate the names and descriptions of untranslated boards in one go',
+      'The board intro now appears in 10 languages, and the version history is available in English',
+    ],
+  },
+  {
     version: '0.51.2',
     date: '2026-10-29',
     highlights: [

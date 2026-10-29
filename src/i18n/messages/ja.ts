@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: '複数の写真とカバー写真を登録',
       },
     },
+    bulk: {
+      title: 'すべての掲示板に適用',
+      apply: '{count}件の掲示板に適用',
+      applyShort: '適用',
+      confirmTitle: 'すべての掲示板に適用',
+      translateUntranslated: '未翻訳の掲示板を翻訳 ({count})',
+    },
     translationLocales: {
       label: '翻訳する言語',
     },

@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: 'Ajouter plusieurs photos et une couverture',
       },
     },
+    bulk: {
+      title: 'Appliquer à tous les forums',
+      apply: 'Appliquer à {count} forums',
+      applyShort: 'Appliquer',
+      confirmTitle: 'Appliquer à tous les forums',
+      translateUntranslated: 'Traduire les forums non traduits ({count})',
+    },
     translationLocales: {
       label: 'Langues de traduction',
     },

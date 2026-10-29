@@ -556,6 +556,13 @@ const messages: MemiBoardMessages = {
         image: 'إضافة عدة صور وصورة غلاف',
       },
     },
+    bulk: {
+      title: 'تطبيق على كل اللوحات',
+      apply: 'تطبيق على {count} لوحات',
+      applyShort: 'تطبيق',
+      confirmTitle: 'تطبيق على كل اللوحات',
+      translateUntranslated: 'ترجمة اللوحات غير المترجمة ({count})',
+    },
     translationLocales: {
       label: 'لغات الترجمة',
     },

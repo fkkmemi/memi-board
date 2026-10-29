@@ -80,6 +80,18 @@ export default {
     help: 'Leave empty to follow the site language. If set, this board always appears in that language.',
     auto: 'Auto (follow site language)',
   },
+  bulk: {
+    title: 'Apply to all boards',
+    help: 'Only checked items overwrite every board. Other unsaved edits on individual boards are not saved.',
+    apply: 'Apply to {count} boards',
+    applyShort: 'Apply',
+    confirmTitle: 'Apply to all boards',
+    confirm: 'Apply the checked items to {count} boards?',
+    applied: 'Applied to {count} boards.',
+    translateUntranslated: 'Translate untranslated boards ({count})',
+    translated: 'Translated and saved names and descriptions for {count} boards.',
+    translateFailed: 'Couldn’t translate {count} boards. Try again.',
+  },
   translationLocales: {
     label: 'Translation languages',
     help: 'The name, description, and posts are translated into these languages. The language a post was written in is skipped. Selecting all also includes languages added later.',
