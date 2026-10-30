@@ -10,7 +10,7 @@ import {
   configureMemiBoard, useMemiBoardConfig,
   isMemiBoardI18nEnabled, isMemiBoardTranslationEnabled,
   useMemiBoardI18n, memiBoardHostLocaleKey,
-  localizedText, displayStoredField, displayPostTitle, displayPostSummary, displayPostContent,
+  localizedText, displayCommentBody, displayStoredField, displayPostTitle, displayPostSummary, displayPostContent,
   hashText, useMemiBoardAutoTranslate, useMemiBoardWritingAssistant,
 } from '../dist/index.js'
 
@@ -120,11 +120,25 @@ test('low-level translation calls are blocked before Firebase AI is invoked', as
   }
 })
 
-test('post translation and legacy translation actions stop before usage accounting', async () => {
+test('post, comment and legacy translation actions stop before usage accounting', async () => {
   configureMemiBoard({ translation: { enabled: false } })
   const assistant = inFirebaseContext(useMemiBoardWritingAssistant)
   await assert.rejects(assistant.translatePost({ title: '제목', content: '<p>본문</p>' }), { code: 'memi-board/translation-disabled' })
+  await assert.rejects(assistant.translateComment({ body: '댓글' }), { code: 'memi-board/translation-disabled' })
   for (const action of ['translate-en', 'translate-ko']) {
     await assert.rejects(assistant.assist({ action, content: '<p>본문</p>' }), { code: 'memi-board/translation-disabled' })
   }
+})
+
+
+test('comment translations follow the viewer language and keep the original for editing', () => {
+  const comment = { body: '댓글 원문', i18n: { ko: { body: '댓글 원문' }, en: { body: 'Comment' }, ja: { body: 'コメント' } }, i18nSource: { locale: 'ko', body: '댓글 원문' } }
+  assert.equal(displayCommentBody(comment, 'en'), 'Comment')
+  assert.equal(displayCommentBody(comment, 'ja'), 'コメント')
+  assert.equal(displayCommentBody(comment, 'ko'), '댓글 원문')
+  assert.equal(comment.body, '댓글 원문')
+  assert.equal(displayCommentBody({ ...comment, body: '수정한 댓글' }, 'en'), '수정한 댓글')
+  assert.equal(displayCommentBody({ body: '기존 댓글' }, 'en'), '기존 댓글')
+  configureMemiBoard({ translation: { enabled: false } })
+  assert.equal(displayCommentBody(comment, 'en'), '댓글 원문')
 })

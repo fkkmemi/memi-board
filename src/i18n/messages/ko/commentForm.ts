@@ -1,4 +1,5 @@
 export default {
+  translationPending: '{count}개 언어 번역을 준비했습니다. 댓글을 저장하면 함께 기록됩니다.',
   hiddenBoardDenied: '숨김 게시판에는 담당 스태프만 댓글을 남길 수 있습니다.',
   denied: '이 게시판에는 댓글쓰기 권한이 없습니다.',
   signInRequired: '로그인이 필요합니다.',

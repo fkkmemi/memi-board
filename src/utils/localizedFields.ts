@@ -1,6 +1,6 @@
 import { MEMI_BOARD_LOCALES, normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { isMemiBoardTranslationEnabled } from '../config'
-import type { MemiBoardI18nMap, MemiBoardI18nSource, PostContentI18nSource, PostDetail, PostModel } from '../types'
+import type { CommentModel, MemiBoardI18nMap, MemiBoardI18nSource, PostContentI18nSource, PostDetail, PostModel } from '../types'
 
 const SOURCE_KEYS = ['label', 'description', 'title', 'summary', 'contentHash'] as const
 
@@ -191,4 +191,10 @@ export function boardCopyIsTranslated(board: {
   if (board.i18nSource.label !== label) return false
   if ((board.i18nSource.description ?? '') !== description) return false
   return coversLocales(board.i18n, description ? ['label', 'description'] : ['label'], boardTranslationLocales(board))
+}
+
+/** 수정 전의 번역은 숨기고 원문을 보여 준다. */
+export function displayCommentBody(comment: Pick<CommentModel, 'body' | 'i18n' | 'i18nSource'>, locale?: string | null): string {
+  if (comment.i18nSource?.body !== comment.body) return comment.body
+  return localizedText(comment.i18n, locale, 'body', comment.body, comment.i18nSource.locale)
 }

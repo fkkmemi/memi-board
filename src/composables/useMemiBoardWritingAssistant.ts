@@ -10,7 +10,7 @@ import { boardTranslationLocales, coversLocales, hashText, mergeSourceFields } f
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { translate, type MemiBoardMessageParams } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
-import type { MemiBoardI18nMap, PostTranslationSet } from '../types'
+import type { CommentTranslationSet, MemiBoardI18nMap, PostTranslationSet } from '../types'
 import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 export const WRITING_ASSISTANT_DAILY_LIMIT = 10
@@ -327,5 +327,22 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     })
   }
 
-  return { assist, translatePost }
+  /** 댓글은 HTML 변환 없이 일반 텍스트 필드로 번역한다. */
+  async function translateComment(input: { body: string, targets?: MemiBoardLocale[] }): Promise<CommentTranslationSet> {
+    assertMemiBoardTranslationEnabled()
+    const body = input.body.trim()
+    if (!body) throw new Error(t('writingAssistant.translateEmpty'))
+    const targets = input.targets?.length ? input.targets : boardTranslationLocales()
+    return withDailyUse(async () => {
+      const source = await detectSourceLocale(body)
+      const translated = await translateEntries([{
+        id: 'comment', fields: { body }, context: 'message board comment or reply, plain text',
+      }], { source, targets, purpose: 'message board comments and replies' })
+      const i18n = mergeSourceFields(source, { body }, translated.comment)
+      if (!coversLocales(i18n, ['body'], [...targets, source])) throw new Error(t('writingAssistant.translateIncomplete'))
+      return { i18n, i18nSource: { locale: source, body } }
+    })
+  }
+
+  return { assist, translatePost, translateComment }
 }

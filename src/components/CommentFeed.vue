@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, resolveComponent, toRef } from 'vue'
-import { useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayCommentBody, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 import type { CommentFeedSort, CommentModel } from 'memi-board/runtime'
 
 const NuxtLink = resolveComponent('NuxtLink')
@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [comment: CommentModel] }>()
 
-const { t, formatRelativeDate } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate } = useMemiBoardI18n()
 
 const { comments, commentsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardCommentFeed(
   toRef(props, 'sort'),
@@ -111,7 +111,7 @@ const emptyMessage = computed(() =>
               v-if="comment.replyToName"
               class="mr-1 text-primary"
             >@{{ comment.replyToName }}</span>
-            {{ comment.body }}
+            {{ displayCommentBody(comment, locale) }}
           </p>
           <p
             v-if="(comment.likeCount ?? 0) > 0"

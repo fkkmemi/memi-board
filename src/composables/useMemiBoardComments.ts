@@ -18,7 +18,9 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore'
-import { useBoardPathConfig } from '../config'
+import { isMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
+import { boardTranslationLocales } from '../utils/localizedFields'
+import { useMemiBoardWritingAssistant } from './useMemiBoardWritingAssistant'
 import {
   commentDoc,
   commentsCol,
@@ -29,11 +31,12 @@ import { commentImagePathsUnder, normalizeCommentImages } from '../utils/comment
 import { deleteLikesForComment } from '../utils/deletePostCascade'
 import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
-import type { Attachment, CommentModel } from '../types'
+import type { Attachment, CommentModel, CommentTranslationSet } from '../types'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { MemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export interface AddCommentInput {
+  translations?: CommentTranslationSet
   body: string
   authorUid: string
   authorName: string | null
@@ -69,7 +72,19 @@ export function useMemiBoardComments(
   const db = useFirestore()
   const firebaseApp = useFirebaseApp()
   const cfg = () => useBoardPathConfig()
-  const { isBoardHidden } = useMemiBoardSettings()
+  const { isBoardHidden, getBoard } = useMemiBoardSettings()
+  const { translateComment } = useMemiBoardWritingAssistant()
+  let cachedTranslation: CommentTranslationSet | undefined
+
+  async function translationFor(body: string, pending?: CommentTranslationSet) {
+    if (!isMemiBoardTranslationEnabled()) return {}
+    if (pending?.i18nSource.body === body) return pending
+    if (getBoard(bid.value)?.autoTranslatePosts !== true) return {}
+    if (cachedTranslation?.i18nSource.body !== body) {
+      cachedTranslation = await translateComment({ body, targets: boardTranslationLocales(getBoard(bid.value)) })
+    }
+    return cachedTranslation
+  }
   const i18n = useMemiBoardI18n()
   const { t } = i18n
   const commentsColRef = () => commentsCol(db, cfg())
@@ -205,13 +220,15 @@ export function useMemiBoardComments(
     return normalizeCommentImages(images).filter(item => item.path.startsWith(prefix))
   }
 
-  function commentPayload(input: AddCommentInput, commentId: string) {
+  async function commentPayload(input: AddCommentInput, commentId: string) {
     const images = imagesFor(commentId, input.images)
+    const body = normalizedCommentBody(input.body, i18n)
     return {
       postId: id.value,
       boardId: bid.value,
       listed: listedForBoard(),
-      body: normalizedCommentBody(input.body, i18n),
+      body,
+      ...await translationFor(body, input.translations),
       authorUid: input.authorUid,
       authorName: input.authorName,
       authorPhoto: input.authorPhoto,
@@ -234,7 +251,7 @@ export function useMemiBoardComments(
     const batch = writeBatch(db)
     const commentRef = commentRefFor(input.id)
     batch.set(commentRef, {
-      ...commentPayload(input, commentRef.id),
+      ...await commentPayload(input, commentRef.id),
       parentId: null,
       rootId: commentRef.id,
       depth: 0,
@@ -257,7 +274,7 @@ export function useMemiBoardComments(
     const depth = Math.min((input.parent.depth ?? 0) + 1, 2)
 
     batch.set(replyRef, {
-      ...commentPayload(input, replyRef.id),
+      ...await commentPayload(input, replyRef.id),
       parentId: input.parent.id,
       rootId,
       depth,
@@ -292,7 +309,7 @@ export function useMemiBoardComments(
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
   }
 
-  async function updateComment(commentId: string, body: string, images?: Attachment[] | null): Promise<void> {
+  async function updateComment(commentId: string, body: string, images?: Attachment[] | null, translations?: CommentTranslationSet): Promise<void> {
     const trimmed = normalizedCommentBody(body, i18n)
     const patch: {
       body: string
@@ -306,7 +323,7 @@ export function useMemiBoardComments(
       const normalized = imagesFor(commentId, images)
       patch.images = normalized.length ? normalized : deleteField()
     }
-    await updateDoc(commentDoc(db, cfg(), commentId), patch)
+    await updateDoc(commentDoc(db, cfg(), commentId), { ...patch, ...await translationFor(trimmed, translations) })
   }
 
   async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {

@@ -16,6 +16,12 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.2',
+    date: '2026-10-30',
+    highlights: ['댓글·답글 작성 및 수정창에서도 AI로 문장을 다듬고 번역할 수 있어요', '글 자동 번역을 켜면 댓글·답글도 번역해 보는 언어에 맞춰 보여줘요'],
+    highlightsEn: ['Use AI writing assistance and translation when writing or editing comments and replies', 'Automatic post translation now also translates comments and replies for each viewer’s language'],
+  },
+  {
     version: '0.52.1',
     date: '2026-10-30',
     highlights: ['화면 언어와 글의 언어가 달라도 실제 원문 언어를 판별해 번역해요', '영어 화면에서 한국어 글을 번역했을 때 영어 번역이 빠지던 문제를 고쳤어요'],

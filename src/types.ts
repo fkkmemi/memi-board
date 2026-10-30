@@ -126,6 +126,11 @@ export interface PostDetail extends PostModel {
  */
 export type UserPostModel = PostModel
 
+export interface CommentTranslationSet {
+  i18n: MemiBoardI18nMap
+  i18nSource: { locale?: MemiBoardLocale, body: string }
+}
+
 export interface CommentModel {
   id?: string
   /** 속한 글. flat 컬렉션이라 경로 대신 필드로 스코핑한다. */
@@ -138,6 +143,8 @@ export interface CommentModel {
    */
   listed?: boolean
   body: string
+  i18n?: MemiBoardI18nMap
+  i18nSource?: CommentTranslationSet['i18nSource']
   authorUid: string
   authorName: string | null
   authorPhoto: string | null
@@ -255,7 +262,7 @@ export interface BoardModel {
    * 없거나 false 이면 번역하지 않는다.
    */
   autoTranslate?: boolean
-  /** 새 글 작성 시 제목·요약·본문을 번역한다. 기본 false. */
+  /** 새 글과 댓글·답글 작성 시 번역한다. 기본 false. */
   autoTranslatePosts?: boolean
   /**
    * 이름·설명과 글을 번역할 언어(MEMI_BOARD_LOCALES 코드).

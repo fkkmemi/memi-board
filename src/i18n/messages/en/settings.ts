@@ -97,8 +97,8 @@ export default {
     help: 'The name, description, and posts are translated into these languages. The language a post was written in is skipped. Selecting all also includes languages added later.',
   },
   autoTranslatePosts: {
-    label: 'Automatically translate new posts',
-    help: 'When on, new post titles, summaries, and content are translated into {count} languages and saved together. Off by default.',
+    label: 'Automatically translate new posts and comments',
+    help: 'Translate new post titles, summaries, bodies, comments and replies into {count} languages when saving. Off by default.',
   },
   autoTranslate: {
     action: "Translate into {count} languages",

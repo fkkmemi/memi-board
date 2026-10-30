@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, resolveComponent } from 'vue'
-import { useMemiBoardI18n, useMemiBoardUserComments } from 'memi-board/runtime'
+import { displayCommentBody, useMemiBoardI18n, useMemiBoardUserComments } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
 
 const NuxtLink = resolveComponent('NuxtLink')
@@ -20,7 +20,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [comment: CommentModel] }>()
 
-const { t, formatRelativeDate } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate } = useMemiBoardI18n()
 
 const { comments, commentsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardUserComments(
   () => props.uid,
@@ -83,7 +83,7 @@ function commentLink(comment: CommentModel): string | undefined {
             v-else
             class="text-sm text-highlighted line-clamp-3 whitespace-pre-wrap"
           >
-            {{ comment.body }}
+            {{ displayCommentBody(comment, locale) }}
           </p>
           <p class="mt-1 text-xs text-muted">
             {{ formatRelativeDate(comment.createdAt, now) }}

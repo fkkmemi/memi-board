@@ -4,6 +4,16 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.52.2] - 2026-10-30
+
+### Added
+- Comments and replies now include an AI writing assistant in creation and edit forms, with proofreading, polishing, continuation, summarization, custom instructions, and translation into the board’s selected languages.
+- The existing automatic post translation setting also translates comments and replies when saving. Translations preserve the original text and follow the viewer’s language in threads, feeds, mini lists, and user comment lists.
+- Added `translateComment`, `CommentTranslationSet`, and `displayCommentBody` runtime APIs. Stale translations are hidden after the original comment changes.
+
+### Host app steps
+- Upgrade to 0.52.2. Existing boards with automatic post translation enabled also translate newly saved comments and replies. Existing comments can be translated from their edit form. No security rule changes are required.
+
 ## [0.52.1] - 2026-10-30
 
 ### Fixed

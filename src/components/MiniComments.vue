@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, resolveComponent } from 'vue'
 import type { BoardSection, CommentModel } from 'memi-board/runtime'
-import { miniCommentLink, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayCommentBody, miniCommentLink, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 
 const props = defineProps<{
   section: BoardSection
@@ -9,7 +9,7 @@ const props = defineProps<{
 }>()
 
 const NuxtLink = resolveComponent('NuxtLink')
-const { t, formatRelativeDate } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate } = useMemiBoardI18n()
 const now = ref(Date.now())
 const sort = computed(() => props.section.sort === 'likes' ? 'likes' : 'latest')
 const { comments, commentsPending } = useMemiBoardCommentFeed(sort, {
@@ -56,7 +56,7 @@ function commentTo(comment: CommentModel) {
               v-if="comment.replyToName"
               class="mr-1 text-primary"
             >@{{ comment.replyToName }}</span>
-            {{ comment.body }}
+            {{ displayCommentBody(comment, locale) }}
           </p>
           <p class="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted">
             <span>{{ comment.authorName || t('common.label.anonymous') }}</span>

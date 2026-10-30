@@ -129,6 +129,7 @@ export type {
   PostDetail,
   UserPostModel,
   CommentModel,
+  CommentTranslationSet,
   BoardUserRole,
   BoardUserModel,
   BoardUserPrivateModel,
@@ -190,6 +191,7 @@ export {
   displayPostTitle,
   displayPostSummary,
   displayPostContent,
+  displayCommentBody,
   boardCopyIsTranslated,
 } from './utils/localizedFields'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'

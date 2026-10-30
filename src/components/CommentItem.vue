@@ -2,16 +2,18 @@
 import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import { computed, inject, ref, watch } from 'vue'
 import { Timestamp } from 'firebase/firestore'
-import type { Attachment, CommentModel } from 'memi-board/runtime'
+import type { Attachment, CommentModel, CommentTranslationSet } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import {
   COMMENT_BODY_MAX_LENGTH,
+  displayCommentBody,
   memiBoardCommentLikesKey,
   useMemiBoardAuth,
   useMemiBoardComments,
   useMemiBoardI18n,
   useMemiBoardModeration,
 } from 'memi-board/runtime'
+import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
 
 const props = defineProps<{
@@ -35,10 +37,14 @@ const { updateComment, setCommentBlinded } = useMemiBoardComments(
 )
 const { checkText } = useMemiBoardModeration()
 const { deleteAttachment } = useMemiBoardStorage()
-const { t, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 const commentLikes = inject(memiBoardCommentLikesKey, null)
 
 const editing = ref(false)
+const translations = ref<CommentTranslationSet>()
+const aiBusy = ref(false)
+const localTranslations = ref<CommentTranslationSet>()
+const displayedBody = computed(() => displayCommentBody({ ...props.comment, ...localTranslations.value, body: localBody.value }, locale.value))
 const editBody = ref(props.comment.body)
 const localBody = ref(props.comment.body)
 const localImage = ref<Attachment | null>(props.comment.images?.[0] ?? null)
@@ -58,6 +64,7 @@ const likePending = computed(() => commentLikes?.isPending(props.comment.id) ?? 
 const imageChanged = computed(() => (editImage.value?.path ?? '') !== (localImage.value?.path ?? ''))
 
 watch(() => props.comment.body, (body) => {
+  localTranslations.value = undefined
   localBody.value = body
   if (!editing.value) editBody.value = body
 })
@@ -81,6 +88,7 @@ function startEdit() {
   editBody.value = localBody.value
   editImage.value = localImage.value
   editError.value = ''
+  translations.value = undefined
   editing.value = true
 }
 
@@ -95,10 +103,10 @@ async function cancelEdit() {
 }
 
 async function saveEdit() {
-  if (saving.value || imageBusy.value) return
+  if (saving.value || imageBusy.value || aiBusy.value) return
   const body = editBody.value.trim()
   if (!props.comment.id || !body) return
-  if (body === localBody.value && !imageChanged.value) {
+  if (body === localBody.value && !imageChanged.value && !translations.value) {
     editing.value = false
     return
   }
@@ -117,7 +125,8 @@ async function saveEdit() {
     }
     const previous = localImage.value
     const next = editImage.value
-    await updateComment(props.comment.id, body, next ? [next] : [])
+    await updateComment(props.comment.id, body, next ? [next] : [], translations.value)
+    localTranslations.value = translations.value
     localBody.value = body
     localImage.value = next
     localUpdatedAt.value = Timestamp.now()
@@ -203,8 +212,11 @@ async function toggleLike() {
           @paste="imageField?.handlePaste($event)"
           :rows="2"
           :maxlength="COMMENT_BODY_MAX_LENGTH"
+          :disabled="saving || aiBusy"
           autofocus
         />
+        <MemiBoardCommentAi v-model="editBody" v-model:translations="translations" :board-id="boardId"
+          :disabled="saving || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
         <MemiBoardCommentImageField
           ref="imageField"
           v-if="comment.id"
@@ -227,7 +239,7 @@ async function toggleLike() {
             size="xs"
             color="neutral"
             variant="ghost"
-            :disabled="saving || imageBusy"
+            :disabled="saving || imageBusy || aiBusy"
             @click="cancelEdit"
           />
           <UButton
@@ -237,7 +249,7 @@ async function toggleLike() {
             :label="t('common.action.save')"
             size="xs"
             :loading="saving"
-            :disabled="!editBody.trim() || imageBusy || (editBody.trim() === localBody && !imageChanged)"
+            :disabled="!editBody.trim() || imageBusy || aiBusy || (editBody.trim() === localBody && !imageChanged && !translations)"
           />
         </div>
       </form>
@@ -260,7 +272,7 @@ async function toggleLike() {
       <div v-else>
         <p class="whitespace-pre-wrap break-words text-sm">
           <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
-          {{ localBody }}
+          {{ displayedBody }}
         </p>
         <a
           v-if="localImage"

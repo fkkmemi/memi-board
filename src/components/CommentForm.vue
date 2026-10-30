@@ -6,8 +6,9 @@ import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtim
 import { useMemiBoardModeration } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import { useMemiBoardI18n } from 'memi-board/runtime'
-import type { Attachment, CommentModel } from 'memi-board/runtime'
+import type { Attachment, CommentModel, CommentTranslationSet } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
+import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
 
 const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
@@ -37,6 +38,8 @@ const deniedMessage = computed(() => {
 })
 
 const body = ref('')
+const translations = ref<CommentTranslationSet>()
+const aiBusy = ref(false)
 const draftId = ref(newCommentId())
 const image = ref<Attachment | null>(null)
 const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
@@ -56,7 +59,7 @@ async function handleCancel() {
 }
 
 async function handleSubmit() {
-  if (submitting.value || imageBusy.value) return
+  if (submitting.value || imageBusy.value || aiBusy.value) return
   error.value = ''
   if (!body.value.trim()) return
   if (!user.value) {
@@ -83,6 +86,7 @@ async function handleSubmit() {
     const input = {
       id: draftId.value,
       body: body.value,
+      translations: translations.value,
       images: image.value ? [image.value] : [],
       authorUid: user.value.uid,
       authorName: user.value.displayName,
@@ -120,8 +124,11 @@ onUnmounted(() => {
       @paste="imageField?.handlePaste($event)"
       :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
       :rows="2"
+      :disabled="submitting || aiBusy || isWriteRestricted"
       :maxlength="COMMENT_BODY_MAX_LENGTH"
     />
+    <MemiBoardCommentAi v-model="body" v-model:translations="translations" :board-id="boardId"
+      :disabled="submitting || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
     <MemiBoardCommentImageField
       ref="imageField"
       v-model="image"
@@ -152,7 +159,7 @@ onUnmounted(() => {
         :label="t('common.action.cancel')"
         color="neutral"
         variant="ghost"
-        :disabled="imageBusy"
+        :disabled="imageBusy || submitting || aiBusy"
         @click="handleCancel"
       />
       <UButton
@@ -162,7 +169,7 @@ onUnmounted(() => {
         size="sm"
         :label="parent ? t('commentForm.submitReply') : t('commentForm.submit')"
         :loading="submitting"
-        :disabled="!body.trim() || isWriteRestricted || imageBusy"
+        :disabled="!body.trim() || isWriteRestricted || imageBusy || aiBusy"
       />
     </div>
   </form>
