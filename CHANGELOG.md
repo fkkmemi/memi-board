@@ -4,6 +4,9 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Host app steps
+- If the host app uses a copy of the SEO composables (e.g. `app/composables/useMemiBoardSeo.ts`), pass `locale.value` to `fetchPublicPostForSeo`/`fetchPublicListForSeo` and include `locale` in the `useAsyncData` key and `watch`, as the package has done since 0.46.1. Without it, translated posts keep the original title in the page title and OG tags. See the detail page section of [docs/host-integration.md](docs/host-integration.md).
+
 ## [0.52.2] - 2026-10-30
 
 ### Added

@@ -269,6 +269,19 @@ watch([boardId, slug, seoPost], async ([board, currentSlug, seo], _, onCleanup) 
 
 `boardId` is the board settings document ID, `postId` is the post's Firestore document ID, and `slug` is the URL string. Don't pass the slug as `postId` to the detail component. In the example above, SEO for public detail pages is filled in during SSR, while client-side reads of drafts and private posts follow sign-in state and the rules.
 
+Prefer the auto-imported `useMemiBoardPostSeo`/`useMemiBoardListSeo`. If the host app keeps its own copy of the SEO composables (e.g. `app/composables/useMemiBoardSeo.ts`), pass the viewer's locale in three places, as the package does. Otherwise the page title and OG tags always show the original post title instead of the translation.
+
+```ts
+const { locale } = useMemiBoardI18n()
+const postAsync = useAsyncData(
+  () => `memi-board-seo-post-${category.value}-${slug.value}-${locale.value}`, // 1. cache key
+  () => fetchPublicPostForSeo(category.value, slug.value, seoDb, locale.value), // 2. lookup
+  { watch: [category, slug, locale], server: true, lazy: false },              // 3. refetch on language change
+)
+```
+
+The list lookup (`fetchPublicListForSeo`) takes the locale the same way.
+
 ### Edit
 
 ```vue
