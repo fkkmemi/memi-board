@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: 'Dieser Kommentar wurde von einem Admin ausgeblendet.',
   },
   commentForm: {
+    translationSkipped: 'Der Kommentar wurde ohne Übersetzung gespeichert. Du kannst ihn später im Bearbeitungsformular übersetzen.',
     hiddenBoardDenied: 'In ausgeblendeten Boards kann nur das zuständige Team kommentieren.',
     denied: 'Keine Berechtigung, in diesem Board zu kommentieren.',
     signInRequired: 'Anmeldung erforderlich.',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: '{count} Inhaltswarnungen',
   },
   writingAssistant: {
+    dailyLimit: 'Der KI-Schreibassistent kann bis zu {limit}-mal pro Tag verwendet werden. Versuche es in etwa {hours} Stunde(n) erneut.',
     loginRequired: 'Zum Nutzen des AI-Schreibassistenten bitte anmelden.',
     userMissing: 'Benutzerdaten konnten nicht geprüft werden. Bitte erneut versuchen.',
     contentRequired: 'Bitte zuerst Text für die AI eingeben.',

@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: '管理者により非表示にされたコメントです。',
   },
   commentForm: {
+    translationSkipped: '翻訳せずにコメントを投稿しました。あとで編集フォームから翻訳できます。',
     hiddenBoardDenied: '非表示の掲示板には担当スタッフのみコメントできます。',
     denied: 'この掲示板にコメントする権限がありません。',
     signInRequired: 'ログインが必要です。',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: 'コンテンツ警告 {count}回',
   },
   writingAssistant: {
+    dailyLimit: 'AI文章アシスタントは1日{limit}回まで利用できます。約{hours}時間後にもう一度お試しください。',
     loginRequired: 'AI文章アシスタントはログイン後に利用できます。',
     userMissing: 'ユーザー情報を確認してから、もう一度お試しください。',
     contentRequired: 'AIで整える内容を先に入力してください。',

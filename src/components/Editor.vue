@@ -1059,15 +1059,21 @@ async function handleSubmit() {
       : undefined
     if (!props.postId && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
       submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
-      translations = await translatePost({
-        targets: translationTargets.value,
-        title: storedTitle,
-        summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,
-        content: plainTextFromHtml(bodyContent) ? bodyContent : '',
-      })
-      // 저장만 실패한 경우 재시도할 때 같은 내용을 다시 번역하지 않는다.
-      pendingTranslations.value = translations
-      pendingTranslationKey.value = translationKey(bodyContent, storedTitle)
+      // 번역 한도 초과·실패가 글 저장을 막지 않게 원문만 저장한다. 번역은 나중에 도우미로 다시 할 수 있다.
+      try {
+        translations = await translatePost({
+          targets: translationTargets.value,
+          title: storedTitle,
+          summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,
+          content: plainTextFromHtml(bodyContent) ? bodyContent : '',
+        })
+        // 저장만 실패한 경우 재시도할 때 같은 내용을 다시 번역하지 않는다.
+        pendingTranslations.value = translations
+        pendingTranslationKey.value = translationKey(bodyContent, storedTitle)
+      }
+      catch (e) {
+        if (import.meta.dev) console.warn('[memi-board] post auto-translation skipped', e)
+      }
     }
     submitHint.value = t('editor.hint.saving')
     const payload = {

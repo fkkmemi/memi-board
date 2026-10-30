@@ -16,7 +16,7 @@ const emit = defineEmits<{ saved: [], cancel: [] }>()
 
 const { user, isSignedIn, isAdmin, isStaff, isWriteRestricted, restrictedMessage } = useMemiBoardAuth()
 // 목록 컴포넌트만 실시간 구독한다. 작성 폼은 mutation API만 사용한다.
-const { addComment, addReply, newCommentId } = useMemiBoardComments(
+const { addComment, addReply, newCommentId, translationSkipped } = useMemiBoardComments(
   props.boardId,
   props.postId,
   { subscribe: false },
@@ -46,6 +46,7 @@ const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(n
 const imageBusy = ref(false)
 const submitting = ref(false)
 const error = ref('')
+const notice = ref('')
 
 async function discardDraftImage() {
   const pending = image.value
@@ -61,6 +62,7 @@ async function handleCancel() {
 async function handleSubmit() {
   if (submitting.value || imageBusy.value || aiBusy.value) return
   error.value = ''
+  notice.value = ''
   if (!body.value.trim()) return
   if (!user.value) {
     error.value = t('commentForm.signInRequired')
@@ -94,6 +96,7 @@ async function handleSubmit() {
     }
     if (props.parent) await addReply({ ...input, parent: props.parent })
     else await addComment(input)
+    if (translationSkipped.value) notice.value = t('commentForm.translationSkipped')
     image.value = null
     body.value = ''
     draftId.value = newCommentId()
@@ -150,6 +153,12 @@ onUnmounted(() => {
         class="text-xs text-error"
       >
         {{ error }}
+      </p>
+      <p
+        v-else-if="notice"
+        class="text-xs text-warning"
+      >
+        {{ notice }}
       </p>
       <div class="flex-1" />
       <UButton

@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: '该评论已被管理员屏蔽。',
   },
   commentForm: {
+    translationSkipped: '评论已发布，但未翻译。你可以稍后在编辑表单中翻译。',
     hiddenBoardDenied: '隐藏版块仅限负责的工作人员评论。',
     denied: '你没有在此版块评论的权限。',
     signInRequired: '请先登录。',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: '内容警告 {count} 次',
   },
   writingAssistant: {
+    dailyLimit: 'AI 写作助手每天最多可使用 {limit} 次。请在约 {hours} 小时后再试。',
     loginRequired: '登录后才能使用 AI 写作助手。',
     userMissing: '请确认用户信息后重试。',
     contentRequired: '请先输入要让 AI 润色的内容。',

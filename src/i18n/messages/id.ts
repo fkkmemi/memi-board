@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: 'Komentar ini disembunyikan oleh admin.',
   },
   commentForm: {
+    translationSkipped: 'Komentar diposting tanpa terjemahan. Anda bisa menerjemahkannya nanti dari formulir edit.',
     hiddenBoardDenied: 'Hanya staf yang ditugaskan yang dapat berkomentar di papan tersembunyi.',
     denied: 'Anda tidak memiliki izin untuk berkomentar di papan ini.',
     signInRequired: 'Silakan masuk.',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: '{count} peringatan konten',
   },
   writingAssistant: {
+    dailyLimit: 'Asisten menulis AI dapat digunakan hingga {limit} kali sehari. Coba lagi dalam sekitar {hours} jam.',
     loginRequired: 'Masuk untuk menggunakan asisten menulis AI.',
     userMissing: 'Gagal memverifikasi info pengguna. Silakan coba lagi.',
     contentRequired: 'Masukkan konten terlebih dahulu untuk diolah AI.',

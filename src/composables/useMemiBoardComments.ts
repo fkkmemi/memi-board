@@ -75,13 +75,24 @@ export function useMemiBoardComments(
   const { isBoardHidden, getBoard } = useMemiBoardSettings()
   const { translateComment } = useMemiBoardWritingAssistant()
   let cachedTranslation: CommentTranslationSet | undefined
+  /** 직전 저장에서 자동 번역이 실패해 원문만 저장했는지. */
+  const translationSkipped = ref(false)
 
   async function translationFor(body: string, pending?: CommentTranslationSet) {
+    translationSkipped.value = false
     if (!isMemiBoardTranslationEnabled()) return {}
     if (pending?.i18nSource.body === body) return pending
     if (getBoard(bid.value)?.autoTranslatePosts !== true) return {}
     if (cachedTranslation?.i18nSource.body !== body) {
-      cachedTranslation = await translateComment({ body, targets: boardTranslationLocales(getBoard(bid.value)) })
+      // 번역 한도 초과·실패가 댓글 저장을 막지 않게 원문만 저장한다.
+      try {
+        cachedTranslation = await translateComment({ body, targets: boardTranslationLocales(getBoard(bid.value)) })
+      }
+      catch (e) {
+        if (import.meta.dev) console.warn('[memi-board] comment auto-translation skipped', e)
+        translationSkipped.value = true
+        return {}
+      }
     }
     return cachedTranslation
   }
@@ -341,6 +352,7 @@ export function useMemiBoardComments(
     loadingMore,
     loadMore,
     newCommentId,
+    translationSkipped,
     addComment,
     addReply,
     updateComment,

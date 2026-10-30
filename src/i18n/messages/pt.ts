@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: 'Este comentário foi ocultado por um administrador.',
   },
   commentForm: {
+    translationSkipped: 'O comentário foi publicado sem tradução. Você pode traduzi-lo depois no formulário de edição.',
     hiddenBoardDenied: 'Somente a equipe responsável pode comentar em fóruns ocultos.',
     denied: 'Você não tem permissão para comentar neste fórum.',
     signInRequired: 'Faça login.',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: '{count} avisos de conteúdo',
   },
   writingAssistant: {
+    dailyLimit: 'O assistente de escrita com IA pode ser usado até {limit} vezes por dia. Tente novamente em cerca de {hours} hora(s).',
     loginRequired: 'Faça login para usar o assistente de escrita com AI.',
     userMissing: 'Não foi possível verificar suas informações de usuário. Tente novamente.',
     contentRequired: 'Primeiro, escreva algum conteúdo para a AI trabalhar.',

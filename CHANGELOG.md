@@ -4,7 +4,15 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Changed
+- Raised the AI writing assistant daily limit from 10 to 20 (`WRITING_ASSISTANT_DAILY_LIMIT`). Automatic translation of posts and comments counts toward the same limit, so active multilingual conversations no longer run out after a few comments.
+
+### Fixed
+- When automatic translation fails, including when the daily limit is reached, posts and comments are now saved with the original text only instead of failing to save. The comment form shows that the comment was posted without translation; it can be translated later from the edit form.
+- The daily limit message is now translated into all 10 languages instead of falling back to English.
+
 ### Host app steps
+- Update the AI usage limit in the host's Firestore rules from `10` to `20` in the three `aiWritingCount`/`aiWritingPending` checks under `memiBoardUsers` (see `docs/firestore.rules.example`), then deploy the rules. Until the rules are updated, the client allows 20 uses but the rules reject anything above 10.
 - If the host app uses a copy of the SEO composables (e.g. `app/composables/useMemiBoardSeo.ts`), pass `locale.value` to `fetchPublicPostForSeo`/`fetchPublicListForSeo` and include `locale` in the `useAsyncData` key and `watch`, as the package has done since 0.46.1. Without it, translated posts keep the original title in the page title and OG tags. See the detail page section of [docs/host-integration.md](docs/host-integration.md).
 
 ## [0.52.2] - 2026-10-30

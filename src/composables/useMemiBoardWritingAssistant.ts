@@ -13,7 +13,7 @@ import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { CommentTranslationSet, MemiBoardI18nMap, PostTranslationSet } from '../types'
 import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
-export const WRITING_ASSISTANT_DAILY_LIMIT = 10
+export const WRITING_ASSISTANT_DAILY_LIMIT = 20
 const WRITING_ASSISTANT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type WritingAssistantAction =

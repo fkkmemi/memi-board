@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: 'أخفى المشرف هذا التعليق.',
   },
   commentForm: {
+    translationSkipped: 'تم نشر التعليق دون ترجمة. يمكنك ترجمته لاحقًا من نموذج التعديل.',
     hiddenBoardDenied: 'في اللوحات المخفية، يمكن لفريق العمل المعيَّن فقط التعليق.',
     denied: 'ليس لديك إذن بالتعليق في هذه اللوحة.',
     signInRequired: 'يُرجى تسجيل الدخول.',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: 'تحذيرات المحتوى: {count}',
   },
   writingAssistant: {
+    dailyLimit: 'يمكن استخدام مساعد الكتابة بالذكاء الاصطناعي حتى {limit} مرة في اليوم. حاول مرة أخرى بعد حوالي {hours} ساعة.',
     loginRequired: 'سجّل الدخول لاستخدام مساعد الكتابة بالذكاء الاصطناعي.',
     userMissing: 'تعذّر التحقق من معلومات المستخدم. يُرجى المحاولة مرة أخرى.',
     contentRequired: 'أدخل أولًا محتوى ليعمل عليه AI.',

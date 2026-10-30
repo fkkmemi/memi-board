@@ -1,5 +1,6 @@
 export default {
   translationPending: 'Translations in {count} languages are ready and will be saved with your comment.',
+  translationSkipped: 'Your comment was posted without translation. You can translate it later from the edit form.',
   hiddenBoardDenied: 'Only assigned staff can comment on hidden boards.',
   denied: 'You don’t have permission to comment on this board.',
   signInRequired: 'Please sign in.',

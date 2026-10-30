@@ -50,6 +50,7 @@ const messages: MemiBoardMessages = {
     blinded: 'Ce commentaire a été masqué par un administrateur.',
   },
   commentForm: {
+    translationSkipped: 'Le commentaire a été publié sans traduction. Vous pourrez le traduire plus tard depuis le formulaire de modification.',
     hiddenBoardDenied: 'Seule l’équipe attitrée peut commenter dans les forums masqués.',
     denied: 'Vous n’avez pas l’autorisation de commenter dans ce forum.',
     signInRequired: 'Veuillez vous connecter.',
@@ -651,6 +652,7 @@ const messages: MemiBoardMessages = {
     moderationWarnings: '{count} avertissements de contenu',
   },
   writingAssistant: {
+    dailyLimit: 'L’assistant d’écriture IA peut être utilisé jusqu’à {limit} fois par jour. Réessayez dans environ {hours} heure(s).',
     loginRequired: 'Connectez-vous pour utiliser l’assistant d’écriture AI.',
     userMissing: 'Impossible de vérifier vos informations. Veuillez réessayer.',
     contentRequired: 'Saisissez d’abord un texte à traiter par l’AI.',
