@@ -181,3 +181,7 @@ Outside components, use `isMemiBoardI18nEnabled()` and `isMemiBoardTranslationEn
 - Verify that input and settings are preserved when translation fails.
 
 Run the package's regression tests in the development environment with `pnpm test:i18n`.
+
+### 게시글 원문 언어 (0.52.1+)
+
+게시글 수동·자동 번역은 화면 언어 대신 제목·본문의 실제 언어를 판별해 원문 언어로 저장한다. 영어 화면에서 한국어 글을 번역해도 한국어 원문을 유지하고 영어 번역을 생성한다. 호스트에서 `translatePost({ source })`를 명시하면 그 값을 사용한다. 언어 판별은 번역과 같은 일일 사용 1회 안에서 실행된다. 이전 버전에서 화면 언어와 원문 언어가 다른 상태로 번역해 잘못 저장된 글은 재번역해야 한다.

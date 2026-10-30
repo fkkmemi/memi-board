@@ -116,6 +116,7 @@ test('low-level translation calls are blocked before Firebase AI is invoked', as
     configureMemiBoard(options)
     await assert.rejects(translator.translateEntries([{ id: 'board', fields: { label: '원문' } }]), { code: 'memi-board/translation-disabled' })
     await assert.rejects(translator.translateHtml('<p>본문</p>'), { code: 'memi-board/translation-disabled' })
+    await assert.rejects(translator.detectSourceLocale('한국어 원문'), { code: 'memi-board/translation-disabled' })
   }
 })
 

@@ -114,7 +114,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   const db = useFirestore()
   const user = useCurrentUser()
   const config = useMemiBoardConfig()
-  const { translateEntries, translateHtml } = useMemiBoardAutoTranslate()
+  const { translateEntries, translateHtml, detectSourceLocale } = useMemiBoardAutoTranslate()
 
   function usageOf(data: Record<string, unknown>, now: number) {
     const windowAt = timestampMs(data.aiWritingWindowAt)
@@ -262,6 +262,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
    * 하루 사용 횟수는 언어 수와 상관없이 1회만 차감한다. 저장은 호출한 쪽이 한다.
    */
   async function translatePost(input: {
+    /** 실제 원문 언어. 생략하면 글 내용에서 판별하며 화면 언어는 사용하지 않는다. */
     source?: MemiBoardLocale
     /** 번역할 언어. 기본: 지원 언어 전체(보드 설정은 boardTranslationLocales 로 넘긴다) */
     targets?: MemiBoardLocale[]
@@ -270,9 +271,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     content?: string
   }): Promise<PostTranslationSet> {
     assertMemiBoardTranslationEnabled()
-    const source = input.source ?? locale.value
     const targets = input.targets?.length ? input.targets : boardTranslationLocales()
-    const required = [...targets, source]
     const title = input.title?.trim() ?? ''
     const summary = input.summary?.trim() ?? ''
     const content = input.content ?? ''
@@ -286,6 +285,8 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     }
 
     return withDailyUse(async () => {
+      const source = input.source ?? await detectSourceLocale([plainTextFromHtml(content), title, summary].filter(Boolean).join('\n'))
+      const required = [...targets, source]
       const emptyFields: Record<string, MemiBoardI18nMap> = {}
       const [fieldMap, htmlMap] = await Promise.all([
         Object.keys(fields).length

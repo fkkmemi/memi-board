@@ -16,6 +16,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.1',
+    date: '2026-10-30',
+    highlights: ['화면 언어와 글의 언어가 달라도 실제 원문 언어를 판별해 번역해요', '영어 화면에서 한국어 글을 번역했을 때 영어 번역이 빠지던 문제를 고쳤어요'],
+    highlightsEn: ['Post translation detects the actual source language independently of the UI language', 'Fixed missing English translations when translating Korean posts in the English UI'],
+    note: '이전에 이 문제로 잘못 저장된 글은 다시 번역해 주세요.',
+    noteEn: 'Translate affected posts again to repair previously mislabeled translations.',
+  },
+  {
     version: '0.52.0',
     date: '2026-10-29',
     highlights: [

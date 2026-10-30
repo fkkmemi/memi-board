@@ -759,7 +759,6 @@ async function translateAllLocales() {
   aiRunning.value = true
   try {
     const translations = await translatePost({
-      source: locale.value,
       targets: translationTargets.value,
       title: storedTitle,
       summary,
@@ -1061,7 +1060,6 @@ async function handleSubmit() {
     if (!props.postId && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
       submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
       translations = await translatePost({
-        source: locale.value,
         targets: translationTargets.value,
         title: storedTitle,
         summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,

@@ -4,6 +4,15 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.52.1] - 2026-10-30
+
+### Fixed
+- Post translation now detects the original language from the actual text instead of using the current UI language. Translating a Korean post while viewing the English UI no longer stores the Korean original as English or skips the English translation.
+- Manual translation and automatic translation of new posts share the detected source language. Detection is included in the same daily writing-assistant use; an explicit `translatePost({ source })` still takes precedence.
+
+### Host app steps
+- Upgrade to 0.52.1 and translate affected posts again. Previously mislabeled source-language data does not contain the missing translation and cannot be repaired by changing the display language alone.
+
 ## [0.52.0] - 2026-10-29
 
 ### Added
