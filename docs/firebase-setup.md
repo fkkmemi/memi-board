@@ -175,3 +175,67 @@ firebase deploy --only firestore:indexes
 ```
 
 If a console error shows an index creation link, you can follow it too — the example file above is prepared in advance based on the queries the package actually runs. If you customized collection names (`memiBoard.postsCollection`, etc.), update the `collectionGroup` values to match.
+
+
+## Safari: slow post navigation or delayed comments
+
+On some macOS Safari and iPhone/iPad browser environments, Firestore reads and realtime updates can stall for about **30 seconds** while Chrome on macOS responds normally. Symptoms include a skeleton that stays visible after Previous/Next navigation, delayed comments, and late like/report state updates. Sequential reads can make the visible delay approach a minute. Both `getDocs()` and `onSnapshot()` can be affected; switching from VueFire to direct Firebase calls does not necessarily avoid it.
+
+If you reproduce this pattern, **the host app may need to force Firestore long polling for the affected browsers**. memi-board uses the host's Firestore instance and does not change its transport automatically. Updating memi-board alone does not enable this setting.
+
+### Evidence and limits
+
+In local testing on 2026-10-30 with Firebase JS SDK 12.19.0, VueFire 3.2.3, and nuxt-vuefire 1.1.2:
+
+- Mac Safari reported post/comment reads and auxiliary subscriptions completing after roughly 29.9–30.2 seconds. Omitting like/report subscriptions still left a post lookup stalled for 30.1 seconds.
+- With all subscriptions enabled and forced long polling, five round trips between the same two posts did not reproduce the 30-second stalls. Initial server reads took roughly 0.1–0.7 seconds; later subscription callbacks could use cached data.
+- The tester also confirmed improvement on iPhone Safari. This is evidence for a transport compatibility problem in the tested environments, not a guarantee for every Safari version or every loading failure.
+
+Related reports and API details: [Firebase JS SDK issue #9789](https://github.com/firebase/firebase-js-sdk/issues/9789), [WebKit streaming regression #322545](https://bugs.webkit.org/show_bug.cgi?id=322545), and [FirestoreSettings](https://firebase.google.com/docs/reference/js/firestore.firestoresettings). A WebKit source fix does not by itself establish which installed Safari versions include it. Recheck the actual devices before removing a host workaround.
+
+### Nuxt / VueFire host configuration
+
+Create the following **client-only host plugin**, or merge the settings into the host's existing early Firestore initialization. It must run **before any `getFirestore()`, `useFirestore()`, Firestore read, or subscription**. Do not put it in a page's `onMounted()` hook. The early order also precedes the standard nuxt-vuefire app plugin; if your host has an earlier custom Firebase plugin, coordinate its initialization instead of initializing Firestore twice with different settings.
+
+```ts
+// app/plugins/00.firestore-transport.client.ts
+import { initializeApp, type FirebaseOptions } from 'firebase/app'
+import { initializeFirestore } from 'firebase/firestore'
+
+export default defineNuxtPlugin({
+  name: 'host-firestore-transport',
+  order: -100,
+  setup() {
+    const ua = navigator.userAgent
+    const isIOSOrIPadOS = /iPad|iPhone|iPod/.test(ua)
+      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const isSafari = /Safari/i.test(ua)
+      && !/Chrome|Chromium|CriOS|Edg|OPR|FxiOS|Android/i.test(ua)
+    if (!isIOSOrIPadOS && !isSafari) return
+
+    // Reuse exactly the same web app config as nuxt-vuefire.
+    const { config } = useRuntimeConfig().public.vuefire as {
+      config: FirebaseOptions
+    }
+    const app = initializeApp(config)
+    initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: false,
+      experimentalForceLongPolling: true,
+    })
+  },
+})
+```
+
+This example targets Safari and iOS/iPadOS browser user agents, including desktop-style iPad user agents. Browser detection is a heuristic: adapt it to the devices and engines your service actually supports. The code assumes the default Firebase app/database used by the host's standard nuxt-vuefire setup; named apps or databases must initialize their matching instance instead. Keep it client-only so it does not change the server's Admin SDK configuration.
+
+Automatic long-polling detection is already enabled by default in recent Firebase JS SDKs; explicitly setting `experimentalAutoDetectLongPolling: true` alone is not the same experiment. The example disables auto-detection and forces long polling. Firestore documents a possible performance cost, so compare on the affected devices and avoid enabling it for every browser without evidence. Realtime subscriptions continue to work; there is no need to remove comments or likes subscriptions to use this transport.
+
+### Verify the change
+
+1. Before changing transport, measure slug-to-ID lookup, post metadata/body readiness, initial comment reads, and first realtime callbacks separately. Distinguish cached callbacks from server reads.
+2. Apply the host plugin and fully reload the page. Transport settings cannot be switched on an already-running Firestore instance using hot reload alone.
+3. On both Mac and iPhone Safari, navigate Previous/Next repeatedly through the same posts and additional uncached posts. Compare server-read timings against the default configuration.
+4. Use another browser to add a comment and toggle a like, then check that Safari receives the updates. Also check reconnecting after backgrounding and restoring the app.
+5. If long polling does not improve the result, investigate authentication/App Check readiness, offline state, permissions, missing indexes, and application errors separately. A loading skeleton is not proof of this specific transport issue.
+
+No Firebase rule or index deployment is needed for this transport setting. Deploy the plugin with the **host app**, then have existing tabs reload. Temporary diagnostic panels and test switches are not part of the package.

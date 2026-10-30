@@ -619,6 +619,10 @@ It is fine if the same Firebase project has a host app user collection — board
 
 ## Troubleshooting
 
+### Safari post skeletons or comments delayed by about 30 seconds
+
+Some Mac/iPhone Safari environments may need **forced Firestore long polling** in the host app. Post lookups, comments, and realtime like/report state can be delayed even when macOS Chrome works normally. See the [Safari troubleshooting guide and early Nuxt/VueFire initialization example](docs/firebase-setup.md#safari-slow-post-navigation-or-delayed-comments). memi-board does not enable this automatically; compare on affected devices and configure the host before Firestore is first used.
+
 ### `useCurrentUser() called before the VueFireAuth module...`
 
 `vuefire.auth.enabled` is not set, or `vuefire`/`firebase` is installed twice. `pnpm why vuefire` → reduce to one. The module adds vue/vuefire/firebase to `vite.resolve.dedupe`, but **the host's peer installation** takes precedence.

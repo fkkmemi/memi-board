@@ -72,6 +72,10 @@ Use the **Firebase web app config of the site you are adding the board to**. Sto
 
 Keep SSR for the public list and detail pages. Even with `moderation.enabled: false`, the default local banned-word check remains. This config has no option to turn off the writing AI's proofreading and sentence polishing; using those AI menus requires an AI Logic connection.
 
+### Safari Firestore transport compatibility
+
+If Mac or iPhone Safari keeps showing a loading skeleton after post navigation, or comments/realtime state arrive roughly 30 seconds late while macOS Chrome is fast, the host may need **forced Firestore long polling**. Configure it before VueFire first uses Firestore; installing or upgrading memi-board does not change the host transport. See [Safari symptoms, the early Nuxt plugin, and verification steps](firebase-setup.md#safari-slow-post-navigation-or-delayed-comments).
+
 ## 4. Styles and UApp
 
 ```css

@@ -4,6 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.52.5] - 2026-10-30
+
+### Documentation
+- Documented roughly 30-second Firestore read/realtime delays observed in Mac and iPhone Safari, local long-polling comparison results, and an early client-only Nuxt/VueFire host initialization example. Linked the guide from the README and host integration instructions.
+
+### Host app steps
+- If the Safari delay reproduces, compare forced long polling on the affected devices and apply the documented host plugin before Firestore is first used. This release does not automatically change transport, reduce subscriptions, or include the temporary local diagnostics. No Firebase rule or index changes are required.
+
 ## [0.52.4] - 2026-10-30
 
 ### Fixed

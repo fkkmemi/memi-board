@@ -16,6 +16,14 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.5',
+    date: '2026-10-30',
+    highlights: ['Safari에서 글·댓글 로딩이 늦을 때 long polling을 적용하는 호스트 설정 안내를 추가했어요'],
+    highlightsEn: ['Added host setup guidance for using long polling when posts and comments load slowly in Safari'],
+    note: '문서 안내 추가이며, 통신 설정은 호스트 앱에서 적용해야 해요.',
+    noteEn: 'This is a documentation update; the host app must apply the transport setting.',
+  },
+  {
     version: '0.52.4',
     date: '2026-10-30',
     highlights: ['일반 사용자도 게시판 프로필 이름과 사진을 저장할 수 있어요. 바꾼 이름은 그동안 쓴 글과 댓글, 답글에도 반영돼요'],
