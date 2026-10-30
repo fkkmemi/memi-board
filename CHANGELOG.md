@@ -4,6 +4,9 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Fixed
+- Saving the board profile (`ProfileEditModal`) failed with `permission-denied` for regular users. The reply-target lookup queried `replyToUid` alone, which the rules cannot allow without `listed == true` in the query. It now adds that filter, so name and photo changes reach the user's posts, comments, and replies again. Reply-target names on hidden boards are not updated. Added `tests/profile-rules.test.mjs`.
+
 ## [0.52.3] - 2026-10-30
 
 ### Changed

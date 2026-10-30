@@ -736,6 +736,12 @@ Notice (pinned) permission regression tests:
 firebase emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
 ```
 
+Profile edit permission regression tests:
+
+```bash
+firebase emulators:exec --project demo-memi-profile-rules --only auth,firestore 'node --test tests/profile-rules.test.mjs'
+```
+
 ## Publishing to npm
 
 npm Trusted Publishing (OIDC) is used. No long-lived `NPM_TOKEN` or local OTP is stored.

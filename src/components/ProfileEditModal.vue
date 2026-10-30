@@ -69,7 +69,9 @@ async function updateProfileReferences(nextName: string, nextPhotoURL: string | 
   const [postsSnapshot, commentsSnapshot, repliesSnapshot] = await Promise.all([
     getDocs(query(postsCol(db, config), where('authorUid', '==', props.uid))),
     getDocs(query(commentsCol(db, config), where('authorUid', '==', props.uid))),
-    getDocs(query(commentsCol(db, config), where('replyToUid', '==', props.uid))),
+    // Rules can only allow this list for regular users when listed==true is pinned in the query.
+    // Reply-target names on hidden boards are not updated.
+    getDocs(query(commentsCol(db, config), where('replyToUid', '==', props.uid), where('listed', '==', true))),
   ])
 
   // 한 댓글이 작성자이면서 답글 대상일 수도 있으므로 같은 문서의 변경을 합친다.
