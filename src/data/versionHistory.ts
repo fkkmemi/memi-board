@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.3',
+    date: '2026-10-30',
+    highlights: [
+      'AI 글쓰기 도우미를 하루 20회까지 쓸 수 있어요',
+      '자동 번역이 실패하거나 한도를 넘어도 글과 댓글은 원문으로 저장돼요',
+      '한도 안내가 10개 언어로 보여요',
+    ],
+    highlightsEn: [
+      'The AI writing assistant can now be used up to 20 times a day',
+      'Posts and comments are saved with the original text even when automatic translation fails or the limit is reached',
+      'The daily limit message now appears in all 10 languages',
+    ],
+    note: '호스트 Firestore 규칙의 AI 사용 한도도 20으로 바꿔 배포해야 해요.',
+    noteEn: 'Update the AI usage limit in the host Firestore rules to 20 and deploy them.',
+  },
+  {
     version: '0.52.2',
     date: '2026-10-30',
     highlights: ['댓글·답글 작성 및 수정창에서도 AI로 문장을 다듬고 번역할 수 있어요', '글 자동 번역을 켜면 댓글·답글도 번역해 보는 언어에 맞춰 보여줘요'],

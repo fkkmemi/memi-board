@@ -4,6 +4,8 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.52.3] - 2026-10-30
+
 ### Changed
 - Raised the AI writing assistant daily limit from 10 to 20 (`WRITING_ASSISTANT_DAILY_LIMIT`). Automatic translation of posts and comments counts toward the same limit, so active multilingual conversations no longer run out after a few comments.
 
