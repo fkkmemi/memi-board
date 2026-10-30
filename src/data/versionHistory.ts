@@ -16,6 +16,12 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.52.4',
+    date: '2026-10-30',
+    highlights: ['일반 사용자도 게시판 프로필 이름과 사진을 저장할 수 있어요. 바꾼 이름은 그동안 쓴 글과 댓글, 답글에도 반영돼요'],
+    highlightsEn: ['Regular users can save their board profile name and photo again, and the new name now appears on their earlier posts, comments, and replies'],
+  },
+  {
     version: '0.52.3',
     date: '2026-10-30',
     highlights: [

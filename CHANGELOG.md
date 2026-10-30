@@ -4,8 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.52.4] - 2026-10-30
+
 ### Fixed
 - Saving the board profile (`ProfileEditModal`) failed with `permission-denied` for regular users. The reply-target lookup queried `replyToUid` alone, which the rules cannot allow without `listed == true` in the query. It now adds that filter, so name and photo changes reach the user's posts, comments, and replies again. Reply-target names on hidden boards are not updated. Added `tests/profile-rules.test.mjs`.
+
+### Host app steps
+- Upgrade to 0.52.4. No Firestore rules or index changes are required.
+- If the host app has its own copy of profile-name propagation (for example an account page that rewrites `authorName`/`replyToName` after a name change), add `where('listed', '==', true)` to its `replyToUid` query. Without it, the query is denied for regular users and the save fails.
 
 ## [0.52.3] - 2026-10-30
 
