@@ -4,6 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.53.1] - 2026-11-04
+
+### Fixed
+- `CustomFieldEditor.vue` imported `../utils/customFields` and `../i18n/useMemiBoardI18n`. Those paths exist in the source tree used by a local link, but they are not in the published package. Host production builds failed to resolve them. The component now imports from `memi-board/runtime`, like the other components. The build rejects a copied component import that leaves `dist/runtime/components`.
+
+### Host app steps
+- Upgrade to 0.53.1. 0.53.0 cannot build a host that opens the custom field editor. No Firestore rules or index changes are required.
+
 ## [0.53.0] - 2026-11-04
 
 ### Added

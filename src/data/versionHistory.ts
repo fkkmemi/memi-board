@@ -16,6 +16,18 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.53.1',
+    date: '2026-11-04',
+    highlights: [
+      '커스텀 필드 설정 화면이 배포된 패키지에서도 빌드돼요',
+    ],
+    highlightsEn: [
+      'Custom field settings now build from the published package',
+    ],
+    note: '0.53.0은 패키지에 없는 경로를 가져와 호스트 빌드가 실패했어요.',
+    noteEn: '0.53.0 imported paths that are not in the package, so host builds failed.',
+  },
+  {
     version: '0.53.0',
     date: '2026-11-04',
     highlights: [

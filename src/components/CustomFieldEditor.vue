@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { CUSTOM_FIELD_LABEL_MAX, CUSTOM_FIELD_MAX, CUSTOM_FIELD_PLACEHOLDER_MAX } from '../utils/customFields'
-import type { BoardCustomField } from '../types'
-import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import { CUSTOM_FIELD_LABEL_MAX, CUSTOM_FIELD_MAX, CUSTOM_FIELD_PLACEHOLDER_MAX, useMemiBoardI18n } from 'memi-board/runtime'
+import type { BoardCustomField } from 'memi-board/runtime'
 
 const fields = defineModel<BoardCustomField[]>({ default: () => [] })
 const emit = defineEmits<{ dirty: [] }>()
