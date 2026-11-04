@@ -27,6 +27,9 @@ import {
   buildPostPreview,
   hashText,
   useMemiBoardWritingAssistant,
+  CUSTOM_FIELD_VALUE_MAX,
+  extendForFields,
+  readExtend,
 } from 'memi-board/runtime'
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
@@ -41,7 +44,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
-const { user, isSignedIn, isAdmin, isWriteRestricted, restrictedMessage, canManageBoard } = useMemiBoardAuth()
+const { user, isSignedIn, isWriteRestricted, restrictedMessage, canManageBoard } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
 const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
@@ -53,6 +56,10 @@ const { uploadEditorImage } = useMemiBoardStorage()
 const { assist, translatePost } = useMemiBoardWritingAssistant({ locale })
 
 const title = ref('')
+/** 보드 커스텀 필드 값. 키는 설정에 있는 것만 저장한다. */
+const extendValues = ref<Record<string, string>>({})
+/** 글을 열 때 읽은 값. 설정이 늦게 도착해도 입력칸을 채운다. */
+const loadedExtend = ref<Record<string, string>>({})
 /** UEditor content-type=html (shineb 와 동일) */
 const content = ref('')
 const tags = ref<string[]>([])
@@ -63,6 +70,28 @@ const isImageEditor = computed(() => getBoard(resolvedBoardId.value)?.editorType
 /** 보드 설정의 번역 언어(비어 있으면 전체) */
 const translationTargets = computed(() => boardTranslationLocales(getBoard(resolvedBoardId.value)))
 const isEdit = computed(() => Boolean(props.postId))
+const customFields = computed(() => getBoard(resolvedBoardId.value)?.customFields ?? [])
+
+function blankExtend(): Record<string, string> {
+  return Object.fromEntries(customFields.value.map(field => [field.key, '']))
+}
+
+function storedExtend(value: unknown): Record<string, string> {
+  const stored = readExtend(value)
+  return Object.fromEntries(customFields.value.map(field => [field.key, stored[field.key] ?? '']))
+}
+
+watch(customFields, (fields) => {
+  const next = { ...extendValues.value }
+  let changed = false
+  for (const field of fields) {
+    if (next[field.key] == null) {
+      next[field.key] = loadedExtend.value[field.key] ?? ''
+      changed = true
+    }
+  }
+  if (changed) extendValues.value = next
+}, { immediate: true })
 
 const loading = ref(false)
 const saving = ref(false)
@@ -109,8 +138,6 @@ const aiPreviewLabels = computed(() => {
     default: return { before: t('editor.aiPreview.before'), after: t('editor.aiPreview.after') }
   }
 })
-/** 관리자 전용 — 비속어 필터 건너뛰기 (테스트/공지 등 의도적 작성용) */
-const adminSkipModeration = ref(false)
 /** 공지 지정 — 게시된 글을 수정할 때 보드 매니저에게만 보인다. 새 글은 게시 후 상세에서 지정한다. */
 const pinned = ref(false)
 const loadedPinned = ref(false)
@@ -952,6 +979,8 @@ async function loadPost(id: string) {
       return
     }
     title.value = post.title
+    loadedExtend.value = readExtend(post.extend)
+    extendValues.value = storedExtend(post.extend)
     pinned.value = loadedPinned.value = post.pinned === true
     loadedPublished.value = post.isPublished === true
     tags.value = post.tags ?? []
@@ -990,6 +1019,8 @@ watch(
     if (id) void loadPost(id)
     else {
       loading.value = false
+      loadedExtend.value = {}
+      extendValues.value = blankExtend()
       attachmentNamespace.value = createPostId()
       coverSlots.value = []
       void ensureSettings().catch(() => {})
@@ -1045,7 +1076,7 @@ async function handleSubmit() {
   try {
     const plain = plainTextFromHtml(content.value)
     const moderationText = imageBoard ? plain : `${title.value}\n${plain}`
-    const moderation = await checkText(moderationText, { skipFilter: isAdmin.value && adminSkipModeration.value })
+    const moderation = await checkText(moderationText)
     if (moderation.flagged) {
       error.value = moderation.reason || t('editor.errors.moderationBlocked')
       return
@@ -1082,6 +1113,7 @@ async function handleSubmit() {
       tags: tags.value.map(t => t.trim()).filter(Boolean),
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
       attachments: imageBoard ? [] : attachments.value,
+      extend: extendForFields(extendValues.value, customFields.value),
       ...(translations ? { translations } : {}),
     }
 
@@ -1442,21 +1474,26 @@ async function handleSubmit() {
     </p>
 
     <div
-      v-if="isAdmin || canPin"
+      v-if="canPin"
       class="flex flex-wrap items-center gap-x-6 gap-y-2"
     >
       <USwitch
-        v-if="canPin"
         v-model="pinned"
         size="sm"
         :label="t('editor.pinNotice')"
       />
-      <USwitch
-        v-if="isAdmin"
-        v-model="adminSkipModeration"
-        size="sm"
-        :label="t('editor.skipModeration')"
-      />
+    </div>
+
+    <div v-if="customFields.length" class="flex flex-col gap-3">
+      <label v-for="field in customFields" :key="field.key" class="flex flex-col gap-1">
+        <span class="text-sm font-medium">{{ field.label }}</span>
+        <UInput
+          v-model="extendValues[field.key]"
+          :placeholder="field.placeholder"
+          :maxlength="CUSTOM_FIELD_VALUE_MAX"
+          autocomplete="off"
+        />
+      </label>
     </div>
 
     <div class="flex gap-2">

@@ -3,7 +3,6 @@ export default {
   contentPlaceholder: '본문을 입력하세요… / 를 입력하면 블록 메뉴가 열립니다.',
   imageContentPlaceholder: '내용을 입력하세요…',
   tagsPlaceholder: '태그 입력 후 Enter',
-  skipModeration: '비속어 필터 무시 (관리자)',
   pinNotice: '공지로 등록',
   submitEdit: '수정 완료',
   submitNext: '다음: 미리보기',

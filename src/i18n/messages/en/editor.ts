@@ -3,7 +3,6 @@ export default {
   contentPlaceholder: 'Write something… Type / to open the block menu.',
   imageContentPlaceholder: 'Write something…',
   tagsPlaceholder: 'Type a tag and press Enter',
-  skipModeration: 'Skip profanity filter (admin)',
   pinNotice: 'Pin as notice',
   submitEdit: 'Save changes',
   submitNext: 'Next: Preview',

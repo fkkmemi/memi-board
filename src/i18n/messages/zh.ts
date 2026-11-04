@@ -4,6 +4,8 @@ import type { MemiBoardMessages } from '../translate'
 const messages: MemiBoardMessages = {
   attachments: {
     attach: '添加附件（{count} / {max}）',
+    dropOrClick: '拖放文件或点击添加',
+    uploading: '正在上传文件…',
     maxFiles: '最多可添加 {max} 个附件。',
   },
   auth: {
@@ -164,7 +166,6 @@ const messages: MemiBoardMessages = {
     contentPlaceholder: '输入正文… 输入 / 可打开块菜单。',
     imageContentPlaceholder: '输入内容…',
     tagsPlaceholder: '输入标签后按 Enter',
-    skipModeration: '跳过敏感词过滤（管理员）',
     pinNotice: '设为公告',
     submitEdit: '完成修改',
     submitNext: '下一步：预览',

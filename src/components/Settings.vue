@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
+import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
 
@@ -10,6 +11,8 @@ const props = withDefaults(defineProps<{
   authorized?: boolean
   /** 카테고리 페이지 기본 경로. 기본 `/board` → `/board/{id}` */
   categoryBase?: string
+  /** 목록에서 게시판 설정으로 이동할 경로. 기본 `/board-settings` → `/board-settings/{id}` */
+  settingsBase?: string
   /** 지정하면 해당 카테고리 하나만 편집하고 추가·삭제·순서·위험 영역을 숨긴다. */
   categoryId?: string
   /** 호스트 서버에서 게시판 전체 데이터를 삭제하는 관리자 전용 작업. */
@@ -22,6 +25,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   authorized: false,
   categoryBase: '/board',
+  settingsBase: '/board-settings',
 })
 
 const emit = defineEmits<{
@@ -93,6 +97,8 @@ const pending = computed(() => !mounted.value || rolePending.value || settingsPe
 
 const draft = ref<BoardCategory[]>([])
 const newLabel = ref('')
+const adding = ref(false)
+const newIdPreview = computed(() => slugify(newLabel.value.trim()))
 const savingId = ref<string | null>(null)
 const translatingId = ref<string | null>(null)
 const translatedDraftIds = ref(new Set<string>())
@@ -121,18 +127,19 @@ watch([categories, settingsPending], ([list, loading]) => {
       autoTranslate: category.autoTranslate === true,
       autoTranslatePosts: category.autoTranslatePosts === true,
       translationLocales: [...(category.translationLocales ?? [])],
+      customFields: (category.customFields ?? []).map(field => ({ ...field })),
     }))
   }
 }, { immediate: true })
 
-function addCategory() {
-  const label = newLabel.value.trim()
-  if (!label) return
-  const base = slugify(label) || `board-${Date.now()}`
+async function addCategory() {
+  const label = newLabel.value.trim().slice(0, BOARD_NAME_MAX)
+  const base = slugify(label)
+  if (!label || !base || adding.value) return
   let id = base
   let suffix = 2
   while (draft.value.some(category => category.id === id)) id = `${base}-${suffix++}`
-  draft.value.push({
+  const board: BoardCategory = {
     id,
     label,
     description: '',
@@ -146,8 +153,23 @@ function addCategory() {
     locale: '',
     autoTranslatePosts: false,
     translationLocales: [],
-  })
-  newLabel.value = ''
+    customFields: [],
+    order: draft.value.length,
+  }
+  adding.value = true
+  error.value = ''
+  try {
+    await saveCategory(board, draft.value.length)
+    draft.value.push(board)
+    newLabel.value = ''
+    savedId.value = board.id
+  }
+  catch (cause) {
+    error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
+  }
+  finally {
+    adding.value = false
+  }
 }
 
 async function moveCategory(index: number, offset: -1 | 1) {
@@ -191,6 +213,87 @@ async function removeCategory(index: number) {
 
 function categoryTo(id: string) {
   return `${props.categoryBase.replace(/\/$/, '')}/${encodeURIComponent(id)}`
+}
+
+function settingsTo(id: string) {
+  return `${props.settingsBase.replace(/\/$/, '')}/${encodeURIComponent(id)}`
+}
+
+const listQuery = ref('')
+const listSort = ref<'label' | 'description' | 'id'>('label')
+const visibilityFilter = ref<'all' | BoardVisibility>('all')
+const visibilityFilterItems = computed(() => [
+  { label: t('settings.list.filterAll'), value: 'all' as const },
+  { label: t('settings.visibility.options.public.label'), value: 'public' as const },
+  { label: t('settings.visibility.options.hidden.label'), value: 'hidden' as const },
+])
+const listSortItems = computed(() => [
+  { label: t('settings.list.sortName'), value: 'label' as const },
+  { label: t('settings.list.sortDescription'), value: 'description' as const },
+  { label: t('settings.list.sortId'), value: 'id' as const },
+])
+const filteredDraft = computed(() => {
+  const query = listQuery.value.trim().toLowerCase()
+  const rows = draft.value.filter((category) => {
+    if (visibilityFilter.value !== 'all' && (category.visibility ?? 'public') !== visibilityFilter.value) return false
+    if (!query) return true
+    const haystack = [category.id, category.label, category.description].filter(Boolean).join('\n').toLowerCase()
+    return haystack.includes(query)
+  })
+  const sort = listSort.value
+  const textOf = (category: BoardCategory) => {
+    if (sort === 'description') return category.description?.trim() ?? ''
+    if (sort === 'id') return category.id
+    return category.label.trim() || category.id
+  }
+  return rows.sort((a, b) => {
+    const left = textOf(a)
+    const right = textOf(b)
+    if (!left && right) return 1
+    if (left && !right) return -1
+    return left.localeCompare(right, 'ko', { sensitivity: 'base' }) || a.id.localeCompare(b.id, 'ko')
+  })
+})
+
+function draftIndex(id: string) {
+  return draft.value.findIndex(category => category.id === id)
+}
+
+function roleLabel(role: BoardWriteRole | undefined) {
+  return t(`settings.writeRole.options.${role ?? 'user'}`)
+}
+
+function boardFacts(category: BoardCategory) {
+  const listView = category.listView ?? 'default'
+  const listViewLabel = listView === 'dense'
+    ? t('settings.listView.options.dense')
+    : listView === 'image'
+      ? t('common.label.image')
+      : listView === 'video'
+        ? t('settings.listView.options.video')
+        : t('settings.option.default')
+  const editor = category.editorType ?? (listView === 'image' ? 'image' : 'default')
+  const fieldCount = category.customFields?.length ?? 0
+  return [
+    {
+      label: t('settings.visibility.label'),
+      value: (category.visibility ?? 'public') === 'hidden'
+        ? t('settings.visibility.options.hidden.label')
+        : t('settings.visibility.options.public.label'),
+    },
+    { label: t('settings.listView.label'), value: listViewLabel },
+    { label: t('settings.editorType.label'), value: editor === 'image' ? t('common.label.image') : t('settings.option.default') },
+    { label: t('settings.writeRole.label'), value: roleLabel(category.writeRole) },
+    {
+      label: t('settings.commentWriteRole.label'),
+      value: category.visibility === 'hidden' ? t('settings.commentWriteRole.hiddenFixed') : roleLabel(category.commentWriteRole),
+    },
+    {
+      label: t('settings.customFields.label'),
+      value: fieldCount ? t('settings.list.fieldCount', { count: fieldCount }) : t('settings.list.none'),
+    },
+    { label: t('settings.locale.label'), value: category.locale || t('settings.list.localeAuto') },
+  ]
 }
 
 async function translateCopy(category: BoardCategory) {
@@ -265,7 +368,7 @@ const bulk = ref({
 const bulkConfirmOpen = ref(false)
 const bulkRunning = ref<'apply' | 'translate' | null>(null)
 const bulkNotice = ref('')
-const showBulk = computed(() => !props.categoryId && draft.value.length > 0 && (translationEnabled.value || i18nEnabled.value))
+const showBulk = computed(() => false)
 const bulkHasChanges = computed(() => bulk.value.translationLocalesOn || bulk.value.autoTranslateOn
   || bulk.value.autoTranslatePostsOn || bulk.value.localeOn)
 const untranslatedBoards = computed(() => categories.value.filter(board => board.label.trim() && !boardCopyIsTranslated(board)))
@@ -450,6 +553,82 @@ async function runDeleteAll() {
       </template>
     </UModal>
 
+    <div v-if="!categoryId" class="flex flex-col gap-3">
+      <div class="flex flex-col gap-2">
+        <div class="flex gap-2">
+          <UInput v-model="newLabel" class="flex-1" :placeholder="t('settings.newCategoryPlaceholder')" :maxlength="BOARD_NAME_MAX" :disabled="adding" @keyup.enter="addCategory" />
+          <UButton :label="t('common.action.add')" icon="i-lucide-plus" color="neutral" variant="outline" :loading="adding" @click="addCategory" />
+        </div>
+        <p class="text-xs text-muted">{{ t('settings.newCategoryHelp') }}</p>
+        <p v-if="newIdPreview" class="text-xs text-muted">{{ t('settings.newCategoryUrl', { path: `${categoryBase.replace(/\/$/, '')}/${newIdPreview}` }) }}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <UInput
+          v-model="listQuery"
+          icon="i-lucide-search"
+          class="min-w-0 flex-1"
+          :placeholder="t('settings.list.filterPlaceholder')"
+          :aria-label="t('settings.list.filterPlaceholder')"
+        />
+        <USelect
+          v-model="listSort"
+          :items="listSortItems"
+          value-key="value"
+          class="w-24 shrink-0"
+          :aria-label="t('settings.list.sort')"
+        />
+        <UFieldGroup :aria-label="t('settings.visibility.label')" class="shrink-0">
+          <UButton
+            v-for="item in visibilityFilterItems"
+            :key="item.value"
+            :label="item.label"
+            size="sm"
+            :color="visibilityFilter === item.value ? 'primary' : 'neutral'"
+            :variant="visibilityFilter === item.value ? 'solid' : 'outline'"
+            @click="visibilityFilter = item.value"
+          />
+        </UFieldGroup>
+      </div>
+      <p v-if="!filteredDraft.length" class="text-sm text-muted">{{ t('settings.list.empty') }}</p>
+      <UPageGrid class="gap-3">
+      <article
+        v-for="category in filteredDraft"
+        :key="category.id"
+        class="flex flex-col gap-3 rounded-xl border border-default bg-default p-4"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <NuxtLink :to="settingsTo(category.id)" class="min-w-0">
+            <p class="flex items-center gap-1 font-semibold text-highlighted">
+              {{ category.label || t('settings.noLabel') }}
+              <UIcon name="i-lucide-chevron-right" class="size-4 text-muted" />
+            </p>
+            <code class="mt-0.5 block text-xs text-muted">{{ category.id }}</code>
+          </NuxtLink>
+          <div class="flex shrink-0 gap-1">
+          <UButton
+            icon="i-lucide-trash-2"
+            color="error"
+            variant="ghost"
+            size="sm"
+            :aria-label="t('settings.action.deleteBoard')"
+            :loading="deletingId === category.id"
+            :disabled="deletingId !== null"
+            @click="removeCategory(draftIndex(category.id))"
+          />
+          </div>
+        </div>
+        <p v-if="category.description" class="line-clamp-2 text-sm text-muted">{{ category.description }}</p>
+        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <div v-for="fact in boardFacts(category)" :key="fact.label">
+            <dt class="text-xs text-muted">{{ fact.label }}</dt>
+            <dd class="mt-0.5 text-highlighted">{{ fact.value }}</dd>
+          </div>
+        </dl>
+      </article>
+      </UPageGrid>
+    </div>
+
+    <template v-if="categoryId">
     <details
       v-for="(category, index) in draft"
       :key="category.id"
@@ -603,6 +782,7 @@ async function runDeleteAll() {
             @update:model-value="savedId = null"
           />
         </div>
+        <MemiBoardCustomFieldEditor v-model="category.customFields" @dirty="savedId = null" />
         <div v-if="i18nEnabled" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
           <USelect
@@ -650,11 +830,8 @@ async function runDeleteAll() {
         </div>
       </div>
     </details>
+    </template>
 
-    <div v-if="!categoryId" class="flex gap-2 border-t border-default pt-4">
-      <UInput v-model="newLabel" class="flex-1" :placeholder="t('settings.newCategoryPlaceholder')" @keyup.enter="addCategory" />
-      <UButton :label="t('common.action.add')" icon="i-lucide-plus" color="neutral" variant="outline" @click="addCategory" />
-    </div>
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="savedId" color="success" variant="subtle" :description="t('settings.savedCategory', { label: draft.find(item => item.id === savedId)?.label })" />
 

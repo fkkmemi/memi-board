@@ -25,19 +25,24 @@ const uploading = ref(false)
 const uploadProgress = ref(0)
 const deletingIndex = ref<number | null>(null)
 const uploadError = ref('')
+const dropActive = ref(false)
 
 function isImage(type: string) {
   return type.startsWith('image/')
 }
 
-async function onFileInputChange(e: Event) {
-  const input = e.target as HTMLInputElement
-  const files = Array.from(input.files ?? [])
-  input.value = ''
-  if (!files.length) return
+function canAcceptMore() {
+  return props.editable && !uploading.value && props.modelValue.length < props.maxFiles
+}
 
+function isFileDrag(dt: DataTransfer | null) {
+  return Array.from(dt?.types ?? []).includes('Files')
+}
+
+async function uploadFiles(files: File[]) {
   const remaining = props.maxFiles - props.modelValue.length
   const toUpload = files.slice(0, remaining)
+  if (!toUpload.length) return
 
   uploading.value = true
   uploadError.value = ''
@@ -58,6 +63,37 @@ async function onFileInputChange(e: Event) {
   finally {
     uploading.value = false
   }
+}
+
+async function onFileInputChange(e: Event) {
+  const input = e.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  if (!files.length) return
+  await uploadFiles(files)
+}
+
+function onDragOver(e: DragEvent) {
+  if (!canAcceptMore() || !isFileDrag(e.dataTransfer)) return
+  e.preventDefault()
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+  dropActive.value = true
+}
+
+function onDragLeave(e: DragEvent) {
+  const next = e.relatedTarget
+  if (next instanceof Node && (e.currentTarget as Node).contains(next)) return
+  dropActive.value = false
+}
+
+function onDrop(e: DragEvent) {
+  dropActive.value = false
+  if (!canAcceptMore()) return
+  const files = Array.from(e.dataTransfer?.files ?? [])
+  if (!files.length) return
+  e.preventDefault()
+  e.stopPropagation()
+  void uploadFiles(files)
 }
 
 async function removeAttachment(index: number) {
@@ -92,11 +128,20 @@ function formatSize(bytes: number): string {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div
+    class="space-y-2"
+    :class="editable && [
+      'rounded-xl border-2 border-dashed p-2 transition-colors sm:p-3',
+      dropActive ? 'border-primary bg-primary/5' : 'border-default bg-elevated/30',
+    ]"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
     <div
       v-for="(attachment, i) in modelValue"
       :key="attachment.path"
-      class="flex items-center gap-3 px-3 py-2 rounded-lg border border-default"
+      class="flex items-center gap-3 rounded-lg border border-default bg-default px-3 py-2"
     >
       <img
         v-if="isImage(attachment.type)"
@@ -137,7 +182,7 @@ function formatSize(bytes: number): string {
       />
     </div>
 
-    <template v-if="editable && modelValue.length < maxFiles">
+    <template v-if="editable">
       <input
         ref="fileInput"
         type="file"
@@ -145,15 +190,36 @@ function formatSize(bytes: number): string {
         class="hidden"
         @change="onFileInputChange"
       >
-      <UButton
-        icon="i-lucide-paperclip"
-        :label="t('attachments.attach', { count: modelValue.length, max: maxFiles })"
-        variant="outline"
-        color="neutral"
-        size="sm"
-        :loading="uploading"
+      <button
+        v-if="modelValue.length < maxFiles"
+        type="button"
+        class="flex w-full items-center justify-center text-center text-muted transition hover:text-primary"
+        :class="modelValue.length ? 'gap-2 px-3 py-3' : 'flex-col gap-2 px-4 py-10'"
+        :disabled="uploading"
         @click="fileInput?.click()"
-      />
+      >
+        <UIcon
+          :name="uploading ? 'i-lucide-loader-circle' : 'i-lucide-paperclip'"
+          :class="[
+            modelValue.length ? 'size-5' : 'size-10',
+            uploading ? 'animate-spin' : '',
+          ]"
+        />
+        <span class="flex flex-col gap-1">
+          <span class="text-sm font-medium text-highlighted">
+            {{ uploading ? t('attachments.uploading') : t('attachments.dropOrClick') }}
+          </span>
+          <span class="text-xs text-muted">
+            {{ t('attachments.attach', { count: modelValue.length, max: maxFiles }) }}
+          </span>
+        </span>
+      </button>
+      <p
+        v-else
+        class="px-2 py-3 text-center text-xs text-muted"
+      >
+        {{ t('attachments.maxFiles', { max: maxFiles }) }}
+      </p>
       <UProgress
         v-if="uploading"
         :model-value="Math.round(uploadProgress * 100)"
@@ -165,11 +231,5 @@ function formatSize(bytes: number): string {
         {{ uploadError }}
       </p>
     </template>
-    <p
-      v-else-if="editable"
-      class="text-xs text-muted"
-    >
-      {{ t('attachments.maxFiles', { max: maxFiles }) }}
-    </p>
   </div>
 </template>

@@ -2,7 +2,7 @@
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostContent, displayPostTitle, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostContent, displayPostTitle, readExtend, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -46,6 +46,13 @@ const { recordView } = useMemiBoardViews()
 const { post, pending: loading } = useMemiBoardPost(() => props.boardId, computed(() => props.postId))
 const notFound = computed(() => !loading.value && !post.value)
 const isDraft = computed(() => post.value?.isPublished === false)
+const shownExtend = computed(() => {
+  const values = readExtend(post.value?.extend)
+  return (getBoard(props.boardId)?.customFields ?? []).flatMap((field) => {
+    const value = values[field.key]
+    return value ? [{ key: field.key, label: field.label, value }] : []
+  })
+})
 const deleting = ref(false)
 const publishing = ref(false)
 const pinning = ref(false)
@@ -269,6 +276,13 @@ const contentHtml = computed(() => {
       :board-id="boardId"
       :post-id="postId"
     />
+
+    <dl v-if="shownExtend.length" class="flex flex-col gap-2 rounded-lg border border-default bg-default px-3 py-2 text-sm">
+      <div v-for="field in shownExtend" :key="field.key" class="flex gap-3">
+        <dt class="shrink-0 text-muted">{{ field.label }}</dt>
+        <dd class="min-w-0 break-all">{{ field.value }}</dd>
+      </div>
+    </dl>
 
     <div class="flex flex-col items-end gap-2">
       <div class="flex items-center justify-end gap-3 text-sm text-muted">

@@ -4,6 +4,22 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.53.0] - 2026-11-04
+
+### Added
+- Boards can define up to 8 custom fields (`key`, `label`, `placeholder`). Keys may use camelCase. Values are stored on the post as `extend` and are not translated. The write form shows them at the bottom; the post page shows them under the attachments.
+- File attachments can be dropped onto a dashed drop zone or added by clicking it.
+- The all-boards settings screen is a card list. A text filter matches name, address, and description. Visibility is a toggle. Cards sort by name, description, or address. Choosing a card opens that board’s settings.
+- Creating a board uses the typed name as its address (`/board/{id}`). The name is limited to 40 characters.
+
+### Removed
+- The admin switch that skipped the profanity filter, and `checkText`’s `skipFilter` option. Admins go through the same local blocklist and AI check as everyone else.
+
+### Host app steps
+- Upgrade to 0.53.0. No Firestore rules or index changes are required.
+- The all-boards settings component links to `/board-settings/{id}` by default (`settingsBase`). Mount `MemiBoardCategorySettings` on that route.
+- Equality filters on `extend.fwLow` and similar keys are not indexed by this release. Add a composite index only if a host query needs one.
+
 ## [0.52.5] - 2026-10-30
 
 ### Documentation

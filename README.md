@@ -484,12 +484,6 @@ Flow: **local blocklist → Gemini structured JSON** → if flagged, nothing is 
 As content blocks accumulate, `moderationBlockCount` / `moderationBlockAt` are recorded in `memiBoardUsers/{uid}`.  
 At 10, the user cannot write for about a day (one is removed every 24h). In the example Rules, users can only **+1** their own count; decreasing or resetting is for admins.
 
-### Admin moderation bypass
-
-At the bottom of the post form (`Editor.vue`), above the submit button, a "Ignore profanity filter" switch is shown only to `isAdmin` users. Submitting with it on skips both the local blocklist and AI moderation and saves (`via: 'admin-override'`; the warning count does not increase either). The comment form (`CommentForm.vue`) does not have it.
-
-When calling directly, bypass with `useMemiBoardModeration().checkText(text, { skipFilter: true })`. `skipFilter` trusts whatever value the host passes, so deciding whether the user is an admin is the caller's (host's) responsibility.
-
 ### AI writing assistant usage limit
 
 The editor's AI writing assistant can be used up to **10 times** per signed-in user in each 24-hour window. Before the call, only an `aiWritingPending` reservation is made; when the model call succeeds, it is committed to `aiWritingCount`. If the call fails, only the reservation is rolled back. Committed counts never go down. Reservation and commit update `memiBoardUsers/{uid}` in a Firestore transaction, so the total cannot exceed 10 even when several tabs run at once.

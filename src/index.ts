@@ -111,7 +111,7 @@ export { useMemiBoardI18n, memiBoardHostLocaleKey } from './i18n/useMemiBoardI18
 export type { MemiBoardI18n, UseMemiBoardI18nOptions } from './i18n/useMemiBoardI18n'
 
 export { formatDate, formatFullDate, formatRelativeDate, formatTimestampDetails } from './utils/formatDate'
-export { slugify } from './utils/slugify'
+export { BOARD_NAME_MAX, slugify } from './utils/slugify'
 export {
   DEFAULT_BLOCK_BAN_THRESHOLD,
   DEFAULT_BLOCK_BAN_DECAY_MS,
@@ -136,6 +136,7 @@ export type {
   AuthorMemoModel,
   AuthorMemoSentiment,
   BoardCategory,
+  BoardCustomField,
   BoardModel,
   BoardListView,
   BoardEditorType,
@@ -169,6 +170,16 @@ export {
   titleFromBody,
 } from './utils/postBody'
 export { extractEditorImageUrls } from './utils/extractEditorImageUrls'
+export {
+  CUSTOM_FIELD_MAX,
+  CUSTOM_FIELD_LABEL_MAX,
+  CUSTOM_FIELD_PLACEHOLDER_MAX,
+  CUSTOM_FIELD_VALUE_MAX,
+  readCustomFields,
+  prepareCustomFields,
+  readExtend,
+  extendForFields,
+} from './utils/customFields'
 export {
   useMemiBoardWritingAssistant,
   WRITING_ASSISTANT_DAILY_LIMIT,

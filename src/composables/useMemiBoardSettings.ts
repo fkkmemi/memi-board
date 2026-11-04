@@ -23,6 +23,8 @@ import { canManageBoardByRole } from '../utils/boardAccess'
 import { slugify } from '../utils/slugify'
 import { deletePostCascade } from '../utils/deletePostCascade'
 import { saveBoardWithVisibility } from '../utils/saveBoardVisibility'
+import { prepareCustomFields, readCustomFields, type CustomFieldIssue } from '../utils/customFields'
+import { BOARD_NAME_MAX } from '../utils/slugify'
 import { normalizeMemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { BoardModel, BoardVisibility } from '../types'
@@ -72,6 +74,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     autoTranslate: data.autoTranslate === true,
     autoTranslatePosts: data.autoTranslatePosts === true,
     translationLocales: readTranslationLocales(data.translationLocales),
+    customFields: readCustomFields(data.customFields),
     i18n: readLocalizedFields(data.i18n),
     i18nSource: readI18nSource(data.i18nSource),
   }
@@ -155,7 +158,16 @@ export function useMemiBoardSettings() {
 
   const managedBoards = computed(() => boards.value.filter(board => canManageBoard(board.id)))
 
+  function customFieldError(issue: CustomFieldIssue): string {
+    if (issue.code === 'duplicateKey') return t('settings.customFields.duplicateKey', { key: issue.key })
+    if (issue.code === 'labelRequired') return t('settings.customFields.labelRequired', { key: issue.key })
+    if (issue.code === 'tooMany') return t('settings.customFields.limit')
+    return t('settings.customFields.invalidKey')
+  }
+
   function settingsPayload(board: BoardModel, order: number) {
+    const customFields = prepareCustomFields(board.customFields)
+    if (customFields.issue) throw new Error(customFieldError(customFields.issue))
     return {
       label: board.label.trim(),
       description: (board.description ?? '').trim(),
@@ -171,6 +183,7 @@ export function useMemiBoardSettings() {
       autoTranslatePosts: board.autoTranslatePosts === true,
       // 빈 배열 = 지원 언어 전체. 전체로 되돌릴 때도 이전 목록을 지우도록 항상 쓴다.
       translationLocales: readTranslationLocales(board.translationLocales),
+      customFields: customFields.fields,
       ...(board.i18n ? { i18n: board.i18n } : {}),
       ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,
@@ -269,7 +282,7 @@ export function useMemiBoardSettings() {
   }
 
   async function addBoard(label: string): Promise<string> {
-    const trimmed = label.trim()
+    const trimmed = label.trim().slice(0, BOARD_NAME_MAX)
     if (!trimmed) throw new Error(t('boardSettings.nameRequired'))
     if (!isSignedIn.value) throw new Error(t('boardSettings.signInRequired'))
     const existing = boards.value.find(board => board.label === trimmed)

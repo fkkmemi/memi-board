@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.53.0',
+    date: '2026-11-04',
+    highlights: [
+      '게시판마다 커스텀 필드를 정해 글에 추가 값을 넣을 수 있어요',
+      '파일은 끌어다 놓거나 클릭해서 첨부할 수 있어요',
+      '게시판 설정은 카드 목록에서 고르고, 이름·설명·주소로 정렬할 수 있어요',
+    ],
+    highlightsEn: [
+      'Each board can define custom fields and store extra values on posts',
+      'Files can be attached by dropping them or clicking the drop zone',
+      'Board settings open from a card list that can be sorted by name, description, or address',
+    ],
+    note: '규칙이나 인덱스 배포는 필요 없어요. 새 게시판 이름은 40자까지이고 주소가 돼요.',
+    noteEn: 'No rules or index deploy is required. A new board name is limited to 40 characters and becomes its address.',
+  },
+  {
     version: '0.52.5',
     date: '2026-10-30',
     highlights: ['Safari에서 글·댓글 로딩이 늦을 때 long polling을 적용하는 호스트 설정 안내를 추가했어요'],

@@ -4,6 +4,8 @@ import type { MemiBoardMessages } from '../translate'
 const messages: MemiBoardMessages = {
   attachments: {
     attach: 'ファイルを添付（{count} / {max}）',
+    dropOrClick: 'ファイルをドロップするかクリックして追加',
+    uploading: 'ファイルをアップロード中…',
     maxFiles: '最大{max}件まで添付できます。',
   },
   auth: {
@@ -164,7 +166,6 @@ const messages: MemiBoardMessages = {
     contentPlaceholder: '本文を入力…「/」でブロックメニューが開きます。',
     imageContentPlaceholder: '内容を入力…',
     tagsPlaceholder: 'タグを入力してEnter',
-    skipModeration: '不適切表現フィルターを無視（管理者）',
     pinNotice: 'お知らせとして固定',
     submitEdit: '編集を完了',
     submitNext: '次へ: プレビュー',

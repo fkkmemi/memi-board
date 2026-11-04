@@ -4,6 +4,8 @@ import type { MemiBoardMessages } from '../translate'
 const messages: MemiBoardMessages = {
   attachments: {
     attach: 'إرفاق ملفات ({count} / {max})',
+    dropOrClick: 'أفلت الملفات هنا أو انقر للإضافة',
+    uploading: 'جارٍ رفع الملفات…',
     maxFiles: 'يمكنك إرفاق {max} ملفات كحد أقصى.',
   },
   auth: {
@@ -164,7 +166,6 @@ const messages: MemiBoardMessages = {
     contentPlaceholder: 'اكتب شيئًا… اكتب / لفتح قائمة الكتل.',
     imageContentPlaceholder: 'اكتب شيئًا…',
     tagsPlaceholder: 'اكتب وسمًا واضغط Enter',
-    skipModeration: 'تجاوز فلتر الألفاظ النابية (للمشرف)',
     pinNotice: 'تثبيت كإعلان',
     submitEdit: 'حفظ التغييرات',
     submitNext: 'التالي: معاينة',

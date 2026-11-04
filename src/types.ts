@@ -69,6 +69,11 @@ export interface PostModel {
   videoUrl?: string
   tags?: string[]
   /**
+   * 보드 customFields 에 맞춘 추가 값. 키는 보드 설정을 따른다.
+   * 값은 입력한 그대로 저장하고 번역하지 않는다.
+   */
+  extend?: Record<string, string>
+  /**
    * @deprecated 카테고리 개념 제거 — boardId 로 대체.
    * 레거시 읽기 호환용으로만 남을 수 있음.
    */
@@ -222,6 +227,19 @@ export type BoardWriteRole = 'user' | 'staff' | 'admin'
 export type BoardVisibility = 'public' | 'hidden'
 
 /**
+ * 보드가 글의 extend 에 받는 추가 항목.
+ * label 은 입력한 그대로 보여 주고, 보드 이름·설명처럼 번역하지 않는다.
+ */
+export interface BoardCustomField {
+  /** extend 의 키. 영문 소문자로 시작하고 영문·숫자·밑줄만, 32자 이하. */
+  key: string
+  /** 글쓰기·상세에 보이는 이름. 번역하지 않는다. */
+  label: string
+  /** 글쓰기 입력칸의 플레이스홀더. 비우면 보여 주지 않는다. 번역하지 않는다. */
+  placeholder?: string
+}
+
+/**
  * 보드 1개 메타 (= 예전 BoardCategory).
  * id 가 곧 boardId — memiBoardSettings/{id} 에 저장.
  */
@@ -269,6 +287,11 @@ export interface BoardModel {
    * 비어 있거나 없으면 지원 언어 전체. 글쓴 언어(원문)는 번역하지 않는다.
    */
   translationLocales?: MemiBoardLocale[]
+  /**
+   * 글의 extend 에 넣을 수 있는 필드. 최대 8개.
+   * 키는 보드 안에서 고유하고, 이름은 번역하지 않는다.
+   */
+  customFields?: BoardCustomField[]
   /** 보드 목록 정렬 */
   order?: number
 }
@@ -358,7 +381,6 @@ export type ModerationVia =
   | 'restricted'
   | 'ai-error-allow'
   | 'ai-error-block'
-  | 'admin-override'
 
 export interface ModerationResult {
   flagged: boolean

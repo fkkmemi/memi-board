@@ -4,6 +4,8 @@ import type { MemiBoardMessages } from '../translate'
 const messages: MemiBoardMessages = {
   attachments: {
     attach: 'Lampirkan file ({count} / {max})',
+    dropOrClick: 'Letakkan file atau klik untuk menambah',
+    uploading: 'Mengunggah file…',
     maxFiles: 'Anda dapat melampirkan hingga {max} file.',
   },
   auth: {
@@ -164,7 +166,6 @@ const messages: MemiBoardMessages = {
     contentPlaceholder: 'Tulis sesuatu… Ketik / untuk membuka menu blok.',
     imageContentPlaceholder: 'Tulis sesuatu…',
     tagsPlaceholder: 'Ketik tag lalu tekan Enter',
-    skipModeration: 'Lewati filter kata kasar (admin)',
     pinNotice: 'Jadikan pengumuman',
     submitEdit: 'Simpan perubahan',
     submitNext: 'Berikutnya: Pratinjau',

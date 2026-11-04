@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
+import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 
 const props = withDefaults(defineProps<{
@@ -101,6 +102,7 @@ function emptyDraft(id: string): BoardCategory {
     autoTranslate: false,
     autoTranslatePosts: false,
     translationLocales: [],
+    customFields: [],
   }
 }
 
@@ -126,6 +128,7 @@ function toDraft(category: BoardCategory): BoardCategory {
     autoTranslate: category.autoTranslate === true,
     autoTranslatePosts: category.autoTranslatePosts === true,
     translationLocales: [...(category.translationLocales ?? [])],
+    customFields: (category.customFields ?? []).map(field => ({ ...field })),
   }
 }
 
@@ -362,6 +365,7 @@ async function save() {
       <div><p class="text-sm font-medium">{{ t('settings.editorType.label') }}</p><p class="text-xs text-muted">{{ t('settings.editorType.help') }}</p></div>
       <MemiBoardOptionCards v-model="draft.editorType" :options="editorTypeOptions" @update:model-value="saved = false" />
     </div>
+    <MemiBoardCustomFieldEditor v-model="draft.customFields" @dirty="saved = false" />
     <div v-if="i18nEnabled" class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.locale.label') }}</p><p class="text-xs text-muted">{{ t('settings.locale.help') }}</p></div>
       <USelect

@@ -29,6 +29,7 @@ import { deletePostCascade } from '../utils/deletePostCascade'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { assertMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
+import { readExtend } from '../utils/customFields'
 import {
   postBodyDoc,
   postDoc,
@@ -56,6 +57,8 @@ export interface CreatePostInput {
   slug?: string
   /** 10개 언어 번역. 있으면 글과 본문에 함께 저장한다. */
   translations?: PostTranslationSet
+  /** 보드 커스텀 필드 값. 빈 객체면 저장하지 않는다. */
+  extend?: Record<string, string>
 }
 
 export interface UpdatePostInput {
@@ -65,6 +68,8 @@ export interface UpdatePostInput {
   attachments?: Attachment[]
   /** 있으면 제목·본문 번역을 이 값으로 바꾼다. 없으면 기존 번역을 건드리지 않는다. */
   translations?: PostTranslationSet
+  /** 있으면 extend 를 이 값으로 바꾼다. 빈 객체면 지운다. 없으면 기존 값을 둔다. */
+  extend?: Record<string, string>
 }
 
 export type GetPostBySlugResult =
@@ -314,6 +319,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         i18n: input.translations.i18n,
         i18nSource: input.translations.i18nSource,
       } : {}),
+      ...(input.extend && Object.keys(input.extend).length ? { extend: readExtend(input.extend) } : {}),
     })
     batch.set(bodyDocRef(id), {
       content: input.content,
@@ -333,6 +339,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     const title = imageBoard ? titleFromBody(input.content) : input.title.trim()
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
+    const extend = input.extend ? readExtend(input.extend) : undefined
     await Promise.all([
       updateDoc(postDocRef(id), {
         title,
@@ -347,6 +354,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
           i18n: input.translations.i18n,
           i18nSource: input.translations.i18nSource,
         } : {}),
+        ...(extend
+          ? { extend: Object.keys(extend).length ? extend : deleteField() }
+          : {}),
       }),
       setDoc(bodyDocRef(id), {
         content: input.content,
