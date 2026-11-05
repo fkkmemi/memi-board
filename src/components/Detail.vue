@@ -8,6 +8,7 @@ import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
 import { useMemiBoardViews } from 'memi-board/runtime'
 import MemiBoardAttachments from './Attachments.vue'
+import MemiBoardImageLightbox from './ImageLightbox.vue'
 import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentList from './CommentList.vue'
 import MemiBoardLikeButton from './LikeButton.vue'
@@ -102,9 +103,12 @@ onBeforeUnmount(() => {
 /** 모바일 터치 스와이프: 왼쪽→다음 글, 오른쪽→이전 글. */
 const touchStartX = ref(0)
 const touchStartY = ref(0)
+const swipeEnabled = ref(true)
 const SWIPE_MIN_PX = 70
 
 function onTouchStart(e: TouchEvent) {
+  const target = e.target
+  swipeEnabled.value = !(target instanceof Element && target.closest('img'))
   const t = e.changedTouches[0]
   if (!t) return
   touchStartX.value = t.clientX
@@ -112,6 +116,7 @@ function onTouchStart(e: TouchEvent) {
 }
 
 function onTouchEnd(e: TouchEvent) {
+  if (!swipeEnabled.value) return
   const t = e.changedTouches[0]
   if (!t) return
   const dx = t.clientX - touchStartX.value
@@ -170,6 +175,36 @@ const contentHtml = computed(() => {
   // 저장된 HTML (에디터 content-type=html)
   if (/<[a-z][\s\S]*>/i.test(raw)) return raw
   return renderMarkdownToHtml(raw)
+})
+
+const imageViewerOpen = ref(false)
+const imageViewerImages = ref<string[]>([])
+const imageViewerIndex = ref(0)
+
+function imageSrcOf(img: HTMLImageElement): string {
+  return img.currentSrc || img.src
+}
+
+/** 본문 이미지를 누르면 글 너비에 맞춘 미리보기 대신 원본을 연다. */
+function onContentImageClick(event: MouseEvent) {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  const img = target.closest('img')
+  if (!(img instanceof HTMLImageElement)) return
+  const root = event.currentTarget
+  if (!(root instanceof HTMLElement) || !root.contains(img)) return
+  const nodes = Array.from(root.querySelectorAll('img')).filter(node => imageSrcOf(node))
+  const at = nodes.indexOf(img)
+  if (at < 0) return
+  imageViewerImages.value = nodes.map(imageSrcOf)
+  imageViewerIndex.value = at
+  imageViewerOpen.value = true
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+watch(() => props.postId, () => {
+  imageViewerOpen.value = false
 })
 
 </script>
@@ -261,14 +296,16 @@ const contentHtml = computed(() => {
     </header>
 
     <!-- 작성 화면과 동일한 TipTap 스타일을 사용하는 읽기 전용 뷰어 -->
-    <UEditor
-      class="board-content prose dark:prose-invert max-w-none break-words"
-      :model-value="contentHtml"
-      content-type="html"
-      :editable="false"
-      :extensions="viewerExtensions"
-      :starter-kit="{ link: { openOnClick: true } }"
-    />
+    <div @click.capture="onContentImageClick">
+      <UEditor
+        class="board-content prose dark:prose-invert max-w-none break-words"
+        :model-value="contentHtml"
+        content-type="html"
+        :editable="false"
+        :extensions="viewerExtensions"
+        :starter-kit="{ link: { openOnClick: true } }"
+      />
+    </div>
 
     <MemiBoardAttachments
       v-if="post.attachments?.length"
@@ -399,10 +436,20 @@ const contentHtml = computed(() => {
       <MemiBoardCommentList :board-id="boardId" :post-id="postId" />
       <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />
     </section>
+
+    <MemiBoardImageLightbox
+      v-model:open="imageViewerOpen"
+      v-model:index="imageViewerIndex"
+      :images="imageViewerImages"
+    />
   </div>
 </template>
 
 <style scoped>
+.board-content :deep(img) {
+  cursor: zoom-in;
+}
+
 .board-content :deep(iframe[src*="youtube.com"]),
 .board-content :deep(iframe[src*="youtube-nocookie.com"]),
 .board-content :deep(iframe[src*="youtu.be"]) {

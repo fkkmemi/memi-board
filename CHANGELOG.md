@@ -4,6 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.53.2] - 2026-11-05
+
+### Added
+- Clicking an image in a post, an image attachment, or a comment opens the original image. Several images in the same place can be moved with the arrow keys or by swiping.
+
+### Host app steps
+- Upgrade to 0.53.2. No Firestore rules or index changes are required.
+
 ## [0.53.1] - 2026-11-04
 
 ### Fixed

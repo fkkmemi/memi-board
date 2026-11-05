@@ -16,6 +16,18 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.53.2',
+    date: '2026-11-05',
+    highlights: [
+      '게시물 이미지를 누르면 원본이 열려요',
+      '첨부 이미지와 댓글 이미지도 눌러서 크게 볼 수 있어요',
+    ],
+    highlightsEn: [
+      'Clicking an image in a post opens the original',
+      'Image attachments and comment images open the same way',
+    ],
+  },
+  {
     version: '0.53.1',
     date: '2026-11-04',
     highlights: [

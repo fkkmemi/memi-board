@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Attachment } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { useMemiBoardI18n } from 'memi-board/runtime'
+import MemiBoardImageLightbox from './ImageLightbox.vue'
 
 const props = withDefaults(defineProps<{
   modelValue: Attachment[]
@@ -29,6 +30,17 @@ const dropActive = ref(false)
 
 function isImage(type: string) {
   return type.startsWith('image/')
+}
+
+const imageOpen = ref(false)
+const imageIndex = ref(0)
+const imageUrls = computed(() => props.modelValue.filter(item => isImage(item.type)).map(item => item.url))
+
+function openImage(url: string) {
+  const at = imageUrls.value.indexOf(url)
+  if (at < 0) return
+  imageIndex.value = at
+  imageOpen.value = true
 }
 
 function canAcceptMore() {
@@ -143,11 +155,19 @@ function formatSize(bytes: number): string {
       :key="attachment.path"
       class="flex items-center gap-3 rounded-lg border border-default bg-default px-3 py-2"
     >
-      <img
+      <button
         v-if="isImage(attachment.type)"
-        :src="attachment.url"
-        class="size-10 rounded object-cover shrink-0"
+        type="button"
+        class="shrink-0 cursor-zoom-in bg-transparent p-0"
+        :aria-label="t('common.label.image')"
+        @click="openImage(attachment.url)"
       >
+        <img
+          :src="attachment.url"
+          alt=""
+          class="size-10 rounded object-cover"
+        >
+      </button>
       <UIcon
         v-else
         :name="fileIcon(attachment.type)"
@@ -231,5 +251,11 @@ function formatSize(bytes: number): string {
         {{ uploadError }}
       </p>
     </template>
+
+    <MemiBoardImageLightbox
+      v-model:open="imageOpen"
+      v-model:index="imageIndex"
+      :images="imageUrls"
+    />
   </div>
 </template>

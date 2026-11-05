@@ -15,6 +15,7 @@ import {
 } from 'memi-board/runtime'
 import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
+import MemiBoardImageLightbox from './ImageLightbox.vue'
 
 const props = defineProps<{
   comment: CommentModel
@@ -48,6 +49,7 @@ const displayedBody = computed(() => displayCommentBody({ ...props.comment, ...l
 const editBody = ref(props.comment.body)
 const localBody = ref(props.comment.body)
 const localImage = ref<Attachment | null>(props.comment.images?.[0] ?? null)
+const imageOpen = ref(false)
 const editImage = ref<Attachment | null>(localImage.value)
 const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
 const imageBusy = ref(false)
@@ -274,19 +276,24 @@ async function toggleLike() {
           <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
           {{ displayedBody }}
         </p>
-        <a
+        <button
           v-if="localImage"
-          :href="localImage.url"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="mt-2 inline-block"
+          type="button"
+          class="mt-2 inline-block cursor-zoom-in bg-transparent p-0"
+          :aria-label="t('commentItem.attachedImage')"
+          @click="imageOpen = true"
         >
           <img
             :src="localImage.url"
             :alt="t('commentItem.attachedImage')"
             class="max-h-60 max-w-full rounded-md border border-default object-contain"
           >
-        </a>
+        </button>
+        <MemiBoardImageLightbox
+          v-if="localImage"
+          v-model:open="imageOpen"
+          :images="[localImage.url]"
+        />
       </div>
       <p v-if="likeError" class="mt-1 text-xs text-error">
         {{ likeError }}
