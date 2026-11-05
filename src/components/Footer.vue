@@ -33,14 +33,28 @@ const sites = [
   { name: 'Loop Waiting', domain: 'loopwait.com', href: 'https://loopwait.com', icon: 'i-lucide-clock', key: 'waiting' },
   { name: 'Loop Track', domain: 'loop-track.web.app', href: 'https://loop-track.web.app', icon: 'i-lucide-navigation', key: 'track' },
   { name: 'LOOP', domain: 'loopsystem.co.kr', href: 'https://loopsystem.co.kr', icon: 'i-lucide-building-2', key: 'loop' },
-  { name: 'Safe ON', domain: 'safe-pedal.web.app', href: 'https://safe-pedal.web.app', icon: 'i-lucide-shield-check', key: 'safe' },
+  { name: 'Safe ON', domain: 'safe-pedal.com', href: 'https://safe-pedal.com', icon: 'i-lucide-shield-check', key: 'safe' },
 ]
+const detailHref = 'https://memi.dev/memi-board'
+const inviteSiteHref = 'https://memi.dev/board'
+const contactEmail = 'fkkmemi@gmail.com'
+const inviteHref = computed(() => {
+  const subject = encodeURIComponent(t('footer.sites.inviteSubject'))
+  const body = encodeURIComponent(t('footer.sites.inviteBody'))
+  return `mailto:${contactEmail}?subject=${subject}&body=${body}`
+})
+const feedbackHref = computed(() => {
+  const subject = encodeURIComponent(t('footer.feedbackSubject'))
+  const body = encodeURIComponent(t('footer.feedbackBody'))
+  return `mailto:${contactEmail}?subject=${subject}&body=${body}`
+})
 const links = computed(() => [
   { label: 'memi.dev', address: 'memi.dev', href: 'https://memi.dev', icon: 'i-lucide-globe', accent: false },
+  { label: t('footer.detail'), address: 'memi.dev/memi-board', href: detailHref, icon: 'i-lucide-book-open', accent: false },
   { label: 'YouTube', address: 'youtube.com/@fkkmemi', href: 'https://www.youtube.com/@fkkmemi', icon: 'i-simple-icons-youtube', accent: true },
   { label: 'npm', address: 'npmjs.com/package/memi-board', href: 'https://www.npmjs.com/package/memi-board', icon: 'i-simple-icons-npm', accent: false },
   { label: 'GitHub', address: 'github.com/fkkmemi/memi-board', href: 'https://github.com/fkkmemi/memi-board', icon: 'i-simple-icons-github', accent: false },
-  { label: t('footer.email'), address: 'fkkmemi@gmail.com', href: 'mailto:fkkmemi@gmail.com', icon: 'i-lucide-mail', accent: false },
+  { label: t('footer.email'), address: contactEmail, href: `mailto:${contactEmail}`, icon: 'i-lucide-mail', accent: false },
 ])
 const stacks = computed(() => [
   { title: t('footer.stack.ui'), icon: 'i-lucide-palette', text: 'Nuxt 4 · Vue 3 · TypeScript · Nuxt UI · Tailwind CSS' },
@@ -62,10 +76,9 @@ const stacks = computed(() => [
       v-model:open="open"
       :title="t('footer.info.title')"
       :content="{ dir }"
-      fullscreen
       :ui="{
-        content: 'inset-3 overflow-hidden rounded-2xl shadow-2xl ring ring-default sm:inset-8 sm:rounded-3xl lg:inset-12',
-        header: 'shrink-0 px-5 py-4 sm:px-8 sm:py-5 lg:px-10',
+        content: 'max-w-3xl rounded-2xl',
+        header: 'shrink-0 px-5 py-4 sm:px-6',
         body: 'min-h-0 p-0 sm:p-0',
       }"
     >
@@ -80,7 +93,7 @@ const stacks = computed(() => [
               <p v-if="version" class="mt-0.5 font-mono text-[10px] tracking-wider text-dimmed">v{{ version }}</p>
             </div>
           </div>
-          <div class="order-last flex w-full min-w-0 gap-1 overflow-x-auto rounded-full bg-elevated/70 p-1 lg:order-none lg:w-auto" role="group" :aria-label="t('footer.info.title')">
+          <div class="order-last flex w-full min-w-0 gap-1 overflow-x-auto rounded-full bg-elevated/70 p-1" role="group" :aria-label="t('footer.info.title')">
             <button
               v-for="item in (['about', 'sites', 'history'] as const)"
               :key="item"
@@ -97,20 +110,26 @@ const stacks = computed(() => [
 
       <template #body>
         <div class="flex min-h-full flex-col">
-          <div class="relative isolate flex-1 px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-8">
+          <div class="relative isolate flex-1 px-5 py-8 sm:px-6">
             <div class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-            <div class="mx-auto w-full max-w-6xl">
+            <div class="mx-auto w-full">
               <template v-if="tab === 'about'">
-                <div class="grid gap-5 lg:grid-cols-[1fr_1fr] lg:items-end lg:gap-16">
+                <div class="flex flex-col gap-5">
                   <div>
                     <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">{{ t('footer.eyebrow') }}</p>
-                    <h2 class="text-5xl font-semibold tracking-[-0.06em] text-highlighted sm:text-6xl lg:text-7xl">memi-board<span class="text-primary">.</span></h2>
+                    <h2 class="text-4xl font-semibold tracking-[-0.06em] text-highlighted sm:text-5xl">memi-board<span class="text-primary">.</span></h2>
                     <p class="mt-4 text-base font-medium tracking-tight text-toned sm:text-lg">{{ t('footer.tagline') }}</p>
                   </div>
-                  <p class="max-w-xl whitespace-pre-line text-sm leading-7 text-muted">{{ introductionText }}</p>
+                  <div>
+                    <p class="max-w-xl whitespace-pre-line text-sm leading-7 text-muted">{{ introductionText }}</p>
+                    <a :href="detailHref" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                      {{ t('footer.detail') }}
+                      <UIcon name="i-lucide-arrow-up-right" class="size-3.5" />
+                    </a>
+                  </div>
                 </div>
 
-                <div class="mt-9 grid gap-3 sm:grid-cols-3 sm:gap-4 lg:mt-8">
+                <div class="mt-8 grid gap-3 sm:grid-cols-3 sm:gap-4">
                   <section v-for="(item, index) in stacks" :key="item.title" class="rounded-2xl border border-default bg-default/80 p-5">
                     <div class="mb-5 flex items-center justify-between">
                       <UIcon :name="item.icon" class="size-5 text-primary" />
@@ -127,7 +146,7 @@ const stacks = computed(() => [
                   <h2 class="text-3xl font-semibold tracking-tight text-highlighted sm:text-4xl">{{ t('footer.info.sites') }}</h2>
                   <p class="mt-3 text-sm leading-7 text-muted">{{ t('footer.sites.description') }}</p>
                 </div>
-                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="grid gap-3 sm:grid-cols-2">
                   <a
                     v-for="site in sites"
                     :key="site.href"
@@ -144,6 +163,23 @@ const stacks = computed(() => [
                     <p class="mt-1 text-xs leading-6 text-muted">{{ t(`footer.sites.${site.key}`) }}</p>
                     <p class="mt-4 break-all font-mono text-[11px] text-dimmed">{{ site.domain }}</p>
                   </a>
+                  <div class="flex flex-col gap-4 rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-5 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                    <div class="flex items-start gap-4">
+                      <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><UIcon name="i-lucide-messages-square" class="size-5" /></span>
+                      <div>
+                        <h3 class="text-base font-semibold tracking-tight text-highlighted">{{ t('footer.sites.inviteTitle') }}</h3>
+                        <p class="mt-1 text-xs leading-6 text-muted">{{ t('footer.sites.invite') }}</p>
+                      </div>
+                    </div>
+                    <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                      <a :href="inviteSiteHref" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-medium text-primary hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                        {{ t('footer.sites.inviteSite') }}
+                        <UIcon name="i-lucide-arrow-up-right" class="size-3.5" />
+                      </a>
+                      <span class="text-dimmed">{{ t('footer.sites.inviteOr') }}</span>
+                      <a :href="inviteHref" class="font-medium text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{{ t('footer.email') }}</a>
+                    </p>
+                  </div>
                 </div>
               </template>
               <template v-else>
@@ -159,13 +195,19 @@ const stacks = computed(() => [
             </div>
           </div>
 
-          <section class="border-t border-default bg-elevated/25 px-5 py-6 sm:px-8 sm:py-7 lg:px-10">
-            <div class="mx-auto max-w-6xl">
-              <div class="mb-5 flex items-center justify-between gap-4">
+          <section class="border-t border-default bg-elevated/25 px-5 py-6 sm:px-6">
+            <div class="mx-auto">
+              <div class="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 <h2 class="text-[10px] font-semibold uppercase tracking-[0.2em] text-dimmed">{{ t('footer.links') }}</h2>
-                <span class="text-[11px] text-dimmed">{{ t('footer.credit') }}</span>
+                <div class="flex items-center gap-3 text-[11px]">
+                  <a :href="feedbackHref" class="inline-flex items-center gap-1 font-medium text-primary hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    <UIcon name="i-lucide-message-square" class="size-3.5" />
+                    {{ t('footer.feedback') }}
+                  </a>
+                  <span class="text-dimmed">{{ t('footer.credit') }}</span>
+                </div>
               </div>
-              <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+              <div class="grid gap-2 sm:grid-cols-2">
                 <a
                   v-for="link in links"
                   :key="link.href"

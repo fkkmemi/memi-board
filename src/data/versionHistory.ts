@@ -16,6 +16,26 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.54.1',
+    date: '2026-11-05',
+    highlights: [
+      '소개 팝업이 게시판 본문 정도의 폭으로 열려요',
+      '자세한 소개는 memi.dev/memi-board에서 볼 수 있어요',
+      '쓰고 있는 사이트는 memi.dev 게시판에 남기거나 이메일로 알려 주세요',
+      '피드백은 소개 팝업에서 이메일로 보낼 수 있어요',
+      'Safe ON 적용 사례는 safe-pedal.com으로 연결돼요',
+    ],
+    highlightsEn: [
+      'The about popup opens at about the width of a board column',
+      'The detailed introduction is on memi.dev/memi-board',
+      'Share a site that uses memi-board on the memi.dev board, or by email',
+      'Feedback can be sent by email from the about popup',
+      'The Safe ON showcase links to safe-pedal.com',
+    ],
+    note: 'Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.54.0',
     date: '2026-11-05',
     highlights: [

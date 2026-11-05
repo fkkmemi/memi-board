@@ -4,6 +4,17 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.54.1] - 2026-11-05
+
+### Added
+- The About memi-board popup links to the detailed introduction at memi.dev/memi-board. The link appears under the short introduction and in the links row on every tab.
+- The showcase ends with an invitation to leave a site address on memi.dev/board, with email as the alternative. The email opens with the subject and a blank address line filled in.
+- The links row on every About tab includes “Send feedback”, which opens an email with a feedback subject.
+
+### Changed
+- The About memi-board popup is a content-width dialog (`max-w-3xl`), matching a board column, instead of a near-fullscreen inset.
+- The Safe ON showcase link is https://safe-pedal.com.
+
 ## [0.54.0] - 2026-11-05
 
 ### Added
