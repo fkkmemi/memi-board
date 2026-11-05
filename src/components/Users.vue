@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
 import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardUserRole } from 'memi-board/runtime'
@@ -37,6 +38,7 @@ async function changeRole(uid: string, role: BoardUserRole) {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-6">
     <div class="grid gap-3 md:grid-cols-3">
       <UAlert v-for="item in roleItems" :key="item.value" color="neutral" variant="subtle" :title="item.label" :description="item.description" />
@@ -67,4 +69,5 @@ async function changeRole(uid: string, role: BoardUserRole) {
       </div>
     </div>
   </div>
+  </MemiBoardSurface>
 </template>

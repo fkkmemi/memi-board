@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { ref, resolveComponent } from 'vue'
 import {
   reportReasonLabel,
@@ -40,6 +41,7 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-3">
     <p
       v-if="!canManageContent"
@@ -122,4 +124,5 @@ async function handle(report: BoardReportModel, action: 'dismiss' | 'action') {
       @click="loadMore"
     />
   </div>
+  </MemiBoardSurface>
 </template>

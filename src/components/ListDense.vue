@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { displayPostSummary, displayPostTitle, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
@@ -28,6 +29,7 @@ function thumb(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <!-- 조밀 = 커뮤니티 게시판 스타일 한 줄 목록. 우측에 작은 사각 썸네일(있을 때만). -->
   <ul class="flex flex-col divide-y divide-default">
     <li
@@ -129,4 +131,5 @@ function thumb(post: PostModel): string | undefined {
       </component>
     </li>
   </ul>
+  </MemiBoardSurface>
 </template>

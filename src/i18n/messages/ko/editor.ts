@@ -1,4 +1,5 @@
 export default {
+  confirmLeave: '저장하지 않은 내용이 있습니다. 이 페이지를 나가시겠습니까?',
   titlePlaceholder: '제목',
   contentPlaceholder: '본문을 입력하세요… / 를 입력하면 블록 메뉴가 열립니다.',
   imageContentPlaceholder: '내용을 입력하세요…',

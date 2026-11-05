@@ -1,4 +1,5 @@
 export default {
+  confirmLeave: 'You have unsaved changes. Leave this page?',
   titlePlaceholder: 'Title',
   contentPlaceholder: 'Write something… Type / to open the block menu.',
   imageContentPlaceholder: 'Write something…',

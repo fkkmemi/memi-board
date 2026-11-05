@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref, resolveComponent, toRef } from 'vue'
 import { displayCommentBody, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 import type { CommentFeedSort, CommentModel } from 'memi-board/runtime'
@@ -46,6 +47,7 @@ const emptyMessage = computed(() =>
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-2">
     <template v-if="commentsPending">
       <USkeleton
@@ -140,4 +142,5 @@ const emptyMessage = computed(() =>
       />
     </div>
   </div>
+  </MemiBoardSurface>
 </template>

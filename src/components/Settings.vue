@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
@@ -461,6 +462,7 @@ async function runDeleteAll() {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
   <UAlert
     v-else-if="!canManage"
@@ -860,4 +862,5 @@ async function runDeleteAll() {
       <UAlert v-if="deleteDone" color="success" variant="subtle" :description="t('settings.danger.done')" />
     </section>
   </div>
+  </MemiBoardSurface>
 </template>

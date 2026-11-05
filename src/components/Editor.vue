@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 /**
  * 글쓰기 폼 — Nuxt UI UEditor + shineb PostEditor 패턴.
  * @see https://ui.nuxt.com/docs/components/editor
@@ -6,7 +7,7 @@
  *
  * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
@@ -33,6 +34,7 @@ import {
 } from 'memi-board/runtime'
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 const props = defineProps<{
   /** 글이 속할 보드 id (필수) */
@@ -157,6 +159,22 @@ const coverDragOver = ref<number | null>(null)
 /** 이미지 보드 한 글 최대 장수 */
 const COVER_IMAGE_MAX = 20
 const editorRef = ref<{ editor?: unknown } | null>(null)
+
+const { markSaved } = useUnsavedChangesGuard(
+  () => JSON.stringify({
+    title: title.value,
+    // TipTap initializes an empty document as <p></p> (sometimes with a br).
+    content: content.value.replace(/<\/?p\b[^>]*>|<br\s*\/?\s*>|&nbsp;|\s/gi, '') ? content.value : '',
+    tags: tags.value,
+    attachments: attachments.value,
+    covers: coverSlots.value.map(slot => slot.url),
+    extend: Object.entries(extendValues.value).filter(([, value]) => value !== '').sort(([a], [b]) => a.localeCompare(b)),
+    pinned: pinned.value,
+    translations: pendingTranslations.value,
+  }),
+  () => saving.value || imageUploading.value || aiRunning.value,
+  () => t('editor.confirmLeave'),
+)
 
 function newCoverId(): string {
   return `cover-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -1010,6 +1028,8 @@ async function loadPost(id: string) {
   }
   finally {
     loading.value = false
+    await nextTick()
+    markSaved()
   }
 }
 
@@ -1123,6 +1143,8 @@ async function handleSubmit() {
         await setPostPinned(props.postId, pinned.value)
         loadedPinned.value = pinned.value
       }
+      saving.value = false
+      markSaved()
       emit('saved', props.postId)
     }
     else {
@@ -1134,6 +1156,8 @@ async function handleSubmit() {
         authorName: user.value.displayName,
         authorPhoto: user.value.photoURL,
       })
+      saving.value = false
+      markSaved()
       emit('saved', id)
     }
   }
@@ -1148,6 +1172,7 @@ async function handleSubmit() {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div
     v-if="loading"
     :dir="dir"
@@ -1700,6 +1725,7 @@ async function handleSubmit() {
       </div>
     </template>
   </UModal>
+  </MemiBoardSurface>
 </template>
 
 <style scoped>

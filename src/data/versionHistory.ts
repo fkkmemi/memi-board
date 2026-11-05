@@ -16,6 +16,26 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.54.0',
+    date: '2026-11-05',
+    highlights: [
+      '긴 목록 제목은 한 줄 말줄임으로 보여요',
+      '글·댓글·답글 작성 중 페이지를 나가면 저장하지 않은 내용을 확인해요',
+      '비로그인 상태의 댓글 입력 영역에서 로그인 후 원래 글로 돌아올 수 있어요',
+      'memi-board 소개가 자동 표시되고, 큰 팝업에서 소개·적용 사례·버전 기록을 볼 수 있어요',
+      '소개 팝업의 새 문구를 10개 언어로 볼 수 있어요',
+    ],
+    highlightsEn: [
+      'Long list titles now use a single line with an ellipsis',
+      'Leaving while writing a post, comment, or reply asks about unsaved changes',
+      'Signed-out visitors can sign in from the comment area and return to the same post',
+      'The automatic memi-board footer opens a spacious popup with an introduction, showcase, and version history',
+      'New popup copy is available in all 10 supported languages',
+    ],
+    note: '호스트에 직접 넣은 MemiBoardFooter는 제거해 주세요. 로그인 주소가 다르면 auth.loginPath를 설정하고 next로 돌아오도록 연결해 주세요. Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'Remove manually placed MemiBoardFooter instances. Set auth.loginPath for a custom sign-in route and support the next return path. No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.53.2',
     date: '2026-11-05',
     highlights: [

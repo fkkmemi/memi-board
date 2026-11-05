@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
 import { useMemiBoardCleanup, useMemiBoardI18n } from 'memi-board/runtime'
 
@@ -22,6 +23,7 @@ async function deleteSelected() {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <section class="flex flex-col gap-3 rounded-lg border border-default p-4" :aria-busy="busy">
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
@@ -55,4 +57,5 @@ async function deleteSelected() {
     </template>
     <p v-if="result" role="status" class="text-sm">{{ result }}</p>
   </section>
+  </MemiBoardSurface>
 </template>

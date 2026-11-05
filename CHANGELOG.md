@@ -4,6 +4,24 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.54.0] - 2026-11-05
+
+### Added
+- Post editors and comment/reply forms protect unsaved text, attachments, and work in progress on route changes, Back, refresh, and tab close. Empty or reverted forms and successful saves do not prompt. Reply cancellation also confirms before discarding a draft.
+- Signed-out comment forms show an input-shaped sign-in link with a `next` return path. Hosts can customize the login route with `auth.loginPath` (default `/auth/login`).
+- Board screens automatically show one About memi-board footer per page. The large inset modal includes an introduction, technology overview, version history, creator links, and a showcase of memi.dev, Loop Waiting, Loop Track, LOOP, and Safe ON.
+- All new popup labels and showcase descriptions are translated into the 10 supported languages. Arabic popup content uses right-to-left direction. Popup translation completeness and navigation guards are checked in CI.
+
+### Changed
+- Default, image, and video list titles truncate to one line with an ellipsis.
+- Footer branding is now “About memi-board”. Hosts no longer need to insert the footer themselves.
+
+### Host app steps
+- Upgrade to 0.54.0 and remove manually placed `<MemiBoardFooter />` instances. Legacy standalone footers are deduplicated, but removing them keeps markup clean.
+- If your login page is not `/auth/login`, set `memiBoard.auth.loginPath`. Validate `next` as a local path and return there after successful sign-in.
+- To show the host-owned post-writing button to signed-out visitors, allow it on public boards whose `writeRole` is `user`; keep the writing route authenticated. This package update does not change host button conditions.
+- No Firestore rule or index changes are required. Unsaved-change confirmation protects route navigation; hosts that discard an editor without changing routes must handle that separate UI action.
+
 ## [0.53.2] - 2026-11-05
 
 ### Added

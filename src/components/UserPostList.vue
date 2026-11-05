@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { ref } from 'vue'
 import { useMemiBoardI18n, useMemiBoardUserPosts } from 'memi-board/runtime'
 import type { PostModel, UserPostModel } from 'memi-board/runtime'
@@ -40,6 +41,7 @@ function postTo(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-2">
     <template v-if="postsPending">
       <USkeleton
@@ -91,4 +93,5 @@ function postTo(post: PostModel): string | undefined {
       />
     </div>
   </div>
+  </MemiBoardSurface>
 </template>

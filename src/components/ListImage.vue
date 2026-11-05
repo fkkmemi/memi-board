@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { displayPostSummary, displayPostTitle, useMemiBoardI18n } from 'memi-board/runtime'
@@ -25,6 +26,7 @@ function image(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     <component
       :is="postTo(post) ? NuxtLink : 'button'"
@@ -68,7 +70,7 @@ function image(post: PostModel): string | undefined {
         />
         <h3
           v-if="titleOf(post) || post.pinned"
-          class="min-w-0 line-clamp-2 text-sm font-medium leading-snug text-white drop-shadow-sm"
+          class="min-w-0 truncate text-sm font-medium leading-snug text-white drop-shadow-sm"
         >
           <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
           {{ titleOf(post) }}
@@ -88,4 +90,5 @@ function image(post: PostModel): string | undefined {
       </span>
     </component>
   </div>
+  </MemiBoardSurface>
 </template>

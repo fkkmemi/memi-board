@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
@@ -210,6 +211,7 @@ watch(() => props.postId, () => {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div
     v-if="loading"
     :dir="dir"
@@ -443,6 +445,7 @@ watch(() => props.postId, () => {
       :images="imageViewerImages"
     />
   </div>
+  </MemiBoardSurface>
 </template>
 
 <style scoped>

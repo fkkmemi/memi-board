@@ -1,4 +1,5 @@
 export default {
+  confirmLeave: '작성 중인 댓글이 있습니다. 저장하지 않고 나가시겠습니까?',
   translationPending: '{count}개 언어 번역을 준비했습니다. 댓글을 저장하면 함께 기록됩니다.',
   translationSkipped: '번역하지 못해 원문만 등록했습니다. 나중에 수정 화면에서 번역할 수 있습니다.',
   hiddenBoardDenied: '숨김 게시판에는 담당 스태프만 댓글을 남길 수 있습니다.',
@@ -10,7 +11,7 @@ export default {
   placeholder: '댓글을 입력하세요',
   submitReply: '답글 작성',
   submit: '댓글 작성',
-  signInToComment: '댓글을 작성하려면 로그인이 필요합니다.',
+  signInToComment: '로그인하고 댓글을 남겨보세요',
   attachHint: '여기에 이미지를 드롭하거나 클릭하세요.',
   attachNote: 'jpg, png, gif, webp · 큰 이미지는 5MB 이하로 조정됩니다.',
   removeImage: '첨부 이미지 제거',

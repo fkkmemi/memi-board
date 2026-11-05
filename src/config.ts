@@ -13,6 +13,8 @@ import {
 
 export interface MemiBoardAuthOptions {
   providers?: Array<'google' | 'apple' | 'emailPassword'>
+  /** Login route for comment prompts; the host receives the return URL as `next`. */
+  loginPath?: string
 }
 
 export interface MemiBoardI18nOptions {

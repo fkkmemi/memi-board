@@ -62,6 +62,9 @@ jobs:
       - name: Test internationalization options
         run: node --test tests/i18n-options.test.mjs
 
+      - name: Test popup translations and unsaved changes
+        run: node --experimental-strip-types --test tests/footer-i18n.test.mjs tests/unsaved-changes.test.mjs
+
       - name: Test orphan cleanup
         run: pnpm test:cleanup
 

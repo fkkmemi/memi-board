@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { ref, resolveComponent } from 'vue'
 import { displayCommentBody, useMemiBoardI18n, useMemiBoardUserComments } from 'memi-board/runtime'
 import type { CommentModel } from 'memi-board/runtime'
@@ -35,6 +36,7 @@ function commentLink(comment: CommentModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-2">
     <template v-if="commentsPending">
       <USkeleton
@@ -111,4 +113,5 @@ function commentLink(comment: CommentModel): string | undefined {
       />
     </div>
   </div>
+  </MemiBoardSurface>
 </template>

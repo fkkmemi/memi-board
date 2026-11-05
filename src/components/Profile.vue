@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
 import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile } from 'memi-board/runtime'
 import MemiBoardProfileEditModal from './ProfileEditModal.vue'
@@ -23,6 +24,7 @@ const editOpen = ref(false)
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div
     v-if="profilePending"
     class="flex items-center gap-3"
@@ -95,4 +97,5 @@ const editOpen = ref(false)
     :uid="uid"
     :profile="profile"
   />
+  </MemiBoardSurface>
 </template>

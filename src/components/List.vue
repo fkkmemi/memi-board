@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMemiBoardPostList } from 'memi-board/runtime'
 import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
@@ -214,6 +215,7 @@ function postTo(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface :introduction="introduction">
   <div class="flex flex-col gap-2" :dir="dir">
     <div v-if="hasHeader" class="flex items-center justify-between gap-4">
       <UTooltip
@@ -426,4 +428,5 @@ function postTo(post: PostModel): string | undefined {
       </template>
     </UModal>
   </div>
+  </MemiBoardSurface>
 </template>

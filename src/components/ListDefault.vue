@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { displayPostSummary, displayPostTitle, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
@@ -34,6 +35,7 @@ function image(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="flex flex-col gap-2">
     <UCard
       v-for="post in posts"
@@ -68,7 +70,7 @@ function image(post: PostModel): string | undefined {
                   size="sm"
                   class="mt-0.5 shrink-0"
                 />
-                <h3 class="min-w-0 line-clamp-2 break-words text-sm font-medium leading-snug text-inherit sm:text-base">
+                <h3 class="min-w-0 truncate text-sm font-medium leading-snug text-inherit sm:text-base">
                   <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
                   {{ titleOf(post) }}
                 </h3>
@@ -143,4 +145,5 @@ function image(post: PostModel): string | undefined {
       </div>
     </UCard>
   </div>
+  </MemiBoardSurface>
 </template>

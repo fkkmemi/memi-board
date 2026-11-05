@@ -406,6 +406,12 @@ Use `authorized` only when integrating the host's own site-admin system. This pr
 **List props:** `boardId` (required), `pageSize`, `category` (former name), `postLinkBase`, `getPostLink(post)`, `linkBase` (deprecated)
 
 **Editor props:** `boardId`, `postId` (edit), `fixedCategory` (hides the selector when the path fixes it)
+`MemiBoardEditor` automatically confirms leaving when there are unsaved changes, including browser Back and links to other routes. Empty forms, reverted changes, and navigation after a successful save do not prompt. Refreshing or closing the tab uses the browser's standard warning, whose wording is controlled by the browser and whose display may depend on prior user interaction. Hosts do not need to add route guards. If a host hides or replaces the editor without changing routes, it must handle that separate UI action itself.
+`MemiBoardCommentForm` also protects unfinished comments and replies, including attached images and uploads in progress. Canceling a reply asks before discarding its draft. Successful submission clears the warning.
+
+**About memi-board:** List views, detail, editor, profiles, comment feeds, and management screens automatically include the package footer. Hosts should remove manually placed `<MemiBoardFooter />`; no visibility option is provided. Nested views and multiple views on the same page share one visible footer. Its large, inset modal contains the introduction, version history, and links to memi.dev, YouTube, npm, GitHub, and email.
+
+**Comment sign-in:** Signed-out visitors see an input-shaped login link. Set `memiBoard.auth.loginPath` if the host uses a login route other than `/auth/login`. The host login page should validate the `next` query parameter as a local path and navigate there after sign-in. The package does not change comment write permissions.
 The body uses Nuxt UI **`UEditor`** (TipTap, `content-type="html"`). The host's `@nuxt/ui` 4.x must include Editor.
 
 **Editor images:** From the toolbar you can add a file from the device or an external HTTPS image URL; pasted and dropped files are uploaded to Firebase Storage. External URLs are not copied to Storage and stop displaying if the original is deleted or hotlinking is blocked. The first body image, whether uploaded or external, is used as the list and share preview image.

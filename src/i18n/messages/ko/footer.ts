@@ -1,9 +1,25 @@
 export default {
-  introduction: 'Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들고 Nuxt UI와 Firebase로 글과 댓글을 자연스럽게 이어가는 게시판입니다.',
+  introduction: 'memi-board는 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었습니다. Nuxt UI와 Firebase로 글과 댓글, 사람과 이야기를 자연스럽게 이어갑니다.',
+  eyebrow: '함께 만드는 이야기',
+  tagline: '글과 댓글로 이어지는 작은 커뮤니티.',
+  links: '링크 & 연락처',
+  email: "이메일",
+  credit: "만든 이: memi",
+  siteEyebrow: "memi-board와 함께",
+  changelog: "변경 기록",
   info: {
-    title: '게시판 정보',
-    about: '이 게시판은',
+    title: 'memi-board',
+    about: 'memi-board 소개',
+    sites: '적용 사례',
     history: '버전 히스토리',
+  },
+  sites: {
+    description: 'memi-board로 글과 대화를 이어가는 서비스들입니다.',
+    memi: '개발과 일상을 나누는 공간',
+    waiting: 'QR로 간편하게 시작하는 대기 서비스',
+    track: '이동 경로를 기록하는 GPS 트래킹',
+    loop: '차량 운행 기록과 센서 솔루션',
+    safe: '페달 오조작 방지 장치 연결 및 설정',
   },
   stack: {
     ui: '화면과 경험',

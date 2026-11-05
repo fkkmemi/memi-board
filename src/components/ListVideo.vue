@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
 import { displayPostSummary, displayPostTitle, useMemiBoardI18n, videoListCoverUrl } from 'memi-board/runtime'
@@ -32,6 +33,7 @@ function cover(post: PostModel): string | undefined {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
     <div
       v-for="post in posts"
@@ -63,7 +65,7 @@ function cover(post: PostModel): string | undefined {
               size="sm"
               class="mt-0.5 shrink-0"
             />
-            <h3 class="min-w-0 line-clamp-2 font-medium text-inherit"><UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />{{ titleOf(post) }}</h3>
+            <h3 class="min-w-0 truncate font-medium text-inherit"><UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />{{ titleOf(post) }}</h3>
             <span
               v-if="(post.commentCount ?? 0) > 0"
               class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold tabular-nums text-primary"
@@ -107,4 +109,5 @@ function cover(post: PostModel): string | undefined {
       </div>
     </div>
   </div>
+  </MemiBoardSurface>
 </template>

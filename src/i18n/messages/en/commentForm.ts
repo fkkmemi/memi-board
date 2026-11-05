@@ -1,4 +1,5 @@
 export default {
+  confirmLeave: 'You have an unfinished comment. Leave without saving?',
   translationPending: 'Translations in {count} languages are ready and will be saved with your comment.',
   translationSkipped: 'Your comment was posted without translation. You can translate it later from the edit form.',
   hiddenBoardDenied: 'Only assigned staff can comment on hidden boards.',

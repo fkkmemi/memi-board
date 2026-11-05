@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemiBoardSurface from './BoardSurface.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
@@ -230,6 +231,7 @@ async function save() {
 </script>
 
 <template>
+  <MemiBoardSurface>
   <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
   <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" :title="t('settings.noAccess')" />
   <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" :title="t('settings.notFound.title')" :description="t('settings.notFound.checkBoardAddress')" />
@@ -382,4 +384,5 @@ async function save() {
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? t('settings.created') : t('settings.savedSettings')" />
   </div>
+  </MemiBoardSurface>
 </template>
