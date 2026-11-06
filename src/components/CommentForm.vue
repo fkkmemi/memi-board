@@ -142,6 +142,8 @@ onUnmounted(() => {
       @paste="imageField?.handlePaste($event)"
       :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
       :rows="2"
+      autoresize
+      :maxrows="10"
       :disabled="submitting || aiBusy || isWriteRestricted"
       :maxlength="COMMENT_BODY_MAX_LENGTH"
     />

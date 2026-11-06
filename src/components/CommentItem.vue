@@ -213,6 +213,8 @@ async function toggleLike() {
           v-model="editBody"
           @paste="imageField?.handlePaste($event)"
           :rows="2"
+          autoresize
+          :maxrows="10"
           :maxlength="COMMENT_BODY_MAX_LENGTH"
           :disabled="saving || aiBusy"
           autofocus
