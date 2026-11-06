@@ -75,6 +75,7 @@ export default {
     label: 'List view',
     help: 'How the post list is displayed',
     options: {
+      card: 'Card',
       dense: 'Compact',
       video: 'Video',
     },
@@ -155,6 +156,40 @@ export default {
     deleteFailed: 'Couldn’t delete the board and its data.',
     saveFailed: 'Couldn’t save the board settings.',
     deleteAllFailed: 'Couldn’t delete the board data.',
+  },
+  aiTitle: {
+    label: 'Write titles with AI',
+    help: 'When a new post\'s title is left empty, AI writes one from the text (or from the first photo if there is no text). Photos are sent to Google AI only to write a title. Turn it off to require a typed title and stop sending photos.',
+  },
+  site: {
+    apply: 'Apply',
+    applied: 'Applied.',
+    title: 'Site-wide settings',
+    help: 'Apply to the whole site. They override the host app\'s settings and take effect as soon as you change them.',
+    ai: { label: 'Use AI features', help: 'Turn this off if you can\'t use AI, for example because of cost. It turns off translation, the writing assistant, AI titles, and AI moderation, and photos are no longer sent to AI. The blocked-word check keeps working.' },
+    i18n: { label: 'Use internationalization', help: 'When off, every screen is fixed to the single language chosen below and translation is turned off. Saved translations are not deleted.' },
+    locales: { label: 'Languages to offer', help: 'Only the {count} selected languages are translated and shown in the language menu. Languages you don\'t select get no new translations, and saved translations are not deleted.' },
+    locale: { label: 'Default language', help: 'The language used when the host app doesn\'t set one.', fixedLabel: 'Fixed language', fixedHelp: 'Every screen is shown in this language.' },
+  },
+  i18nBoard: {
+    label: 'Internationalization',
+    help: 'When on, the board name and description and new posts and comments are automatically translated into {count} languages and saved. When off, only the original text is shown.',
+    existing: 'Translate existing posts too',
+  },
+  about: {
+    label: 'Show About memi-board',
+    help: 'Shows the About memi-board link and popup at the bottom of every board screen. Turn it off to hide it across the site.',
+  },
+  postTranslations: {
+    label: 'Translate existing posts',
+    help: 'Finds posts whose translation is missing or no longer matches the original, then translates and saves them in one go. Use it for boards with automatic translation off, or to fill in posts that missed translation. It does not use the daily AI quota.',
+    scan: 'Find posts to translate',
+    run: 'Translate {count} posts',
+    confirm: 'This translates and saves {count} posts, making AI calls for each one. Continue?',
+    progress: 'Translating… {done} done, {failed} failed',
+    allDone: 'All {total} published posts have up-to-date translations.',
+    found: '{count} of {total} published posts need translation.',
+    failed: '{count} posts could not be translated. Scan again and retry.',
   },
   cleanup: {
     contextChanged: 'Your account or board configuration changed after scanning. Scan again before deleting.',

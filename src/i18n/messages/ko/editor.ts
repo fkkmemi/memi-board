@@ -43,6 +43,10 @@ export default {
     help: '예: 경상도 사투리 스타일로 / 정중한 문어체로 / 간결한 개조식으로',
     placeholder: '경상도 사투리 스타일로',
   },
+  translateView: {
+    title: '{language} 번역 미리 보기',
+    notSaved: '저장되지 않았습니다. 미리 보기일 뿐입니다.',
+  },
   aiPreview: {
     title: 'AI 결과 확인',
     currentTitle: '현재 제목',
@@ -103,9 +107,8 @@ export default {
     summarize: '짧게 요약하기',
     translateEn: '영어로 번역',
     translateKo: '한국어로 번역',
+    translateView: '번역해서 보기',
     translateAll: '{count}개 언어로 번역해 저장',
-    translateSaved: '{count}개 언어로 저장했습니다. 다른 언어로 보면 번역이 보입니다.',
-    translatePending: '{count}개 언어 번역을 준비했습니다. 글을 저장하면 함께 기록됩니다.',
     translateEmpty: '번역할 제목이나 본문을 먼저 입력해 주세요.',
     title: '본문에서 제목 만들기',
     custom: '커스텀 스타일로 바꾸기…',
@@ -139,7 +142,10 @@ export default {
     writeRestricted: '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
     moderationBlocked: '게시할 수 없는 내용이 포함되어 있습니다.',
   },
+  titleOptionalPlaceholder: '제목 (비워 두면 AI가 만들어 드려요)',
+  titleAiNotice: 'AI가 글 내용으로 제목을 만들었어요. 마음에 들면 저장하고, 아니면 고쳐 주세요.',
   hint: {
+    titling: '제목을 만드는 중…',
     translating: '글을 {count}개 언어로 번역하는 중…',
     reviewing: '내용을 검토하는 중…',
     saving: '저장하는 중…',

@@ -17,6 +17,8 @@
 
 `i18n.enabled: false` takes precedence. In that case, content translation does not run even if `translation.enabled: true` is set. Turning off either feature does not delete existing translation data.
 
+Admins can also change these from the **Site-wide settings** card at the top of the board settings screen. The card's values (stored in `memiBoardSettings/__app`) override the options below, so use it to turn AI or internationalization off without redeploying. Existing sites are unaffected until an admin changes a value.
+
 ## 2. Ready-to-copy configurations
 
 Put the `memiBoard` block below inside the host's `defineNuxtConfig({ ... })`. For the rest, such as Firebase initialization, follow the [installation guide](host-integration.md).
@@ -120,15 +122,15 @@ Sites that use layouts keep their existing `<NuxtLayout>` structure. If the boar
 | Board label and description: manual | Click **Translate into 10 languages** | Click **Save** in the settings after translating |
 | Board label and description: auto | Turn on the auto-translate toggle and click **Save** | Saved with the settings after translation completes |
 | Home section titles | Saving the section layout | Saved with the layout after translation |
-| Title, summary, and body of an existing post | Click **Translate and save in 10 languages** in the writing AI | Saved to the post immediately after translation completes |
+| Title, summary, and body of existing posts | Board settings → **Translate existing posts** (finds posts with a missing or outdated translation) | Each post is saved right after it is translated |
+| Preview of one language | Writing AI → **Translate to preview** | Not saved |
 | New post: auto | Turn on **Automatically translate new posts** in the board settings, then save a new post | Title, summary, and body are translated and saved with the post |
-| New post not yet saved | Click **Translate and save in 10 languages** in the writing AI | Saved together when the new post is saved |
 
 The 10 languages include the source language. If the original is Korean, it is translated into the other 9 languages and combined with the Korean original. Typing alone does not send translation requests until you click a translate button or save.
 
 If the board name, description, and section titles are the same as when they were translated and all translations exist, retranslation is skipped. The board's auto-translate toggle is off by default. `i18n.enabled` and `translation.enabled` being on by default means the service can use translation; it does not automatically turn on a board's auto-translate toggle.
 
-`autoTranslatePosts` applies only to writing new posts and defaults to `false`. Existing boards without the field are treated as off. Posts are not auto-translated on edit. Manually prepared translations are reused if they match the current content. If auto-translation fails, the input is kept, an error is shown, and saving the post is aborted. If translation is turned off service-wide, posts are saved without translation regardless of this option.
+`autoTranslatePosts` defaults to `false`; existing boards without the field are treated as off. New posts are always translated. When an existing post is saved, it is translated again only if its title or body changed, or if its saved translation no longer matches the original (for example, it was edited before this behavior existed). Saving an unchanged post does not call AI. Manually prepared translations are reused if they match the current content. If auto-translation fails, the input is kept, an error is shown, and saving the post is aborted. If translation is turned off service-wide, posts are saved without translation regardless of this option.
 
 Calling `translateBoard()` directly from code translates regardless of the board's current auto-translate toggle. If the service-wide internationalization or translation option is off, it returns the original as-is.
 
@@ -146,7 +148,7 @@ Apply the AI Logic and App Check steps from the [Firebase setup guide](firebase-
 | Post translation fails | An error is shown. It does not proceed to saving the translation result |
 | Translation turned off by service option | Auto-translation is skipped and saving proceeds normally. Calling AI translation directly throws a `memi-board/translation-disabled` error |
 
-AI post translation counts as 1 use of the daily writing assistant quota regardless of the number of languages. Calls rejected because translation is disabled are rejected before any AI request or usage update. When enabled, a request that has already started and then fails may still be counted against usage.
+Automatic translation (a board's auto-translate setting, for new posts, edited posts, comments, and replies) does **not** use the daily writing assistant quota. Manual translation from the writing AI or the comment AI counts as 1 use regardless of the number of languages. Calls rejected because translation is disabled are rejected before any AI request or usage update. When enabled, a request that has already started and then fails may still be counted against usage.
 
 ## 6. Existing data and re-enabling
 

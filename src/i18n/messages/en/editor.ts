@@ -43,6 +43,10 @@ export default {
     help: 'e.g. in a casual tone / in formal written style / as concise bullet points',
     placeholder: 'In a casual tone',
   },
+  translateView: {
+    title: '{language} translation preview',
+    notSaved: 'Not saved. This is only a preview.',
+  },
   aiPreview: {
     title: 'Review AI result',
     currentTitle: 'Current title',
@@ -103,9 +107,8 @@ export default {
     summarize: 'Summarize briefly',
     translateEn: 'Translate to English',
     translateKo: 'Translate to Korean',
+    translateView: 'Translate to preview',
     translateAll: 'Translate and save in {count} languages',
-    translateSaved: 'Saved in {count} languages. Readers see the translation for their language.',
-    translatePending: 'Translations for {count} languages are ready. They are stored when you save the post.',
     translateEmpty: 'Enter a title or body to translate first.',
     title: 'Generate title from body',
     custom: 'Rewrite in a custom style…',
@@ -139,7 +142,10 @@ export default {
     writeRestricted: 'Posting and commenting are temporarily restricted due to repeated content warnings.',
     moderationBlocked: 'This contains content that can’t be posted.',
   },
+  titleOptionalPlaceholder: 'Title (leave empty and AI will write one)',
+  titleAiNotice: 'AI wrote a title from your text. Save if you like it, or edit it first.',
   hint: {
+    titling: 'Writing a title…',
     translating: 'Translating the post into {count} languages…',
     reviewing: 'Reviewing content…',
     saving: 'Saving…',

@@ -13,6 +13,7 @@ const { t } = useMemiBoardI18n()
 const options = computed<Array<{ label: string, value: BoardListView, icon: string }>>(() => [
   { label: t('listViewSwitch.default'), value: 'default', icon: 'i-lucide-list' },
   { label: t('listViewSwitch.dense'), value: 'dense', icon: 'i-lucide-rows-3' },
+  { label: t('listViewSwitch.card'), value: 'card', icon: 'i-lucide-layout-grid' },
   { label: t('common.label.image'), value: 'image', icon: 'i-lucide-image' },
   { label: t('listViewSwitch.video'), value: 'video', icon: 'i-lucide-play-circle' },
 ])

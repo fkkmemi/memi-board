@@ -8,6 +8,7 @@ import MemiBoardListDefault from './ListDefault.vue'
 import MemiBoardListDense from './ListDense.vue'
 import MemiBoardListImage from './ListImage.vue'
 import MemiBoardListVideo from './ListVideo.vue'
+import MemiBoardListCard from './ListCard.vue'
 import MemiBoardListViewSwitch from './ListViewSwitch.vue'
 
 const props = withDefaults(defineProps<{
@@ -200,6 +201,7 @@ function setViewMode(value: BoardListView) {
 const listComponent = computed(() => ({
   default: MemiBoardListDefault,
   dense: MemiBoardListDense,
+  card: MemiBoardListCard,
   image: MemiBoardListImage,
   video: MemiBoardListVideo,
 })[viewMode.value] ?? MemiBoardListDefault)

@@ -86,7 +86,7 @@ export function useMemiBoardComments(
     if (cachedTranslation?.i18nSource.body !== body) {
       // 번역 한도 초과·실패가 댓글 저장을 막지 않게 원문만 저장한다.
       try {
-        cachedTranslation = await translateComment({ body, targets: boardTranslationLocales(getBoard(bid.value)) })
+        cachedTranslation = await translateComment({ automatic: true, body, targets: boardTranslationLocales(getBoard(bid.value)) })
       }
       catch (e) {
         if (import.meta.dev) console.warn('[memi-board] comment auto-translation skipped', e)

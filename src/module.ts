@@ -150,10 +150,14 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       filename: 'memi-board.config.mjs',
       getContents: () => `
 import { computed } from 'vue'
+import { getApp } from 'firebase/app'
+import { doc, getFirestore, onSnapshot } from 'firebase/firestore'
 import {
   configureMemiBoard,
+  applyMemiBoardSiteSettings,
   useMemiBoardConfig,
   isMemiBoardI18nEnabled,
+  memiBoardDefaultLocale,
   loadMemiBoardLocale,
   memiBoardHostLocaleKey,
   normalizeMemiBoardLocale,
@@ -165,8 +169,26 @@ export default defineNuxtPlugin({
   dependsOn: ['i18n:plugin'],
   async setup(nuxtApp) {
     configureMemiBoard(${runtimeConfig})
+    // 관리자가 보드 전체 설정 화면에서 바꾼 값(AI·국제화·기본 언어)을 호스트 설정 위에 덧씌운다.
+    // 브라우저에서만 구독한다. 서버 렌더링은 호스트 설정으로 그리고, 마운트 뒤에 값이 반영된다.
+    if (import.meta.client) {
+      nuxtApp.hook('app:mounted', () => {
+        try {
+          const db = getFirestore(getApp())
+          const cfg = useMemiBoardConfig()
+          onSnapshot(
+            doc(db, cfg.settingsCollection, '__app'),
+            snapshot => applyMemiBoardSiteSettings(snapshot.data()),
+            () => {},
+          )
+        }
+        catch {
+          // Firebase 가 아직 없으면 호스트 설정을 그대로 쓴다.
+        }
+      })
+    }
     if (!isMemiBoardI18nEnabled()) {
-      const fixed = normalizeMemiBoardLocale(useMemiBoardConfig().locale) ?? 'ko'
+      const fixed = normalizeMemiBoardLocale(memiBoardDefaultLocale()) ?? 'ko'
       await loadMemiBoardLocale(fixed)
       return
     }

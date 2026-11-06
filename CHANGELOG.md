@@ -4,6 +4,35 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.55.0] - 2026-11-06
+
+### Added
+- A **Site-wide settings** card at the top of the board settings screen (admins only), saved all at once with its **Apply** button, lets you turn AI features and internationalization on or off and choose the default language, without touching the host app. **Use AI features** off turns off translation, the writing assistant, AI titles, and AI moderation (the blocked-word check keeps working) and stops photos from being sent to AI, for sites that cannot use AI because of cost. **Use internationalization** off fixes every screen to one chosen language and turns translation off. The values are stored in `memiBoardSettings/__app` and override the host's `nuxt.config` options, so existing sites keep their behavior until an admin changes them. The existing **Show About memi-board** and **Write titles with AI** switches moved into this card. With internationalization on, **Languages to offer** picks which of the 10 languages are used: only those are translation targets, board language choices, and entries in the host's language menu (`memiBoardEnabledLocales()` and `isMemiBoardI18nEnabled()` from `memi-board/runtime` expose this to hosts). Saved translations in other languages are kept.
+- The title is optional when writing a new post. If you leave it empty and the post has text or a photo, AI writes a title from the text (or from the first photo when there is no text) and fills the field instead of saving, so you can keep it or change it and save again. This happens once per editing session, does not use the daily AI quota, and never blocks saving if it fails. Image boards, which had no title field, now have one; without a title they still take the title from the start of the text, as before. Existing posts keep their titles, and editing an existing post still requires a title on regular boards.
+- A new **Card** list view, in the style of Velog: a card grid with a 16:9 thumbnail, a bold two-line title, a three-line summary, the date and comment count, and the author and likes in the card footer. Choose it as the board's list view in board settings, or with the list view switch. Existing boards keep their current view.
+- The board settings screen has a site-wide **Show About memi-board** switch (admins only). Turning it off hides the footer link and popup on every board screen. It defaults to on and only `hideAbout: true` hides it, so existing sites see no change. The setting is stored in the reserved document `memiBoardSettings/__app`, which the board list and sitemap ignore. No Firestore rule change is needed.
+- Profiles show badges for the user's public post and comment counts. On your own profile they also show your AI writing usage in the current 24-hour window (used / 20, with hours until reset) and moderation warnings when there are any. Counts use Firestore count aggregation with the same public filters as the user post and comment lists, so no extra rules or indexes beyond those lists are needed.
+- The writing AI menu has **Translate to preview**: pick one of the board's languages to see the title, summary, and body translated, without saving anything. It translates a single language, so it is much cheaper than translating all of them, and counts as 1 daily AI use.
+- Board settings has **Translate existing posts**: it finds published posts whose translation is missing or out of date, then translates and saves them in one go after a confirmation. It does not use the daily AI quota.
+- The board settings screen has a site-wide **Write titles with AI** switch (admins only). It defaults to on. Turning it off stops AI from writing titles, requires a typed title on regular boards, and stops photos from being sent to Google AI to write titles. It is stored as `disableAiTitle: true` in `memiBoardSettings/__app`, so existing sites keep the current behavior.
+
+### Changed
+- Board settings has one **Internationalization** switch instead of the label translate button, the translate-on-save switch, the auto-translate posts switch, the existing-post tool, and the translation language picker. On translates the board name and description when you save and translates new posts and comments; off shows only the original text. When on, **Translate existing posts too** finds posts with a missing or outdated translation and translates them after a confirmation. The switch sets `autoTranslate` and `autoTranslatePosts` together, so existing boards keep their current behavior, and languages follow the site-wide **Languages to offer**.
+- The writing AI menu no longer has **Translate and save in N languages**. Saving translations of existing posts moved to board settings (**Translate existing posts**), and new or edited posts are translated automatically when the board's auto-translate setting is on.
+- Automatic post and comment translation no longer counts against the account's daily writing assistant quota (20 per 24 hours). Manual translation from the writing AI still counts as 1 use.
+
+### Fixed
+- The post detail view no longer shows a selection outline around the first image when a post starts with an image.
+- With a board's automatic post translation on, editing a post now translates it again when the title or body changed, or when its saved translation was already out of date. Previously edits kept the old translation, which was then hidden as stale, so readers saw the original text.
+
+### Host app steps
+- Upgrade to 0.55.0. Existing sites behave exactly as before until an admin changes the new **Site-wide settings** card, so no code change is required.
+- No Firestore rule or index changes are required. Site-wide settings live in the reserved document `memiBoardSettings/__app` (no `order`, `visibility: 'hidden'`). If you have code that reads every document in `memiBoardSettings`, such as a sitemap, make sure it skips hidden boards or ids that start with `__`.
+- To follow the admin's **Languages to offer** and **Use internationalization** choices in your own language menu, filter it with `memiBoardEnabledLocales()`, hide it when `isMemiBoardI18nEnabled()` is false, and switch to `memiBoardDefaultLocale()` when the current language is no longer offered. All three come from `memi-board/runtime`.
+- The module plugin now listens to `__app` in the browser. Restart the dev server after upgrading or relinking so the new plugin is generated.
+- If your own screens call AI, check `isMemiBoardAiEnabled()` first. Moderation, translation, the writing assistant, and AI titles already do.
+- Pages that placed `<MemiBoardFooter />` by hand are hidden by the new **Show About memi-board** switch too.
+
 ## [0.54.1] - 2026-11-05
 
 ### Added

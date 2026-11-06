@@ -453,6 +453,14 @@ watch(() => props.postId, () => {
   cursor: zoom-in;
 }
 
+/* 읽기 전용 뷰어는 문서가 이미지로 시작하면 첫 이미지를 노드 선택 상태로 열어 선택 테두리가 보인다. 읽기에는 필요 없다. */
+.board-content :deep(.ProseMirror-selectednode),
+.board-content :deep(.ProseMirror-selectednode img),
+.board-content :deep(img.ProseMirror-selectednode) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .board-content :deep(iframe[src*="youtube.com"]),
 .board-content :deep(iframe[src*="youtube-nocookie.com"]),
 .board-content :deep(iframe[src*="youtu.be"]) {

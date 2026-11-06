@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
-import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile } from 'memi-board/runtime'
+import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile, useMemiBoardUserStats, WRITING_ASSISTANT_DAILY_LIMIT } from 'memi-board/runtime'
 import MemiBoardProfileEditModal from './ProfileEditModal.vue'
 
 const props = defineProps<{
@@ -21,6 +21,18 @@ const roleLabel = computed(() => {
 const { user } = useMemiBoardAuth()
 const isOwnProfile = computed(() => !!user.value?.uid && user.value.uid === props.uid)
 const editOpen = ref(false)
+
+const { postCount, commentCount } = useMemiBoardUserStats(() => props.uid)
+// Own account only: the AI writing quota in the current 24-hour window.
+const aiUsage = computed(() => {
+  const data = profile.value
+  const windowAt = data?.aiWritingWindowAt?.toMillis?.()
+  const active = windowAt != null && now.value - windowAt < 24 * 60 * 60 * 1000
+  const used = active ? Math.max(0, Number(data?.aiWritingCount) || 0) : 0
+  const pending = active ? Math.max(0, Number(data?.aiWritingPending) || 0) : 0
+  const hours = active && windowAt != null ? Math.max(1, Math.ceil((windowAt + 24 * 60 * 60 * 1000 - now.value) / (60 * 60 * 1000))) : 0
+  return { used: used + pending, hours }
+})
 </script>
 
 <template>
@@ -80,6 +92,27 @@ const editOpen = ref(false)
         size="sm"
         class="shrink-0"
         @click="editOpen = true"
+      />
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <UBadge icon="i-lucide-file-text" color="neutral" variant="subtle" :label="t('profile.stats.posts', { count: postCount ?? '–' })" />
+      <UBadge icon="i-lucide-message-circle" color="neutral" variant="subtle" :label="t('profile.stats.comments', { count: commentCount ?? '–' })" />
+      <UBadge
+        v-if="isOwnProfile"
+        icon="i-lucide-sparkles"
+        color="neutral"
+        variant="subtle"
+        :label="aiUsage.hours
+          ? t('profile.stats.aiUsageResets', { used: aiUsage.used, limit: WRITING_ASSISTANT_DAILY_LIMIT, hours: aiUsage.hours })
+          : t('profile.stats.aiUsage', { used: aiUsage.used, limit: WRITING_ASSISTANT_DAILY_LIMIT })"
+      />
+      <UBadge
+        v-if="isOwnProfile && profile.moderationBlockCount"
+        icon="i-lucide-triangle-alert"
+        color="warning"
+        variant="subtle"
+        :label="t('profile.stats.warnings', { count: profile.moderationBlockCount })"
       />
     </div>
 

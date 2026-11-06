@@ -1,6 +1,6 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
 import { useFirebaseApp } from 'vuefire'
-import { assertMemiBoardTranslationEnabled, useMemiBoardConfig } from '../config'
+import { assertMemiBoardTranslationEnabled, memiBoardEnabledLocales, useMemiBoardConfig } from '../config'
 import {
   DEFAULT_MEMI_BOARD_LOCALE,
   MEMI_BOARD_LOCALES,
@@ -178,7 +178,7 @@ export function useMemiBoardAutoTranslate() {
   ): Promise<Record<string, MemiBoardLocalizedFields>> {
     assertMemiBoardTranslationEnabled()
     const source = options.source ?? DEFAULT_MEMI_BOARD_LOCALE
-    const targets = (options.targets ?? MEMI_BOARD_LOCALES.map(item => item.code))
+    const targets = (options.targets ?? memiBoardEnabledLocales())
       .filter(code => code !== source)
     const purpose = options.purpose ?? 'website UI labels'
 
@@ -226,7 +226,7 @@ export function useMemiBoardAutoTranslate() {
   ): Promise<Partial<Record<MemiBoardLocale, string>>> {
     assertMemiBoardTranslationEnabled()
     const source = options.source ?? DEFAULT_MEMI_BOARD_LOCALE
-    const targets = (options.targets ?? MEMI_BOARD_LOCALES.map(item => item.code))
+    const targets = (options.targets ?? memiBoardEnabledLocales())
       .filter(code => code !== source)
     const text = html.trim()
     if (!text || !targets.length) return {}

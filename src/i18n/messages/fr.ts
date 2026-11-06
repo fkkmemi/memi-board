@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'Commentaires',
   },
   editor: {
+    titleOptionalPlaceholder: 'Titre (laissez vide et l\'IA en écrira un)',
+    titleAiNotice: 'L\'IA a écrit un titre à partir de votre texte. Enregistrez-le s\'il vous plaît, ou modifiez-le d\'abord.',
+    translateView: {
+      title: 'Aperçu de la traduction : {language}',
+      notSaved: 'Non enregistré. Ceci n\'est qu\'un aperçu.',
+    },
     titlePlaceholder: 'Titre',
     contentPlaceholder: 'Écrivez quelque chose… Tapez / pour ouvrir le menu des blocs.',
     imageContentPlaceholder: 'Écrivez quelque chose…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'Rétablir',
     },
     ai: {
+      translateView: 'Voir la traduction',
+      translateAll: 'Traduire et enregistrer en {count} langues',
       proofread: 'Vérifier l’orthographe',
       polish: 'Améliorer le texte',
       continue: 'Continuer l’écriture',
       summarize: 'Résumer brièvement',
       translateEn: 'Traduire en anglais',
       translateKo: 'Traduire en coréen',
-      translateAll: 'Traduire et enregistrer en {count} langues',
-      translateSaved: 'Enregistré en {count} langues. Les lecteurs voient la traduction de leur langue.',
-      translatePending: 'Les traductions en {count} langues sont prêtes. Elles sont enregistrées avec le message.',
       translateEmpty: 'Saisissez d’abord un titre ou un texte à traduire.',
       title: 'Générer un titre à partir du texte',
       custom: 'Réécrire dans un style personnalisé…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: 'Ce contenu ne peut pas être publié.',
     },
     hint: {
+      titling: 'Création du titre…',
       reviewing: 'Vérification du contenu…',
       saving: 'Enregistrement…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'Commentaire introuvable.',
   },
   list: {
+    commentCount: '{count} commentaires',
     settings: 'Paramètres',
     loadFailed: 'Impossible de charger la liste : {error}',
     empty: 'Aucune publication pour l’instant.',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'Carte',
     default: 'Standard',
     dense: 'Compact',
     video: 'Vidéo',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'Veuillez saisir un titre.',
   },
   profile: {
+    stats: {
+      posts: '{count} publications',
+      comments: '{count} commentaires',
+      aiUsage: 'IA utilisée {used} / {limit}',
+      aiUsageResets: 'IA utilisée {used} / {limit} · réinitialisation dans {hours} h',
+      warnings: '{count} avertissements',
+    },
     notFound: 'Utilisateur introuvable.',
     noName: 'Sans nom',
     joined: 'Inscrit {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Forum – annonces et discussions.',
   },
   settings: {
+    aiTitle: {
+      label: 'Écrire les titres avec l\'IA',
+      help: 'Si le titre d\'une nouvelle publication est vide, l\'IA en écrit un à partir du texte (ou de la première photo s\'il n\'y a pas de texte). Les photos ne sont envoyées à Google AI que pour cela. Désactivez pour exiger un titre saisi et ne plus envoyer de photos.',
+    },
+    site: {
+      apply: 'Appliquer',
+      applied: 'Appliqué.',
+      title: 'Paramètres généraux',
+      help: 'S\'appliquent à tout le site. Ils prennent le pas sur les réglages de l\'application hôte et sont appliqués immédiatement.',
+      ai: { label: 'Utiliser les fonctions d\'IA', help: 'Désactivez si vous ne pouvez pas utiliser l\'IA, par exemple pour des raisons de coût. Cela désactive la traduction, l\'assistant d\'écriture, les titres par IA et la modération par IA, et les photos ne sont plus envoyées à l\'IA. La vérification des mots interdits continue de fonctionner.' },
+      i18n: { label: 'Utiliser l\'internationalisation', help: 'Désactivée, tous les écrans sont figés sur la langue choisie ci-dessous et la traduction est désactivée. Les traductions déjà enregistrées ne sont pas supprimées.' },
+      locales: { label: 'Langues proposées', help: 'Seules les {count} langues sélectionnées sont traduites et affichées dans le menu des langues. Les autres n\'obtiennent pas de nouvelles traductions, et les traductions enregistrées ne sont pas supprimées.' },
+      locale: { label: 'Langue par défaut', help: 'La langue utilisée quand l\'application hôte n\'en définit pas.', fixedLabel: 'Langue fixe', fixedHelp: 'Tous les écrans s\'affichent dans cette langue.' },
+    },
+    i18nBoard: {
+      label: 'Internationalisation',
+      help: 'Activée, le nom et la description du forum ainsi que les nouvelles publications et commentaires sont traduits automatiquement en {count} langues et enregistrés. Désactivée, seul le texte original s\'affiche.',
+      existing: 'Traduire aussi les publications existantes',
+    },
+    about: {
+      label: 'Afficher About memi-board',
+      help: 'Affiche le lien et la fenêtre About memi-board en bas de chaque écran du forum. Désactivez-le pour le masquer sur tout le site.',
+    },
+    postTranslations: {
+      label: 'Traduire les publications existantes',
+      help: 'Repère les publications dont la traduction manque ou ne correspond plus à l\'original, puis les traduit et les enregistre en une fois. Utile pour les forums sans traduction automatique ou pour rattraper des publications oubliées. N\'utilise pas le quota quotidien d\'IA.',
+      scan: 'Rechercher les publications à traduire',
+      run: 'Traduire {count} publications',
+      confirm: '{count} publications vont être traduites et enregistrées, avec un appel IA pour chacune. Continuer ?',
+      progress: 'Traduction en cours… {done} terminées, {failed} échouées',
+      allDone: 'Les {total} publications publiées ont une traduction à jour.',
+      found: '{count} publications publiées sur {total} doivent être traduites.',
+      failed: '{count} publications n\'ont pas pu être traduites. Relancez la recherche et réessayez.',
+    },
     loading: 'Chargement des paramètres…',
     noAccess: 'Accès refusé',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: 'Vue de liste',
       help: 'Affichage de la liste des publications',
       options: {
+        card: 'Carte',
         dense: 'Compact',
         video: 'Vidéo',
       },

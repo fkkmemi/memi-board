@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
-import { computed, onMounted, ref, watch } from 'vue'
-import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, slugify, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, slugify, useMemiBoardAppSettings, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
@@ -34,9 +34,59 @@ const emit = defineEmits<{
 }>()
 
 const { t, i18nEnabled, translationEnabled } = useMemiBoardI18n()
+const {
+  showAbout, aiTitleSwitch, siteAiEnabled, siteI18nEnabled, siteLocale, siteLocales, saving: siteSaving, error: siteError, saveSite,
+} = useMemiBoardAppSettings()
+const allLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
+
+// 전체 설정은 초안을 고친 뒤 하단 "적용"으로 한 번에 저장한다.
+const siteDraft = reactive({ ai: true, aiTitle: true, i18n: true, locale: 'ko', locales: [] as string[], about: true })
+const siteApplied = ref(false)
+const siteTouched = ref(false)
+function stored() {
+  return { ai: siteAiEnabled.value, aiTitle: aiTitleSwitch.value, i18n: siteI18nEnabled.value, locale: siteLocale.value, locales: [...siteLocales.value], about: showAbout.value }
+}
+function loadSiteDraft() { Object.assign(siteDraft, stored()) }
+const siteDirty = computed(() => {
+  const s = stored()
+  return siteDraft.ai !== s.ai || siteDraft.aiTitle !== s.aiTitle || siteDraft.i18n !== s.i18n
+    || siteDraft.locale !== s.locale || siteDraft.about !== s.about
+    || siteDraft.locales.join() !== s.locales.join()
+})
+// 저장된 값이 바뀌면(처음 불러올 때 포함) 아직 손대지 않았을 때만 초안에 반영한다.
+watch([siteAiEnabled, aiTitleSwitch, siteI18nEnabled, siteLocale, siteLocales, showAbout], () => {
+  if (!siteTouched.value) loadSiteDraft()
+}, { immediate: true })
+// 기본·고정 언어는 사용하기로 한 언어 안에서만 고른다.
+const siteLocaleItems = computed(() => allLocaleItems.filter((item: { value: string }) => siteDraft.locales.includes(item.value)))
+function onSiteLocales(value: unknown) {
+  const codes = Array.isArray(value) ? value.filter((code): code is string => typeof code === 'string') : []
+  if (!codes.length) return
+  siteDraft.locales = MEMI_BOARD_LOCALES.map((item: { code: string }) => item.code).filter((code: string) => codes.includes(code))
+  if (!siteDraft.locales.includes(siteDraft.locale)) siteDraft.locale = siteDraft.locales[0]!
+  siteApplied.value = false
+  siteTouched.value = true
+}
+async function applySite() {
+  const all = MEMI_BOARD_LOCALES.length
+  const ok = await saveSite({
+    disableAi: !siteDraft.ai,
+    disableAiTitle: !siteDraft.aiTitle,
+    disableI18n: !siteDraft.i18n,
+    locale: siteDraft.locale,
+    locales: siteDraft.locales.length === all ? [] : siteDraft.locales,
+    hideAbout: !siteDraft.about,
+  })
+  siteApplied.value = ok
+  if (ok) {
+    siteTouched.value = false
+    loadSiteDraft()
+  }
+}
 const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
   { label: t('settings.option.default'), value: 'default' },
   { label: t('settings.listView.options.dense'), value: 'dense' },
+  { label: t('settings.listView.options.card'), value: 'card' },
   { label: t('common.label.image'), value: 'image' },
   { label: t('settings.listView.options.video'), value: 'video' },
 ])
@@ -55,23 +105,24 @@ const visibilityOptions = computed<Array<{ label: string, value: BoardVisibility
 ])
 // reka-ui Select 는 빈 문자열 값을 허용하지 않아 '자동'을 sentinel 로 두고 저장 시 '' 로 바꾼다.
 const LOCALE_AUTO = 'auto'
+const enabledLocales = computed(() => memiBoardEnabledLocales())
 const localeOptions = computed(() => [
   { label: t('settings.locale.auto'), value: LOCALE_AUTO },
-  ...MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
+  ...MEMI_BOARD_LOCALES.filter((item: { code: string }) => enabledLocales.value.includes(item.code as never)).map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
 ])
 function fromLocaleOption(value: string) {
   return value === LOCALE_AUTO ? '' : value
 }
 
 // 번역 언어: 보드 이름·설명과 글을 이 언어들로만 번역한다. 전체를 고르면 빈 배열(= 전체)로 저장한다.
-const translationLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
+const translationLocaleItems = computed(() => MEMI_BOARD_LOCALES.filter((item: { code: string }) => enabledLocales.value.includes(item.code as never)).map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })))
 function translationCount(board: { translationLocales?: string[] }) {
   return boardTranslationLocales(board).length
 }
 function setTranslationLocales(board: { translationLocales?: string[] }, value: unknown) {
   const codes = Array.isArray(value) ? value.filter((code): code is string => typeof code === 'string') : []
   if (!codes.length) return
-  board.translationLocales = (codes.length === MEMI_BOARD_LOCALES.length ? [] : codes) as typeof board.translationLocales
+  board.translationLocales = (codes.length === enabledLocales.value.length ? [] : codes) as typeof board.translationLocales
 }
 
 const { isAdmin, rolePending } = useMemiBoardAuth()
@@ -268,6 +319,8 @@ function boardFacts(category: BoardCategory) {
   const listView = category.listView ?? 'default'
   const listViewLabel = listView === 'dense'
     ? t('settings.listView.options.dense')
+    : listView === 'card'
+      ? t('settings.listView.options.card')
     : listView === 'image'
       ? t('common.label.image')
       : listView === 'video'
@@ -473,6 +526,77 @@ async function runDeleteAll() {
     :description="t('settings.notFound.checkAddress')"
   />
   <div v-else class="flex flex-col gap-4">
+    <!-- 사이트 전체 설정: 관리자만. 호스트 설정 위에 덧씌워진다 -->
+    <UCard v-if="isAdmin && !categoryId" :ui="{ body: 'flex flex-col gap-4' }">
+      <template #header>
+        <p class="text-sm font-semibold text-highlighted">{{ t('settings.site.title') }}</p>
+        <p class="text-xs text-muted">{{ t('settings.site.help') }}</p>
+      </template>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.site.ai.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.site.ai.help') }}</p>
+        </div>
+        <USwitch :model-value="siteDraft.ai" :aria-label="t('settings.site.ai.label')" @update:model-value="siteDraft.ai = $event; siteApplied = false; siteTouched = true" />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.aiTitle.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.aiTitle.help') }}</p>
+        </div>
+        <USwitch :model-value="siteDraft.aiTitle && siteDraft.ai" :disabled="!siteDraft.ai" :aria-label="t('settings.aiTitle.label')" @update:model-value="siteDraft.aiTitle = $event; siteApplied = false; siteTouched = true" />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.site.i18n.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.site.i18n.help') }}</p>
+        </div>
+        <USwitch :model-value="siteDraft.i18n" :aria-label="t('settings.site.i18n.label')" @update:model-value="siteDraft.i18n = $event; siteApplied = false; siteTouched = true" />
+      </div>
+      <div v-if="siteDraft.i18n" class="flex flex-col gap-2">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.site.locales.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.site.locales.help', { count: siteDraft.locales.length }) }}</p>
+        </div>
+        <USelectMenu
+          :model-value="siteDraft.locales"
+          :items="allLocaleItems"
+          value-key="value"
+          multiple
+          class="w-full"
+          :aria-label="t('settings.site.locales.label')"
+          @update:model-value="onSiteLocales"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ siteDraft.i18n ? t('settings.site.locale.label') : t('settings.site.locale.fixedLabel') }}</p>
+          <p class="text-xs text-muted">{{ siteDraft.i18n ? t('settings.site.locale.help') : t('settings.site.locale.fixedHelp') }}</p>
+        </div>
+        <USelect
+          :model-value="siteDraft.locale"
+          :items="siteLocaleItems"
+          value-key="value"
+          class="w-40 shrink-0"
+          :aria-label="t('settings.site.locale.label')"
+          @update:model-value="siteDraft.locale = $event as string; siteApplied = false; siteTouched = true"
+        />
+      </div>
+      <UAlert v-if="siteError" color="error" variant="subtle" :description="siteError" />
+      <UAlert v-else-if="siteApplied && !siteDirty" color="success" variant="subtle" :description="t('settings.site.applied')" />
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.about.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.about.help') }}</p>
+        </div>
+        <USwitch :model-value="siteDraft.about" :aria-label="t('settings.about.label')" @update:model-value="siteDraft.about = $event; siteApplied = false; siteTouched = true" />
+      </div>
+      <template #footer>
+        <div class="flex justify-end">
+          <UButton icon="i-lucide-check" :label="t('settings.site.apply')" :loading="siteSaving" :disabled="!siteDirty" @click="applySite" />
+        </div>
+      </template>
+    </UCard>
     <UAlert
       v-if="categoryId && !draft.length"
       color="neutral"
@@ -700,16 +824,6 @@ async function runDeleteAll() {
           <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
           <div class="flex flex-wrap items-center gap-2">
             <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id" @update:model-value="savedId = null" />
-            <UButton
-              v-if="translationEnabled"
-              :label="t('settings.autoTranslate.action', { count: translationCount(category) })"
-              icon="i-lucide-languages"
-              color="neutral"
-              variant="outline"
-              :loading="translatingId === category.id"
-              :disabled="savingId !== null || translatingId !== null || !category.label.trim()"
-              @click="translateCopy(category)"
-            />
           </div>
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
@@ -724,37 +838,17 @@ async function runDeleteAll() {
               :placeholder="t('settings.description.placeholder')"
               @update:model-value="savedId = null"
             />
-            <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium">{{ t('settings.autoTranslate.label', { count: translationCount(category) }) }}</p>
-                <p class="text-xs text-muted">{{ t('settings.autoTranslate.help', { count: translationCount(category) }) }}</p>
-              </div>
-              <USwitch v-model="category.autoTranslate" size="sm" @update:model-value="savedId = null" />
-            </div>
-            <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp', { count: translationCount(category) }) }}</p>
-            <p v-if="translationEnabled && boardCopyIsTranslated(category)" class="text-xs text-primary">{{ t(translatedDraftIds.has(category.id) ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready', { count: translationCount(category) }) }}</p>
           </div>
         </div>
         <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
-            <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help', { count: translationCount(category) }) }}</p>
+            <p class="text-sm font-medium">{{ t('settings.i18nBoard.label') }}</p>
+            <p class="text-xs text-muted">{{ t('settings.i18nBoard.help', { count: translationCount(category) }) }}</p>
           </div>
-          <USwitch v-model="category.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="savedId = null" />
-        </div>
-        <div v-if="translationEnabled" class="flex flex-col gap-2">
-          <div>
-            <p class="text-sm font-medium">{{ t('settings.translationLocales.label') }}</p>
-            <p class="text-xs text-muted">{{ t('settings.translationLocales.help') }}</p>
-          </div>
-          <USelectMenu
-            :model-value="boardTranslationLocales(category)"
-            :items="translationLocaleItems"
-            value-key="value"
-            multiple
-            class="w-full"
-            :aria-label="t('settings.translationLocales.label')"
-            @update:model-value="setTranslationLocales(category, $event); savedId = null"
+          <USwitch
+            :model-value="category.autoTranslate === true || category.autoTranslatePosts === true"
+            :aria-label="t('settings.i18nBoard.label')"
+            @update:model-value="category.autoTranslate = $event; category.autoTranslatePosts = $event; savedId = null"
           />
         </div>
         <div v-if="canManageStaffAssignment" class="flex flex-col gap-2">

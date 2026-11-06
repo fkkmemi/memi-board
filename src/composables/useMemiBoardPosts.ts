@@ -285,7 +285,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     let title: string
     if (imageBoard) {
       slug = id
-      title = titleFromBody(input.content)
+      title = input.title?.trim() || titleFromBody(input.content)
     }
     else {
       title = input.title.trim()
@@ -336,7 +336,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
     assertPostContent(input)
     const imageBoard = isImageEditorBoard()
-    const title = imageBoard ? titleFromBody(input.content) : input.title.trim()
+    const title = imageBoard ? (input.title?.trim() || titleFromBody(input.content)) : input.title.trim()
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
     const extend = input.extend ? readExtend(input.extend) : undefined

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, useMemiBoardAuth, useMemiBoardPostTranslations, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
@@ -26,9 +26,26 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ saved: [category: BoardCategory] }>()
 
 const { t, i18nEnabled, translationEnabled } = useMemiBoardI18n()
+const postTranslations = useMemiBoardPostTranslations(() => props.categoryId)
+// 국제화 스위치 하나로 이름·설명, 새 글, 댓글 번역을 함께 켜고 끈다.
+const i18nOn = computed(() => draft.value?.autoTranslate === true || draft.value?.autoTranslatePosts === true)
+function setI18nOn(value: boolean) {
+  if (!draft.value) return
+  draft.value.autoTranslate = value
+  draft.value.autoTranslatePosts = value
+  saved.value = false
+}
+// 이미 있는 글 중 번역이 없거나 낡은 글을 찾아 확인을 받고 번역한다.
+async function translateExistingPosts() {
+  await postTranslations.scan()
+  const count = postTranslations.stale.value.length
+  if (!count || !window.confirm(t('settings.postTranslations.confirm', { count }))) return
+  await postTranslations.run()
+}
 const listViewOptions = computed<Array<{ label: string, value: BoardListView }>>(() => [
   { label: t('settings.option.default'), value: 'default' },
   { label: t('settings.listView.options.dense'), value: 'dense' },
+  { label: t('settings.listView.options.card'), value: 'card' },
   { label: t('common.label.image'), value: 'image' },
   { label: t('settings.listView.options.video'), value: 'video' },
 ])
@@ -47,23 +64,24 @@ const visibilityOptions = computed<Array<{ label: string, value: BoardVisibility
 ])
 // reka-ui Select 는 빈 문자열 값을 허용하지 않아 '자동'을 sentinel 로 두고 저장 시 '' 로 바꾼다.
 const LOCALE_AUTO = 'auto'
+const enabledLocales = computed(() => memiBoardEnabledLocales())
 const localeOptions = computed(() => [
   { label: t('settings.locale.auto'), value: LOCALE_AUTO },
-  ...MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
+  ...MEMI_BOARD_LOCALES.filter((item: { code: string }) => enabledLocales.value.includes(item.code as never)).map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })),
 ])
 function fromLocaleOption(value: string) {
   return value === LOCALE_AUTO ? '' : value
 }
 
 // 번역 언어: 보드 이름·설명과 글을 이 언어들로만 번역한다. 전체를 고르면 빈 배열(= 전체)로 저장한다.
-const translationLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
+const translationLocaleItems = computed(() => MEMI_BOARD_LOCALES.filter((item: { code: string }) => enabledLocales.value.includes(item.code as never)).map((item: { code: string, name: string }) => ({ label: item.name, value: item.code })))
 function translationCount(board: { translationLocales?: string[] }) {
   return boardTranslationLocales(board).length
 }
 function setTranslationLocales(board: { translationLocales?: string[] }, value: unknown) {
   const codes = Array.isArray(value) ? value.filter((code): code is string => typeof code === 'string') : []
   if (!codes.length) return
-  board.translationLocales = (codes.length === MEMI_BOARD_LOCALES.length ? [] : codes) as typeof board.translationLocales
+  board.translationLocales = (codes.length === enabledLocales.value.length ? [] : codes) as typeof board.translationLocales
 }
 
 const { isAdmin, canConfigureBoard, rolePending } = useMemiBoardAuth()
@@ -294,16 +312,6 @@ async function save() {
       <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
       <div class="flex flex-wrap items-center gap-2">
         <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating" @update:model-value="saved = false" />
-        <UButton
-          v-if="translationEnabled"
-          :label="t('settings.autoTranslate.action', { count: translationCount(draft) })"
-          icon="i-lucide-languages"
-          color="neutral"
-          variant="outline"
-          :loading="translating"
-          :disabled="saving || !draft.label.trim()"
-          @click="translateCopy"
-        />
       </div>
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
@@ -318,38 +326,37 @@ async function save() {
           :placeholder="t('settings.description.placeholder')"
           @update:model-value="saved = false"
         />
-        <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
-          <div>
-            <p class="text-sm font-medium">{{ t('settings.autoTranslate.label', { count: translationCount(draft) }) }}</p>
-            <p class="text-xs text-muted">{{ t('settings.autoTranslate.help', { count: translationCount(draft) }) }}</p>
-          </div>
-          <USwitch v-model="draft.autoTranslate" size="sm" @update:model-value="saved = false" />
-        </div>
-        <p v-if="translationEnabled" class="text-xs text-muted">{{ t('settings.autoTranslate.manualHelp', { count: translationCount(draft) }) }}</p>
-        <p v-if="translationEnabled && boardCopyIsTranslated(draft)" class="text-xs text-primary">{{ t(translatedDraft ? 'settings.autoTranslate.pending' : 'settings.autoTranslate.ready', { count: translationCount(draft) }) }}</p>
       </div>
-    </div>
-    <div v-if="translationEnabled" class="flex items-center justify-between gap-3">
-      <div>
-        <p class="text-sm font-medium">{{ t('settings.autoTranslatePosts.label') }}</p>
-        <p class="text-xs text-muted">{{ t('settings.autoTranslatePosts.help', { count: translationCount(draft) }) }}</p>
-      </div>
-      <USwitch v-model="draft.autoTranslatePosts" size="sm" :aria-label="t('settings.autoTranslatePosts.label')" @update:model-value="saved = false" />
     </div>
     <div v-if="translationEnabled" class="flex flex-col gap-2">
-      <div>
-        <p class="text-sm font-medium">{{ t('settings.translationLocales.label') }}</p>
-        <p class="text-xs text-muted">{{ t('settings.translationLocales.help') }}</p>
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-sm font-medium">{{ t('settings.i18nBoard.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.i18nBoard.help', { count: translationCount(draft) }) }}</p>
+        </div>
+        <USwitch :model-value="i18nOn" :aria-label="t('settings.i18nBoard.label')" @update:model-value="setI18nOn($event)" />
       </div>
-      <USelectMenu
-        :model-value="boardTranslationLocales(draft)"
-        :items="translationLocaleItems"
-        value-key="value"
-        multiple
-        class="w-full"
-        :aria-label="t('settings.translationLocales.label')"
-        @update:model-value="setTranslationLocales(draft, $event); saved = false"
-      />
+      <div v-if="i18nOn && !isNew" class="flex flex-wrap items-center gap-2">
+        <UButton
+          color="neutral"
+          variant="outline"
+          size="sm"
+          icon="i-lucide-languages"
+          :label="t('settings.i18nBoard.existing')"
+          :loading="postTranslations.scanning.value || postTranslations.running.value"
+          @click="translateExistingPosts"
+        />
+        <span v-if="postTranslations.running.value" class="text-xs text-muted">
+          {{ t('settings.postTranslations.progress', { done: postTranslations.done.value, failed: postTranslations.failed.value }) }}
+        </span>
+        <span v-else-if="postTranslations.total.value && !postTranslations.stale.value.length" class="text-xs text-primary">
+          {{ t('settings.postTranslations.allDone', { total: postTranslations.total.value }) }}
+        </span>
+        <span v-if="postTranslations.failed.value && !postTranslations.running.value" class="text-xs text-error">
+          {{ t('settings.postTranslations.failed', { count: postTranslations.failed.value }) }}
+        </span>
+        <span v-if="postTranslations.error.value" class="text-xs text-error">{{ postTranslations.error.value }}</span>
+      </div>
     </div>
     <div v-if="isAdmin" class="flex flex-col gap-2">
       <div>

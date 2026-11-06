@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'Comentarios',
   },
   editor: {
+    titleOptionalPlaceholder: 'Título (déjalo vacío y la IA escribirá uno)',
+    titleAiNotice: 'La IA ha escrito un título a partir de tu texto. Guárdalo si te gusta o edítalo antes.',
+    translateView: {
+      title: 'Vista previa de la traducción: {language}',
+      notSaved: 'No se ha guardado. Es solo una vista previa.',
+    },
     titlePlaceholder: 'Título',
     contentPlaceholder: 'Escribe algo… Escribe / para abrir el menú de bloques.',
     imageContentPlaceholder: 'Escribe algo…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'Rehacer',
     },
     ai: {
+      translateView: 'Ver traducción',
+      translateAll: 'Traducir y guardar en {count} idiomas',
       proofread: 'Revisar ortografía',
       polish: 'Pulir redacción',
       continue: 'Seguir escribiendo',
       summarize: 'Resumir brevemente',
       translateEn: 'Traducir al inglés',
       translateKo: 'Traducir al coreano',
-      translateAll: 'Traducir y guardar en {count} idiomas',
-      translateSaved: 'Guardado en {count} idiomas. Quien lee ve la traducción de su idioma.',
-      translatePending: 'Las traducciones a {count} idiomas están listas. Se guardan con la publicación.',
       translateEmpty: 'Escribe primero un título o un texto para traducir.',
       title: 'Generar título a partir del texto',
       custom: 'Reescribir con un estilo personalizado…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: 'Contiene contenido que no se puede publicar.',
     },
     hint: {
+      titling: 'Creando el título…',
       reviewing: 'Revisando el contenido…',
       saving: 'Guardando…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'No se encontró el comentario.',
   },
   list: {
+    commentCount: '{count} comentarios',
     settings: 'Configuración',
     loadFailed: 'No se pudo cargar la lista: {error}',
     empty: 'Aún no hay publicaciones.',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'Tarjeta',
     default: 'Normal',
     dense: 'Compacta',
     video: 'Video',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'Ingresa un título.',
   },
   profile: {
+    stats: {
+      posts: '{count} publicaciones',
+      comments: '{count} comentarios',
+      aiUsage: 'IA usada {used} / {limit}',
+      aiUsageResets: 'IA usada {used} / {limit} · se restablece en {hours} h',
+      warnings: '{count} advertencias',
+    },
     notFound: 'No se encontró el usuario.',
     noName: 'Sin nombre',
     joined: 'Se unió {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Tablero: anuncios e historias.',
   },
   settings: {
+    aiTitle: {
+      label: 'Escribir títulos con IA',
+      help: 'Si dejas vacío el título de una publicación nueva, la IA escribe uno a partir del texto (o de la primera foto si no hay texto). Las fotos solo se envían a Google AI para eso. Desactívalo para exigir un título escrito y dejar de enviar fotos.',
+    },
+    site: {
+      apply: 'Aplicar',
+      applied: 'Aplicado.',
+      title: 'Ajustes generales',
+      help: 'Se aplican a todo el sitio. Prevalecen sobre los ajustes de la aplicación anfitriona y surten efecto al cambiarlos.',
+      ai: { label: 'Usar funciones de IA', help: 'Desactívalo si no puedes usar IA, por ejemplo por el coste. Desactiva la traducción, el asistente de escritura, los títulos con IA y la moderación con IA, y las fotos dejan de enviarse a la IA. La comprobación de palabras prohibidas sigue funcionando.' },
+      i18n: { label: 'Usar internacionalización', help: 'Si está desactivada, todas las pantallas quedan fijadas en el idioma elegido abajo y la traducción se desactiva. Las traducciones guardadas no se eliminan.' },
+      locales: { label: 'Idiomas disponibles', help: 'Solo los {count} idiomas seleccionados se traducen y aparecen en el menú de idiomas. Los demás no reciben traducciones nuevas y las traducciones guardadas no se eliminan.' },
+      locale: { label: 'Idioma predeterminado', help: 'El idioma que se usa cuando la aplicación anfitriona no define uno.', fixedLabel: 'Idioma fijo', fixedHelp: 'Todas las pantallas se muestran en este idioma.' },
+    },
+    i18nBoard: {
+      label: 'Internacionalización',
+      help: 'Si está activada, el nombre y la descripción del tablero y las publicaciones y comentarios nuevos se traducen automáticamente a {count} idiomas y se guardan. Si está desactivada, solo se muestra el texto original.',
+      existing: 'Traducir también las publicaciones existentes',
+    },
+    about: {
+      label: 'Mostrar About memi-board',
+      help: 'Muestra el enlace y la ventana de About memi-board al pie de cada pantalla del tablero. Desactívalo para ocultarlo en todo el sitio.',
+    },
+    postTranslations: {
+      label: 'Traducir publicaciones existentes',
+      help: 'Busca publicaciones cuya traducción falta o ya no coincide con el original, y las traduce y guarda de una vez. Úsalo en tableros con la traducción automática desactivada o para completar publicaciones que se quedaron sin traducir. No consume la cuota diaria de IA.',
+      scan: 'Buscar publicaciones por traducir',
+      run: 'Traducir {count} publicaciones',
+      confirm: 'Se traducirán y guardarán {count} publicaciones, con una llamada de IA por cada una. ¿Continuar?',
+      progress: 'Traduciendo… {done} listas, {failed} con error',
+      allDone: 'Las {total} publicaciones publicadas tienen la traducción al día.',
+      found: '{count} de {total} publicaciones publicadas necesitan traducción.',
+      failed: 'No se pudieron traducir {count} publicaciones. Busca de nuevo y vuelve a intentarlo.',
+    },
     loading: 'Cargando configuración…',
     noAccess: 'No tienes acceso',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: 'Vista de lista',
       help: 'Cómo se muestra la lista de publicaciones',
       options: {
+        card: 'Tarjeta',
         dense: 'Compacta',
         video: 'Video',
       },

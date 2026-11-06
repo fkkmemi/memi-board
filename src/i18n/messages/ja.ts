@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'コメント',
   },
   editor: {
+    titleOptionalPlaceholder: 'タイトル（空欄ならAIが作ります）',
+    titleAiNotice: '本文からAIがタイトルを作りました。よければ保存し、気になる点は修正してください。',
+    translateView: {
+      title: '翻訳プレビュー: {language}',
+      notSaved: '保存されていません。プレビューのみです。',
+    },
     titlePlaceholder: 'タイトル',
     contentPlaceholder: '本文を入力…「/」でブロックメニューが開きます。',
     imageContentPlaceholder: '内容を入力…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'やり直す',
     },
     ai: {
+      translateView: '翻訳して見る',
+      translateAll: '{count}言語に翻訳して保存',
       proofread: 'スペルチェック',
       polish: '文章を整える',
       continue: '自然に続きを書く',
       summarize: '短く要約',
       translateEn: '英語に翻訳',
       translateKo: '韓国語に翻訳',
-      translateAll: '{count}言語に翻訳して保存',
-      translateSaved: '{count}言語で保存しました。ほかの言語では翻訳が表示されます。',
-      translatePending: '{count}言語の翻訳を用意しました。投稿を保存すると一緒に記録されます。',
       translateEmpty: '翻訳するタイトルか本文を先に入力してください。',
       title: '本文からタイトルを生成',
       custom: 'カスタムスタイルに書き換え…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: '投稿できない内容が含まれています。',
     },
     hint: {
+      titling: 'タイトルを作成中…',
       reviewing: '内容を確認中…',
       saving: '保存中…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'コメントが見つかりません。',
   },
   list: {
+    commentCount: 'コメント{count}件',
     settings: '設定',
     loadFailed: '一覧を読み込めませんでした: {error}',
     empty: 'まだ投稿はありません。',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'カード',
     default: '標準',
     dense: 'コンパクト',
     video: '動画',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'タイトルを入力してください。',
   },
   profile: {
+    stats: {
+      posts: '投稿{count}件',
+      comments: 'コメント{count}件',
+      aiUsage: 'AI利用 {used} / {limit}',
+      aiUsageResets: 'AI利用 {used} / {limit} · {hours}時間後にリセット',
+      warnings: '警告{count}回',
+    },
     notFound: 'ユーザーが見つかりません。',
     noName: '名前なし',
     joined: '登録 {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: '掲示板 — お知らせや話題をチェックしましょう。',
   },
   settings: {
+    aiTitle: {
+      label: 'AIでタイトルを自動作成',
+      help: '新しい投稿のタイトルを空欄にすると、AIが本文（本文がなければ最初の写真）からタイトルを作ります。写真はタイトル作成時のみGoogle AIに送信されます。オフにするとタイトルの入力が必須になり、写真も送信されません。',
+    },
+    site: {
+      apply: '適用',
+      applied: '適用しました。',
+      title: '全体設定',
+      help: 'サイト全体に適用されます。ホストアプリの設定より優先され、変更するとすぐに反映されます。',
+      ai: { label: 'AI機能を使う', help: 'コストなどでAIを使えない場合はオフにします。オフにすると、翻訳、執筆アシスタント、AIタイトル、AI審査がすべて無効になり、写真もAIに送信されません。禁止語チェックは引き続き動作します。' },
+      i18n: { label: '国際化を使う', help: 'オフにすると、すべての画面が下で選んだ1つの言語に固定され、翻訳機能もオフになります。保存済みの翻訳は削除されません。' },
+      locales: { label: '使用する言語', help: '選択した{count}言語のみ翻訳し、言語メニューに表示します。選択しない言語は新しく翻訳されず、保存済みの翻訳は削除されません。' },
+      locale: { label: '既定の言語', help: 'ホストアプリが言語を指定しないときに使う言語です。', fixedLabel: '固定する言語', fixedHelp: 'すべての画面がこの言語で表示されます。' },
+    },
+    i18nBoard: {
+      label: '国際化',
+      help: 'オンにすると、掲示板の名前・説明と新しい投稿・コメントを{count}言語に自動翻訳して一緒に保存します。オフにすると原文のみ表示されます。',
+      existing: '既存の投稿も翻訳する',
+    },
+    about: {
+      label: 'About memi-boardを表示',
+      help: '全ての掲示板画面の下部にAbout memi-boardのリンクとポップアップを表示します。オフにするとサイト全体で非表示になります。',
+    },
+    postTranslations: {
+      label: '既存の投稿を翻訳',
+      help: '翻訳がない、または原文と異なる投稿を探して、まとめて翻訳・保存します。自動翻訳をオフにした掲示板や、翻訳が漏れた投稿を補うときに使います。1日のAI利用回数は消費しません。',
+      scan: '翻訳する投稿を探す',
+      run: '{count}件の投稿を翻訳',
+      confirm: '{count}件の投稿を翻訳して保存します。投稿ごとにAIが呼び出されます。続行しますか？',
+      progress: '翻訳中… 完了 {done}、失敗 {failed}',
+      allDone: '公開中の投稿{total}件すべての翻訳が最新です。',
+      found: '公開中の投稿{total}件のうち{count}件の翻訳が必要です。',
+      failed: '{count}件の投稿を翻訳できませんでした。もう一度探して再試行してください。',
+    },
     loading: '設定を読み込んでいます。',
     noAccess: 'アクセス権限がありません',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: '一覧表示',
       help: '投稿一覧の表示方法',
       options: {
+        card: 'カード',
         dense: 'コンパクト',
         video: '動画',
       },

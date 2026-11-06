@@ -219,7 +219,7 @@ export interface AuthorMemoModel {
   updatedAt?: Timestamp
 }
 
-export type BoardListView = 'default' | 'dense' | 'image' | 'video'
+export type BoardListView = 'default' | 'dense' | 'card' | 'image' | 'video'
 /** 게시글 작성 폼. 목록 표시 방식과 독립적으로 선택한다. */
 export type BoardEditorType = 'default' | 'image'
 export type BoardWriteRole = 'user' | 'staff' | 'admin'

@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: '评论',
   },
   editor: {
+    titleOptionalPlaceholder: '标题（留空则由 AI 生成）',
+    titleAiNotice: 'AI 已根据正文生成标题。满意请保存，也可以先修改。',
+    translateView: {
+      title: '翻译预览：{language}',
+      notSaved: '尚未保存，仅为预览。',
+    },
     titlePlaceholder: '标题',
     contentPlaceholder: '输入正文… 输入 / 可打开块菜单。',
     imageContentPlaceholder: '输入内容…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: '重做',
     },
     ai: {
+      translateView: '翻译预览',
+      translateAll: '翻译并保存为{count}种语言',
       proofread: '拼写检查',
       polish: '润色文字',
       continue: '自然续写',
       summarize: '简短总结',
       translateEn: '翻译成英语',
       translateKo: '翻译成韩语',
-      translateAll: '翻译并保存为{count}种语言',
-      translateSaved: '已保存为{count}种语言。用其他语言查看时会看到译文。',
-      translatePending: '已准备好{count}种语言的翻译。保存文章时会一并记录。',
       translateEmpty: '请先输入要翻译的标题或正文。',
       title: '根据正文生成标题',
       custom: '改写为自定义风格…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: '包含无法发布的内容。',
     },
     hint: {
+      titling: '正在生成标题…',
       reviewing: '正在审核内容…',
       saving: '正在保存…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: '找不到该评论。',
   },
   list: {
+    commentCount: '{count} 条评论',
     settings: '设置',
     loadFailed: '无法加载列表：{error}',
     empty: '暂无帖子。',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: '卡片',
     default: '默认',
     dense: '紧凑',
     video: '视频',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: '请输入标题。',
   },
   profile: {
+    stats: {
+      posts: '{count} 篇帖子',
+      comments: '{count} 条评论',
+      aiUsage: 'AI 已用 {used} / {limit}',
+      aiUsageResets: 'AI 已用 {used} / {limit} · {hours} 小时后重置',
+      warnings: '{count} 次警告',
+    },
     notFound: '找不到该用户。',
     noName: '未命名',
     joined: '{time} 加入',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: '版块 — 查看公告和话题。',
   },
   settings: {
+    aiTitle: {
+      label: '用 AI 自动生成标题',
+      help: '新帖子的标题留空时，AI 会根据正文（没有正文则根据第一张照片）生成标题。照片仅在生成标题时发送给 Google AI。关闭后必须自己填写标题，也不会发送照片。',
+    },
+    site: {
+      apply: '应用',
+      applied: '已应用。',
+      title: '全站设置',
+      help: '适用于整个网站。优先于宿主应用的设置，修改后立即生效。',
+      ai: { label: '使用 AI 功能', help: '因费用等原因无法使用 AI 时请关闭。关闭后，翻译、写作助手、AI 标题和 AI 审核都会停用，照片也不会再发送给 AI。违禁词检查仍然有效。' },
+      i18n: { label: '启用国际化', help: '关闭后，所有页面固定为下方选择的一种语言，翻译功能也会关闭。已保存的翻译不会被删除。' },
+      locales: { label: '可用语言', help: '仅翻译所选的 {count} 种语言，并显示在语言菜单中。未选择的语言不会生成新的翻译，已保存的翻译不会被删除。' },
+      locale: { label: '默认语言', help: '宿主应用未指定语言时使用的语言。', fixedLabel: '固定语言', fixedHelp: '所有页面都以此语言显示。' },
+    },
+    i18nBoard: {
+      label: '国际化',
+      help: '开启后，版块名称、说明以及新帖子和评论会自动翻译成 {count} 种语言并一并保存。关闭后只显示原文。',
+      existing: '同时翻译已有帖子',
+    },
+    about: {
+      label: '显示 About memi-board',
+      help: '在每个版块页面底部显示 About memi-board 链接和弹窗。关闭后将在整个网站隐藏。',
+    },
+    postTranslations: {
+      label: '翻译已有帖子',
+      help: '查找缺少翻译或与原文不一致的帖子，并一次性翻译保存。适用于关闭了自动翻译的版块，或补齐漏翻的帖子。不消耗每日 AI 次数。',
+      scan: '查找需要翻译的帖子',
+      run: '翻译 {count} 篇帖子',
+      confirm: '将翻译并保存 {count} 篇帖子，每篇都会调用一次 AI。是否继续？',
+      progress: '翻译中… 已完成 {done}，失败 {failed}',
+      allDone: '全部 {total} 篇已发布帖子的翻译都是最新的。',
+      found: '{total} 篇已发布帖子中有 {count} 篇需要翻译。',
+      failed: '有 {count} 篇帖子翻译失败。请重新查找后再试。',
+    },
     loading: '正在加载设置。',
     noAccess: '没有访问权限',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: '列表视图',
       help: '帖子列表的显示方式',
       options: {
+        card: '卡片',
         dense: '紧凑',
         video: '视频',
       },

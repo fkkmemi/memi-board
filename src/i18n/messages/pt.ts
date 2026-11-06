@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'Comentários',
   },
   editor: {
+    titleOptionalPlaceholder: 'Título (deixe em branco e a IA escreve um)',
+    titleAiNotice: 'A IA escreveu um título a partir do seu texto. Salve se gostar ou edite antes.',
+    translateView: {
+      title: 'Prévia da tradução: {language}',
+      notSaved: 'Não salvo. É apenas uma prévia.',
+    },
     titlePlaceholder: 'Título',
     contentPlaceholder: 'Escreva algo… Digite / para abrir o menu de blocos.',
     imageContentPlaceholder: 'Escreva algo…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'Refazer',
     },
     ai: {
+      translateView: 'Ver tradução',
+      translateAll: 'Traduzir e salvar em {count} idiomas',
       proofread: 'Verificar ortografia',
       polish: 'Aprimorar texto',
       continue: 'Continuar escrevendo',
       summarize: 'Resumir brevemente',
       translateEn: 'Traduzir para inglês',
       translateKo: 'Traduzir para coreano',
-      translateAll: 'Traduzir e salvar em {count} idiomas',
-      translateSaved: 'Salvo em {count} idiomas. Quem lê vê a tradução do seu idioma.',
-      translatePending: 'As traduções para {count} idiomas estão prontas. Elas são salvas com a publicação.',
       translateEmpty: 'Digite primeiro um título ou um texto para traduzir.',
       title: 'Gerar título a partir do texto',
       custom: 'Reescrever com um estilo personalizado…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: 'Há conteúdo que não pode ser publicado.',
     },
     hint: {
+      titling: 'Criando o título…',
       reviewing: 'Revisando o conteúdo…',
       saving: 'Salvando…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'Comentário não encontrado.',
   },
   list: {
+    commentCount: '{count} comentários',
     settings: 'Configurações',
     loadFailed: 'Não foi possível carregar a lista: {error}',
     empty: 'Ainda não há publicações.',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'Cartão',
     default: 'Padrão',
     dense: 'Compacta',
     video: 'Vídeo',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'Insira um título.',
   },
   profile: {
+    stats: {
+      posts: '{count} publicações',
+      comments: '{count} comentários',
+      aiUsage: 'IA usada {used} / {limit}',
+      aiUsageResets: 'IA usada {used} / {limit} · reinicia em {hours} h',
+      warnings: '{count} avisos',
+    },
     notFound: 'Usuário não encontrado.',
     noName: 'Sem nome',
     joined: 'Entrou {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Fórum: avisos e histórias.',
   },
   settings: {
+    aiTitle: {
+      label: 'Escrever títulos com IA',
+      help: 'Se o título de uma nova publicação ficar vazio, a IA escreve um a partir do texto (ou da primeira foto, se não houver texto). As fotos só são enviadas ao Google AI para isso. Desative para exigir um título digitado e parar de enviar fotos.',
+    },
+    site: {
+      apply: 'Aplicar',
+      applied: 'Aplicado.',
+      title: 'Configurações gerais',
+      help: 'Aplicam-se a todo o site. Têm prioridade sobre as configurações do app hospedeiro e entram em vigor assim que você as altera.',
+      ai: { label: 'Usar recursos de IA', help: 'Desative se não puder usar IA, por exemplo por causa do custo. Isso desliga a tradução, o assistente de escrita, os títulos com IA e a moderação com IA, e as fotos deixam de ser enviadas à IA. A verificação de palavras bloqueadas continua funcionando.' },
+      i18n: { label: 'Usar internacionalização', help: 'Desativada, todas as telas ficam fixas no idioma escolhido abaixo e a tradução é desligada. As traduções já salvas não são apagadas.' },
+      locales: { label: 'Idiomas oferecidos', help: 'Somente os {count} idiomas selecionados são traduzidos e exibidos no menu de idiomas. Os demais não recebem novas traduções, e as traduções salvas não são apagadas.' },
+      locale: { label: 'Idioma padrão', help: 'O idioma usado quando o app hospedeiro não define um.', fixedLabel: 'Idioma fixo', fixedHelp: 'Todas as telas são exibidas neste idioma.' },
+    },
+    i18nBoard: {
+      label: 'Internacionalização',
+      help: 'Quando ativada, o nome e a descrição do quadro e as novas publicações e comentários são traduzidos automaticamente para {count} idiomas e salvos. Desativada, só o texto original é exibido.',
+      existing: 'Traduzir também as publicações existentes',
+    },
+    about: {
+      label: 'Mostrar About memi-board',
+      help: 'Mostra o link e a janela About memi-board no rodapé de todas as telas do quadro. Desative para ocultar em todo o site.',
+    },
+    postTranslations: {
+      label: 'Traduzir publicações existentes',
+      help: 'Encontra publicações cuja tradução está ausente ou não corresponde mais ao original e as traduz e salva de uma só vez. Use em quadros com tradução automática desativada ou para completar publicações que ficaram sem tradução. Não consome a cota diária de IA.',
+      scan: 'Encontrar publicações para traduzir',
+      run: 'Traduzir {count} publicações',
+      confirm: '{count} publicações serão traduzidas e salvas, com uma chamada de IA para cada uma. Continuar?',
+      progress: 'Traduzindo… {done} concluídas, {failed} com falha',
+      allDone: 'Todas as {total} publicações publicadas têm tradução atualizada.',
+      found: '{count} de {total} publicações publicadas precisam de tradução.',
+      failed: 'Não foi possível traduzir {count} publicações. Procure novamente e tente de novo.',
+    },
     loading: 'Carregando configurações…',
     noAccess: 'Você não tem acesso',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: 'Visualização da lista',
       help: 'Como a lista de publicações é exibida',
       options: {
+        card: 'Cartão',
         dense: 'Compacta',
         video: 'Vídeo',
       },

@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'Kommentare',
   },
   editor: {
+    titleOptionalPlaceholder: 'Titel (leer lassen, dann schreibt die KI einen)',
+    titleAiNotice: 'Die KI hat aus deinem Text einen Titel erstellt. Speichere ihn, wenn er dir gefällt, oder passe ihn vorher an.',
+    translateView: {
+      title: 'Übersetzungsvorschau: {language}',
+      notSaved: 'Nicht gespeichert. Dies ist nur eine Vorschau.',
+    },
     titlePlaceholder: 'Titel',
     contentPlaceholder: 'Text eingeben… / öffnet das Blockmenü.',
     imageContentPlaceholder: 'Text eingeben…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'Wiederholen',
     },
     ai: {
+      translateView: 'Übersetzt ansehen',
+      translateAll: 'In {count} Sprachen übersetzen und speichern',
       proofread: 'Rechtschreibung prüfen',
       polish: 'Text verbessern',
       continue: 'Weiterschreiben',
       summarize: 'Kurz zusammenfassen',
       translateEn: 'Ins Englische übersetzen',
       translateKo: 'Ins Koreanische übersetzen',
-      translateAll: 'In {count} Sprachen übersetzen und speichern',
-      translateSaved: 'In {count} Sprachen gespeichert. Leser sehen die Übersetzung ihrer Sprache.',
-      translatePending: 'Die Übersetzungen für {count} Sprachen sind bereit. Sie werden mit dem Beitrag gespeichert.',
       translateEmpty: 'Geben Sie zuerst einen Titel oder Text zum Übersetzen ein.',
       title: 'Titel aus Text erstellen',
       custom: 'In eigenem Stil umschreiben…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: 'Enthält Inhalte, die nicht veröffentlicht werden können.',
     },
     hint: {
+      titling: 'Titel wird erstellt…',
       reviewing: 'Inhalt wird geprüft…',
       saving: 'Wird gespeichert…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'Kommentar nicht gefunden.',
   },
   list: {
+    commentCount: '{count} Kommentare',
     settings: 'Einstellungen',
     loadFailed: 'Liste konnte nicht geladen werden: {error}',
     empty: 'Noch keine Beiträge.',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'Karte',
     default: 'Standard',
     dense: 'Kompakt',
     video: 'Video',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'Bitte einen Titel eingeben.',
   },
   profile: {
+    stats: {
+      posts: '{count} Beiträge',
+      comments: '{count} Kommentare',
+      aiUsage: 'KI genutzt {used} / {limit}',
+      aiUsageResets: 'KI genutzt {used} / {limit} · Zurücksetzung in {hours} Std.',
+      warnings: '{count} Verwarnungen',
+    },
     notFound: 'Benutzer nicht gefunden.',
     noName: 'Kein Name',
     joined: 'Dabei seit {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Board – Ankündigungen und Geschichten.',
   },
   settings: {
+    aiTitle: {
+      label: 'Titel mit KI erstellen',
+      help: 'Bleibt der Titel eines neuen Beitrags leer, schreibt die KI einen aus dem Text (oder aus dem ersten Foto, wenn kein Text vorhanden ist). Fotos werden nur dafür an Google AI gesendet. Ausschalten verlangt einen eigenen Titel und sendet keine Fotos.',
+    },
+    site: {
+      apply: 'Übernehmen',
+      applied: 'Übernommen.',
+      title: 'Allgemeine Einstellungen',
+      help: 'Gelten für die gesamte Website. Sie überschreiben die Einstellungen der Host-App und wirken sofort.',
+      ai: { label: 'KI-Funktionen verwenden', help: 'Ausschalten, wenn KI nicht genutzt werden kann, z. B. wegen der Kosten. Dadurch werden Übersetzung, Schreibassistent, KI-Titel und KI-Moderation abgeschaltet, und Fotos werden nicht mehr an die KI gesendet. Die Sperrwortprüfung funktioniert weiterhin.' },
+      i18n: { label: 'Internationalisierung verwenden', help: 'Wenn ausgeschaltet, sind alle Seiten auf die unten gewählte Sprache festgelegt und die Übersetzung ist aus. Gespeicherte Übersetzungen werden nicht gelöscht.' },
+      locales: { label: 'Angebotene Sprachen', help: 'Nur die {count} ausgewählten Sprachen werden übersetzt und im Sprachmenü angezeigt. Nicht ausgewählte Sprachen erhalten keine neuen Übersetzungen; gespeicherte Übersetzungen werden nicht gelöscht.' },
+      locale: { label: 'Standardsprache', help: 'Die Sprache, die verwendet wird, wenn die Host-App keine festlegt.', fixedLabel: 'Feste Sprache', fixedHelp: 'Alle Seiten werden in dieser Sprache angezeigt.' },
+    },
+    i18nBoard: {
+      label: 'Internationalisierung',
+      help: 'Wenn eingeschaltet, werden Boardname, Beschreibung sowie neue Beiträge und Kommentare automatisch in {count} Sprachen übersetzt und gespeichert. Ausgeschaltet wird nur der Originaltext angezeigt.',
+      existing: 'Bestehende Beiträge auch übersetzen',
+    },
+    about: {
+      label: 'About memi-board anzeigen',
+      help: 'Zeigt den Link und das Popup „About memi-board“ unten auf jeder Board-Seite an. Ausschalten blendet es auf der ganzen Website aus.',
+    },
+    postTranslations: {
+      label: 'Bestehende Beiträge übersetzen',
+      help: 'Findet Beiträge, deren Übersetzung fehlt oder nicht mehr zum Original passt, und übersetzt und speichert sie auf einmal. Nützlich für Boards mit ausgeschalteter automatischer Übersetzung oder zum Nachholen übersehener Beiträge. Das tägliche KI-Kontingent wird nicht verbraucht.',
+      scan: 'Zu übersetzende Beiträge suchen',
+      run: '{count} Beiträge übersetzen',
+      confirm: '{count} Beiträge werden übersetzt und gespeichert, dabei erfolgt für jeden ein KI-Aufruf. Fortfahren?',
+      progress: 'Übersetzung läuft… {done} fertig, {failed} fehlgeschlagen',
+      allDone: 'Alle {total} veröffentlichten Beiträge haben aktuelle Übersetzungen.',
+      found: '{count} von {total} veröffentlichten Beiträgen müssen übersetzt werden.',
+      failed: '{count} Beiträge konnten nicht übersetzt werden. Suche erneut und versuche es noch einmal.',
+    },
     loading: 'Einstellungen werden geladen…',
     noAccess: 'Kein Zugriff',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: 'Listenansicht',
       help: 'Darstellung der Beitragsliste',
       options: {
+        card: 'Karte',
         dense: 'Kompakt',
         video: 'Video',
       },

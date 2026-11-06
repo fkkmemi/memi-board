@@ -162,6 +162,12 @@ const messages: MemiBoardMessages = {
     comments: 'Komentar',
   },
   editor: {
+    titleOptionalPlaceholder: 'Judul (kosongkan agar AI membuatkannya)',
+    titleAiNotice: 'AI membuat judul dari teks Anda. Simpan jika sudah cocok, atau ubah dulu.',
+    translateView: {
+      title: 'Pratinjau terjemahan: {language}',
+      notSaved: 'Belum disimpan. Ini hanya pratinjau.',
+    },
     titlePlaceholder: 'Judul',
     contentPlaceholder: 'Tulis sesuatu… Ketik / untuk membuka menu blok.',
     imageContentPlaceholder: 'Tulis sesuatu…',
@@ -257,15 +263,14 @@ const messages: MemiBoardMessages = {
       redo: 'Ulangi',
     },
     ai: {
+      translateView: 'Lihat terjemahan',
+      translateAll: 'Terjemahkan dan simpan dalam {count} bahasa',
       proofread: 'Periksa ejaan',
       polish: 'Perbaiki tulisan',
       continue: 'Lanjutkan tulisan',
       summarize: 'Ringkas singkat',
       translateEn: 'Terjemahkan ke bahasa Inggris',
       translateKo: 'Terjemahkan ke bahasa Korea',
-      translateAll: 'Terjemahkan dan simpan dalam {count} bahasa',
-      translateSaved: 'Disimpan dalam {count} bahasa. Pembaca melihat terjemahan bahasanya.',
-      translatePending: 'Terjemahan {count} bahasa sudah siap. Terjemahan ikut tersimpan saat Anda menyimpan tulisan.',
       translateEmpty: 'Masukkan judul atau isi yang akan diterjemahkan terlebih dahulu.',
       title: 'Buat judul dari isi',
       custom: 'Tulis ulang dengan gaya kustom…',
@@ -298,6 +303,7 @@ const messages: MemiBoardMessages = {
       moderationBlocked: 'Berisi konten yang tidak dapat diposting.',
     },
     hint: {
+      titling: 'Membuat judul…',
       reviewing: 'Meninjau konten…',
       saving: 'Menyimpan…',
     },
@@ -346,6 +352,7 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'Komentar tidak ditemukan.',
   },
   list: {
+    commentCount: '{count} komentar',
     settings: 'Pengaturan',
     loadFailed: 'Gagal memuat daftar: {error}',
     empty: 'Belum ada postingan.',
@@ -377,6 +384,7 @@ const messages: MemiBoardMessages = {
     },
   },
   listViewSwitch: {
+    card: 'Kartu',
     default: 'Default',
     dense: 'Ringkas',
     video: 'Video',
@@ -426,6 +434,13 @@ const messages: MemiBoardMessages = {
     titleRequired: 'Masukkan judul.',
   },
   profile: {
+    stats: {
+      posts: '{count} postingan',
+      comments: '{count} komentar',
+      aiUsage: 'AI terpakai {used} / {limit}',
+      aiUsageResets: 'AI terpakai {used} / {limit} · direset dalam {hours} jam',
+      warnings: '{count} peringatan',
+    },
     notFound: 'Pengguna tidak ditemukan.',
     noName: 'Tanpa nama',
     joined: 'Bergabung {time}',
@@ -506,6 +521,40 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Papan — pengumuman dan cerita.',
   },
   settings: {
+    aiTitle: {
+      label: 'Tulis judul dengan AI',
+      help: 'Jika judul postingan baru dikosongkan, AI menulis judul dari teks (atau dari foto pertama jika tidak ada teks). Foto hanya dikirim ke Google AI untuk itu. Matikan agar judul wajib diketik dan foto tidak dikirim.',
+    },
+    site: {
+      apply: 'Terapkan',
+      applied: 'Diterapkan.',
+      title: 'Pengaturan umum',
+      help: 'Berlaku untuk seluruh situs. Mengalahkan pengaturan aplikasi inang dan langsung berlaku setelah diubah.',
+      ai: { label: 'Gunakan fitur AI', help: 'Matikan jika AI tidak bisa dipakai, misalnya karena biaya. Ini mematikan terjemahan, asisten menulis, judul AI, dan moderasi AI, dan foto tidak lagi dikirim ke AI. Pemeriksaan kata terlarang tetap berjalan.' },
+      i18n: { label: 'Gunakan internasionalisasi', help: 'Jika dimatikan, semua layar dikunci pada satu bahasa yang dipilih di bawah dan terjemahan dimatikan. Terjemahan yang sudah tersimpan tidak dihapus.' },
+      locales: { label: 'Bahasa yang ditawarkan', help: 'Hanya {count} bahasa yang dipilih yang diterjemahkan dan ditampilkan di menu bahasa. Bahasa yang tidak dipilih tidak mendapat terjemahan baru, dan terjemahan yang sudah tersimpan tidak dihapus.' },
+      locale: { label: 'Bahasa default', help: 'Bahasa yang dipakai saat aplikasi inang tidak menetapkan bahasa.', fixedLabel: 'Bahasa tetap', fixedHelp: 'Semua layar ditampilkan dalam bahasa ini.' },
+    },
+    i18nBoard: {
+      label: 'Internasionalisasi',
+      help: 'Jika aktif, nama dan deskripsi papan serta postingan dan komentar baru diterjemahkan otomatis ke {count} bahasa dan disimpan. Jika nonaktif, hanya teks asli yang ditampilkan.',
+      existing: 'Terjemahkan juga postingan yang ada',
+    },
+    about: {
+      label: 'Tampilkan About memi-board',
+      help: 'Menampilkan tautan dan popup About memi-board di bagian bawah setiap layar papan. Matikan untuk menyembunyikannya di seluruh situs.',
+    },
+    postTranslations: {
+      label: 'Terjemahkan postingan yang ada',
+      help: 'Mencari postingan yang terjemahannya belum ada atau tidak lagi sesuai dengan aslinya, lalu menerjemahkan dan menyimpannya sekaligus. Gunakan untuk papan dengan terjemahan otomatis mati atau untuk melengkapi postingan yang terlewat. Tidak memakai kuota AI harian.',
+      scan: 'Cari postingan yang perlu diterjemahkan',
+      run: 'Terjemahkan {count} postingan',
+      confirm: '{count} postingan akan diterjemahkan dan disimpan, dengan satu panggilan AI untuk tiap postingan. Lanjutkan?',
+      progress: 'Menerjemahkan… {done} selesai, {failed} gagal',
+      allDone: 'Semua {total} postingan yang dipublikasikan sudah memiliki terjemahan terbaru.',
+      found: '{count} dari {total} postingan yang dipublikasikan perlu diterjemahkan.',
+      failed: '{count} postingan tidak dapat diterjemahkan. Cari lagi lalu coba ulang.',
+    },
     loading: 'Memuat pengaturan…',
     noAccess: 'Anda tidak memiliki akses',
     notFound: {
@@ -572,6 +621,7 @@ const messages: MemiBoardMessages = {
       label: 'Tampilan daftar',
       help: 'Cara daftar postingan ditampilkan',
       options: {
+        card: 'Kartu',
         dense: 'Ringkas',
         video: 'Video',
       },

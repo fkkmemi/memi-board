@@ -10,7 +10,7 @@ import {
   formatModerationUserReason,
   parseModerationJson,
 } from '../utils/moderation-prompt'
-import { useMemiBoardConfig } from '../config'
+import { isMemiBoardAiEnabled, useMemiBoardConfig } from '../config'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
@@ -145,7 +145,7 @@ export function useMemiBoardModeration(options: {
     const local = localCheck(trimmed)
     if (local) return applyStrikeIfContentBlock(local)
 
-    if (moderation.enabled === false) {
+    if (moderation.enabled === false || !isMemiBoardAiEnabled()) {
       return { ...APPROVED, via: 'disabled' }
     }
 
@@ -185,7 +185,7 @@ export function useMemiBoardModeration(options: {
       }
     }
 
-    if (moderation.enabled === false || !moderation.moderateImages) {
+    if (moderation.enabled === false || !isMemiBoardAiEnabled() || !moderation.moderateImages) {
       return { ...APPROVED, via: 'disabled' }
     }
 

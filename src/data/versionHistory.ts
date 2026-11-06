@@ -16,6 +16,38 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.55.0',
+    date: '2026-11-06',
+    highlights: [
+      '게시판 설정 맨 위의 전체 설정에서 AI 기능, 국제화, 사용할 언어, 기본 언어를 한 번에 정하고 적용해요',
+      '게시판마다 국제화 스위치 하나로 이름·설명과 글·댓글 번역을 켜고 꺼요',
+      '새 글에서 제목을 비우면 AI가 글이나 사진을 보고 제목을 만들어 줘요',
+      '글쓰기 AI에서 언어를 하나 골라 번역을 저장 없이 미리 볼 수 있어요',
+      '게시판 설정에서 번역이 없거나 낡은 기존 글을 한꺼번에 번역해요',
+      '자동 번역은 AI 하루 사용 횟수를 차감하지 않아요',
+      '글 수정 때 원문이 바뀌면 번역도 다시 만들어요',
+      'Velog처럼 보이는 카드 목록을 고를 수 있어요',
+      '프로필에서 글·댓글 수와 내 AI 사용량을 볼 수 있어요',
+      '이미지 게시판 글에도 제목을 쓸 수 있어요',
+      '글 상세에서 첫 이미지에 생기던 선택 테두리를 없앴어요',
+    ],
+    highlightsEn: [
+      'The site-wide settings at the top of board settings set AI features, internationalization, offered languages, and the default language in one Apply',
+      'Each board has one internationalization switch for translating its name, description, posts, and comments',
+      'Leave the title empty on a new post and AI writes one from the text or the photo',
+      'Pick one language in the writing AI to preview a translation without saving it',
+      'Board settings can translate existing posts whose translation is missing or outdated in one go',
+      'Automatic translation no longer uses the daily AI quota',
+      'Editing a post translates it again when the original changed',
+      'A Velog-style card list view is available',
+      'Profiles show post and comment counts and your own AI usage',
+      'Image board posts can have a title too',
+      'Removed the selection outline around the first image in a post',
+    ],
+    note: '호스트는 코드를 바꾸지 않아도 돼요. Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'Hosts need no code changes. No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.54.1',
     date: '2026-11-05',
     highlights: [

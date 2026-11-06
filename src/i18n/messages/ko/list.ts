@@ -4,6 +4,7 @@ export default {
   loadFailed: '목록을 불러오지 못했습니다: {error}',
   empty: '아직 게시글이 없습니다.',
   notice: '공지',
+  commentCount: '댓글 {count}개',
   photo: '사진',
   likeCount: '추천 {count}',
   info: {

@@ -7,7 +7,7 @@ const props = defineProps<{ boardId: string, disabled?: boolean }>()
 const body = defineModel<string>({ required: true })
 const translations = defineModel<CommentTranslationSet | undefined>('translations')
 const emit = defineEmits<{ busy: [value: boolean] }>()
-const { t, locale, translationEnabled } = useMemiBoardI18n()
+const { t, locale, translationEnabled, aiEnabled } = useMemiBoardI18n()
 const { getBoard } = useMemiBoardSettings()
 const { assist, translateComment } = useMemiBoardWritingAssistant({ locale })
 const targets = computed(() => boardTranslationLocales(getBoard(props.boardId)))
@@ -64,7 +64,7 @@ function apply() {
 </script>
 
 <template>
-  <div class="flex flex-wrap items-center gap-2">
+  <div v-if="aiEnabled" class="flex flex-wrap items-center gap-2">
     <UDropdownMenu :items="items">
       <UButton type="button" icon="i-lucide-sparkles" label="AI" size="sm" color="neutral" variant="ghost"
         :aria-label="t('editor.aiAssistant')" :loading="running" :disabled="disabled || running || !body.trim()" />

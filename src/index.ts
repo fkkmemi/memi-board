@@ -1,6 +1,6 @@
 /** Runtime API — composables / config / types only. UI SFC는 루트 Nuxt 모듈이 등록. */
 
-export { configureMemiBoard, useMemiBoardConfig, useBoardPathConfig, isMemiBoardI18nEnabled, isMemiBoardTranslationEnabled } from './config'
+export { configureMemiBoard, useMemiBoardConfig, useBoardPathConfig, isMemiBoardI18nEnabled, isMemiBoardTranslationEnabled, isMemiBoardAiEnabled, assertMemiBoardAiEnabled, memiBoardDefaultLocale, memiBoardEnabledLocales, applyMemiBoardSiteSettings } from './config'
 export type {
   MemiBoardConfig,
   MemiBoardAuthOptions,
@@ -235,4 +235,7 @@ export { storagePathFromDownloadUrl, postNamespaceFromStoragePath } from './util
 // core 번들에 @tiptap peer 를 넣으면 Vite optional-peer stub 으로 PluginKey 가 깨진다.
 
 export { useMemiBoardCleanup } from './composables/useMemiBoardCleanup'
+export { useMemiBoardPostTranslations } from './composables/useMemiBoardPostTranslations'
+export { useMemiBoardUserStats } from './composables/useMemiBoardUserStats'
+export { useMemiBoardAppSettings } from './composables/useMemiBoardAppSettings'
 export type { OrphanItem, OrphanKind } from './utils/orphanCleanup'

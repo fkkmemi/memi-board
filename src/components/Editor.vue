@@ -12,13 +12,15 @@ import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
 import { mapEditorItems } from '@nuxt/ui/utils/editor'
-import type { Attachment, EditorImageEntry, PostTranslationSet } from 'memi-board/runtime'
+import type { Attachment, EditorImageEntry, MemiBoardLocale, PostTranslationSet } from 'memi-board/runtime'
 import type { WritingAssistantAction } from 'memi-board/runtime'
 import {
   useMemiBoardAuth,
   useMemiBoardPosts,
   useMemiBoardModeration,
   boardTranslationLocales,
+  MEMI_BOARD_LOCALES,
+  useMemiBoardAppSettings,
   useMemiBoardI18n,
   useMemiBoardSettings,
   hasBodyImage,
@@ -48,14 +50,15 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage, canManageBoard } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
-const { createPostId, getPost, createPost, updatePost, savePostTranslations, resolveUniqueSlug, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
+const { createPostId, getPost, createPost, updatePost, resolveUniqueSlug, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순.
-const { t, dir, locale, translationEnabled } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
+const { t, dir, locale, translationEnabled, aiEnabled } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
 // provide 한 컴포넌트 자신은 inject 를 못 받으므로 AI 프롬프트 언어를 직접 넘긴다.
 const { checkText } = useMemiBoardModeration({ locale })
 const { uploadEditorImage } = useMemiBoardStorage()
-const { assist, translatePost } = useMemiBoardWritingAssistant({ locale })
+const { aiTitleEnabled } = useMemiBoardAppSettings()
+const { assist, translatePost, suggestTitleFromImage } = useMemiBoardWritingAssistant({ locale })
 
 const title = ref('')
 /** 보드 커스텀 필드 값. 키는 설정에 있는 것만 저장한다. */
@@ -116,8 +119,14 @@ const externalImageCandidate = computed(() => {
 const aiRunning = ref(false)
 const aiError = ref('')
 const aiNotice = ref('')
+// 이미지 보드에서 AI 제목을 이미 한 번 제안했는지. 한 번만 제안하고 다음 저장은 그대로 진행한다.
+let titleAiOffered = false
 const pendingTranslations = ref<PostTranslationSet | null>(null)
 const pendingTranslationKey = ref('')
+// 수정 화면: 불러온 시점의 원문 키와, 저장된 번역이 그 원문과 맞았는지. 둘 다 맞으면 번역을 다시 하지 않는다.
+const loadedTranslationKey = ref('')
+const loadedTranslationCurrent = ref(false)
+let loadedTranslationSource: { title?: string, hash?: string, has: boolean } = { has: false }
 const aiCustomDialogOpen = ref(false)
 const aiCustomInstruction = ref('')
 
@@ -703,6 +712,10 @@ const toolbarItems = computed(() => {
   ]
 })
 
+function localeInfo(code?: string): { code: string, name: string, dir?: string } | undefined {
+  return (MEMI_BOARD_LOCALES as ReadonlyArray<{ code: string, name: string, dir?: string }>).find(item => item.code === code)
+}
+
 const aiMenuItems = computed(() => [
   [
     { label: t('editor.ai.proofread'), icon: 'i-lucide-spell-check-2', onSelect: () => runWritingAssistant('proofread') },
@@ -711,7 +724,14 @@ const aiMenuItems = computed(() => [
     { label: t('editor.ai.summarize'), icon: 'i-lucide-scan-text', onSelect: () => runWritingAssistant('summarize') },
   ],
   ...(translationEnabled.value ? [[
-    { label: t('editor.ai.translateAll', { count: translationTargets.value.length }), icon: 'i-lucide-languages', onSelect: () => translateAllLocales() },
+    {
+      label: t('editor.ai.translateView'),
+      icon: 'i-lucide-languages',
+      children: translationTargets.value.map(code => ({
+        label: localeInfo(code)?.name ?? code,
+        onSelect: () => translateForPreview(code),
+      })),
+    },
   ]] : []),
   [
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
@@ -783,14 +803,17 @@ function currentBodyContent(): string {
 }
 
 function currentStoredTitle(body: string): string {
-  return isImageEditor.value ? titleFromBody(body) : title.value.trim()
+  return isImageEditor.value ? (title.value.trim() || titleFromBody(body)) : title.value.trim()
 }
 
 function translationKey(body: string, storedTitle: string): string {
   return `${storedTitle}\n${hashText(body)}`
 }
 
-async function translateAllLocales() {
+/** 번역해서 보기: 고른 언어 하나만 번역해 보여 주고, 아무것도 저장하지 않는다. */
+const translateView = ref<{ code: string, title: string, summary: string, body: string } | null>(null)
+const translateViewOpen = ref(false)
+async function translateForPreview(code: MemiBoardLocale) {
   if (!translationEnabled.value || aiRunning.value) return
   aiError.value = ''
   aiNotice.value = ''
@@ -803,26 +826,23 @@ async function translateAllLocales() {
   }
   aiRunning.value = true
   try {
-    const translations = await translatePost({
-      targets: translationTargets.value,
+    const result = await translatePost({
+      targets: [code],
       title: storedTitle,
       summary,
       content: plainTextFromHtml(body) ? body : '',
     })
-    if (props.postId) {
-      await savePostTranslations(props.postId, translations)
-      pendingTranslations.value = null
-      pendingTranslationKey.value = ''
-      aiNotice.value = t('editor.ai.translateSaved', { count: translationTargets.value.length })
+    const fields = result.i18n[code] ?? {}
+    translateView.value = {
+      code,
+      title: fields.title ?? '',
+      summary: fields.summary ?? '',
+      body: plainTextFromHtml(result.contentI18n?.[code]?.content ?? ''),
     }
-    else {
-      pendingTranslations.value = translations
-      pendingTranslationKey.value = translationKey(body, storedTitle)
-      aiNotice.value = t('editor.ai.translatePending', { count: translationTargets.value.length })
-    }
+    translateViewOpen.value = true
   }
   catch (cause) {
-    console.warn('[memi-board] post translation failed', cause)
+    console.warn('[memi-board] post translation preview failed', cause)
     aiError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
   }
   finally {
@@ -997,6 +1017,7 @@ async function loadPost(id: string) {
       return
     }
     title.value = post.title
+    loadedTranslationSource = { title: post.i18nSource?.title, hash: post.contentI18nSource?.hash, has: Boolean(post.i18nSource) }
     loadedExtend.value = readExtend(post.extend)
     extendValues.value = storedExtend(post.extend)
     pinned.value = loadedPinned.value = post.pinned === true
@@ -1029,6 +1050,15 @@ async function loadPost(id: string) {
   finally {
     loading.value = false
     await nextTick()
+    if (props.postId) {
+      const body = currentBodyContent()
+      const storedTitle = currentStoredTitle(body)
+      loadedTranslationKey.value = translationKey(body, storedTitle)
+      const src = loadedTranslationSource
+      loadedTranslationCurrent.value = src.has
+        && (src.title ?? '') === storedTitle
+        && (!plainTextFromHtml(body) || src.hash === hashText(body))
+    }
     markSaved()
   }
 }
@@ -1061,7 +1091,11 @@ async function handleSubmit() {
   if (saving.value) return
   error.value = ''
   const imageBoard = isImageEditor.value
-  if (!imageBoard && !title.value.trim()) {
+  // 새 글은 제목을 비워도 된다 — 본문이 있으면 저장 전에 AI가 제목을 만들어 채운다(아래).
+  const photoForTitle = imageBoard ? coverUrls()[0] : extractAllImageSrcs(content.value)[0]
+  const mayAskAiTitle = !props.postId && !titleAiOffered && aiTitleEnabled.value
+    && (hasBodyText(content.value) || Boolean(photoForTitle))
+  if (!imageBoard && !title.value.trim() && !mayAskAiTitle) {
     error.value = t('editor.errors.titleRequired')
     return
   }
@@ -1088,6 +1122,43 @@ async function handleSubmit() {
     return
   }
 
+  // 새 글: 제목을 비웠으면 저장하지 않고 AI가 만든 제목을 입력란에 채워 보여 준다.
+  // 글쓴이가 확인하거나 고친 뒤 다시 저장한다. 세션당 한 번만 제안하고, 실패해도 저장은 막지 않는다.
+  if (!props.postId && !title.value.trim() && mayAskAiTitle) {
+    titleAiOffered = true
+    saving.value = true
+    submitHint.value = t('editor.hint.titling')
+    try {
+      // 글이 있으면 글로, 사진만 있으면 첫 사진을 보고 제목을 만든다.
+      const suggested = hasBodyText(content.value)
+        ? await assist({
+            action: 'title',
+            content: plainTextFromHtml(content.value),
+            selection: true,
+            automatic: true,
+          })
+        : await suggestTitleFromImage(photoForTitle!)
+      const cleaned = suggested.replace(/^['"“”]|['"“”]$/g, '').trim()
+      if (cleaned) {
+        title.value = cleaned
+        aiNotice.value = t('editor.titleAiNotice')
+        return
+      }
+    }
+    catch (cause) {
+      console.warn('[memi-board] automatic title failed', cause)
+    }
+    finally {
+      saving.value = false
+      submitHint.value = ''
+    }
+  }
+  // AI가 제목을 못 만들었으면, 일반 게시판은 제목이 필요하다. 이미지 보드는 본문에서 따온다.
+  if (!imageBoard && !title.value.trim()) {
+    error.value = t('editor.errors.titleRequired')
+    return
+  }
+
   saving.value = true
   submitHint.value = t('editor.hint.reviewing')
   // 새 글 slug 중복 확인을 검열과 동시에 시작 — 검열에 걸리면 결과만 버린다.
@@ -1095,7 +1166,7 @@ async function handleSubmit() {
   slugPromise?.catch(() => {})
   try {
     const plain = plainTextFromHtml(content.value)
-    const moderationText = imageBoard ? plain : `${title.value}\n${plain}`
+    const moderationText = `${title.value}\n${plain}`
     const moderation = await checkText(moderationText)
     if (moderation.flagged) {
       error.value = moderation.reason || t('editor.errors.moderationBlocked')
@@ -1108,11 +1179,16 @@ async function handleSubmit() {
       && pendingTranslationKey.value === translationKey(bodyContent, storedTitle)
       ? pendingTranslations.value
       : undefined
-    if (!props.postId && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
+    // 새 글은 항상, 수정 글은 원문이 바뀌었거나 저장된 번역이 이미 낡았을 때 다시 번역한다.
+    const needsTranslation = !props.postId
+      || !loadedTranslationCurrent.value
+      || translationKey(bodyContent, storedTitle) !== loadedTranslationKey.value
+    if (needsTranslation && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
       submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
       // 번역 한도 초과·실패가 글 저장을 막지 않게 원문만 저장한다. 번역은 나중에 도우미로 다시 할 수 있다.
       try {
         translations = await translatePost({
+          automatic: true,
           targets: translationTargets.value,
           title: storedTitle,
           summary: buildPostPreview(bodyContent, imageBoard ? [] : attachments.value).summary,
@@ -1128,7 +1204,7 @@ async function handleSubmit() {
     }
     submitHint.value = t('editor.hint.saving')
     const payload = {
-      title: imageBoard ? '' : title.value.trim(),
+      title: title.value.trim(),
       content: bodyContent,
       tags: tags.value.map(t => t.trim()).filter(Boolean),
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
@@ -1192,11 +1268,10 @@ async function handleSubmit() {
     @dragover.capture="onImageFormDragOver"
   >
     <UInput
-      v-if="!isImageEditor"
       v-model="title"
-      :placeholder="t('editor.titlePlaceholder')"
+      :placeholder="postId || !aiTitleEnabled ? t('editor.titlePlaceholder') : t('editor.titleOptionalPlaceholder')"
       size="lg"
-      required
+      :required="(Boolean(postId) || !aiTitleEnabled) && !isImageEditor"
       @keydown.tab.exact.prevent="focusContentFromTitle"
     />
     <!-- 이미지 보드: 여러 장 갤러리 (TipTap 과 분리) -->
@@ -1383,7 +1458,7 @@ async function handleSubmit() {
               :items="toolbarItems"
               class="min-w-0 flex-1 p-2 flex-wrap"
             />
-            <UDropdownMenu :items="aiMenuItems">
+            <UDropdownMenu v-if="aiEnabled" :items="aiMenuItems">
               <UButton
                 icon="i-lucide-sparkles"
                 label="AI"
@@ -1621,6 +1696,21 @@ async function handleSubmit() {
         >
           {{ t('editor.imageDialog.addLink') }}
         </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="translateViewOpen"
+    :title="t('editor.translateView.title', { language: localeInfo(translateView?.code)?.name ?? '' })"
+    :ui="{ content: 'sm:max-w-2xl' }"
+  >
+    <template #body>
+      <div v-if="translateView" class="flex flex-col gap-3" :dir="localeInfo(translateView?.code)?.dir">
+        <p v-if="translateView.title" class="text-base font-semibold text-highlighted">{{ translateView.title }}</p>
+        <p v-if="translateView.summary" class="whitespace-pre-line text-sm text-muted">{{ translateView.summary }}</p>
+        <p v-if="translateView.body" class="whitespace-pre-line text-sm">{{ translateView.body }}</p>
+        <p class="text-xs text-dimmed">{{ t('editor.translateView.notSaved') }}</p>
       </div>
     </template>
   </UModal>

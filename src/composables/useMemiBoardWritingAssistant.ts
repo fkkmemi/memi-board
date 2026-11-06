@@ -2,7 +2,7 @@ import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai'
 import { runTransaction, serverTimestamp } from 'firebase/firestore'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useCurrentUser, useFirebaseApp, useFirestore } from 'vuefire'
-import { assertMemiBoardTranslationEnabled, useBoardPathConfig, useMemiBoardConfig } from '../config'
+import { assertMemiBoardAiEnabled, assertMemiBoardTranslationEnabled, useBoardPathConfig, useMemiBoardConfig } from '../config'
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
 import { plainTextFromHtml } from '../utils/postBody'
@@ -14,6 +14,8 @@ import type { CommentTranslationSet, MemiBoardI18nMap, PostTranslationSet } from
 import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 export const WRITING_ASSISTANT_DAILY_LIMIT = 20
+/** 사진으로 제목을 만들 때 보낼 수 있는 사진 최대 크기. */
+const IMAGE_TITLE_MAX_BYTES = 4 * 1024 * 1024
 const WRITING_ASSISTANT_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export type WritingAssistantAction =
@@ -35,6 +37,8 @@ interface WritingAssistantInput {
   selection?: boolean
   /** action이 'custom'일 때 사용자가 직접 입력한 지시문 (예: "경상도 사투리 스타일로") */
   customInstruction?: string
+  /** 저장 과정에서 자동으로 부르는 호출이면 true. 하루 사용 횟수를 차감하지 않는다. */
+  automatic?: boolean
 }
 
 type BuiltInAction = Exclude<WritingAssistantAction, 'custom'>
@@ -186,7 +190,9 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     })
   }
 
-  async function withDailyUse<T>(task: () => Promise<T>): Promise<T> {
+  /** `automatic` 번역(게시판의 자동 번역 설정)은 하루 사용 횟수를 쓰지 않는다. */
+  async function withDailyUse<T>(task: () => Promise<T>, automatic = false): Promise<T> {
+    if (automatic) return task()
     await reserveDailyUse()
     try {
       const result = await task()
@@ -205,6 +211,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   }
 
   async function assist(input: WritingAssistantInput): Promise<string> {
+    assertMemiBoardAiEnabled()
     if (input.action === 'translate-en' || input.action === 'translate-ko') assertMemiBoardTranslationEnabled()
     const lang = locale.value
     const ko = lang === 'ko'
@@ -254,7 +261,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       const output = cleanModelOutput(result.response.text())
       if (!output) throw new Error(t('writingAssistant.emptyResult'))
       return output
-    })
+    }, input.automatic === true)
   }
 
   /**
@@ -269,6 +276,8 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     title?: string
     summary?: string
     content?: string
+    /** 게시판 자동 번역에서 호출하면 true. 하루 사용 횟수를 차감하지 않는다. */
+    automatic?: boolean
   }): Promise<PostTranslationSet> {
     assertMemiBoardTranslationEnabled()
     const targets = input.targets?.length ? input.targets : boardTranslationLocales()
@@ -324,11 +333,11 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
         result.contentI18nSource = { locale: source, hash: hashText(content) }
       }
       return result
-    })
+    }, input.automatic === true)
   }
 
   /** 댓글은 HTML 변환 없이 일반 텍스트 필드로 번역한다. */
-  async function translateComment(input: { body: string, targets?: MemiBoardLocale[] }): Promise<CommentTranslationSet> {
+  async function translateComment(input: { body: string, targets?: MemiBoardLocale[], automatic?: boolean }): Promise<CommentTranslationSet> {
     assertMemiBoardTranslationEnabled()
     const body = input.body.trim()
     if (!body) throw new Error(t('writingAssistant.translateEmpty'))
@@ -341,8 +350,45 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       const i18n = mergeSourceFields(source, { body }, translated.comment)
       if (!coversLocales(i18n, ['body'], [...targets, source])) throw new Error(t('writingAssistant.translateIncomplete'))
       return { i18n, i18nSource: { locale: source, body } }
-    })
+    }, input.automatic === true)
   }
 
-  return { assist, translatePost, translateComment }
+  /**
+   * 글 없이 사진만 올린 글의 제목을, 첫 사진을 보고 만든다. 저장 과정에서 자동으로 부르므로
+   * 하루 사용 횟수를 차감하지 않는다. 사진을 읽지 못하면(CORS·용량·형식) 오류를 던진다.
+   */
+  async function suggestTitleFromImage(imageUrl: string): Promise<string> {
+    assertMemiBoardAiEnabled()
+    const response = await fetch(imageUrl)
+    if (!response.ok) throw new Error(`image fetch failed: ${response.status}`)
+    const blob = await response.blob()
+    if (!blob.type.startsWith('image/')) throw new Error('not an image')
+    if (blob.size > IMAGE_TITLE_MAX_BYTES) throw new Error('image too large for title suggestion')
+    const data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '')
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(blob)
+    })
+    const moderation = config.moderation ?? {}
+    const ai = getAI(app, {
+      backend: new GoogleAIBackend(),
+      useLimitedUseAppCheckTokens: moderation.useLimitedUseAppCheckTokens !== false,
+    })
+    const model = getGenerativeModel(ai, {
+      model: moderation.model ?? 'gemini-3.5-flash-lite',
+      systemInstruction: 'You write titles for message board posts. Output only the title as plain text, without quotes or explanation.',
+      generationConfig: { temperature: 0.4, maxOutputTokens: 128 },
+    })
+    const language = memiBoardLanguageLabel(locale.value)
+    const result = await model.generateContent([
+      { inlineData: { mimeType: blob.type, data } },
+      { text: `Write one short, natural title (at most 30 characters) in ${language} that describes this photo.` },
+    ])
+    const title = cleanModelOutput(result.response.text()).split('\n')[0]?.trim() ?? ''
+    if (!title) throw new Error(t('writingAssistant.emptyResult'))
+    return title
+  }
+
+  return { assist, translatePost, translateComment, suggestTitleFromImage }
 }

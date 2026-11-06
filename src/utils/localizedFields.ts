@@ -1,5 +1,5 @@
 import { MEMI_BOARD_LOCALES, normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
-import { isMemiBoardTranslationEnabled } from '../config'
+import { isMemiBoardTranslationEnabled, memiBoardEnabledLocales } from '../config'
 import type { CommentModel, MemiBoardI18nMap, MemiBoardI18nSource, PostContentI18nSource, PostDetail, PostModel } from '../types'
 
 const SOURCE_KEYS = ['label', 'description', 'title', 'summary', 'contentHash'] as const
@@ -91,8 +91,10 @@ export function boardTranslationLocales(board?: { translationLocales?: readonly 
       .map(code => normalizeMemiBoardLocale(code))
       .filter((code): code is MemiBoardLocale => !!code),
   )
-  const all = MEMI_BOARD_LOCALES.map(item => item.code)
-  return picked.size ? all.filter(code => picked.has(code)) : all
+  // 관리자가 사용하지 않기로 한 언어는 번역하지 않는다.
+  const enabled = memiBoardEnabledLocales()
+  const result = enabled.filter(code => !picked.size || picked.has(code))
+  return result.length ? result : enabled
 }
 
 /** Firestore 값 → 저장용 번역 언어 목록. 전체를 고른 경우는 빈 배열(= 전체)로 둔다. */
@@ -106,7 +108,7 @@ export function readTranslationLocales(raw: unknown): MemiBoardLocale[] {
 export function coversLocales(
   i18n: MemiBoardI18nMap | undefined,
   fields: string[],
-  locales: readonly MemiBoardLocale[] = MEMI_BOARD_LOCALES.map(item => item.code),
+  locales: readonly MemiBoardLocale[] = memiBoardEnabledLocales(),
 ): boolean {
   if (!i18n || !fields.length) return false
   return locales.every(code => fields.every(field => !!pickField(i18n[code], field)))

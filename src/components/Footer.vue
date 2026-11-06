@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowReactive, useId } from 'vue'
-import { useMemiBoardI18n, versionHistory } from 'memi-board/runtime'
+import { useMemiBoardAppSettings, useMemiBoardI18n, versionHistory } from 'memi-board/runtime'
 import MemiBoardVersionHistory from './VersionHistory.vue'
 
 const props = defineProps<{ introduction?: string }>()
@@ -23,6 +23,7 @@ const active = computed(() => {
 onMounted(() => { if (anchor.value) anchors.set(id, anchor.value) })
 onBeforeUnmount(() => { anchors.delete(id) })
 const { t, dir } = useMemiBoardI18n()
+const { showAbout } = useMemiBoardAppSettings()
 const introductionText = computed(() => props.introduction ?? t('footer.introduction'))
 
 const open = ref(false)
@@ -64,7 +65,7 @@ const stacks = computed(() => [
 </script>
 
 <template>
-  <div ref="anchor" class="contents">
+  <div v-if="showAbout" ref="anchor" class="contents">
     <footer v-if="active" class="flex justify-center pt-2">
       <button type="button" class="cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted" @click="open = true">
         About memi-board

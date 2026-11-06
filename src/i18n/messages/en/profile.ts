@@ -3,4 +3,11 @@ export default {
   noName: 'No name',
   joined: 'Joined {time}',
   lastVisit: 'Last seen {time}',
+  stats: {
+    posts: '{count} posts',
+    comments: '{count} comments',
+    aiUsage: 'AI used {used} / {limit}',
+    aiUsageResets: 'AI used {used} / {limit} · resets in {hours}h',
+    warnings: '{count} warnings',
+  },
 }
