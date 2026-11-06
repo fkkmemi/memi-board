@@ -4,12 +4,20 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.55.1] - 2026-11-06
+
+### Changed
+- The in-app version history lists only the major changes of each release. The 0.55.0 entry was cut from 11 items to 5, and the notes about third-party products and sites were removed from the version history and this changelog.
+
+### Host app steps
+- Upgrade to 0.55.1. No code change, Firestore rule, or index change is required.
+
 ## [0.55.0] - 2026-11-06
 
 ### Added
 - A **Site-wide settings** card at the top of the board settings screen (admins only), saved all at once with its **Apply** button, lets you turn AI features and internationalization on or off and choose the default language, without touching the host app. **Use AI features** off turns off translation, the writing assistant, AI titles, and AI moderation (the blocked-word check keeps working) and stops photos from being sent to AI, for sites that cannot use AI because of cost. **Use internationalization** off fixes every screen to one chosen language and turns translation off. The values are stored in `memiBoardSettings/__app` and override the host's `nuxt.config` options, so existing sites keep their behavior until an admin changes them. The existing **Show About memi-board** and **Write titles with AI** switches moved into this card. With internationalization on, **Languages to offer** picks which of the 10 languages are used: only those are translation targets, board language choices, and entries in the host's language menu (`memiBoardEnabledLocales()` and `isMemiBoardI18nEnabled()` from `memi-board/runtime` expose this to hosts). Saved translations in other languages are kept.
 - The title is optional when writing a new post. If you leave it empty and the post has text or a photo, AI writes a title from the text (or from the first photo when there is no text) and fills the field instead of saving, so you can keep it or change it and save again. This happens once per editing session, does not use the daily AI quota, and never blocks saving if it fails. Image boards, which had no title field, now have one; without a title they still take the title from the start of the text, as before. Existing posts keep their titles, and editing an existing post still requires a title on regular boards.
-- A new **Card** list view, in the style of Velog: a card grid with a 16:9 thumbnail, a bold two-line title, a three-line summary, the date and comment count, and the author and likes in the card footer. Choose it as the board's list view in board settings, or with the list view switch. Existing boards keep their current view.
+- A new **Card** list view: a card grid with a 16:9 thumbnail, a bold two-line title, a three-line summary, the date and comment count, and the author and likes in the card footer. Choose it as the board's list view in board settings, or with the list view switch. Existing boards keep their current view.
 - The board settings screen has a site-wide **Show About memi-board** switch (admins only). Turning it off hides the footer link and popup on every board screen. It defaults to on and only `hideAbout: true` hides it, so existing sites see no change. The setting is stored in the reserved document `memiBoardSettings/__app`, which the board list and sitemap ignore. No Firestore rule change is needed.
 - Profiles show badges for the user's public post and comment counts. On your own profile they also show your AI writing usage in the current 24-hour window (used / 20, with hours until reset) and moderation warnings when there are any. Counts use Firestore count aggregation with the same public filters as the user post and comment lists, so no extra rules or indexes beyond those lists are needed.
 - The writing AI menu has **Translate to preview**: pick one of the board's languages to see the title, summary, and body translated, without saving anything. It translates a single language, so it is much cheaper than translating all of them, and counts as 1 daily AI use.
@@ -42,7 +50,6 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 - The About memi-board popup is a content-width dialog (`max-w-3xl`), matching a board column, instead of a near-fullscreen inset.
-- The Safe ON showcase link is https://safe-pedal.com.
 
 ## [0.54.0] - 2026-11-05
 
