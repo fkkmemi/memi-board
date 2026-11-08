@@ -7,6 +7,12 @@ const props = defineProps<{
   boardId?: string
   title: string
   description?: string
+  /** 만든 사람/관리자/스태프 메뉴 중 "프로필 보기" 링크. */
+  authorProfileTo?: (authorUid: string) => string | undefined
+  /** 만든 사람/관리자/스태프 메뉴 중 "작성글 보기" 링크. */
+  authorPostsTo?: (authorUid: string) => string | undefined
+  /** 만든 사람/관리자/스태프 메뉴 중 "작성한 댓글 보기" 링크. */
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
 
 const { getBoard } = useMemiBoardSettings()
@@ -51,7 +57,12 @@ const hasInfo = computed(() => !!(props.description || managers.value.length || 
               {{ t('list.boardInfo.creator') }}
             </dt>
             <dd class="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <MemiBoardInfoPerson :uid="creatorUid" />
+              <MemiBoardInfoPerson
+                :uid="creatorUid"
+                :author-profile-to="authorProfileTo"
+                :author-posts-to="authorPostsTo"
+                :author-comments-to="authorCommentsTo"
+              />
               <span
                 v-if="createdAt"
                 class="text-xs text-muted"
@@ -72,6 +83,9 @@ const hasInfo = computed(() => !!(props.description || managers.value.length || 
                 v-for="uid in managers"
                 :key="uid"
                 :uid="uid"
+                :author-profile-to="authorProfileTo"
+                :author-posts-to="authorPostsTo"
+                :author-comments-to="authorCommentsTo"
               />
             </dd>
           </div>
@@ -87,6 +101,9 @@ const hasInfo = computed(() => !!(props.description || managers.value.length || 
                 v-for="uid in staff"
                 :key="uid"
                 :uid="uid"
+                :author-profile-to="authorProfileTo"
+                :author-posts-to="authorPostsTo"
+                :author-comments-to="authorCommentsTo"
               />
             </dd>
           </div>

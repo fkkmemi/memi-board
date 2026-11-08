@@ -226,6 +226,9 @@ function postTo(post: PostModel): string | undefined {
         :board-id="resolvedBoardId"
         :title="title"
         :description="listDescription"
+        :author-profile-to="authorProfileTo"
+        :author-posts-to="authorPostsTo"
+        :author-comments-to="authorCommentsTo"
       />
       <div class="flex shrink-0 items-center gap-2">
         <UButton
