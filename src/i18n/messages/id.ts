@@ -352,6 +352,11 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'Komentar tidak ditemukan.',
   },
   list: {
+    boardInfo: {
+      creator: 'Dibuat oleh',
+      managers: 'Manajer',
+      staff: 'Staf',
+    },
     commentCount: '{count} komentar',
     settings: 'Pengaturan',
     loadFailed: 'Gagal memuat daftar: {error}',

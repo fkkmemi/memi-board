@@ -10,6 +10,7 @@ import MemiBoardListImage from './ListImage.vue'
 import MemiBoardListVideo from './ListVideo.vue'
 import MemiBoardListCard from './ListCard.vue'
 import MemiBoardListViewSwitch from './ListViewSwitch.vue'
+import MemiBoardInfo from './BoardInfo.vue'
 
 const props = withDefaults(defineProps<{
   pageSize?: number
@@ -220,22 +221,12 @@ function postTo(post: PostModel): string | undefined {
   <MemiBoardSurface :introduction="introduction">
   <div class="flex flex-col gap-2" :dir="dir">
     <div v-if="hasHeader" class="flex items-center justify-between gap-4">
-      <UTooltip
-        v-if="title && listDescription"
-        :delay-duration="0"
-        :text="listDescription"
-        :ui="{ content: 'h-auto max-w-xs py-2', text: 'whitespace-pre-line overflow-visible' }"
-      >
-        <h1 class="min-w-0 cursor-help truncate text-2xl font-bold tracking-tight text-highlighted">
-          {{ title }}
-        </h1>
-      </UTooltip>
-      <h1
-        v-else-if="title"
-        class="min-w-0 truncate text-2xl font-bold tracking-tight text-highlighted"
-      >
-        {{ title }}
-      </h1>
+      <MemiBoardInfo
+        v-if="title"
+        :board-id="resolvedBoardId"
+        :title="title"
+        :description="listDescription"
+      />
       <div class="flex shrink-0 items-center gap-2">
         <UButton
           v-if="settingsTo && canManageSettings"

@@ -7,6 +7,11 @@ export default {
   commentCount: '댓글 {count}개',
   photo: '사진',
   likeCount: '추천 {count}',
+  boardInfo: {
+    creator: '만든 사람',
+    managers: '담당 매니저',
+    staff: '담당 스태프',
+  },
   info: {
     title: '게시판 정보',
     about: '이 게시판은',

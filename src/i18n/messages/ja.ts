@@ -352,6 +352,11 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'コメントが見つかりません。',
   },
   list: {
+    boardInfo: {
+      creator: '作成者',
+      managers: '担当マネージャー',
+      staff: '担当スタッフ',
+    },
     commentCount: 'コメント{count}件',
     settings: '設定',
     loadFailed: '一覧を読み込めませんでした: {error}',

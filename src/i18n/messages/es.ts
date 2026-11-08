@@ -352,6 +352,11 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'No se encontró el comentario.',
   },
   list: {
+    boardInfo: {
+      creator: 'Creado por',
+      managers: 'Gestores',
+      staff: 'Personal',
+    },
     commentCount: '{count} comentarios',
     settings: 'Configuración',
     loadFailed: 'No se pudo cargar la lista: {error}',

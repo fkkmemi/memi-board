@@ -352,6 +352,11 @@ const messages: MemiBoardMessages = {
     commentNotFound: '找不到该评论。',
   },
   list: {
+    boardInfo: {
+      creator: '创建者',
+      managers: '负责经理',
+      staff: '负责员工',
+    },
     commentCount: '{count} 条评论',
     settings: '设置',
     loadFailed: '无法加载列表：{error}',

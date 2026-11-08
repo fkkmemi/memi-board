@@ -267,6 +267,10 @@ export interface BoardModel {
   allowedStaffUids?: string[]
   /** 이 게시판의 설정 및 스태프 배정을 관리하는 매니저 */
   allowedManagerUids?: string[]
+  /** 게시판을 만든 사용자 uid. 이 기능 이전에 만든 게시판은 비어 있다. */
+  createdByUid?: string
+  /** 게시판을 만든 시각. 이 기능 이전에 만든 게시판은 비어 있다. */
+  createdAt?: Timestamp
   /**
    * 게시판 화면 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 호스트 언어를 따른다.
    */

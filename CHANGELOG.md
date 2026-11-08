@@ -4,6 +4,15 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.56.0] - 2026-11-08
+
+### Added
+- Clicking the board title in the list header now opens a **board info** popover instead of a description-only tooltip. It shows the description, who created the board with the creation date, the board's managers, and its staff, each with a profile photo and name. Sections with no data are left out, and a board with nothing to show keeps a plain title. Profiles are read only when the popover opens.
+- New boards store the creator as `createdByUid` and `createdAt` in `memiBoardSettings/{boardId}`. Later saves never change them. Boards created before this version have no creator, so that row stays hidden for them.
+
+### Host app steps
+- Upgrade to 0.56.0. No code change, Firestore rule, or index change is required. Board creation is already admin-only, so the new fields are accepted by the existing rules.
+
 ## [0.55.2] - 2026-11-08
 
 ### Fixed

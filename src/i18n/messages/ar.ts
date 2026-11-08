@@ -352,6 +352,11 @@ const messages: MemiBoardMessages = {
     commentNotFound: 'لم يتم العثور على التعليق.',
   },
   list: {
+    boardInfo: {
+      creator: 'أنشأه',
+      managers: 'المديرون',
+      staff: 'الموظفون',
+    },
     commentCount: '{count} تعليقات',
     settings: 'الإعدادات',
     loadFailed: 'تعذّر تحميل القائمة: {error}',

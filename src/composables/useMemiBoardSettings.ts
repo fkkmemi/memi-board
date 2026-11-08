@@ -70,6 +70,10 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     commentWriteRole: (data.commentWriteRole as BoardModel['commentWriteRole']) ?? 'user',
     allowedStaffUids: Array.isArray(data.allowedStaffUids) ? data.allowedStaffUids as string[] : [],
     allowedManagerUids: Array.isArray(data.allowedManagerUids) ? data.allowedManagerUids as string[] : [],
+    createdByUid: typeof data.createdByUid === 'string' && data.createdByUid ? data.createdByUid : undefined,
+    createdAt: data.createdAt && typeof (data.createdAt as { toDate?: unknown }).toDate === 'function'
+      ? data.createdAt as BoardModel['createdAt']
+      : undefined,
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
     autoTranslate: data.autoTranslate === true,
     autoTranslatePosts: data.autoTranslatePosts === true,
@@ -236,7 +240,7 @@ export function useMemiBoardSettings() {
     const visibility = normalizeVisibility(board.visibility)
     const payload = settingsPayload({ ...board, label, visibility }, order)
 
-    await saveBoardWithVisibility(db, cfg(), id, payload)
+    await saveBoardWithVisibility(db, cfg(), id, payload, user.value?.uid)
   }
 
   /** @deprecated saveBoard */

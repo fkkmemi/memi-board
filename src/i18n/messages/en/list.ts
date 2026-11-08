@@ -7,6 +7,11 @@ export default {
   commentCount: '{count} comments',
   photo: 'Photo',
   likeCount: 'Likes {count}',
+  boardInfo: {
+    creator: 'Created by',
+    managers: 'Managers',
+    staff: 'Staff',
+  },
   info: {
     title: 'Board info',
     about: 'About this board',

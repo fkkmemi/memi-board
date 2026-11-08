@@ -51,7 +51,8 @@ async function syncListedForBoard(db: Firestore, cfg: BoardPathConfig, boardId: 
   await syncListedForCol(db, commentsCol(db, cfg), boardId, listed)
 }
 
-export async function saveBoardWithVisibility(db: Firestore, cfg: BoardPathConfig, id: string, payload: DocumentData): Promise<void> {
+/** `createdByUid` 는 문서가 아직 없을 때(새 게시판)만 기록한다. 이후 저장은 만든 사람을 바꾸지 않는다. */
+export async function saveBoardWithVisibility(db: Firestore, cfg: BoardPathConfig, id: string, payload: DocumentData, createdByUid?: string): Promise<void> {
   const ref = settingsDoc(db, cfg, id)
   const visibility = normalizeVisibility(payload.visibility)
   // Lock creation before paging through content. A failed transition remains
@@ -63,7 +64,15 @@ export async function saveBoardWithVisibility(db: Firestore, cfg: BoardPathConfi
     if (pending && pending !== visibility) {
       throw new Error('Finish the pending visibility change before changing it again.')
     }
-    if (!snapshot.exists() || (!pending && normalizeVisibility(previous?.visibility) === visibility)) {
+    if (!snapshot.exists()) {
+      transaction.set(ref, {
+        ...payload,
+        ...(createdByUid ? { createdByUid } : {}),
+        createdAt: serverTimestamp(),
+      }, { merge: true })
+      return false
+    }
+    if (!pending && normalizeVisibility(previous?.visibility) === visibility) {
       transaction.set(ref, payload, { merge: true })
       return false
     }

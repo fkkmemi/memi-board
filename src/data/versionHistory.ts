@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.56.0',
+    date: '2026-11-08',
+    highlights: [
+      '게시판 제목을 누르면 설명, 만든 사람, 담당 매니저와 스태프를 볼 수 있어요',
+      '새로 만드는 게시판은 만든 사람과 만든 날짜가 기록돼요',
+    ],
+    highlightsEn: [
+      'Click a board title to see its description, creator, managers, and staff',
+      'New boards record who created them and when',
+    ],
+    note: 'Firestore 규칙·인덱스 변경은 없어요. 이전에 만든 게시판에는 만든 사람이 표시되지 않아요.',
+    noteEn: 'No Firestore rule or index changes are needed. Boards created earlier do not show a creator.',
+  },
+  {
     version: '0.55.2',
     date: '2026-11-08',
     highlights: [
