@@ -151,7 +151,8 @@ export function displayStoredField(
   locale?: string | null,
 ): string {
   if (!current) return ''
-  if (!i18nSource || i18nSource[field] !== current) return current
+  // 앞뒤 공백만 다른 값은 같은 원문으로 본다 (요약을 160자에서 자르면 끝에 공백이 남기도 했다).
+  if (!i18nSource || i18nSource[field]?.trim() !== current.trim()) return current
   return localizedText(i18n, locale, field, current, i18nSource.locale)
 }
 

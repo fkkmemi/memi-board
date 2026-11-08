@@ -4,6 +4,15 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.55.2] - 2026-11-08
+
+### Fixed
+- Some post summaries in the list stayed in the original language while the title was translated. A summary is cut at 160 characters, and when the cut ended on a space or line break, the stored summary no longer matched the trimmed text the translation was made from, so the translation was hidden. The summary is now trimmed after the cut, and the comparison ignores leading and trailing whitespace, so posts saved before this fix show their translated summary without translating again.
+- The bulk translation tool in board settings also finds posts whose summary changed after they were translated.
+
+### Host app steps
+- Upgrade to 0.55.2. No code change, Firestore rule, or index change is required.
+
 ## [0.55.1] - 2026-11-06
 
 ### Changed

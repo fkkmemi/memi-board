@@ -32,6 +32,7 @@ export function useMemiBoardPostTranslations(boardId: MaybeRefOrGetter<string>) 
     if (!source || !post.i18n) return false
     const storedTitle = post.title?.trim() || titleFromBody(post.content)
     if ((source.title ?? '') !== storedTitle) return false
+    if ((source.summary ?? '').trim() !== (post.summary ?? '').trim()) return false
     return !plainTextFromHtml(post.content) || post.contentI18nSource?.hash === hashText(post.content)
   }
 

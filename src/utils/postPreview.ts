@@ -63,6 +63,9 @@ export function buildPostPreview(content: string, attachments: Attachment[] = []
     .replace(/\n{2,}/g, '\n')
     .trim()
     .slice(0, 160)
+    // 160자에서 자르면 끝이 공백·줄바꿈일 수 있다. 번역 원문(i18nSource.summary)은 trim 된 값이라
+    // 여기서도 다시 trim 하지 않으면 둘이 달라져 목록에 번역 요약 대신 원문이 보인다.
+    .trimEnd()
 
   return { summary, ...(previewImage ? { previewImage } : {}), ...(videoUrl ? { videoUrl } : {}) }
 }

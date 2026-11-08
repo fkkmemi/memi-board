@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.55.2',
+    date: '2026-11-08',
+    highlights: [
+      '목록에서 제목만 번역되고 요약은 원문으로 남던 문제를 고쳤어요',
+      '이미 저장된 글도 다시 번역하지 않고 번역된 요약이 보여요',
+    ],
+    highlightsEn: [
+      'Fixed list summaries staying in the original language while the title was translated',
+      'Posts saved earlier show their translated summary without translating again',
+    ],
+    note: 'Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.55.1',
     date: '2026-11-06',
     highlights: [
