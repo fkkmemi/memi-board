@@ -16,6 +16,16 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.56.2',
+    date: '2026-11-08',
+    highlights: [
+      '게시판 정보 팝오버에서 이름을 누르면 프로필/작성글/댓글 메뉴가 열려요',
+    ],
+    highlightsEn: [
+      'Click a name in the board info popover to open the profile/posts/comments menu',
+    ],
+  },
+  {
     version: '0.56.1',
     date: '2026-11-08',
     highlights: [
