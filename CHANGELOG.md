@@ -4,6 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.56.1] - 2026-11-08
+
+### Fixed
+- Long comments were clipped inside a fixed 2-row textarea. The new comment, reply, and edit fields now grow with the content and scroll only past 10 rows.
+
+### Host app steps
+- Upgrade to 0.56.1. No code change, Firestore rule, or index change is required.
+
 ## [0.56.0] - 2026-11-08
 
 ### Added

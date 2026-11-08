@@ -16,6 +16,16 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.56.1',
+    date: '2026-11-08',
+    highlights: [
+      '댓글 입력창이 내용에 맞춰 최대 10줄까지 늘어나요',
+    ],
+    highlightsEn: [
+      'Comment fields grow with your text, up to 10 rows',
+    ],
+  },
+  {
     version: '0.56.0',
     date: '2026-11-08',
     highlights: [
