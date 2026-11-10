@@ -4,14 +4,14 @@
 
 This is the procedure for adding a board to an existing Nuxt 4 site. The host app handles routes, the Firebase connection, and rule deployment; memi-board provides the board components and composables.
 
-The examples in this guide, including the internationalization and translation options, assume **memi-board 0.47.0 or later**. Required versions: Nuxt 4+, Nuxt UI 4+, Firebase 12+, Vue 3.5+, VueFire 3.2+.
+The examples in this guide assume **memi-board 0.57.0 or later**, including title-based post URLs and separate public/member-management screens. Required versions: Nuxt 4+, Nuxt UI 4+, Firebase 12+, Vue 3.5+, VueFire 3.2+.
 
 ## 1. Install the required packages
 
 Run this from the root of the existing Nuxt project.
 
 ```bash
-pnpm add memi-board@^0.47.0 @nuxt/ui nuxt-vuefire vuefire firebase
+pnpm add memi-board@^0.57.0 @nuxt/ui nuxt-vuefire vuefire firebase
 ```
 
 `dayjs` is not needed. Add `@nuxtjs/i18n` only if you need site language switching. In production, manage the memi-board version you have verified together with the lockfile.
@@ -113,6 +113,13 @@ firebase deploy --only firestore:rules,storage,firestore:indexes
 ```
 
 Also set the index file path in `firebase.json`. The bucket the Storage rules are deployed to must match `vuefire.config.storageBucket`. For the initial setup including cross-service IAM, follow [Firebase setup](firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup). Installing from npm or deploying the website does not replace this deployment.
+
+Before creating the first post on a new project, complete the one-time
+[post URL reservation initialization](firebase-setup.md#initialize-post-url-reservations).
+With the posts collection still empty, create `memiBoardPostsSlugs/__migration`
+with the Boolean field `ready: true` using the Firebase console or the guarded
+Admin SDK command in that guide. Deploying the package or rules alone does not
+initialize it. Do not repeat initialization on every deploy or for each new board.
 
 ## 6. Admin pages and the first board
 
@@ -416,20 +423,24 @@ reserve their URL. Editing a title or publishing a draft never changes its store
 Existing URLs are not rewritten. Reservations are retained after deletion to prevent
 old links from pointing to another author's new post. Image boards keep their ID URLs.
 
-Before running the updated client against existing data:
+For a new project, deploy the reservation rules and complete the
+[one-time initialization](firebase-setup.md#initialize-post-url-reservations) before
+the first save. This setup assumes an empty posts collection; it does not migrate
+existing documents. Already initialized projects do not need to repeat it.
 
-1. Deploy the address-reservation rules in `docs/firestore.rules.example`. Keep unrelated
-   host rules intact. The reservation collection is `${postsCollection}Slugs`; adapt its
-   name in the rules when using custom post collections.
-2. With `firebase-admin` installed in the host, run `scripts/backfill-post-slugs.mjs`
-   using an explicit `GCLOUD_PROJECT` and Application Default Credentials. Set
-   `MEMI_ADMIN_ROOT` to the host directory when running the script from the package repo;
-   set `MEMI_POSTS_COLLECTION` for a custom collection. It defaults to a read-only check.
-   Run again with `--apply` to register every legacy URL, including private drafts.
-3. Build/update the client package. New post saves deliberately fail until the migration
-   marker is ready, so they cannot steal an unregistered legacy URL.
+Default paths:
 
-The initial backfill temporarily pauses new post creation while scanning existing posts;
-editing and publishing existing drafts remain available. It can be rerun after interruption.
-Older clients using auto-ID URLs remain compatible after the backfill. Upgrade those
-clients as well to get readable URLs for their new posts.
+| Path | Purpose | Client permissions |
+|---|---|---|
+| `memiBoardPostsSlugs/__migration` | One-time readiness marker (`ready: true`) | Signed-in writers can read it; only trusted operator/server setup can write it |
+| `memiBoardPostsSlugs/{boardId}/slugs/{slug}` | Permanent URL reservation containing only `postId` | Writers for that board can get an individual reservation and create it with their matching new post; list/update/delete are denied |
+
+The collection name is `${postsCollection}Slugs`. If customizing `postsCollection`,
+change the corresponding reservation paths in the rules and setup as well. Do not
+expose private drafts to check for URL conflicts: the reservation is sufficient.
+
+Numbers advance only for a conflicting normalized URL in the same board. A different
+title or board starts without a number. `/board/:boardId/new` is reserved for the
+editor, so the title `new` uses `new-2` instead. Saving failures do not consume an
+address. Saved drafts, edits, and published posts retain their address after refresh;
+unsaved form input is not automatically recovered after a forced refresh.

@@ -21,10 +21,11 @@ Any host app on the same stack (Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Fireba
 | Confirmed account deletion and large datasets | [Account deletion](docs/account-deletion.md) — content checkbox, reauthentication, bounded processing, retry, and host server/Rules requirements |
 | Single language, or choosing multilingual UI and translation | [Internationalization and content translation](docs/internationalization.md) — per-mode setup and when translations are saved |
 | Connecting Firebase and deploying rules and indexes | [Firebase setup](docs/firebase-setup.md) |
+| Initializing readable post URLs on a new project | [Post URL reservation setup](docs/firebase-setup.md#initialize-post-url-reservations) — one-time initialization before the first post |
 | Per-store/organization assigned permissions, migrating existing roles | [Roles and migration](docs/roles-migration.md) |
 | Configuration, API, and troubleshooting details | This README's [host setup](#host-app-setup), [API](#provided-api), [troubleshooting](#troubleshooting) |
 
-`i18n.enabled` and `translation.enabled` are supported in **0.47.0 and later**. Hosts that use these options should install or update with `pnpm add memi-board@^0.47.0`.
+`i18n.enabled` and `translation.enabled` are supported in **0.47.0 and later**. For the current setup described in these guides, install or update with `pnpm add memi-board@^0.57.0`.
 
 ## Platform requirements
 
@@ -323,6 +324,9 @@ Because it is the browser's native `:visited`, no server or DB storage is needed
    firebase deploy --only firestore:rules,storage,firestore:indexes
    ```
 6. Grant Storage permission to read Firestore: approve the prompt to add the cross-service IAM role during deploy, and check that the Storage service account of the host Firebase project has `roles/firebaserules.firestoreServiceAgent`. See the [host setup procedure](docs/firebase-setup.md#firestore-read-access-for-storage-rules-required-host-app-setup). A successful CI deploy alone does not guarantee this permission.
+7. **Before the first post on a new project (0.57.0+), initialize post URL reservations.** With the posts collection still empty, create `memiBoardPostsSlugs/__migration` with the Boolean field `ready: true` in the Firebase console. This is a one-time setup marker, not a change to post documents. See the [console steps and optional Admin SDK command](docs/firebase-setup.md#initialize-post-url-reservations). A package install, website deploy, or rules deploy does not create this document.
+
+New text posts use a title URL within their board; only a conflicting address receives `-2`, `-3`, etc. Unpublished drafts count too. Address reservation, post metadata, and body are saved atomically. Editing or publishing preserves the address, and deleting a post keeps its reservation so an old link cannot point to a different post. Image boards keep ID URLs. See [URL behavior and reservation permissions](docs/host-integration.md#title-only-urls-for-new-posts).
 
 Hosts updating to 0.45.1 should also check the [procedure for applying the new rules and migrating](docs/firebase-setup.md#0451-rule-changes-and-migrating-existing-hosts). Installing the package or pushing the site does not deploy Firebase rules.
 

@@ -79,6 +79,83 @@ firebase deploy --only firestore:rules,storage
 
 **If you merge but don't deploy, writing posts and comments fails with `permission-denied`** — this is the most common installation mistake.
 
+### Initialize post URL reservations
+
+**Required once before the first post when installing 0.57.0+ on a new project.**
+This section assumes the configured posts collection is empty. It initializes the
+URL reservation feature; it does not move, rename, or rewrite any post documents.
+An already initialized project does not need this step again for a package upgrade.
+
+Deploy the Firestore rules above first, then use either of the following methods.
+Firebase Admin is optional: the console method needs no Admin SDK in the host app.
+
+**Firebase console:**
+
+1. Open the intended Firebase project → Firestore Database → Data. Confirm that
+   `memiBoardPosts` has no documents.
+2. Create the collection `memiBoardPostsSlugs` and document `__migration`.
+3. Add `ready` with type **Boolean** and value **true**, then save. The spelling
+   `__migration` is an internal setup marker name; no post migration is being run.
+   Do not use the string `"true"`.
+
+**Optional command:** Run from the host project root with a trusted account that
+can read/write this Firestore database. The command rejects a nonempty posts
+collection and never updates post documents. Keep Admin credentials outside the
+repository and outside browser/public configuration.
+
+```bash
+pnpm add -D firebase-admin
+
+GCLOUD_PROJECT=YOUR_FIREBASE_PROJECT_ID \
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json \
+node --input-type=module <<'NODE'
+import { initializeApp, applicationDefault } from 'firebase-admin/app'
+import { getFirestore, FieldValue } from 'firebase-admin/firestore'
+
+const projectId = process.env.GCLOUD_PROJECT
+if (!projectId || projectId === 'YOUR_FIREBASE_PROJECT_ID') {
+  throw new Error('Set the intended Firebase project ID first')
+}
+initializeApp({ projectId, credential: applicationDefault() })
+const db = getFirestore()
+const postsCollection = process.env.MEMI_POSTS_COLLECTION || 'memiBoardPosts'
+const marker = db.doc(`${postsCollection}Slugs/__migration`)
+await db.runTransaction(async transaction => {
+  const current = await transaction.get(marker)
+  if (current.get('ready') === true) return
+  const posts = await transaction.get(db.collection(postsCollection).limit(1))
+  if (!posts.empty) throw new Error('Fresh-project setup requires an empty posts collection')
+  if (current.exists) throw new Error('Setup marker already exists; inspect it instead of overwriting it')
+  transaction.create(marker, { ready: true, completedAt: FieldValue.serverTimestamp() })
+})
+console.log(`Post URL reservations ready: ${projectId}/${postsCollection}Slugs`)
+NODE
+```
+
+If using Application Default Credentials already configured on the machine, omit
+`GOOGLE_APPLICATION_CREDENTIALS`. For a custom posts collection, prefix the command
+with `MEMI_POSTS_COLLECTION=yourPostsCollection`; the marker then belongs at
+`yourPostsCollectionSlugs/__migration`. Update **every** reservation path in the
+Firestore rule example to match. This marker is shared by the boards using that
+posts collection, so creating another board does not require another initialization.
+
+The rules let signed-in writers check individual reservations and create a reservation
+only alongside their own matching new post. Clients cannot list, overwrite, or delete
+reservations, or write the setup marker. Reservations contain only `postId`, not a
+draft's title, body, or author profile. Their document paths contain the URL slug.
+Post read permissions still protect unpublished/private content.
+
+After setup, save a test draft, create another post with the same title, and check
+`title` then `title-2`. Refresh the draft, edit it, and publish it; its address should
+stay the same. The number counts conflicting addresses **within that board**, not
+all posts in the project.
+
+If saving reports `Post URL reservations are not initialized`, check the correct
+project, posts collection, marker path, and Boolean field. If it reports
+`permission-denied`, confirm that the reservation rules were deployed and the user
+has write access to that board. Do not remove the readiness check or allow public
+reservation writes to work around setup errors.
+
 ### 0.45.1 rule changes and migrating existing hosts
 
 From 0.46 onward, the global roles for the file management described below are **admin/owner**. staff/manager manage their assigned content, but the default rules do not let them modify or delete other users' files. For a new install, set the first role to `owner`; migrate existing admin and staff accounts using the [role migration](roles-migration.md) procedure.
