@@ -22,13 +22,13 @@ const props = withDefaults(defineProps<{
 
 const { t } = useMemiBoardI18n()
 
-const authorProfileLink = computed(() => props.authorProfileTo?.(props.authorUid))
-const authorPostsLink = computed(() => props.authorPostsTo?.(props.authorUid))
-const authorCommentsLink = computed(() => props.authorCommentsTo?.(props.authorUid))
+const authorProfileLink = computed(() => props.authorUid ? props.authorProfileTo?.(props.authorUid) : undefined)
+const authorPostsLink = computed(() => props.authorUid ? props.authorPostsTo?.(props.authorUid) : undefined)
+const authorCommentsLink = computed(() => props.authorUid ? props.authorCommentsTo?.(props.authorUid) : undefined)
 
 // 다른 작성자에 대해 나만 보는 메모 — 로그인 안 했거나 내 글이면 메뉴 항목 자체를 숨긴다.
 const { user } = useMemiBoardAuth()
-const showMemo = computed(() => !!user.value?.uid && user.value.uid !== props.authorUid)
+const showMemo = computed(() => !!props.authorUid && !!user.value?.uid && user.value.uid !== props.authorUid)
 const { text: memoText, sentiment: memoSentiment, loaded: memoLoaded, saving: memoSaving, error: memoError, load: loadMemo, save: saveMemo, remove: removeMemo } = useMemiBoardAuthorMemo(() => props.authorUid)
 const menuOpen = ref(false)
 const memoOpen = ref(false)

@@ -65,6 +65,9 @@ jobs:
       - name: Test popup translations and unsaved changes
         run: node --experimental-strip-types --test tests/footer-i18n.test.mjs tests/unsaved-changes.test.mjs
 
+      - name: Test member management, account confirmation, and post lookup
+        run: node --experimental-strip-types --test tests/account-deletion-confirm.test.mjs tests/profile-name-moderation.test.mjs tests/user-directory-page.test.mjs tests/post-slug-auth.test.mjs
+
       - name: Test orphan cleanup
         run: pnpm test:cleanup
 
@@ -79,6 +82,12 @@ jobs:
 
       - name: Test Firebase notice security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
+
+      - name: Test post URL reservations
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-post-slugs --only auth,firestore 'node --experimental-strip-types --test tests/post-slug.test.mjs'
+
+      - name: Test public profile security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-profile-rules --only auth,firestore 'node --test tests/profile-rules.test.mjs'
 
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts

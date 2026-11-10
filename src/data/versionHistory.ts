@@ -16,6 +16,24 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.57.0',
+    date: '2026-11-10',
+    highlights: [
+      '새 글 주소는 제목을 사용하고 중복일 때만 숫자를 붙여요. 기존 주소는 유지돼요',
+      '초안을 새로고침해도 로그인 복원을 기다린 뒤 정상적으로 불러와요',
+      '공개 회원 목록과 관리자 회원 관리를 분리하고 정렬·페이지 이동을 추가했어요',
+      '프로필 이름 검토와 계정 탈퇴 확인·진행 화면을 추가했어요',
+      '댓글 작성자 메뉴와 입력창 배치를 다듬고 한국어 안내를 정리했어요',
+    ],
+    highlightsEn: [
+      'New posts use title URLs with numeric suffixes only for duplicates; existing URLs stay unchanged',
+      'Drafts wait for restored sign-in before loading after a refresh',
+      'Separated the public member directory from management, with sorting and pagination',
+      'Added profile name review and account deletion confirmation and progress screens',
+      'Refined comment author menus, form layout, and Korean copy',
+    ],
+  },
+  {
     version: '0.56.2',
     date: '2026-11-08',
     highlights: [

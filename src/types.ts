@@ -186,6 +186,8 @@ export type BoardUserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'user'
 /** memiBoardUsers/{uid} — 이메일만 빼고 전부 공개 프로필 정보다(누구나 읽을 수 있음). */
 export interface BoardUserModel {
   id: string
+  /** 서버 탈퇴 처리 중 또는 개인정보 없는 탈퇴 표식. 클라이언트는 수정할 수 없다. */
+  deletionPending?: boolean
   role: BoardUserRole
   displayName?: string | null
   photoURL?: string | null

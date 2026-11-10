@@ -1,4 +1,5 @@
 // 자동 생성 — scripts/gen-i18n-index.mjs
+import accountDeletion from './accountDeletion'
 import attachments from './attachments'
 import auth from './auth'
 import authorMemo from './authorMemo'
@@ -46,6 +47,7 @@ import users from './users'
 import writingAssistant from './writingAssistant'
 
 export default {
+  accountDeletion,
   attachments,
   auth,
   authorMemo,

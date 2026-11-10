@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "memi-dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/fkkmemi/Projects/memi/memi-dev && pnpm dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "loop-waiting",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd /Users/fkkmemi/Projects/loop-waiting && npm_config_store_dir=/Users/fkkmemi/Projects/loop-waiting/.pnpm-store pnpm dev"
+      ],
+      "port": 3000
+    }
+  ]
+}

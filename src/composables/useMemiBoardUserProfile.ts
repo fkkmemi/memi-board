@@ -20,5 +20,5 @@ export function useMemiBoardUserProfile(uid: MaybeRefOrGetter<string>) {
 
   const { data: profile, pending } = useDocument<BoardUserModel>(profileRef)
 
-  return { profile, profilePending: pending }
+  return { profile: computed(() => profile.value?.deletionPending ? null : profile.value), profilePending: pending }
 }

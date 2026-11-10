@@ -9,7 +9,9 @@ import {
   buildModerationTextPrompt,
   formatModerationUserReason,
   parseModerationJson,
+  memiBoardLanguageLabel,
 } from '../utils/moderation-prompt'
+import { buildProfileNameModerationPrompt, parseProfileNameModerationJson } from '../utils/profileNameModeration'
 import { isMemiBoardAiEnabled, useMemiBoardConfig } from '../config'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -25,6 +27,8 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
  * 콘텐츠 차단(local/ai) 시 board users 경고 누적.
  */
 export function useMemiBoardModeration(options: {
+  /** Profile names use a dedicated policy, require a valid AI verdict, and do not add posting strikes. */
+  context?: 'content' | 'profile-name'
   /** 보드 언어. 같은 컴포넌트에서 boardLocale 을 provide 했다면 그 locale 을 넘긴다(자기 자신에게 inject 되지 않음). */
   locale?: MaybeRefOrGetter<string | undefined | null>
 } = {}) {
@@ -32,6 +36,7 @@ export function useMemiBoardModeration(options: {
   const promptLocale = computed<MemiBoardLocale>(() => normalizeMemiBoardLocale(toValue(options.locale)) ?? promptI18n.locale.value)
   const config = useMemiBoardConfig()
   const moderation = config.moderation ?? {}
+  const isProfileName = options.context === 'profile-name'
   const app = useFirebaseApp()
   const t = (key: string) => translate(promptLocale.value, key)
   const {
@@ -65,7 +70,9 @@ export function useMemiBoardModeration(options: {
     })
     return getGenerativeModel(ai, {
       model: modelName,
-      systemInstruction: buildModerationPrompt(promptLocale.value),
+      systemInstruction: isProfileName
+        ? buildProfileNameModerationPrompt(memiBoardLanguageLabel(promptLocale.value))
+        : buildModerationPrompt(promptLocale.value),
       generationConfig: {
         temperature: 0,
         maxOutputTokens: 256,
@@ -82,11 +89,11 @@ export function useMemiBoardModeration(options: {
   }
 
   function errorResult(): ModerationResult {
-    if (moderation.onError === 'block') {
+    if (isProfileName || moderation.onError === 'block') {
       return {
         flagged: true,
         category: 'other',
-        reason: t('moderation.reviewFailed'),
+        reason: t(isProfileName ? 'profileEditModal.nameReviewFailed' : 'moderation.reviewFailed'),
         error: true,
         via: 'ai-error-block',
       }
@@ -114,6 +121,7 @@ export function useMemiBoardModeration(options: {
 
   /** 콘텐츠 위반(local/ai)만 경고 누적. API 오류·이용제한 자체는 제외. */
   async function applyStrikeIfContentBlock(result: ModerationResult): Promise<ModerationResult> {
+    if (isProfileName) return result
     if (!result.flagged || result.error) return result
     if (result.via !== 'local' && result.via !== 'ai') return result
     try {
@@ -127,7 +135,7 @@ export function useMemiBoardModeration(options: {
   }
 
   async function checkText(text: string): Promise<ModerationResult> {
-    if (isWriteRestricted.value) {
+    if (!isProfileName && isWriteRestricted.value) {
       return {
         flagged: true,
         category: 'other',
@@ -151,9 +159,11 @@ export function useMemiBoardModeration(options: {
 
     try {
       const model = getModerationModel()
-      const result = await model.generateContent(buildModerationTextPrompt(trimmed, promptLocale.value))
+      const result = await model.generateContent(isProfileName
+        ? JSON.stringify({ displayName: trimmed })
+        : buildModerationTextPrompt(trimmed, promptLocale.value))
       const raw = result.response.text()
-      const parsed = parseModerationJson(raw)
+      const parsed = isProfileName ? parseProfileNameModerationJson(raw) : parseModerationJson(raw)
       if (!parsed) return errorResult()
       const out: ModerationResult = {
         flagged: parsed.flagged,

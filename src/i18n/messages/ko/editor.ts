@@ -138,7 +138,7 @@ export default {
     photoRequired: '사진을 한 장 이상 올려 주세요.',
     bodyRequired: '본문에 글자를 입력하거나 이미지를 첨부해 주세요.',
     signInRequired: '로그인이 필요합니다.',
-    boardMissing: '게시판(보드)이 지정되지 않았습니다.',
+    boardMissing: '보드(보드)이 지정되지 않았습니다.',
     writeRestricted: '콘텐츠 경고가 누적되어 글·댓글 작성이 잠시 제한됐어요.',
     moderationBlocked: '게시할 수 없는 내용이 포함되어 있습니다.',
   },

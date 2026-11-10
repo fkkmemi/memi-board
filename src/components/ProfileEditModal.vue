@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { query, serverTimestamp, where, writeBatch, getDocs } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n } from 'memi-board/runtime'
+import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n, useMemiBoardModeration } from 'memi-board/runtime'
 import type { BoardUserModel } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardAvatarCropModal from './AvatarCropModal.vue'
@@ -18,11 +18,13 @@ const emit = defineEmits<{ saved: [] }>()
 
 const db = useFirestore()
 const { t } = useMemiBoardI18n()
+const { checkText: checkName } = useMemiBoardModeration({ context: 'profile-name' })
 
 const displayName = ref('')
 const bio = ref('')
 const photoURL = ref<string | null>(null)
 const saving = ref(false)
+const checkingName = ref(false)
 const error = ref('')
 
 // 열릴 때마다 최신 프로필로 폼을 리셋 — 이전에 취소한 입력이 남아있지 않게.
@@ -128,6 +130,15 @@ async function onSave() {
   saving.value = true
   error.value = ''
   try {
+    if (trimmedName !== (props.profile?.displayName ?? '').trim()) {
+      checkingName.value = true
+      const review = await checkName(trimmedName)
+      checkingName.value = false
+      if (review.flagged || review.error) {
+        error.value = review.reason || t('profileEditModal.nameRejected')
+        return
+      }
+    }
     let nextPhotoURL = props.profile?.photoURL ?? null
     if (pendingAvatarFile) {
       avatarUploading.value = true
@@ -146,6 +157,7 @@ async function onSave() {
   }
   finally {
     saving.value = false
+    checkingName.value = false
     avatarUploading.value = false
   }
 }
@@ -155,6 +167,8 @@ async function onSave() {
   <UModal
     v-model:open="open"
     :title="t('profileEditModal.title')"
+    :dismissible="!saving"
+    :close="!saving"
     :ui="{ content: 'sm:max-w-md' }"
   >
     <template #body>
@@ -172,6 +186,7 @@ async function onSave() {
             variant="outline"
             size="sm"
             @click="avatarInput?.click()"
+            :disabled="saving"
           />
           <input
             ref="avatarInput"
@@ -182,11 +197,12 @@ async function onSave() {
           >
         </div>
 
-        <UFormField :label="t('profileEditModal.name')">
+        <UFormField :label="t('profileEditModal.name')" :help="t('profileEditModal.nameReviewHelp')">
           <UInput
             v-model="displayName"
             :placeholder="t('profileEditModal.name')"
             :maxlength="40"
+            :disabled="saving"
             class="w-full"
           />
         </UFormField>
@@ -196,6 +212,7 @@ async function onSave() {
             v-model="bio"
             :rows="3"
             :maxlength="200"
+            :disabled="saving"
             :placeholder="t('profileEditModal.bioPlaceholder')"
             class="w-full"
           />
@@ -224,7 +241,7 @@ async function onSave() {
           :loading="saving"
           @click="onSave"
         >
-          {{ t('common.action.save') }}
+          {{ checkingName ? t('profileEditModal.checkingName') : t('common.action.save') }}
         </UButton>
       </div>
     </template>

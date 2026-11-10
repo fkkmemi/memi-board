@@ -61,9 +61,9 @@ export default defineNuxtConfig({
   routeRules: {
     '/board/**/new': { ssr: false },
     '/board/**/edit': { ssr: false },
-    '/board-settings': { ssr: false },
-    '/board-settings/**': { ssr: false },
-    '/board-users': { ssr: false }
+    '/board-users': { ssr: false },
+    '/admin': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/admin/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } }
   }
 })
 ```
@@ -116,10 +116,45 @@ Also set the index file path in `firebase.json`. The bucket the Storage rules ar
 
 ## 6. Admin pages and the first board
 
+### Keep management components on separate routes
+
+Prefer dedicated management pages and a management layout, ideally under `/admin/`. Avoid putting management components directly into public board lists, user directories, profiles, or account pages. A public page can instead show a settings link only to users with the required permission.
+
+| Component or feature | Recommended route | Intended access |
+|---|---|---|
+| `MemiBoardList`, `MemiBoardDetail` | `/board/...` | According to each board's visibility |
+| `MemiBoardUsers` | `/board-users` | Public directory; no private emails or role editing |
+| `MemiBoardProfile` | `/board-user/[uid]` or `/board-account` | Public profile; only the user can edit their own profile |
+| `MemiBoardSettings` | `/admin/board-settings` | Global owner/admin; includes service settings and orphan cleanup |
+| `MemiBoardUsersSettings` | `/admin/board-users-settings` | Global owner/admin; private emails and role changes |
+| `MemiBoardCategorySettings` | `/admin/board-settings/[boardId]` | Global owner/admin or a manager assigned to that board |
+| Host-built report management using `useMemiBoardReports` | `/admin/reports` | According to the host's report permissions and board assignments |
+
+The route names are recommendations, not routes registered by the package. The host supplies its own middleware and layout. Protect global settings and role management with an owner/admin guard. For per-board settings, wait for authentication and role loading, then check `canConfigureBoard(boardId)`; do not give an assigned manager global admin access. Keep Firestore and Storage Rules deployed to enforce data access independently of the UI.
+
+Prefer `/board-account` for the board's own profile editor, leaving `/account` available for the host's existing account system. Protect `/board-account` with a sign-in guard and `noindex`. On public user/activity pages, pass `account-to="/board-account"` to `MemiBoardProfile`; on the board account page, omit that prop so the owner can edit their profile. Hosts may choose a different URL without changing the package.
+
+Exclude management routes from search with the `X-Robots-Tag: noindex, nofollow` response header (see the config above) and the same robots meta tag in the management layout. Do not include them in the sitemap. An `/admin/` prefix, `ssr: false`, or a hidden link alone is neither access control nor a search exclusion rule. Public pages keep their own SEO settings.
+
+When changing existing management URLs, update all settings links and configure redirects to the new `/admin/` paths. `MemiBoardSettings` defaults to `/board-settings` for its per-board links, so pass `settings-base="/admin/board-settings"`. For `MemiBoardList`, pass the matching `settings-to` URL as shown below.
+
 ```vue
-<!-- app/pages/board-settings.vue -->
+<!-- app/pages/admin/board-settings/index.vue -->
+<script setup lang="ts">
+definePageMeta({ middleware: 'admin' }) // host-provided owner/admin guard
+</script>
 <template>
-  <MemiBoardSettings />
+  <MemiBoardSettings settings-base="/admin/board-settings" />
+</template>
+```
+
+```vue
+<!-- app/pages/admin/board-users-settings.vue -->
+<script setup lang="ts">
+definePageMeta({ middleware: 'admin' }) // host-provided owner/admin guard
+</script>
+<template>
+  <MemiBoardUsersSettings />
 </template>
 ```
 
@@ -135,8 +170,8 @@ Add `<MemiBoardSignIn />` to a sign-in page or an existing account screen, then 
 1. In Firebase Authentication, set up the Google provider and the site's authorized domains.
 2. Sign in with the board's sign-in component to create the `memiBoardUsers/{uid}` document. If the host only has its own sign-in, open a page that also uses the board auth composable.
 3. From the trusted Firebase Console or a server-side Admin SDK, set that document's `role` to `owner`.
-4. After reloading or signing in again, create a board with the ID `free` in `/board-settings`.
-5. In `/board-users`, assign `admin`/`manager`/`staff` roles to the accounts that need them, and assign people in the board settings.
+4. After reloading or signing in again, create a board with the ID `free` in `/admin/board-settings`.
+5. In `/admin/board-users-settings`, assign `admin`/`manager`/`staff` roles to the accounts that need them, and assign people in the board settings. `/board-users` remains a public directory.
 
 Don't assign the first owner or transfer ownership through the client role selection menu. The host app adds route access guards, and actual data access is enforced by the rules. If the host's sign-in provider uses the same Firebase Auth as the board, sign-in state is shared.
 
@@ -175,7 +210,7 @@ await useMemiBoardListSeo({
     :get-post-link="post => `/board/${encodeURIComponent(boardId)}/${encodeURIComponent(post.slug)}`"
     :write-to="`/board/${boardId}/new`"
     :can-write="isSignedIn"
-    :settings-to="`/board-settings/${boardId}`"
+    :settings-to="`/admin/board-settings/${boardId}`"
     :can-manage-settings="canConfigureBoard(boardId)"
   />
   <MemiBoardSignIn v-if="!isSignedIn" />
@@ -187,8 +222,9 @@ In this example, `canWrite` only reflects whether the user is signed in. For sta
 Also create the page that the list's per-board settings link points to.
 
 ```vue
-<!-- app/pages/board-settings/[boardId].vue -->
+<!-- app/pages/admin/board-settings/[boardId].vue -->
 <script setup lang="ts">
+definePageMeta({ middleware: 'board-settings' }) // host-provided canConfigureBoard guard
 const route = useRoute()
 const boardId = computed(() => String(route.params.boardId || ''))
 </script>
@@ -365,8 +401,35 @@ Collection name options and `boardId` do not, by themselves, guarantee tenant is
 - On opening a post detail page, verify the slug → document ID lookup and that the original content is shown.
 - Verify the language/translation UI and whether AI requests are made, according to the chosen internationalization mode.
 - Verify that a manager can configure only their assigned boards and not other boards.
+- Verify that public user/profile pages do not mount management components, management URLs reject unauthorized users, and their responses include `noindex, nofollow` and are absent from the sitemap.
 - Verify that the rules are deployed to the Storage bucket the app uses, and test image and attachment uploads.
 - Verify on the deployed URL that the public list and detail HTML contain OG meta tags.
 - Check the results of the web app deployment and the Firebase rules/index deployment separately.
 
 For troubleshooting steps by error, see [README Troubleshooting](../README.md#troubleshooting).
+
+### Title-only URLs for new posts
+
+New text posts reserve `title`, then `title-2`, `title-3`, etc., within each board.
+Reservation, post metadata and body commit in one transaction; unpublished drafts also
+reserve their URL. Editing a title or publishing a draft never changes its stored URL.
+Existing URLs are not rewritten. Reservations are retained after deletion to prevent
+old links from pointing to another author's new post. Image boards keep their ID URLs.
+
+Before running the updated client against existing data:
+
+1. Deploy the address-reservation rules in `docs/firestore.rules.example`. Keep unrelated
+   host rules intact. The reservation collection is `${postsCollection}Slugs`; adapt its
+   name in the rules when using custom post collections.
+2. With `firebase-admin` installed in the host, run `scripts/backfill-post-slugs.mjs`
+   using an explicit `GCLOUD_PROJECT` and Application Default Credentials. Set
+   `MEMI_ADMIN_ROOT` to the host directory when running the script from the package repo;
+   set `MEMI_POSTS_COLLECTION` for a custom collection. It defaults to a read-only check.
+   Run again with `--apply` to register every legacy URL, including private drafts.
+3. Build/update the client package. New post saves deliberately fail until the migration
+   marker is ready, so they cannot steal an unregistered legacy URL.
+
+The initial backfill temporarily pauses new post creation while scanning existing posts;
+editing and publishing existing drafts remain available. It can be rerun after interruption.
+Older clients using auto-ID URLs remain compatible after the backfill. Upgrade those
+clients as well to get readable URLs for their new posts.

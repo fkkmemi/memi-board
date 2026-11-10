@@ -50,7 +50,7 @@ const emit = defineEmits<{ saved: [id: string], cancel: [] }>()
 
 const { user, isSignedIn, isWriteRestricted, restrictedMessage, canManageBoard } = useMemiBoardAuth()
 const resolvedBoardId = computed(() => props.boardId || props.fixedCategory || '')
-const { createPostId, getPost, createPost, updatePost, resolveUniqueSlug, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
+const { createPostId, getPost, createPost, updatePost, setPostPinned } = useMemiBoardPosts(resolvedBoardId)
 const { getBoard, ensureSettings } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순.
 const { t, dir, locale, translationEnabled, aiEnabled } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
@@ -1161,9 +1161,6 @@ async function handleSubmit() {
 
   saving.value = true
   submitHint.value = t('editor.hint.reviewing')
-  // 새 글 slug 중복 확인을 검열과 동시에 시작 — 검열에 걸리면 결과만 버린다.
-  const slugPromise = !props.postId && !imageBoard ? resolveUniqueSlug(title.value) : null
-  slugPromise?.catch(() => {})
   try {
     const plain = plainTextFromHtml(content.value)
     const moderationText = `${title.value}\n${plain}`
@@ -1226,7 +1223,6 @@ async function handleSubmit() {
     else {
       const id = await createPost({
         ...payload,
-        slug: (await slugPromise) ?? undefined,
         postId: attachmentNamespace.value,
         authorUid: user.value.uid,
         authorName: user.value.displayName,

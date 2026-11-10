@@ -4,6 +4,25 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.57.0] - 2026-11-10
+
+### Added
+- Separate public member directory and administrator member management components, with role/name sorting and cursor pagination.
+- Profile name moderation and a host-integrated account deletion confirmation/progress component. Account deletion requires host server handlers and remains opt-in.
+- Management route integration documentation and protections for accounts pending deletion in the Firestore and Storage rule examples.
+
+### Changed
+- New text posts use a title-only URL, adding `-2`, `-3`, etc. only when that board's address is already reserved. Existing URLs and image-board ID URLs remain unchanged.
+- Reserve the address, metadata and body atomically, including unpublished drafts. Keep reservations after deletion so old links cannot point to another post.
+
+### Fixed
+- Refine comment author menus and input layout, profile account links, and Korean interface copy.
+- Wait for restored authentication and board roles before resolving a post URL, so a saved private draft remains accessible after a browser refresh.
+
+### Host app steps
+- Deploy the slug reservation rules, then run `scripts/backfill-post-slugs.mjs --apply` with Firebase Admin credentials before updating the client. The script registers existing addresses without changing posts; see `docs/host-integration.md`.
+- Move administrative member management to `MemiBoardUsersSettings`; `MemiBoardUsers` now serves the public directory. Follow `docs/account-deletion.md` before enabling server-backed deletion.
+
 ## [0.56.2] - 2026-11-08
 
 ### Changed

@@ -134,6 +134,7 @@ const memiBoardModule: NuxtModule<MemiBoardModuleOptions> = defineNuxtModule<Mem
       { name: 'useMemiBoardStorage', from: 'memi-board/storage' },
       { name: 'useMemiBoardSettings', from },
       { name: 'useMemiBoardUsers', from },
+      { name: 'useMemiBoardUserDirectory', from },
       { name: 'useMemiBoardPostSeo', from: seoFrom },
       { name: 'useMemiBoardListSeo', from: seoFrom },
       { name: 'fetchPublicPostForSeo', from },

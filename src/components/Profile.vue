@@ -6,6 +6,8 @@ import MemiBoardProfileEditModal from './ProfileEditModal.vue'
 
 const props = defineProps<{
   uid: string
+  /** 본인 프로필의 수정 버튼 대신 표시할 호스트 계정 페이지 주소. */
+  accountTo?: string
 }>()
 
 const { profile, profilePending } = useMemiBoardUserProfile(() => props.uid)
@@ -84,7 +86,17 @@ const aiUsage = computed(() => {
         </p>
       </div>
       <UButton
-        v-if="isOwnProfile"
+        v-if="isOwnProfile && accountTo"
+        :to="accountTo"
+        :label="t('profile.myAccount')"
+        icon="i-lucide-user-round"
+        color="neutral"
+        variant="outline"
+        size="sm"
+        class="shrink-0"
+      />
+      <UButton
+        v-else-if="isOwnProfile"
         :label="t('common.action.edit')"
         icon="i-lucide-pencil"
         color="neutral"
@@ -125,7 +137,7 @@ const aiUsage = computed(() => {
   </div>
 
   <MemiBoardProfileEditModal
-    v-if="isOwnProfile"
+    v-if="isOwnProfile && !accountTo"
     v-model:open="editOpen"
     :uid="uid"
     :profile="profile"

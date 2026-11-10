@@ -1,6 +1,6 @@
 {
   "name": "memi-board",
-  "version": "0.56.2",
+  "version": "0.57.0",
   "type": "module",
   "description": "Board (forum) module for Nuxt 4 + Nuxt UI + VueFire/Firebase",
   "license": "MIT",
@@ -51,7 +51,8 @@
   "types": "./dist/module.d.ts",
   "files": [
     "dist",
-    "docs"
+    "docs",
+    "scripts/backfill-post-slugs.mjs"
   ],
   "scripts": {
     "prepack": "pnpm build",

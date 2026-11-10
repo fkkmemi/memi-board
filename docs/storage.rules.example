@@ -11,7 +11,9 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     function isSignedIn() {
-      return request.auth != null;
+      return request.auth != null
+        && (!firestore.exists(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid))
+          || firestore.get(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid)).data.get('deletionPending', false) == false);
     }
     // Storage permits at most two distinct Firestore document reads:
     // post + user role. Scoped staff must not gain global file access.
@@ -22,7 +24,8 @@ service firebase.storage {
     }
     function canWritePostFile(postId) {
       return isSignedIn() && (postExists(postId)
-        ? (isPostOwner(postId) || isBoardStaff())
+        ? (firestore.get(/databases/(default)/documents/memiBoardPosts/$(postId)).data.get('deletionPending', false) == false
+          && (isPostOwner(postId) || isBoardStaff()))
         : (request.resource.metadata.ownerUid == request.auth.uid
           && (resource == null || resource.metadata.ownerUid == request.auth.uid)));
     }
@@ -84,6 +87,8 @@ service firebase.storage {
       allow get: if true;
       allow create: if isSignedIn()
         && request.resource.metadata.ownerUid == request.auth.uid
+        && postExists(postId)
+        && firestore.get(/databases/(default)/documents/memiBoardPosts/$(postId)).data.get('deletionPending', false) == false
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
       allow delete: if isSignedIn() && (

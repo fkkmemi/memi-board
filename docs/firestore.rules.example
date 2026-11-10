@@ -18,13 +18,22 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isSignedIn() {
-      return request.auth != null;
+      // A server-only deletion marker also blocks still-valid cached ID tokens.
+      return request.auth != null
+        && (!exists(boardUserPath())
+          || get(boardUserPath()).data.get('deletionPending', false) == false);
     }
     // Even if the host app enables anonymous sign-in for another feature (e.g. a guest queue),
     // block creating board content (posts/comments/likes) by default — reads and isSignedIn()
     // in general are left as-is; this function is used only in the 3 create rules below.
     function isBoardWriter() {
       return isSignedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+    function replyTargetIsActive() {
+      let uid = request.resource.data.get('replyToUid', null);
+      return uid == null || uid == '' || (uid is string
+        && (!exists(/databases/$(database)/documents/memiBoardUsers/$(uid))
+          || get(/databases/$(database)/documents/memiBoardUsers/$(uid)).data.get('deletionPending', false) == false));
     }
     function boardUserPath() {
       return /databases/$(database)/documents/memiBoardUsers/$(request.auth.uid);
@@ -89,7 +98,9 @@ service cloud.firestore {
         && likeId == request.resource.data.commentId + '_' + request.auth.uid
         && exists(commentPath(request.resource.data.commentId))
         && get(commentPath(request.resource.data.commentId)).data.postId == request.resource.data.postId
-        && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId;
+        && get(commentPath(request.resource.data.commentId)).data.get('deletionPending', false) == false
+        && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
+        && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false;
     }
     function isAllowedStaffForBoard(boardId) {
       let allowed = get(boardSettingsPath(boardId)).data.get('allowedStaffUids', []);
@@ -230,6 +241,10 @@ service cloud.firestore {
       return get(boardSettingsPath(boardId)).data.get('visibility', 'public') != 'hidden';
     }
 
+    match /memiBoardAccountDeletionJobs/{uid} {
+      allow read, write: if false;
+    }
+
     match /memiBoardUsers/{uid} {
       // Everything except email is public profile info — email is kept separately in a private subcollection.
       allow read: if true;
@@ -343,10 +358,46 @@ service cloud.firestore {
       allow delete: if isBoardAdmin();
     }
 
+    // Older deployed clients still write auto-ID URLs. Freeze them only during backfill.
+    function postSlugWritesOpen() {
+      return !exists(/databases/$(database)/documents/memiBoardPostsSlugs/__migration)
+        || get(/databases/$(database)/documents/memiBoardPostsSlugs/__migration).data.ready == true;
+    }
+    function validNewPostSlug(postId) {
+      let data = request.resource.data;
+      return data.slug is string && (
+        data.slug == postId || data.slug.matches('.*-[a-zA-Z0-9]{20}')
+        || getAfter(/databases/$(database)/documents/memiBoardPostsSlugs/$(data.boardId)/slugs/$(data.slug)).data.postId == postId
+      );
+    }
+
+    // Address reservations contain only a post ID; private drafts never need to be queried.
+    // Backfill every legacy slug before setting __migration.ready; keep reservations after deletion.
+    match /memiBoardPostsSlugs/{boardId} {
+      allow get: if isBoardWriter();
+      allow list, write: if false;
+      match /slugs/{slug} {
+        allow get: if isBoardWriter() && canWriteBoard(boardId);
+        allow list, update, delete: if false;
+        allow create: if isBoardWriter()
+          && get(/databases/$(database)/documents/memiBoardPostsSlugs/__migration).data.ready == true
+          && request.resource.data.keys().hasOnly(['postId'])
+          && request.resource.data.postId is string
+          && !exists(postPath(request.resource.data.postId))
+          && getAfter(postPath(request.resource.data.postId)).data.boardId == boardId
+          && getAfter(postPath(request.resource.data.postId)).data.slug == slug
+          && getAfter(postPath(request.resource.data.postId)).data.authorUid == request.auth.uid;
+      }
+    }
+
     match /memiBoardPosts/{postId} {
+      // Transactions check that a fresh attachment namespace has not already been saved.
+      allow get: if isBoardWriter() && resource == null;
       allow read: if isBoardAdmin() || canReadPost(resource.data);
 
       allow create: if isBoardWriter()
+        && postSlugWritesOpen()
+        && validNewPostSlug(postId)
         && request.resource.data.boardId is string
         && request.resource.data.authorUid == request.auth.uid
         && request.resource.data.moderationStatus == 'approved'
@@ -360,6 +411,7 @@ service cloud.firestore {
 
       allow update: if (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
+          && request.resource.data.get('slug', null) == resource.data.get('slug', null)
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
           && (
@@ -393,6 +445,10 @@ service cloud.firestore {
         // commentWriteRole and bypass canWriteBoardComment(), check that it matches the parent post's actual
         // boardId (cost: one extra get() per comment creation).
         && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
+        && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false
+        && (request.resource.data.get('parentId', null) == null
+          || get(commentPath(request.resource.data.parentId)).data.get('deletionPending', false) == false)
+        && replyTargetIsActive()
         && canWriteBoardComment(request.resource.data.boardId)
         && boardWritesOpen(request.resource.data.boardId)
         && request.resource.data.authorUid == request.auth.uid
@@ -440,6 +496,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.postId is string
         && request.resource.data.boardId is string
+        && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false
         && (isValidPostLike(likeId) || isValidCommentLike(likeId));
 
       allow delete: if isBoardAdmin() || (isSignedIn()
@@ -473,6 +530,8 @@ service cloud.firestore {
         && reportId == request.resource.data.postId + '_' + request.auth.uid
         && exists(postPath(request.resource.data.postId))
         && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
+        && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false
+        && request.resource.data.authorUid == get(postPath(request.resource.data.postId)).data.authorUid
         && get(postPath(request.resource.data.postId)).data.authorUid != request.auth.uid;
 
       allow update: if isBoardManager(resource.data.boardId)

@@ -17,6 +17,8 @@ Any host app on the same stack (Nuxt 4 · `@nuxt/ui` · `nuxt-vuefire` · Fireba
 | Task | Guide |
 |---|---|
 | First install on another site | [Host integration guide](docs/host-integration.md) — minimal setup, routes, first board |
+| Separating public views from management screens | [Management component placement](docs/host-integration.md#keep-management-components-on-separate-routes) — recommended `/admin/` routes, guards, and search exclusion |
+| Confirmed account deletion and large datasets | [Account deletion](docs/account-deletion.md) — content checkbox, reauthentication, bounded processing, retry, and host server/Rules requirements |
 | Single language, or choosing multilingual UI and translation | [Internationalization and content translation](docs/internationalization.md) — per-mode setup and when translations are saved |
 | Connecting Firebase and deploying rules and indexes | [Firebase setup](docs/firebase-setup.md) |
 | Per-store/organization assigned permissions, migrating existing roles | [Roles and migration](docs/roles-migration.md) |
@@ -137,8 +139,9 @@ export default defineNuxtConfig({
     '/board/**/new': { ssr: false },
     '/board/**/**/edit': { ssr: false },
     '/board/version-history': { ssr: false },
-    '/board-settings/**': { ssr: false },
     '/board-users': { ssr: false },
+    '/admin': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/admin/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
   },
 })
 ```
@@ -340,8 +343,8 @@ Rules prevent regular users from making themselves admins. So the first time, fo
 2. In Firebase Console → Firestore, find the `memiBoardUsers/{uid}` document.
 3. Change that document's `role` to the string `owner`.
    - You can also find the UID in Firebase Console → Authentication → Users.
-4. Create the first category at `/board-settings`. Posts cannot be written without a category.
-5. After that, change roles in `MemiBoardUsers` at `/board-users`.
+4. Create the first category at `/admin/board-settings`. Posts cannot be written without a category.
+5. After that, change roles in `MemiBoardUsersSettings` at `/admin/board-users-settings`.
 
 > Only a trusted project operator should assign the initial admin, and only in Firebase Console. Do not put admin UIDs or bypass rules in client code.
 
@@ -376,12 +379,19 @@ For the detail page, use `<MemiBoardDetail :board-id="boardId" :post-id="postId"
 
 ### Admin pages
 
+Prefer separate pages and layouts for management components, ideally under `/admin/`. Place `MemiBoardSettings`, `MemiBoardUsersSettings`, and `MemiBoardCategorySettings` on protected management routes rather than embedding them in a public list, profile, or account page. Keep the public `MemiBoardUsers` directory at `/board-users`; put email and role management at `/admin/board-users-settings`. Show links into management only to users who have the corresponding permission. See [recommended component placement and route protection](docs/host-integration.md#keep-management-components-on-separate-routes).
+
+The `/admin/` prefix and hiding a link do not enforce permissions. The host must add route guards, retain Firestore/Storage Rules, set `noindex, nofollow` for management responses, and omit management URLs from its sitemap. The package does not automatically create routes or middleware. Assigned managers may access their own per-board settings; they should not receive access to global settings or user-role management.
+
 Global settings and user management use the `owner` or `admin` role. In a default install, do not pass `authorized`. Only the owner can assign the admin role, and changing the owner itself is done from a trusted server or the console. For per-board settings by an assigned manager, use `MemiBoardCategorySettings` and `canConfigureBoard(boardId)`.
 
 ```vue
-<!-- app/pages/board-settings.vue -->
+<!-- app/pages/admin/board-settings/index.vue -->
+<script setup lang="ts">
+definePageMeta({ middleware: 'admin' }) // host-provided owner/admin guard
+</script>
 <template>
-  <MemiBoardSettings />
+  <MemiBoardSettings settings-base="/admin/board-settings" />
 </template>
 ```
 
@@ -392,22 +402,44 @@ To use it, apply the admin read and delete permissions from the [Firestore rules
 ```vue
 <!-- app/pages/board-users.vue -->
 <template>
-  <MemiBoardUsers />
+  <MemiBoardUsers :author-profile-to="uid => `/board-user/${uid}`" />
 </template>
 ```
 
-Use `authorized` only when integrating the host's own site-admin system. This prop only allows the UI to be shown and does not bypass Firestore Rules. Even then, you must register those users as board admin/owner or change the host Rules to match the same admin system. Adding host route guards is recommended so admin URLs are not exposed to regular users.
+`MemiBoardUsers` is a public directory showing names, avatars, bios, and role badges. It never reads private email documents or displays role editing controls.
+
+Both user screens support name/role sorting (role ascending by default), ascending/descending order, and cursor pagination with 10, 25 (default), or 50 users per page. Sorting or changing page size returns to page 1. Role order is owner → admin → manager → staff → user (reversed for descending). Name ties and users within the same role are ordered by document ID. Queries fetch only a page plus one lookahead user; role sorting walks role groups rather than sorting all users in memory. Email documents are loaded only for the currently displayed admin page.
+
+Directory documents must have `role` and `displayName` fields (`displayName: null` is valid). Firestore name ordering excludes legacy documents without `displayName`; use role sorting to include those users until their profile is updated. `useMemiBoardUserDirectory` exposes reactive sort/direction/page-size state, current page, navigation, refresh, and load errors. The existing `useMemiBoardUsers` remains an unpaged source for manager/staff assignment pickers so assignments are never limited to the current directory page.
+
+```vue
+<!-- app/pages/admin/board-users-settings.vue -->
+<script setup lang="ts">
+definePageMeta({ middleware: 'admin' }) // host-provided owner/admin guard
+</script>
+<template>
+  <MemiBoardUsersSettings />
+</template>
+```
+
+`MemiBoardUsersSettings` is the admin-only email and role management screen. Use its `authorized` prop only when integrating the host's own site-admin system. This prop only allows the UI to be shown and does not bypass Firestore Rules. Even then, you must register those users as board admin/owner or change the host Rules to match the same admin system. Add host route guards to protect the settings URL.
 
 ### Provided API
 
 **Components (auto-import):**  
-`MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardSettings`, `MemiBoardUsers`, `MemiBoardVersionHistory`
+`MemiBoardList`, `MemiBoardDetail`, `MemiBoardEditor`, `MemiBoardCommentList`, `MemiBoardCommentForm`, `MemiBoardAttachments`, `MemiBoardSignIn`, `MemiBoardSettings`, `MemiBoardUsers`, `MemiBoardUsersSettings`, `MemiBoardVersionHistory`
 
 **List props:** `boardId` (required), `pageSize`, `category` (former name), `postLinkBase`, `getPostLink(post)`, `linkBase` (deprecated)
 
 **Editor props:** `boardId`, `postId` (edit), `fixedCategory` (hides the selector when the path fixes it)
 `MemiBoardEditor` automatically confirms leaving when there are unsaved changes, including browser Back and links to other routes. Empty forms, reverted changes, and navigation after a successful save do not prompt. Refreshing or closing the tab uses the browser's standard warning, whose wording is controlled by the browser and whose display may depend on prior user interaction. Hosts do not need to add route guards. If a host hides or replaces the editor without changing routes, it must handle that separate UI action itself.
 `MemiBoardCommentForm` also protects unfinished comments and replies, including attached images and uploads in progress. Canceling a reply asks before discarding its draft. Successful submission clears the warning.
+
+**Profile account link:** Prefer a dedicated `/board-account` page so the host can keep `/account` for its own account system. Pass `account-to="/board-account"` to `MemiBoardProfile` on public user/activity pages to show a **My account** link instead of the edit button for the signed-in user's own profile. Other users do not see this action. The host supplies the account URL; the package does not assume or reserve an account route. On the board account page itself, omit `accountTo` to retain the profile edit modal. Protect that page with the host's sign-in middleware and exclude it from search.
+
+**Profile name review:** Changing a display name in `MemiBoardProfileEditModal` runs local checks and then a dedicated Firebase AI Logic review before uploading a new avatar or writing profile/byline updates. Ordinary nicknames and names in any language are allowed; abuse, hate, spam, sexual obscenity, threats, and deceptive staff impersonation are rejected. A failed or malformed AI verdict blocks saving even when post moderation uses `onError: 'allow'`; the user can retry. Name checks do not consume writing-assistant quota or add content-warning strikes. Unchanged names do not trigger another review when editing a bio or photo. The existing site-wide AI switch and `moderation.enabled: false` disable AI requests, leaving local checks in place. This browser-side review is a UI safeguard; hosts needing authoritative enforcement for every write, including social-login name imports, must add a trusted server validation path and matching Rules.
+
+**Account deletion:** `MemiBoardAccountDeletion` provides a content-deletion checkbox, acknowledgement plus typed confirmation, and loading/progress/retry UI. Supply the host's own server-backed handler; it must reauthenticate, protect owners, process data in bounded resumable chunks, and delete Firebase Auth last. See [account deletion integration and deployment requirements](docs/account-deletion.md). Do not wire it to a bare client `deleteUser()` call or place it in public profiles.
 
 **About memi-board:** List views, detail, editor, profiles, comment feeds, and management screens automatically include the package footer. Hosts should remove manually placed `<MemiBoardFooter />`. It is visible by default; an admin can hide it site-wide with the **Show About memi-board** switch on the board settings screen. Nested views and multiple views on the same page share one visible footer. Its content-width modal, about as wide as a board column, contains the introduction, version history, and links to the detailed introduction at memi.dev/memi-board, plus memi.dev, YouTube, npm, GitHub, and email.
 

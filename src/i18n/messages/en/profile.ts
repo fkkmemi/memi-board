@@ -1,4 +1,5 @@
 export default {
+  myAccount: 'My account',
   notFound: 'User not found.',
   noName: 'No name',
   joined: 'Joined {time}',

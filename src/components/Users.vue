@@ -1,73 +1,35 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
-import { computed, ref } from 'vue'
-import { BOARD_USER_ROLES, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardUserRole } from 'memi-board/runtime'
+import UserListControls from './UserListControls.vue'
+import UserListPagination from './UserListPagination.vue'
+import { useMemiBoardI18n, useMemiBoardUserDirectory } from 'memi-board/runtime'
 
-const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
-const { isAdmin, isOwner, user, rolePending } = useMemiBoardAuth()
-const canManage = computed(() => isAdmin.value || props.authorized)
-const { users, usersPending, updateUserRole } = useMemiBoardUsers({ enabled: canManage })
-const { t, formatNumber } = useMemiBoardI18n()
-const roleItems = computed(() => BOARD_USER_ROLES.map(item => ({
-  ...item,
-  label: t(`common.role.${item.value}`),
-  description: t(`boardUsers.roleDescription.${item.value}`),
-})))
-const assignableRoles = computed(() => roleItems.value.filter(item => isOwner.value ? item.value !== 'owner' : !['owner', 'admin'].includes(item.value)))
-const savingUid = ref<string | null>(null)
-const savedUid = ref<string | null>(null)
-const error = ref('')
-
-async function changeRole(uid: string, role: BoardUserRole) {
-  if (!canManage.value) return
-  savingUid.value = uid
-  savedUid.value = null
-  error.value = ''
-  try {
-    await updateUserRole(uid, role)
-    savedUid.value = uid
-  }
-  catch (cause) {
-    error.value = cause instanceof Error ? cause.message : t('users.changeRoleFailed')
-  }
-  finally {
-    savingUid.value = null
-  }
-}
+defineProps<{ authorProfileTo?: (uid: string) => string }>()
+const { users, usersPending, loadError, sort, direction, pageSize, page, hasNext, previousPage, nextPage, refresh } = useMemiBoardUserDirectory()
+const { t } = useMemiBoardI18n()
 </script>
 
 <template>
   <MemiBoardSurface>
-  <div class="flex flex-col gap-6">
-    <div class="grid gap-3 md:grid-cols-3">
-      <UAlert v-for="item in roleItems" :key="item.value" color="neutral" variant="subtle" :title="item.label" :description="item.description" />
-    </div>
-    <UAlert v-if="error" color="error" variant="subtle" icon="i-lucide-circle-alert" :description="error" />
-    <div v-if="rolePending || usersPending" class="py-12 text-center text-sm text-muted">{{ t('users.loading') }}</div>
-    <UAlert v-else-if="!canManage" color="error" variant="subtle" icon="i-lucide-shield-alert" :title="t('users.noPermission.title')" :description="t('users.noPermission.description')" />
+    <UserListControls v-model:sort="sort" v-model:direction="direction" v-model:page-size="pageSize" />
+    <div v-if="usersPending" class="py-12 text-center text-sm text-muted">{{ t('users.loading') }}</div>
+    <UAlert v-else-if="loadError" color="error" variant="subtle" :description="t('users.loadFailed')">
+      <template #actions><UButton color="neutral" variant="outline" :label="t('common.action.retry')" @click="refresh()" /></template>
+    </UAlert>
     <div v-else-if="users.length === 0" class="py-12 text-center text-sm text-muted">{{ t('users.empty') }}</div>
     <div v-else class="divide-y divide-default rounded-lg border border-default">
-      <div v-for="boardUser in users" :key="boardUser.id" class="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_12rem] md:items-center">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <p class="truncate font-medium text-highlighted">{{ boardUser.displayName || t('users.noName') }}</p>
-            <UBadge v-if="savedUid === boardUser.id" color="success" variant="subtle" :label="t('common.action.saved')" />
-          </div>
-          <p class="truncate text-sm text-muted">{{ boardUser.id }}</p>
-          <p v-if="boardUser.moderationBlockCount" class="mt-1 text-xs text-warning">{{ t('users.moderationWarnings', { count: formatNumber(boardUser.moderationBlockCount) }) }}</p>
+      <div v-for="boardUser in users" :key="boardUser.id" class="flex items-center gap-3 p-4">
+        <UAvatar :src="boardUser.photoURL || undefined" :alt="boardUser.displayName || t('users.noName')" />
+        <div class="min-w-0 flex-1">
+          <ULink v-if="authorProfileTo" :to="authorProfileTo(boardUser.id)" class="block truncate font-medium text-highlighted">
+            {{ boardUser.displayName || t('users.noName') }}
+          </ULink>
+          <p v-else class="truncate font-medium text-highlighted">{{ boardUser.displayName || t('users.noName') }}</p>
+          <p v-if="boardUser.bio" class="truncate text-sm text-muted">{{ boardUser.bio }}</p>
         </div>
-        <USelect
-          :model-value="boardUser.role || 'user'"
-          :items="boardUser.role === 'owner' || (!isOwner && boardUser.role === 'admin') ? roleItems : assignableRoles"
-          value-key="value"
-          label-key="label"
-          :loading="savingUid === boardUser.id"
-          :disabled="savingUid === boardUser.id || boardUser.id === user?.uid || boardUser.role === 'owner' || (!isOwner && boardUser.role === 'admin')"
-          @update:model-value="changeRole(boardUser.id, $event as BoardUserRole)"
-        />
+        <UBadge color="neutral" variant="subtle" :label="t(`common.role.${boardUser.role || 'user'}`)" />
       </div>
     </div>
-  </div>
+    <UserListPagination :page="page" :count="users.length" :has-next="hasNext" :pending="usersPending" @previous="previousPage" @next="nextPage" />
   </MemiBoardSurface>
 </template>

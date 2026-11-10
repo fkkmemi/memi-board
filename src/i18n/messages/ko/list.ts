@@ -1,5 +1,5 @@
 export default {
-  introduction: '이 게시판은 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
+  introduction: '이 보드는 Nuxt 4와 Vue 3, TypeScript를 바탕으로 만들었어요. Nuxt UI와 Tailwind CSS로 편안한 화면을 구성하고, Firebase Firestore·Auth·Storage와 nuxt-vuefire로 글과 댓글을 자연스럽게 이어갑니다.',
   settings: '설정',
   loadFailed: '목록을 불러오지 못했습니다: {error}',
   empty: '아직 게시글이 없습니다.',
@@ -13,8 +13,8 @@ export default {
     staff: '담당 스태프',
   },
   info: {
-    title: '게시판 정보',
-    about: '이 게시판은',
+    title: '보드 정보',
+    about: '이 보드는',
     history: '버전 히스토리',
   },
   stack: {
@@ -26,7 +26,7 @@ export default {
     nuxt: 'Vue 기반 SSR 프레임워크',
     vue: 'Composition API · script setup',
     typescript: '안전한 데이터와 컴포넌트 타입',
-    nuxtUi: '게시판·폼·모달 UI',
+    nuxtUi: '보드·폼·모달 UI',
     tailwind: '반응형 · 라이트/다크 스타일',
     lucide: '가볍고 일관된 아이콘',
     dayjs: '읽기 편한 날짜와 상대 시각',

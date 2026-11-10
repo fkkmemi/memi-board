@@ -8,7 +8,6 @@ import {
   onSnapshot,
   setDoc,
   updateDoc,
-  writeBatch,
   query,
   where,
   orderBy,
@@ -22,8 +21,10 @@ import {
 import type { QueryConstraint, Unsubscribe } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
+import { getAuth } from 'firebase/auth'
 import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
+import { availablePostSlug, createPostWithSlug } from '../utils/postSlug'
 import { findReadablePostBySlug } from '../utils/findReadablePost'
 import { deletePostCascade } from '../utils/deletePostCascade'
 import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
@@ -53,7 +54,7 @@ export interface CreatePostInput {
   authorName: string | null
   authorPhoto: string | null
   moderationModel?: string
-  /** resolveUniqueSlug 로 미리 구한 slug. 없으면 createPost 가 직접 구한다. */
+  /** URL 후보. 실제 중복 확인·예약은 글 저장 트랜잭션에서 확정한다. */
   slug?: string
   /** 10개 언어 번역. 있으면 글과 본문에 함께 저장한다. */
   translations?: PostTranslationSet
@@ -107,7 +108,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   const db = useFirestore()
   const app = useFirebaseApp()
   const { isBoardHidden, getBoard } = useMemiBoardSettings()
-  const { user, canManageBoard } = useMemiBoardAuth()
+  const { user, canManageBoard, rolePending } = useMemiBoardAuth()
   const { t, locale } = useMemiBoardI18n()
   const cfg = () => useBoardPathConfig()
   const bid = () => resolveBoardId(boardId, locale.value)
@@ -160,7 +161,20 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     return doc(postsColRef()).id
   }
 
-  function findBySlug(slug: string) {
+  async function findBySlug(slug: string) {
+    // A refreshed draft has no in-memory ID cache. Wait for restored identity and role
+    // before choosing public/author/manager queries, otherwise it looks permanently absent.
+    await getAuth(app).authStateReady()
+    if (rolePending.value) {
+      await new Promise<void>((resolve) => {
+        const stop = watch(rolePending, (pending) => {
+          if (!pending) {
+            stop()
+            resolve()
+          }
+        }, { flush: 'sync' })
+      })
+    }
     return findReadablePostBySlug(db, cfg(), bid(), slug, user.value?.uid, canManageBoard(bid()))
   }
 
@@ -240,10 +254,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     }
   }
 
-  /** Auto-ID suffix also prevents collisions with unreadable drafts and concurrent writers. */
+  /** 미리보기용 후보. 동시 작성에 대비한 최종 주소는 createPost 에서 확정한다. */
   async function resolveUniqueSlug(title: string): Promise<string> {
     const baseSlug = slugify(title.trim()) || 'post'
-    return `${baseSlug}-${createPostId()}`
+    return availablePostSlug(db, cfg(), bid(), baseSlug)
   }
 
   async function getAdjacentPosts(current: PostModel): Promise<{
@@ -289,46 +303,46 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     }
     else {
       title = input.title.trim()
-      slug = input.slug?.trim() || await resolveUniqueSlug(title)
+      slug = slugify(input.slug?.trim() || title) || 'post'
     }
 
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
-    // 메타·본문을 한 번에 커밋 — 순차 setDoc 두 번보다 왕복 1회 적다.
-    const batch = writeBatch(db)
-    batch.set(postDocRef(id), {
-      boardId: bid(),
-      slug,
-      title,
-      ...preview,
-      tags: input.tags ?? [],
-      attachments: input.attachments ?? [],
-      commentCount: 0,
-      likeCount: 0,
-      viewCount: 0,
-      listed,
-      isPublished: false,
-      authorUid: input.authorUid,
-      authorName: input.authorName,
-      authorPhoto: input.authorPhoto,
-      moderationStatus: 'approved',
-      moderationModel: input.moderationModel ?? null,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      ...(input.translations ? {
-        i18n: input.translations.i18n,
-        i18nSource: input.translations.i18nSource,
-      } : {}),
-      ...(input.extend && Object.keys(input.extend).length ? { extend: readExtend(input.extend) } : {}),
+    // 주소 예약·메타·본문을 원자적으로 저장한다. 실패하면 주소도 소모되지 않는다.
+    slug = await createPostWithSlug(db, cfg(), bid(), id, slug, (transaction, reservedSlug) => {
+      transaction.set(postDocRef(id), {
+        boardId: bid(),
+        slug: reservedSlug,
+        title,
+        ...preview,
+        tags: input.tags ?? [],
+        attachments: input.attachments ?? [],
+        commentCount: 0,
+        likeCount: 0,
+        viewCount: 0,
+        listed,
+        isPublished: false,
+        authorUid: input.authorUid,
+        authorName: input.authorName,
+        authorPhoto: input.authorPhoto,
+        moderationStatus: 'approved',
+        moderationModel: input.moderationModel ?? null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        ...(input.translations ? {
+          i18n: input.translations.i18n,
+          i18nSource: input.translations.i18nSource,
+        } : {}),
+        ...(input.extend && Object.keys(input.extend).length ? { extend: readExtend(input.extend) } : {}),
+      })
+      transaction.set(bodyDocRef(id), {
+        content: input.content,
+        ...(input.translations?.contentI18n ? {
+          i18n: input.translations.contentI18n,
+          i18nSource: input.translations.contentI18nSource,
+        } : {}),
+      })
     })
-    batch.set(bodyDocRef(id), {
-      content: input.content,
-      ...(input.translations?.contentI18n ? {
-        i18n: input.translations.contentI18n,
-        i18nSource: input.translations.contentI18nSource,
-      } : {}),
-    })
-    await batch.commit()
     createdPostIds.set(`${bid()}/${slug}`, id)
     return slug
   }
