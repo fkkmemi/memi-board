@@ -134,69 +134,71 @@ onUnmounted(() => {
 <template>
   <form
     v-if="isSignedIn && canComment"
-    class="flex flex-col gap-2"
+    class="overflow-hidden rounded-xl border border-default bg-default"
     @submit.prevent="handleSubmit"
   >
-    <UTextarea
-      v-model="body"
-      @paste="imageField?.handlePaste($event)"
-      :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
-      :rows="2"
-      autoresize
-      :maxrows="10"
-      :disabled="submitting || aiBusy || isWriteRestricted"
-      :maxlength="COMMENT_BODY_MAX_LENGTH"
-    />
-    <MemiBoardCommentAi v-model="body" v-model:translations="translations" :board-id="boardId"
-      :disabled="submitting || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
-    <MemiBoardCommentImageField
-      ref="imageField"
-      v-model="image"
-      :post-id="postId"
-      :comment-id="draftId"
-      :disabled="submitting || isWriteRestricted"
-      @busy="imageBusy = $event"
-    />
-    <p
-      v-if="isWriteRestricted && restrictedMessage"
-      class="text-xs text-warning"
-    >
-      {{ restrictedMessage }}
-    </p>
-    <div class="flex justify-between items-center">
-      <span class="text-xs text-dimmed">{{ formatNumber(body.length) }} / {{ formatNumber(COMMENT_BODY_MAX_LENGTH) }}</span>
-      <p
-        v-if="error"
-        class="text-xs text-error"
-      >
+    <div class="flex flex-col gap-3 p-3 sm:p-4">
+      <UTextarea
+        v-model="body"
+        @paste="imageField?.handlePaste($event)"
+        :placeholder="parent ? t('commentForm.replyTo', { name: parent.authorName || t('common.label.user') }) : t('commentForm.placeholder')"
+        :rows="3"
+        autoresize
+        :maxrows="10"
+        :disabled="submitting || aiBusy || isWriteRestricted"
+        :maxlength="COMMENT_BODY_MAX_LENGTH"
+        class="w-full"
+      />
+      <p v-if="isWriteRestricted && restrictedMessage" class="text-xs text-warning">
+        {{ restrictedMessage }}
+      </p>
+      <p v-if="error" class="text-xs text-error" role="alert">
         {{ error }}
       </p>
-      <p
-        v-else-if="notice"
-        class="text-xs text-warning"
-      >
+      <p v-else-if="notice" class="text-xs text-warning" role="status">
         {{ notice }}
       </p>
-      <div class="flex-1" />
-      <UButton
-        v-if="parent"
-        type="button"
-        size="sm"
-        :label="t('common.action.cancel')"
-        color="neutral"
-        variant="ghost"
-        :disabled="imageBusy || submitting || aiBusy"
-        @click="handleCancel"
+    </div>
+    <div class="flex flex-col gap-3 border-t border-default bg-muted/30 px-3 py-2.5 sm:flex-row sm:items-center sm:px-4">
+      <MemiBoardCommentImageField
+        ref="imageField"
+        v-model="image"
+        :post-id="postId"
+        :comment-id="draftId"
+        :disabled="submitting || isWriteRestricted"
+        compact
+        class="min-w-0 flex-1"
+        @busy="imageBusy = $event"
       />
-      <UButton
-        type="submit"
-        @pointerdown="imeSafeSubmitPointerDown"
-        @click="imeSafeSubmitClick"
-        size="sm"
-        :label="parent ? t('commentForm.submitReply') : t('commentForm.submit')"
-        :loading="submitting"
-        :disabled="!body.trim() || isWriteRestricted || imageBusy || aiBusy"
-      />
+      <div class="ms-auto flex shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+        <MemiBoardCommentAi
+          v-model="body"
+          v-model:translations="translations"
+          :board-id="boardId"
+          :disabled="submitting || imageBusy || isWriteRestricted"
+          @busy="aiBusy = $event"
+        />
+        <span class="text-xs text-dimmed tabular-nums">{{ formatNumber(body.length) }} / {{ formatNumber(COMMENT_BODY_MAX_LENGTH) }}</span>
+        <UButton
+          v-if="parent"
+          type="button"
+          size="sm"
+          :label="t('common.action.cancel')"
+          color="neutral"
+          variant="ghost"
+          :disabled="imageBusy || submitting || aiBusy"
+          @click="handleCancel"
+        />
+        <UButton
+          type="submit"
+          @pointerdown="imeSafeSubmitPointerDown"
+          @click="imeSafeSubmitClick"
+          size="sm"
+          :label="parent ? t('commentForm.submitReply') : t('commentForm.submit')"
+          :loading="submitting"
+          :disabled="!body.trim() || isWriteRestricted || imageBusy || aiBusy"
+        />
+      </div>
     </div>
   </form>
   <component

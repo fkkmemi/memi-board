@@ -435,7 +435,13 @@ watch(() => props.postId, () => {
       <h2 class="text-sm font-medium text-muted">
         {{ t('detail.comments') }}
       </h2>
-      <MemiBoardCommentList :board-id="boardId" :post-id="postId" />
+      <MemiBoardCommentList
+        :board-id="boardId"
+        :post-id="postId"
+        :author-profile-to="authorProfileTo"
+        :author-posts-to="authorPostsTo"
+        :author-comments-to="authorCommentsTo"
+      />
       <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />
     </section>
 

@@ -6,7 +6,15 @@ import MemiBoardCommentForm from './CommentForm.vue'
 import MemiBoardCommentItem from './CommentItem.vue'
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 
-const props = defineProps<{ boardId: string, postId: string, root: CommentModel, now: number }>()
+const props = defineProps<{
+  boardId: string
+  postId: string
+  root: CommentModel
+  now: number
+  authorProfileTo?: (authorUid: string) => string | undefined
+  authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
+}>()
 
 const { t } = useMemiBoardI18n()
 
@@ -81,6 +89,9 @@ async function handleDelete(comment: CommentModel) {
       :board-id="boardId"
       :post-id="postId"
       :now="now"
+      :author-profile-to="authorProfileTo"
+      :author-posts-to="authorPostsTo"
+      :author-comments-to="authorCommentsTo"
       :deleting="deletingId === root.id"
       @reply="startReply"
       @delete="handleDelete(root)"
@@ -104,8 +115,11 @@ async function handleDelete(comment: CommentModel) {
         :key="reply.id"
         :comment="reply"
         :board-id="boardId"
-      :post-id="postId"
+        :post-id="postId"
         :now="now"
+        :author-profile-to="authorProfileTo"
+        :author-posts-to="authorPostsTo"
+        :author-comments-to="authorCommentsTo"
         :deleting="deletingId === reply.id"
         :class="(reply.depth ?? 1) >= 2 ? 'ml-4 sm:ml-8' : ''"
         @reply="startReply"

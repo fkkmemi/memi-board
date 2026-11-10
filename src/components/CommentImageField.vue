@@ -9,6 +9,7 @@ const props = defineProps<{
   commentId: string
   modelValue: Attachment | null
   disabled?: boolean
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -180,8 +181,9 @@ onUnmounted(() => {
     <button
       v-else
       type="button"
-      class="rounded-md border border-dashed px-3 py-4 text-left text-xs text-muted transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-      :class="dragOver ? 'border-primary bg-elevated/60' : 'border-default hover:bg-elevated/40'"
+      class="flex items-center gap-2 rounded-md border border-dashed px-3 text-left text-xs text-muted transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+      :class="[compact ? 'py-2.5' : 'py-4', dragOver ? 'border-primary bg-elevated/60' : 'border-default hover:bg-elevated/40']"
+      :title="compact ? t('commentForm.attachNote') : undefined"
       :disabled="disabled || uploading"
       @click="openPicker"
       @dragenter.prevent="dragOver = true"
@@ -189,6 +191,7 @@ onUnmounted(() => {
       @dragleave="onDragLeave"
       @drop.prevent="onDrop"
     >
+      <UIcon v-if="compact" name="i-lucide-image-plus" class="size-4 shrink-0" />
       {{ uploading ? t('commentForm.uploading') : t('commentForm.attachHint') }}
     </button>
     <UProgress
@@ -196,7 +199,7 @@ onUnmounted(() => {
       :model-value="Math.round(progress * 100)"
       size="sm"
     />
-    <p class="text-xs text-dimmed">
+    <p v-if="!compact" class="text-xs text-dimmed">
       {{ t('commentForm.attachNote') }}
     </p>
     <p

@@ -9,7 +9,13 @@ import {
 import MemiBoardCommentSkeleton from './CommentSkeleton.vue'
 import MemiBoardCommentThread from './CommentThread.vue'
 
-const props = defineProps<{ boardId: string, postId: string }>()
+const props = defineProps<{
+  boardId: string
+  postId: string
+  authorProfileTo?: (authorUid: string) => string | undefined
+  authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
+}>()
 
 const { t } = useMemiBoardI18n()
 
@@ -99,6 +105,9 @@ onUnmounted(() => {
       :board-id="boardId"
       :post-id="postId"
       :now="now"
+      :author-profile-to="authorProfileTo"
+      :author-posts-to="authorPostsTo"
+      :author-comments-to="authorCommentsTo"
     />
 
     <div

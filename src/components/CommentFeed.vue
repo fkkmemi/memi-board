@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardAuthorMenu from './AuthorMenu.vue'
 import { computed, ref, resolveComponent, toRef } from 'vue'
 import { displayCommentBody, useMemiBoardCommentFeed, useMemiBoardI18n } from 'memi-board/runtime'
 import type { CommentFeedSort, CommentModel } from 'memi-board/runtime'
@@ -11,6 +12,9 @@ const props = withDefaults(defineProps<{
   pageSize?: number
   getPostLink?: (comment: CommentModel) => string | undefined
   getAuthorLink?: (uid: string) => string | undefined
+  authorProfileTo?: (authorUid: string) => string | undefined
+  authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
   boardLabel?: (boardId: string) => string | undefined
 }>(), {
   sort: 'latest',
@@ -30,10 +34,6 @@ const now = ref(Date.now())
 
 function commentLink(comment: CommentModel): string | undefined {
   return props.getPostLink?.(comment)
-}
-
-function authorLink(comment: CommentModel): string | undefined {
-  return comment.authorUid ? props.getAuthorLink?.(comment.authorUid) : undefined
 }
 
 function boardName(comment: CommentModel): string {
@@ -81,14 +81,19 @@ const emptyMessage = computed(() =>
         class="rounded-lg border border-default p-3 transition-colors hover:bg-elevated/60"
       >
         <div class="flex items-center gap-2 text-xs text-muted">
-          <component
-            :is="authorLink(comment) ? NuxtLink : 'span'"
-            :to="authorLink(comment)"
-            class="truncate font-medium text-highlighted"
-            :class="authorLink(comment) ? 'hover:underline' : ''"
-          >
+          <MemiBoardAuthorMenu
+            v-if="comment.authorUid"
+            :author-uid="comment.authorUid"
+            :author-name="comment.authorName"
+            :author-photo="comment.authorPhoto"
+            :show-avatar="false"
+            :author-profile-to="authorProfileTo ?? getAuthorLink"
+            :author-posts-to="authorPostsTo"
+            :author-comments-to="authorCommentsTo"
+          />
+          <span v-else class="truncate font-medium text-highlighted">
             {{ comment.authorName || t('common.label.anonymous') }}
-          </component>
+          </span>
           <span v-if="boardName(comment)">· {{ boardName(comment) }}</span>
           <span>· {{ formatRelativeDate(comment.createdAt, now) }}</span>
           <span v-if="comment.parentId || comment.isReply">· {{ t('common.action.reply') }}</span>
@@ -112,8 +117,7 @@ const emptyMessage = computed(() =>
             <span
               v-if="comment.replyToName"
               class="mr-1 text-primary"
-            >@{{ comment.replyToName }}</span>
-            {{ displayCommentBody(comment, locale) }}
+            >@{{ comment.replyToName }}</span><span v-text="displayCommentBody(comment, locale)" />
           </p>
           <p
             v-if="(comment.likeCount ?? 0) > 0"

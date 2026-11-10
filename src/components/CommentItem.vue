@@ -13,6 +13,7 @@ import {
   useMemiBoardI18n,
   useMemiBoardModeration,
 } from 'memi-board/runtime'
+import MemiBoardAuthorMenu from './AuthorMenu.vue'
 import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
 import MemiBoardImageLightbox from './ImageLightbox.vue'
@@ -23,6 +24,9 @@ const props = defineProps<{
   postId: string
   now: number
   deleting?: boolean
+  authorProfileTo?: (authorUid: string) => string | undefined
+  authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
 
 const emit = defineEmits<{
@@ -189,7 +193,17 @@ async function toggleLike() {
     />
     <div class="min-w-0 flex-1">
       <div class="flex items-center gap-2">
-        <span class="text-sm font-medium">{{ comment.authorName ?? t('common.label.anonymous') }}</span>
+        <MemiBoardAuthorMenu
+          v-if="comment.authorUid"
+          :author-uid="comment.authorUid"
+          :author-name="comment.authorName"
+          :author-photo="comment.authorPhoto"
+          :show-avatar="false"
+          :author-profile-to="authorProfileTo"
+          :author-posts-to="authorPostsTo"
+          :author-comments-to="authorCommentsTo"
+        />
+        <span v-else class="text-sm font-medium">{{ comment.authorName ?? t('common.label.anonymous') }}</span>
         <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
           <time
             :datetime="date?.toISOString()"
@@ -275,8 +289,7 @@ async function toggleLike() {
       </div>
       <div v-else>
         <p class="whitespace-pre-wrap break-words text-sm">
-          <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span>
-          {{ displayedBody }}
+          <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span><span v-text="displayedBody" />
         </p>
         <button
           v-if="localImage"
