@@ -147,19 +147,23 @@ async function saveEdit() {
   }
 }
 
-async function toggleBlind() {
-  if (!props.comment.id || !user.value || !canManageBoard(props.comment.boardId)) return
-  const next = !localBlinded.value
-  const confirmed = window.confirm(next
-    ? t('commentItem.blindConfirm')
-    : t('commentItem.unblindConfirm'))
-  if (!confirmed) return
-
+const blindConfirmOpen = ref(false)
+const blindTarget = ref(false)
+function toggleBlind() {
+  if (!props.comment.id || !user.value || !canManageBoard(props.comment.boardId) || blindSaving.value) return
+  editError.value = ''
+  blindTarget.value = !localBlinded.value
+  blindConfirmOpen.value = true
+}
+async function confirmBlind() {
+  if (!props.comment.id || !user.value || !canManageBoard(props.comment.boardId) || blindSaving.value) return
+  const next = blindTarget.value
   blindSaving.value = true
   editError.value = ''
   try {
     await setCommentBlinded(props.comment.id, next, user.value.uid)
     localBlinded.value = next
+    blindConfirmOpen.value = false
     if (next) cancelEdit()
   }
   catch (cause) {
@@ -315,17 +319,18 @@ async function toggleLike() {
       </p>
     </div>
     <div class="flex shrink-0 items-center gap-1">
-      <UButton
-        v-if="isSignedIn && commentLikes && comment.id"
-        icon="i-lucide-heart"
-        size="xs"
-        variant="ghost"
-        :color="isLiked ? 'error' : 'neutral'"
-        :label="String(localLikeCount)"
-        :loading="likePending"
-        :aria-label="isLiked ? t('common.action.unlike') : t('common.action.like')"
-        @click="toggleLike"
-      />
+      <UTooltip v-if="isSignedIn && commentLikes && comment.id" :text="isLiked ? t('common.action.unlike') : t('common.action.like')" :delay-duration="200">
+        <UButton
+          icon="i-lucide-heart"
+          size="xs"
+          variant="ghost"
+          :color="isLiked ? 'error' : 'neutral'"
+          :label="String(localLikeCount)"
+          :loading="likePending"
+          :aria-label="isLiked ? t('common.action.unlike') : t('common.action.like')"
+          @click="toggleLike"
+        />
+      </UTooltip>
       <span
         v-else
         class="flex items-center gap-0.5 px-1 text-xs text-muted"
@@ -334,44 +339,61 @@ async function toggleLike() {
         <UIcon name="i-lucide-heart" class="size-3.5" />
         {{ localLikeCount }}
       </span>
-      <UButton
-        v-if="canEditComment(comment) && comment.id && !localBlinded"
-        icon="i-lucide-pencil"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('commentItem.edit')"
-        :disabled="editing"
-        @click="startEdit"
-      />
-      <UButton
-        v-if="canManageBoard(comment.boardId) && comment.id"
-        :icon="localBlinded ? 'i-lucide-eye' : 'i-lucide-eye-off'"
-        size="xs"
-        :color="localBlinded ? 'neutral' : 'warning'"
-        variant="ghost"
-        :loading="blindSaving"
-        :aria-label="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')"
-        @click="toggleBlind"
-      />
-      <UButton
-        icon="i-lucide-reply"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('common.action.reply')"
-        @click="emit('reply', comment)"
-      />
-      <UButton
-        v-if="canDeleteComment(comment) && comment.id"
-        icon="i-lucide-trash-2"
-        size="xs"
-        variant="ghost"
-        color="error"
-        :loading="deleting"
-        :aria-label="t('commentItem.delete')"
-        @click="emit('delete', comment.id)"
-      />
+      <UTooltip v-if="canEditComment(comment) && comment.id && !localBlinded" :text="t('commentItem.edit')" :delay-duration="200">
+        <UButton
+          icon="i-lucide-pencil"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('commentItem.edit')"
+          :disabled="editing"
+          @click="startEdit"
+        />
+      </UTooltip>
+      <UTooltip v-if="canManageBoard(comment.boardId) && comment.id" :text="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')" :delay-duration="200">
+        <UButton
+          :icon="localBlinded ? 'i-lucide-eye' : 'i-lucide-eye-off'"
+          size="xs"
+          :color="localBlinded ? 'neutral' : 'warning'"
+          variant="ghost"
+          :loading="blindSaving"
+          :aria-label="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')"
+          @click="toggleBlind"
+        />
+      </UTooltip>
+      <UTooltip :text="t('common.action.reply')" :delay-duration="200">
+        <UButton
+          icon="i-lucide-reply"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('common.action.reply')"
+          @click="emit('reply', comment)"
+        />
+      </UTooltip>
+      <UTooltip v-if="canDeleteComment(comment) && comment.id" :text="t('commentItem.delete')" :delay-duration="200">
+        <UButton
+          icon="i-lucide-trash-2"
+          size="xs"
+          variant="ghost"
+          color="error"
+          :loading="deleting"
+          :aria-label="t('commentItem.delete')"
+          @click="emit('delete', comment.id)"
+        />
+      </UTooltip>
     </div>
+    <UModal v-model:open="blindConfirmOpen" :title="t(blindTarget ? 'commentItem.blind' : 'commentItem.unblind')" :dismissible="!blindSaving" :close="blindSaving ? false : undefined">
+      <template #body>
+        <div class="space-y-4">
+          <p class="text-sm text-muted">{{ t(blindTarget ? 'commentItem.blindConfirm' : 'commentItem.unblindConfirm') }}</p>
+          <p v-if="editError" role="alert" class="text-sm text-error">{{ editError }}</p>
+          <div class="flex flex-wrap justify-end gap-2">
+            <UButton color="neutral" variant="outline" :label="t('common.action.cancel')" :disabled="blindSaving" @click="blindConfirmOpen = false" />
+            <UButton :label="t('common.action.confirm')" :loading="blindSaving" @click="confirmBlind" />
+          </div>
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>

@@ -456,6 +456,7 @@ service cloud.firestore {
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
         && commentImagesValid(request.resource.data.postId, commentId)
+        && !request.resource.data.keys().hasAny(['isBlinded', 'moderatedAt', 'moderatedBy'])
         && request.resource.data.moderationStatus == 'approved'
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId);
@@ -470,6 +471,11 @@ service cloud.firestore {
           && request.resource.data.postId == resource.data.postId
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isBlinded', 'moderatedAt', 'moderatedBy'])
+            || (isBoardManager(resource.data.boardId)
+              && request.resource.data.isBlinded is bool
+              && request.resource.data.moderatedBy == request.auth.uid
+              && request.resource.data.moderatedAt == request.time))
           && commentImagesValid(request.resource.data.postId, commentId)
           && (
             request.resource.data.get('listed', true) == resource.data.get('listed', true)
@@ -523,6 +529,8 @@ service cloud.firestore {
         && request.resource.data.reason in ['spam', 'abuse', 'adult', 'illegal', 'other']
         && request.resource.data.detail is string
         && request.resource.data.detail.size() <= 200
+        && (request.resource.data.reason != 'other'
+          || request.resource.data.detail.matches('(?s).*\\S.*'))
         && request.resource.data.postTitle is string
         && request.resource.data.postTitle.size() <= 200
         && request.resource.data.authorUid is string
@@ -536,10 +544,17 @@ service cloud.firestore {
 
       allow update: if isBoardManager(resource.data.boardId)
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'reviewedAt', 'reviewedBy'])
+          .hasOnly(['status', 'reviewedAt', 'reviewedBy', 'reviewedByName', 'reviewNote'])
         && resource.data.status == 'open'
         && request.resource.data.status in ['dismissed', 'actioned']
-        && request.resource.data.reviewedBy == request.auth.uid;
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt == request.time
+        && (request.resource.data.get('reviewedByName', null) == null
+          || (request.resource.data.reviewedByName is string && request.resource.data.reviewedByName.size() <= 80))
+        && request.resource.data.get('reviewNote', '') is string
+        && request.resource.data.get('reviewNote', '').size() <= 200
+        && (!('reviewNote' in request.resource.data)
+          || request.resource.data.reviewNote.matches('(?s).*\\S.*'));
       allow delete: if false;
     }
   }

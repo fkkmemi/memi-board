@@ -11,4 +11,12 @@ export default {
   cannotReportOwn: '자신의 글은 신고할 수 없습니다.',
   reasonRequired: '신고 사유를 선택해 주세요.',
   detailTooLong: '자세한 내용은 {max}자까지입니다.',
+
+  "otherDetailRequired": "기타 사유는 자세한 내용을 입력해 주세요.",
+  "reviewNoteRequired": "처리 사유를 입력해 주세요.",
+  "alreadyReviewed": "이미 처리된 신고입니다. 목록을 확인해 주세요.",
+  "manageRequired": "신고를 처리할 권한이 없습니다.",
+  "alreadyReported": "이미 신고한 글입니다.",
+  "statusLoadFailed": "신고 상태를 불러오지 못했습니다. 새로고침해 주세요.",
+
 }

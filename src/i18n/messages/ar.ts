@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "تكبير",
+      zoomOut: "تصغير",
+      fitImage: "ملاءمة الشاشة",
+      originalImage: "الحجم الأصلي (100٪)",
       cancel: 'إلغاء',
       save: 'حفظ',
       saved: 'تم الحفظ',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'للأعلى',
     },
     label: {
+      imageControls: "أدوات تكبير الصورة",
       anonymous: 'مجهول',
       user: 'مستخدم',
       image: 'صورة',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'السبب',
     detailPlaceholder: 'التفاصيل (اختياري)',
     submit: 'إبلاغ',
+
+    "status": {
+      "open": "تم الاستلام",
+      "dismissed": "مرفوض",
+      "actioned": "اكتملت المراجعة"
+    },
+    "resultTitle": "حالة البلاغ",
+    "result": {
+      "open": "تم استلام بلاغك وهو بانتظار المراجعة.",
+      "dismissed": "لم تجد المراجعة مخالفة.",
+      "actioned": "اكتملت المراجعة. راجع السبب أدناه."
+    },
+    "reviewedAt": "وقت المراجعة",
+    "reviewNote": "سبب القرار",
+    "noNote": "لا يوجد سبب مسجل لهذا السجل القديم.",
+    "detailRequired": "التفاصيل (مطلوبة عند اختيار أخرى)",
   },
   reportList: {
     staffOnly: 'يمكن لفريق العمل فقط عرض البلاغات.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'منشور بلا عنوان',
     author: 'بواسطة {name}',
     dismiss: 'رفض',
-    confirm: 'معالجة',
+
+    "tabs": {
+      "open": "قيد الانتظار",
+      "processed": "سجل المراجعات"
+    },
+    "filterLabel": "تصفية البلاغات",
+    "orderHint": "الأحدث استلامًا أولًا.",
+    "historyEmpty": "لا يوجد سجل مراجعات.",
+    "confirm": "وضع علامة تمت المراجعة",
+    "dismissTitle": "رفض البلاغ",
+    "resolveTitle": "إكمال المراجعة",
+    "actionHint": "يغير حالة البلاغ فقط، ولا يخفي المنشور أو يحذفه.",
+    "publicNote": "هذا السبب ظاهر أيضًا لمقدّم البلاغ.",
+    "reviewer": "المراجع",
+    "reviewNote": "سبب القرار",
+    "unknownReviewer": "مراجع غير معروف",
+    "actionFailed": "تعذرت المعالجة. حاول مجددًا.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'لا يمكنك الإبلاغ عن منشورك.',
     reasonRequired: 'يُرجى اختيار سبب.',
     detailTooLong: 'يمكن أن تصل التفاصيل إلى {max} حرف كحد أقصى.',
+
+    "otherDetailRequired": "أدخل التفاصيل عند اختيار أخرى.",
+    "reviewNoteRequired": "أدخل سبب القرار.",
+    "alreadyReviewed": "تمت مراجعة هذا البلاغ مسبقًا. راجع القائمة.",
+    "manageRequired": "ليست لديك صلاحية مراجعة هذا البلاغ.",
+    "alreadyReported": "لقد أبلغت عن هذا المنشور مسبقًا.",
+    "statusLoadFailed": "تعذر تحميل الحالة. حدّث الصفحة.",
   },
   sectionUtil: {
     kind: {

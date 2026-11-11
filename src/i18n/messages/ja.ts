@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "拡大",
+      zoomOut: "縮小",
+      fitImage: "画面に合わせる",
+      originalImage: "元のサイズ (100%)",
       cancel: 'キャンセル',
       save: '保存',
       saved: '保存済み',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'トップへ',
     },
     label: {
+      imageControls: "画像の拡大・縮小",
       anonymous: '匿名',
       user: 'ユーザー',
       image: '画像',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: '理由',
     detailPlaceholder: '詳細（任意）',
     submit: '通報する',
+
+    "status": {
+      "open": "受付済み",
+      "dismissed": "却下済み",
+      "actioned": "確認完了"
+    },
+    "resultTitle": "通報の処理状況",
+    "result": {
+      "open": "通報を受け付け、確認を待っています。",
+      "dismissed": "確認の結果、違反は認められませんでした。",
+      "actioned": "確認が完了しました。以下の理由をご覧ください。"
+    },
+    "reviewedAt": "処理日時",
+    "reviewNote": "処理理由",
+    "noNote": "過去の記録には理由がありません。",
+    "detailRequired": "詳細（その他の場合は必須）",
   },
   reportList: {
     staffOnly: '通報一覧はスタッフのみ閲覧できます。',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: '無題の投稿',
     author: '投稿者 {name}',
     dismiss: '却下',
-    confirm: '対応済み',
+
+    "tabs": {
+      "open": "対応待ち",
+      "processed": "処理履歴"
+    },
+    "filterLabel": "通報の絞り込み",
+    "orderHint": "受付日時の新しい順です。",
+    "historyEmpty": "処理履歴はありません。",
+    "confirm": "確認を完了",
+    "dismissTitle": "通報を却下",
+    "resolveTitle": "確認を完了する",
+    "actionHint": "通報の状態のみ変更します。投稿は非表示・削除されません。",
+    "publicNote": "この理由は通報者にも公開されます。",
+    "reviewer": "担当者",
+    "reviewNote": "処理理由",
+    "unknownReviewer": "担当者不明",
+    "actionFailed": "処理できませんでした。再度お試しください。",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: '自分の投稿は通報できません。',
     reasonRequired: '通報理由を選択してください。',
     detailTooLong: '詳細は{max}文字までです。',
+
+    "otherDetailRequired": "その他を選んだ場合は詳細を入力してください。",
+    "reviewNoteRequired": "処理理由を入力してください。",
+    "alreadyReviewed": "この通報は処理済みです。一覧をご確認ください。",
+    "manageRequired": "この通報を処理する権限がありません。",
+    "alreadyReported": "この投稿は通報済みです。",
+    "statusLoadFailed": "状態を取得できません。再読み込みしてください。",
   },
   sectionUtil: {
     kind: {

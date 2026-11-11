@@ -1,6 +1,10 @@
 /** 여러 화면이 함께 쓰는 짧은 문구. */
 export default {
   action: {
+    zoomIn: "확대",
+    zoomOut: "축소",
+    fitImage: "화면에 맞추기",
+    originalImage: "원래 크기 (100%)",
     cancel: '취소',
     save: '저장',
     saved: '저장됨',
@@ -24,6 +28,7 @@ export default {
     toTop: '위로',
   },
   label: {
+    imageControls: "이미지 확대 도구",
     anonymous: '익명',
     user: '사용자',
     image: '이미지',

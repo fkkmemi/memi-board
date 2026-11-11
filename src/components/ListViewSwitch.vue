@@ -21,15 +21,15 @@ const options = computed<Array<{ label: string, value: BoardListView, icon: stri
 
 <template>
   <UFieldGroup>
-    <UButton
-      v-for="option in options"
-      :key="option.value"
-      :icon="option.icon"
-      :aria-label="option.label"
-      size="sm"
-      :color="modelValue === option.value ? 'primary' : 'neutral'"
-      :variant="modelValue === option.value ? 'solid' : 'outline'"
-      @click="emit('update:modelValue', option.value)"
-    />
+    <UTooltip v-for="option in options" :key="option.value" :text="option.label" :delay-duration="200">
+      <UButton
+        :icon="option.icon"
+        :aria-label="option.label"
+        size="sm"
+        :color="modelValue === option.value ? 'primary' : 'neutral'"
+        :variant="modelValue === option.value ? 'solid' : 'outline'"
+        @click="emit('update:modelValue', option.value)"
+      />
+    </UTooltip>
   </UFieldGroup>
 </template>

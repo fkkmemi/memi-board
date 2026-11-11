@@ -61,14 +61,16 @@ function remove(index: number) {
           @update:model-value="emit('dirty')"
         />
       </div>
-      <UButton
-        class="shrink-0"
-        icon="i-lucide-x"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('common.action.delete')"
-        @click="remove(index)"
-      />
+      <UTooltip :text="t('common.action.delete')" :delay-duration="200">
+        <UButton
+          class="shrink-0"
+          icon="i-lucide-x"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('common.action.delete')"
+          @click="remove(index)"
+        />
+      </UTooltip>
     </div>
     <div>
       <UButton

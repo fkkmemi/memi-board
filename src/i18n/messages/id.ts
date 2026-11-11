@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "Perbesar",
+      zoomOut: "Perkecil",
+      fitImage: "Sesuaikan ke layar",
+      originalImage: "Ukuran asli (100%)",
       cancel: 'Batal',
       save: 'Simpan',
       saved: 'Tersimpan',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'Ke atas',
     },
     label: {
+      imageControls: "Kontrol zoom gambar",
       anonymous: 'Anonim',
       user: 'Pengguna',
       image: 'Gambar',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'Alasan',
     detailPlaceholder: 'Detail (opsional)',
     submit: 'Laporkan',
+
+    "status": {
+      "open": "Diterima",
+      "dismissed": "Ditolak",
+      "actioned": "Peninjauan selesai"
+    },
+    "resultTitle": "Status laporan",
+    "result": {
+      "open": "Laporan diterima dan menunggu peninjauan.",
+      "dismissed": "Peninjauan tidak menemukan pelanggaran.",
+      "actioned": "Peninjauan selesai. Lihat alasan di bawah."
+    },
+    "reviewedAt": "Ditinjau",
+    "reviewNote": "Alasan keputusan",
+    "noNote": "Entri lama ini tidak memiliki alasan tersimpan.",
+    "detailRequired": "Detail (wajib untuk Lainnya)",
   },
   reportList: {
     staffOnly: 'Hanya staf yang dapat melihat laporan.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'Postingan tanpa judul',
     author: 'oleh {name}',
     dismiss: 'Tolak',
-    confirm: 'Selesaikan',
+
+    "tabs": {
+      "open": "Menunggu",
+      "processed": "Riwayat peninjauan"
+    },
+    "filterLabel": "Filter laporan",
+    "orderHint": "Laporan terbaru diterima ditampilkan dahulu.",
+    "historyEmpty": "Belum ada riwayat peninjauan.",
+    "confirm": "Tandai telah ditinjau",
+    "dismissTitle": "Tolak laporan",
+    "resolveTitle": "Selesaikan peninjauan",
+    "actionHint": "Hanya mengubah status laporan. Kiriman tidak disembunyikan atau dihapus.",
+    "publicNote": "Alasan ini juga terlihat oleh pelapor.",
+    "reviewer": "Peninjau",
+    "reviewNote": "Alasan keputusan",
+    "unknownReviewer": "Peninjau tidak diketahui",
+    "actionFailed": "Pemrosesan gagal. Silakan coba lagi.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'Anda tidak dapat melaporkan postingan sendiri.',
     reasonRequired: 'Pilih alasan.',
     detailTooLong: 'Detail maksimal {max} karakter.',
+
+    "otherDetailRequired": "Isi detail saat memilih Lainnya.",
+    "reviewNoteRequired": "Isi alasan keputusan.",
+    "alreadyReviewed": "Laporan ini sudah ditinjau. Periksa daftar.",
+    "manageRequired": "Anda tidak berhak meninjau laporan ini.",
+    "alreadyReported": "Anda sudah melaporkan kiriman ini.",
+    "statusLoadFailed": "Status tidak dapat dimuat. Muat ulang halaman.",
   },
   sectionUtil: {
     kind: {

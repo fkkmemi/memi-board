@@ -801,3 +801,13 @@ In the npm package settings, register the Trusted Publisher as GitHub repository
 ### 0.46 roles and per-service names
 
 For the 5 roles, per-board manager scope, `roleLabels`, and the host migration procedure, see [role migration](docs/roles-migration.md). Use `canConfigureBoard()` for settings access.
+
+### Report review workflow
+
+`MemiBoardReportList` separates pending reports from processed history, ordered by report receipt time. Staff must enter a public review reason (up to 200 characters) for dismissal or review completion. Review completion records the decision only; use the separate post management controls when content needs moderation.
+
+Reporters can reopen the report button to read the current status, review time and public reason. Existing reports without a reason show a legacy-entry message. Other reports require a nonblank description. These interfaces support all ten package languages.
+
+Deploy the report section in `docs/firestore.rules.example` before enabling these controls. Review records add optional `reviewedByName` and `reviewNote` fields; older client decisions without these fields remain compatible. Custom callers must pass a nonblank reason to `dismissReport(report, note)` / `actionReport(report, note)`.
+
+Comment blind/restore is a separate manager action, not a user report. Its in-page confirmation preserves the requested action while saving and displays errors in the dialog. Updated comment rules prevent authors from changing `isBlinded`, `moderatedAt`, or `moderatedBy`; managers must use their own UID and a server timestamp. Blinding changes presentation and retains the original document; it is not deletion or a data-access boundary.

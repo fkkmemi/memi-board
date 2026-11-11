@@ -271,15 +271,17 @@ watch(() => props.postId, () => {
             {{ shownTitle }}
           </h1>
         </div>
-        <UButton
-          icon="i-lucide-arrow-left"
-          :aria-label="t('detail.backToList')"
-          color="neutral"
-          variant="ghost"
-          size="sm"
-          class="shrink-0"
-          @click="emit('list')"
-        />
+        <UTooltip :text="t('detail.backToList')" :delay-duration="200">
+          <UButton
+            icon="i-lucide-arrow-left"
+            :aria-label="t('detail.backToList')"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            class="shrink-0"
+            @click="emit('list')"
+          />
+        </UTooltip>
       </div>
       <div
         v-if="post.tags?.length"

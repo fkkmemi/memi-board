@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.58.0',
+    date: '2026-11-11',
+    highlights: [
+      '신고 상태와 공개 처리 사유를 확인하고, 관리자는 처리 이력을 볼 수 있어요',
+      '댓글 블라인드 권한을 보강하고 가림·해제를 화면 안에서 확인해요',
+      '댓글 등 아이콘 버튼에 10개 언어 툴팁을 추가했어요',
+      '이미지를 최대 800%로 확대하고 화면 맞춤·원래 크기·끌어서 이동을 사용할 수 있어요',
+    ],
+    highlightsEn: [
+      'View report status and public review reasons, with a processed history for managers',
+      'Hardened comment moderation permissions and added in-page hide/restore confirmation',
+      'Added icon action tooltips in all ten UI languages',
+      'Zoom images up to 800%, fit to screen, view actual size, and drag to pan',
+    ],
+  },
+  {
     version: '0.57.0',
     date: '2026-11-10',
     highlights: [

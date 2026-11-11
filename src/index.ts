@@ -78,6 +78,7 @@ export {
 export type { MemiBoardCommentLikesApi } from './composables/useMemiBoardLikes'
 export {
   REPORT_DETAIL_MAX_LENGTH,
+  REPORT_REVIEW_NOTE_MAX_LENGTH,
   REPORT_REASONS,
   reportReasonLabel,
   useMemiBoardReports,

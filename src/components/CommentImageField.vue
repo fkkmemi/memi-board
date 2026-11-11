@@ -167,16 +167,18 @@ onUnmounted(() => {
           class="max-h-40 max-w-full rounded-md border border-default object-contain"
         >
       </button>
-      <UButton
-        type="button"
-        icon="i-lucide-x"
-        size="xs"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('commentForm.removeImage')"
-        :disabled="disabled || uploading"
-        @click="remove"
-      />
+      <UTooltip :text="t('commentForm.removeImage')" :delay-duration="200">
+        <UButton
+          type="button"
+          icon="i-lucide-x"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('commentForm.removeImage')"
+          :disabled="disabled || uploading"
+          @click="remove"
+        />
+      </UTooltip>
     </div>
     <button
       v-else

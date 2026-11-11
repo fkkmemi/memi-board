@@ -361,6 +361,9 @@ export interface BoardReportModel {
   authorName?: string | null
   reviewedAt?: Timestamp
   reviewedBy?: string
+  reviewedByName?: string | null
+  /** 신고자에게도 공개되는 처리 사유. */
+  reviewNote?: string
 }
 
 export type BoardLikeTarget = 'post' | 'comment'

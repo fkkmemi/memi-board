@@ -10,7 +10,7 @@ import {
   serverTimestamp,
   setDoc,
   startAfter,
-  updateDoc,
+  runTransaction,
   where,
 } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
@@ -24,6 +24,7 @@ import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export const REPORT_DETAIL_MAX_LENGTH = 200
+export const REPORT_REVIEW_NOTE_MAX_LENGTH = 200
 /**
  * 신고 사유 목록. `label` 은 호환용 한국어 원문이다 — 화면에는 `reportReasonLabel(value, locale)` 로
  * 현재 언어 문구를 쓴다.
@@ -47,20 +48,30 @@ export function useMemiBoardReports(boardId: string, postId: string) {
   const user = useCurrentUser()
   const { t } = useMemiBoardI18n()
 
-  const hasReported = ref(false)
+  const report = ref<BoardReportModel | null>(null)
+  const hasReported = computed(() => !!report.value)
+  const reportPending = ref(true)
+  const reportError = ref('')
+  let subscription = 0
   const pending = ref(false)
   let stop: Unsubscribe | undefined
 
   watch(user, (current) => {
+    const version = ++subscription
     stop?.()
     stop = undefined
-    if (!current) {
-      hasReported.value = false
-      return
-    }
+    report.value = null
+    reportError.value = ''
+    reportPending.value = !!current
+    if (!current) return
     stop = onSnapshot(reportDoc(db, cfg(), postId, current.uid), (snap) => {
-      hasReported.value = snap.exists()
+      if (version !== subscription) return
+      report.value = snap.exists() ? { id: snap.id, ...snap.data() } as BoardReportModel : null
+      reportPending.value = false
     }, (cause) => {
+      if (version !== subscription) return
+      reportError.value = t('reports.statusLoadFailed')
+      reportPending.value = false
       console.error('[memi-board:reports] onSnapshot failed', cause)
     })
   }, { immediate: true })
@@ -80,7 +91,9 @@ export function useMemiBoardReports(boardId: string, postId: string) {
     if (input.authorUid && input.authorUid === uid) throw new Error(t('reports.cannotReportOwn'))
     const reason = REPORT_REASONS.some(item => item.value === input.reason) ? input.reason : null
     if (!reason) throw new Error(t('reports.reasonRequired'))
+    if (hasReported.value) throw new Error(t('reports.alreadyReported'))
     const detail = (input.detail || '').trim()
+    if (reason === 'other' && !detail) throw new Error(t('reports.otherDetailRequired'))
     if (detail.length > REPORT_DETAIL_MAX_LENGTH) {
       throw new Error(t('reports.detailTooLong', { max: REPORT_DETAIL_MAX_LENGTH }))
     }
@@ -100,25 +113,30 @@ export function useMemiBoardReports(boardId: string, postId: string) {
         authorName: input.authorName ?? null,
         createdAt: serverTimestamp(),
       })
-      hasReported.value = true
+      report.value = { uid, target: 'post', postId, boardId, reason, detail, status: 'open' } as BoardReportModel
     }
     finally {
       pending.value = false
     }
   }
 
-  return { hasReported, pending, submitReport }
+  return { hasReported, report, reportPending, reportError, pending, submitReport }
 }
 
 const QUEUE_PAGE_SIZE = 20
 
-export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: MaybeRefOrGetter<string> } = {}) {
+export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: MaybeRefOrGetter<string>, status?: MaybeRefOrGetter<'open' | 'processed'> } = {}) {
   const cfg = () => useBoardPathConfig()
   const db = useFirestore()
+  const { t } = useMemiBoardI18n()
   const { isAdmin, canManageContent, canManageBoard } = useMemiBoardAuth()
   const pageSize = options.pageSize ?? QUEUE_PAGE_SIZE
   const boardFilter = computed(() => toValue(options.boardId)?.trim() || '')
 
+  const statusFilter = computed(() => toValue(options.status) ?? 'open')
+  const statusConstraint = () => statusFilter.value === 'processed'
+    ? where('status', 'in', ['dismissed', 'actioned'])
+    : where('status', '==', 'open')
   const reports = ref<BoardReportModel[]>([])
   const pending = ref(true)
   const loadingMore = ref(false)
@@ -131,8 +149,15 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     return { id: item.id, ...item.data() } as BoardReportModel
   }
 
+  let queueVersion = 0
   function startHead() {
+    const version = ++queueVersion
     stop?.()
+    reports.value = []
+    cursor = null
+    hasMore.value = false
+    loadError.value = ''
+    loadingMore.value = false
     if (!canManageContent.value || (!isAdmin.value && !boardFilter.value)) {
       reports.value = []
       pending.value = false
@@ -140,8 +165,8 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     }
     pending.value = true
     const constraints = boardFilter.value
-      ? [where('status', '==', 'open'), where('boardId', '==', boardFilter.value)]
-      : [where('status', '==', 'open'), where('target', '==', 'post')]
+      ? [statusConstraint(), where('boardId', '==', boardFilter.value)]
+      : [statusConstraint(), where('target', '==', 'post')]
     stop = onSnapshot(query(
       reportsCol(db, cfg()),
       ...constraints,
@@ -149,28 +174,31 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
       orderBy(documentId(), 'desc'),
       fbLimit(pageSize),
     ), (snapshot) => {
+      if (version !== queueVersion) return
       reports.value = snapshot.docs.map(mapDoc).filter(item => canManageBoard(item.boardId))
       cursor = snapshot.docs.at(-1) ?? null
       hasMore.value = snapshot.docs.length >= pageSize
       pending.value = false
     }, (cause) => {
+      if (version !== queueVersion) return
       console.error('[memi-board:report-queue] onSnapshot failed', cause)
       loadError.value = (cause as Error).message || String(cause)
       pending.value = false
     })
   }
 
-  watch([canManageContent, boardFilter], startHead, { immediate: true })
+  watch([canManageContent, isAdmin, boardFilter, statusFilter], startHead, { immediate: true })
   onScopeDispose(() => stop?.())
 
   async function loadMore() {
     if (loadingMore.value || !hasMore.value || !cursor || !canManageContent.value) return
+    const version = queueVersion
     loadingMore.value = true
     loadError.value = ''
     try {
       const constraints = boardFilter.value
-        ? [where('status', '==', 'open'), where('boardId', '==', boardFilter.value)]
-        : [where('status', '==', 'open'), where('target', '==', 'post')]
+        ? [statusConstraint(), where('boardId', '==', boardFilter.value)]
+        : [statusConstraint(), where('target', '==', 'post')]
       const snapshot = await getDocs(query(
         reportsCol(db, cfg()),
         ...constraints,
@@ -179,6 +207,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
         startAfter(cursor),
         fbLimit(pageSize + 1),
       ))
+      if (version !== queueVersion) return
       const pageDocs = snapshot.docs.slice(0, pageSize)
       const existing = new Set(reports.value.map(item => item.id))
       reports.value.push(...pageDocs.map(mapDoc).filter(item => !existing.has(item.id) && canManageBoard(item.boardId)))
@@ -186,19 +215,32 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
       hasMore.value = snapshot.docs.length > pageSize
     }
     catch (cause) {
+      if (version !== queueVersion) return
       loadError.value = (cause as Error).message || String(cause)
     }
     finally {
-      loadingMore.value = false
+      if (version === queueVersion) loadingMore.value = false
     }
   }
 
-  async function resolveReport(report: BoardReportModel, status: Exclude<BoardReportStatus, 'open'>) {
-    if (!report.id || !canManageBoard(report.boardId)) return
-    await updateDoc(reportDoc(db, cfg(), report.postId, report.uid), {
-      status,
-      reviewedAt: serverTimestamp(),
-      reviewedBy: useCurrentUser().value?.uid || '',
+  async function resolveReport(report: BoardReportModel, status: Exclude<BoardReportStatus, 'open'>, note = '') {
+    const current = useCurrentUser().value
+    if (!current || !report.id || !canManageBoard(report.boardId)) throw new Error(t('reports.manageRequired'))
+    const reviewNote = note.trim()
+    if (!reviewNote) throw new Error(t('reports.reviewNoteRequired'))
+    if (reviewNote.length > REPORT_REVIEW_NOTE_MAX_LENGTH) throw new Error(t('reports.detailTooLong', { max: REPORT_REVIEW_NOTE_MAX_LENGTH }))
+    // Two reviewers cannot overwrite each other's decision.
+    await runTransaction(db, async transaction => {
+      const target = reportDoc(db, cfg(), report.postId, report.uid)
+      const snapshot = await transaction.get(target)
+      if (!snapshot.exists() || snapshot.data().status !== 'open') throw new Error(t('reports.alreadyReviewed'))
+      transaction.update(target, {
+        status,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: current.uid,
+        reviewedByName: current.displayName?.trim().slice(0, 80) || null,
+        reviewNote,
+      })
     })
   }
 
@@ -209,7 +251,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     hasMore,
     loadError,
     loadMore,
-    dismissReport: (report: BoardReportModel) => resolveReport(report, 'dismissed'),
-    actionReport: (report: BoardReportModel) => resolveReport(report, 'actioned'),
+    dismissReport: (report: BoardReportModel, note?: string) => resolveReport(report, 'dismissed', note),
+    actionReport: (report: BoardReportModel, note?: string) => resolveReport(report, 'actioned', note),
   }
 }

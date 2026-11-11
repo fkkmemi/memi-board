@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "Agrandir",
+      zoomOut: "Réduire",
+      fitImage: "Ajuster à l’écran",
+      originalImage: "Taille originale (100 %)",
       cancel: 'Annuler',
       save: 'Enregistrer',
       saved: 'Enregistré',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'Haut',
     },
     label: {
+      imageControls: "Commandes de zoom de l’image",
       anonymous: 'Anonyme',
       user: 'Utilisateur',
       image: 'Image',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'Motif',
     detailPlaceholder: 'Détails (facultatif)',
     submit: 'Signaler',
+
+    "status": {
+      "open": "Reçu",
+      "dismissed": "Rejeté",
+      "actioned": "Examen terminé"
+    },
+    "resultTitle": "État du signalement",
+    "result": {
+      "open": "Votre signalement a été reçu et attend un examen.",
+      "dismissed": "L’examen n’a pas constaté de violation.",
+      "actioned": "L’examen est terminé. Consultez le motif ci-dessous."
+    },
+    "reviewedAt": "Examiné le",
+    "reviewNote": "Motif de traitement",
+    "noNote": "Aucun motif enregistré pour cette ancienne entrée.",
+    "detailRequired": "Détails (obligatoires pour Autre)",
   },
   reportList: {
     staffOnly: 'Seule l’équipe peut consulter les signalements.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'Publication sans titre',
     author: 'par {name}',
     dismiss: 'Rejeter',
-    confirm: 'Traiter',
+
+    "tabs": {
+      "open": "En attente",
+      "processed": "Historique"
+    },
+    "filterLabel": "Filtrer les signalements",
+    "orderHint": "Les plus récemment reçus d’abord.",
+    "historyEmpty": "Aucun historique.",
+    "confirm": "Marquer comme examiné",
+    "dismissTitle": "Rejeter le signalement",
+    "resolveTitle": "Terminer l’examen",
+    "actionHint": "Seul l’état du signalement change. La publication n’est ni masquée ni supprimée.",
+    "publicNote": "Ce motif est aussi visible par la personne qui a signalé.",
+    "reviewer": "Responsable",
+    "reviewNote": "Motif de traitement",
+    "unknownReviewer": "Responsable inconnu",
+    "actionFailed": "Échec du traitement. Réessayez.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'Vous ne pouvez pas signaler votre propre publication.',
     reasonRequired: 'Veuillez choisir un motif.',
     detailTooLong: 'Les détails sont limités à {max} caractères.',
+
+    "otherDetailRequired": "Précisez les détails pour le motif Autre.",
+    "reviewNoteRequired": "Saisissez un motif de traitement.",
+    "alreadyReviewed": "Ce signalement a déjà été traité. Consultez la liste.",
+    "manageRequired": "Vous ne pouvez pas traiter ce signalement.",
+    "alreadyReported": "Vous avez déjà signalé cette publication.",
+    "statusLoadFailed": "Impossible de charger l’état. Actualisez la page.",
   },
   sectionUtil: {
     kind: {

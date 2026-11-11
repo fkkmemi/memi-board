@@ -68,6 +68,9 @@ jobs:
       - name: Test member management, account confirmation, and post lookup
         run: node --experimental-strip-types --test tests/account-deletion-confirm.test.mjs tests/profile-name-moderation.test.mjs tests/user-directory-page.test.mjs tests/post-slug-auth.test.mjs
 
+      - name: Test report workflow
+        run: node --test tests/report-workflow.test.mjs
+
       - name: Test orphan cleanup
         run: pnpm test:cleanup
 
@@ -76,6 +79,9 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Test report and comment moderation security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-review --only firestore 'node tests/report-rules.mjs'
 
       - name: Test Firebase cleanup security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-cleanup-security --only auth,firestore,storage 'node --test tests/cleanup-rules.test.mjs'

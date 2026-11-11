@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "Vergrößern",
+      zoomOut: "Verkleinern",
+      fitImage: "An Bildschirm anpassen",
+      originalImage: "Originalgröße (100%)",
       cancel: 'Abbrechen',
       save: 'Speichern',
       saved: 'Gespeichert',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'Nach oben',
     },
     label: {
+      imageControls: "Bildzoom-Steuerung",
       anonymous: 'Anonym',
       user: 'Benutzer',
       image: 'Bild',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'Grund',
     detailPlaceholder: 'Details (optional)',
     submit: 'Melden',
+
+    "status": {
+      "open": "Eingegangen",
+      "dismissed": "Abgewiesen",
+      "actioned": "Prüfung abgeschlossen"
+    },
+    "resultTitle": "Meldungsstatus",
+    "result": {
+      "open": "Die Meldung ist eingegangen und wartet auf Prüfung.",
+      "dismissed": "Bei der Prüfung wurde kein Verstoß festgestellt.",
+      "actioned": "Die Prüfung ist abgeschlossen. Siehe Begründung unten."
+    },
+    "reviewedAt": "Geprüft",
+    "reviewNote": "Begründung",
+    "noNote": "Für diesen älteren Eintrag wurde keine Begründung gespeichert.",
+    "detailRequired": "Details (bei Sonstiges erforderlich)",
   },
   reportList: {
     staffOnly: 'Nur das Team kann Meldungen einsehen.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'Beitrag ohne Titel',
     author: 'von {name}',
     dismiss: 'Ablehnen',
-    confirm: 'Erledigt',
+
+    "tabs": {
+      "open": "Ausstehend",
+      "processed": "Prüfverlauf"
+    },
+    "filterLabel": "Meldungen filtern",
+    "orderHint": "Neueste Eingänge zuerst.",
+    "historyEmpty": "Kein Prüfverlauf.",
+    "confirm": "Als geprüft markieren",
+    "dismissTitle": "Meldung abweisen",
+    "resolveTitle": "Prüfung abschließen",
+    "actionHint": "Ändert nur den Meldungsstatus. Der Beitrag wird weder ausgeblendet noch gelöscht.",
+    "publicNote": "Die meldende Person kann diese Begründung ebenfalls sehen.",
+    "reviewer": "Geprüft von",
+    "reviewNote": "Begründung",
+    "unknownReviewer": "Unbekannte prüfende Person",
+    "actionFailed": "Verarbeitung fehlgeschlagen. Bitte erneut versuchen.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'Eigene Beiträge können nicht gemeldet werden.',
     reasonRequired: 'Bitte einen Grund auswählen.',
     detailTooLong: 'Details dürfen höchstens {max} Zeichen lang sein.',
+
+    "otherDetailRequired": "Bitte bei Sonstiges Details eingeben.",
+    "reviewNoteRequired": "Bitte eine Begründung eingeben.",
+    "alreadyReviewed": "Diese Meldung wurde bereits geprüft. Bitte Liste prüfen.",
+    "manageRequired": "Keine Berechtigung zur Prüfung dieser Meldung.",
+    "alreadyReported": "Du hast diesen Beitrag bereits gemeldet.",
+    "statusLoadFailed": "Status konnte nicht geladen werden. Bitte neu laden.",
   },
   sectionUtil: {
     kind: {

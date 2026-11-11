@@ -1,5 +1,9 @@
 export default {
   action: {
+    zoomIn: "Zoom in",
+    zoomOut: "Zoom out",
+    fitImage: "Fit to screen",
+    originalImage: "Original size (100%)",
     cancel: 'Cancel',
     save: 'Save',
     saved: 'Saved',
@@ -23,6 +27,7 @@ export default {
     toTop: 'Top',
   },
   label: {
+    imageControls: "Image zoom controls",
     anonymous: 'Anonymous',
     user: 'User',
     image: 'Image',

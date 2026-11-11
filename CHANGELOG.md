@@ -4,6 +4,23 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.58.0] - 2026-11-11
+
+### Security
+- Prevent comment authors from changing moderator blind state or forging moderation metadata. Only board managers can blind/restore comments, with their own identity and server time.
+
+### Added
+- Image lightbox zoom controls (up to 800%), actual-size and fit modes, percentage display, mouse drag panning and localized tooltips in all ten UI languages. Small images can scale up in the viewer; changing images resets to fit.
+- Localized hover and keyboard-focus tooltips on comment actions, post likes, list view switches, back-to-list, and image/custom-field removal controls across all ten UI languages.
+- Reporters can open their report status and see the public review reason and review time in all ten interface languages.
+- Report queues now have pending/processed filters and retain reviewer, review time and public reason in the history.
+
+### Changed
+- Use an in-page confirmation dialog for comment blind/restore actions and show save failures inside the dialog.
+- Rename the staff confirmation action to “Review complete”; it changes report status without hiding or deleting the post.
+- Require a nonblank description for Other reports and a nonblank public review reason for new review actions. `dismissReport(report, note)` and `actionReport(report, note)` now require a reason (maximum 200 characters).
+- Extend the report rules example with bounded review metadata validation. Deploy the updated report rules before using the new review UI. Older processed reports without reasons remain readable.
+
 ## [0.57.0] - 2026-11-10
 
 ### Added

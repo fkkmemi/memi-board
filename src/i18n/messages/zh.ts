@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "放大",
+      zoomOut: "缩小",
+      fitImage: "适应屏幕",
+      originalImage: "原始大小 (100%)",
       cancel: '取消',
       save: '保存',
       saved: '已保存',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: '顶部',
     },
     label: {
+      imageControls: "图片缩放控件",
       anonymous: '匿名',
       user: '用户',
       image: '图片',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: '原因',
     detailPlaceholder: '详细说明（选填）',
     submit: '举报',
+
+    "status": {
+      "open": "已受理",
+      "dismissed": "已驳回",
+      "actioned": "审核完成"
+    },
+    "resultTitle": "举报处理状态",
+    "result": {
+      "open": "举报已受理，正在等待审核。",
+      "dismissed": "审核未发现违规。",
+      "actioned": "审核已完成，请查看下方处理理由。"
+    },
+    "reviewedAt": "处理时间",
+    "reviewNote": "处理理由",
+    "noNote": "此历史记录未填写处理理由。",
+    "detailRequired": "详细说明（其他原因必填）",
   },
   reportList: {
     staffOnly: '仅工作人员可查看举报列表。',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: '无标题帖子',
     author: '作者 {name}',
     dismiss: '驳回',
-    confirm: '已处理',
+
+    "tabs": {
+      "open": "待处理",
+      "processed": "处理记录"
+    },
+    "filterLabel": "筛选举报状态",
+    "orderHint": "按受理时间倒序排列。",
+    "historyEmpty": "暂无处理记录。",
+    "confirm": "标记审核完成",
+    "dismissTitle": "驳回举报",
+    "resolveTitle": "完成审核",
+    "actionHint": "仅更改举报状态，不会隐藏或删除帖子。",
+    "publicNote": "举报者也可以看到此理由。",
+    "reviewer": "处理人",
+    "reviewNote": "处理理由",
+    "unknownReviewer": "处理人未知",
+    "actionFailed": "处理失败，请重试。",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: '不能举报自己的帖子。',
     reasonRequired: '请选择举报原因。',
     detailTooLong: '详细说明最多 {max} 个字。',
+
+    "otherDetailRequired": "选择其他原因时请填写详细说明。",
+    "reviewNoteRequired": "请填写处理理由。",
+    "alreadyReviewed": "此举报已处理，请查看列表。",
+    "manageRequired": "你无权处理此举报。",
+    "alreadyReported": "你已举报过此帖子。",
+    "statusLoadFailed": "无法加载举报状态，请刷新页面。",
   },
   sectionUtil: {
     kind: {

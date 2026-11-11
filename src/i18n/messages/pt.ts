@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "Ampliar",
+      zoomOut: "Reduzir",
+      fitImage: "Ajustar à tela",
+      originalImage: "Tamanho original (100%)",
       cancel: 'Cancelar',
       save: 'Salvar',
       saved: 'Salvo',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'Topo',
     },
     label: {
+      imageControls: "Controles de zoom da imagem",
       anonymous: 'Anônimo',
       user: 'Usuário',
       image: 'Imagem',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'Motivo',
     detailPlaceholder: 'Detalhes (opcional)',
     submit: 'Denunciar',
+
+    "status": {
+      "open": "Recebido",
+      "dismissed": "Descartado",
+      "actioned": "Revisão concluída"
+    },
+    "resultTitle": "Status da denúncia",
+    "result": {
+      "open": "Sua denúncia foi recebida e aguarda revisão.",
+      "dismissed": "A revisão não encontrou uma violação.",
+      "actioned": "A revisão foi concluída. Veja o motivo abaixo."
+    },
+    "reviewedAt": "Revisado",
+    "reviewNote": "Motivo da decisão",
+    "noNote": "Esta entrada antiga não tem motivo registrado.",
+    "detailRequired": "Detalhes (obrigatórios para Outro)",
   },
   reportList: {
     staffOnly: 'Somente a equipe pode ver as denúncias.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'Publicação sem título',
     author: 'por {name}',
     dismiss: 'Descartar',
-    confirm: 'Resolver',
+
+    "tabs": {
+      "open": "Pendentes",
+      "processed": "Histórico"
+    },
+    "filterLabel": "Filtrar denúncias",
+    "orderHint": "Mais recentes pela data de recebimento.",
+    "historyEmpty": "Sem histórico de revisão.",
+    "confirm": "Marcar como revisado",
+    "dismissTitle": "Descartar denúncia",
+    "resolveTitle": "Concluir revisão",
+    "actionHint": "Altera apenas o status da denúncia. Não oculta nem exclui a publicação.",
+    "publicNote": "Este motivo também fica visível para quem denunciou.",
+    "reviewer": "Responsável",
+    "reviewNote": "Motivo da decisão",
+    "unknownReviewer": "Responsável desconhecido",
+    "actionFailed": "Não foi possível processar. Tente novamente.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'Você não pode denunciar sua própria publicação.',
     reasonRequired: 'Selecione um motivo.',
     detailTooLong: 'Os detalhes podem ter até {max} caracteres.',
+
+    "otherDetailRequired": "Informe os detalhes ao selecionar Outro.",
+    "reviewNoteRequired": "Informe o motivo da decisão.",
+    "alreadyReviewed": "Esta denúncia já foi revisada. Confira a lista.",
+    "manageRequired": "Você não tem permissão para revisar esta denúncia.",
+    "alreadyReported": "Você já denunciou esta publicação.",
+    "statusLoadFailed": "Não foi possível carregar o status. Atualize a página.",
   },
   sectionUtil: {
     kind: {

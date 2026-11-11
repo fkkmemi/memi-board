@@ -105,6 +105,10 @@ const messages: MemiBoardMessages = {
   },
   common: {
     action: {
+      zoomIn: "Ampliar",
+      zoomOut: "Reducir",
+      fitImage: "Ajustar a la pantalla",
+      originalImage: "Tamaño original (100 %)",
       cancel: 'Cancelar',
       save: 'Guardar',
       saved: 'Guardado',
@@ -128,6 +132,7 @@ const messages: MemiBoardMessages = {
       toTop: 'Arriba',
     },
     label: {
+      imageControls: "Controles de zoom de imagen",
       anonymous: 'Anónimo',
       user: 'Usuario',
       image: 'Imagen',
@@ -469,6 +474,22 @@ const messages: MemiBoardMessages = {
     reason: 'Motivo',
     detailPlaceholder: 'Detalles (opcional)',
     submit: 'Reportar',
+
+    "status": {
+      "open": "Recibido",
+      "dismissed": "Descartado",
+      "actioned": "Revisión completada"
+    },
+    "resultTitle": "Estado del reporte",
+    "result": {
+      "open": "Tu reporte se recibió y está pendiente de revisión.",
+      "dismissed": "La revisión no encontró una infracción.",
+      "actioned": "La revisión ha terminado. Consulta el motivo abajo."
+    },
+    "reviewedAt": "Revisado",
+    "reviewNote": "Motivo de resolución",
+    "noNote": "No se registró un motivo en esta entrada anterior.",
+    "detailRequired": "Detalles (obligatorios para Otro)",
   },
   reportList: {
     staffOnly: 'Solo el personal puede ver los reportes.',
@@ -477,7 +498,23 @@ const messages: MemiBoardMessages = {
     untitled: 'Publicación sin título',
     author: 'por {name}',
     dismiss: 'Descartar',
-    confirm: 'Resolver',
+
+    "tabs": {
+      "open": "Pendientes",
+      "processed": "Historial"
+    },
+    "filterLabel": "Filtrar reportes",
+    "orderHint": "Más recientes por fecha de recepción.",
+    "historyEmpty": "Sin historial de revisión.",
+    "confirm": "Marcar como revisado",
+    "dismissTitle": "Descartar reporte",
+    "resolveTitle": "Completar revisión",
+    "actionHint": "Solo cambia el estado del reporte. No oculta ni elimina la publicación.",
+    "publicNote": "Este motivo también será visible para quien reportó.",
+    "reviewer": "Responsable",
+    "reviewNote": "Motivo de resolución",
+    "unknownReviewer": "Responsable desconocido",
+    "actionFailed": "No se pudo procesar. Inténtalo de nuevo.",
   },
   reports: {
     reason: {
@@ -492,6 +529,13 @@ const messages: MemiBoardMessages = {
     cannotReportOwn: 'No puedes reportar tu propia publicación.',
     reasonRequired: 'Selecciona un motivo.',
     detailTooLong: 'Los detalles pueden tener hasta {max} caracteres.',
+
+    "otherDetailRequired": "Indica los detalles al seleccionar Otro.",
+    "reviewNoteRequired": "Escribe un motivo de resolución.",
+    "alreadyReviewed": "Este reporte ya fue revisado. Consulta la lista.",
+    "manageRequired": "No tienes permiso para revisar este reporte.",
+    "alreadyReported": "Ya reportaste esta publicación.",
+    "statusLoadFailed": "No se pudo cargar el estado. Actualiza la página.",
   },
   sectionUtil: {
     kind: {
