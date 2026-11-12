@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: 'Título',
     contentPlaceholder: 'Escreva algo… Digite / para abrir o menu de blocos.',
+    contentGuide: 'Escreva algo…\n· Arraste e solte um arquivo de imagem aqui para enviá-lo.\n· Cole uma imagem copiada (Ctrl/⌘+V) para enviá-la na hora.\n· Digite / para abrir o menu de blocos: títulos, listas, citações e mais.\n· Cole um link do YouTube para incorporar o vídeo.',
     imageContentPlaceholder: 'Escreva algo…',
     tagsPlaceholder: 'Digite uma tag e pressione Enter',
     pinNotice: 'Fixar como aviso',

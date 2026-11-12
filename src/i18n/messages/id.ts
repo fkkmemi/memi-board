@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: 'Judul',
     contentPlaceholder: 'Tulis sesuatu… Ketik / untuk membuka menu blok.',
+    contentGuide: 'Tulis sesuatu…\n· Seret dan lepas file gambar di sini untuk mengunggahnya.\n· Tempel gambar yang disalin (Ctrl/⌘+V) untuk langsung mengunggahnya.\n· Ketik / untuk membuka menu blok: judul, daftar, kutipan, dan lainnya.\n· Tempel tautan YouTube untuk menyematkan video.',
     imageContentPlaceholder: 'Tulis sesuatu…',
     tagsPlaceholder: 'Ketik tag lalu tekan Enter',
     pinNotice: 'Jadikan pengumuman',

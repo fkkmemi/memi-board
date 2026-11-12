@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: 'العنوان',
     contentPlaceholder: 'اكتب شيئًا… اكتب / لفتح قائمة الكتل.',
+    contentGuide: 'اكتب شيئًا…\n· اسحب ملف صورة وأفلته هنا لرفعه.\n· الصق صورة منسوخة (Ctrl/⌘+V) لرفعها فورًا.\n· اكتب / لفتح قائمة الكتل: العناوين والقوائم والاقتباسات وغيرها.\n· الصق رابط YouTube لتضمين الفيديو.',
     imageContentPlaceholder: 'اكتب شيئًا…',
     tagsPlaceholder: 'اكتب وسمًا واضغط Enter',
     pinNotice: 'تثبيت كإعلان',

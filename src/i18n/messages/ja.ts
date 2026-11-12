@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: 'タイトル',
     contentPlaceholder: '本文を入力…「/」でブロックメニューが開きます。',
+    contentGuide: '本文を入力…\n· 画像ファイルをここにドラッグ＆ドロップするとアップロードされます。\n· コピーした画像を貼り付ける（Ctrl/⌘+V）とすぐにアップロードされます。\n· 「/」を入力すると見出し・リスト・引用などのブロックメニューが開きます。\n· YouTubeのリンクを貼り付けると動画が埋め込まれます。',
     imageContentPlaceholder: '内容を入力…',
     tagsPlaceholder: 'タグを入力してEnter',
     pinNotice: 'お知らせとして固定',

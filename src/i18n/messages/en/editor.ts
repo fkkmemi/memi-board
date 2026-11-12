@@ -2,6 +2,7 @@ export default {
   confirmLeave: 'You have unsaved changes. Leave this page?',
   titlePlaceholder: 'Title',
   contentPlaceholder: 'Write something… Type / to open the block menu.',
+  contentGuide: 'Write something…\n· Drag and drop an image file here to upload it.\n· Paste a copied image (Ctrl/⌘+V) to upload it right away.\n· Type / to open the block menu for headings, lists, quotes and more.\n· Paste a YouTube link to embed the video.',
   imageContentPlaceholder: 'Write something…',
   tagsPlaceholder: 'Type a tag and press Enter',
   pinNotice: 'Pin as notice',

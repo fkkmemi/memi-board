@@ -68,7 +68,7 @@ const stacks = computed(() => [
   <div v-if="showAbout" ref="anchor" class="contents">
     <footer v-if="active" class="flex justify-center pt-2">
       <button type="button" class="cursor-pointer text-[11px] text-dimmed transition-colors hover:text-muted" @click="open = true">
-        About memi-board
+        About memi-board™
       </button>
     </footer>
 
@@ -90,7 +90,7 @@ const stacks = computed(() => [
               <UIcon name="i-lucide-code-2" class="size-5" />
             </span>
             <div>
-              <p class="text-sm font-semibold tracking-tight text-highlighted">memi-board</p>
+              <p class="text-sm font-semibold tracking-tight text-highlighted">memi-board™</p>
               <p v-if="version" class="mt-0.5 font-mono text-[10px] tracking-wider text-dimmed">v{{ version }}</p>
             </div>
           </div>
@@ -118,7 +118,7 @@ const stacks = computed(() => [
                 <div class="flex flex-col gap-5">
                   <div>
                     <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-primary">{{ t('footer.eyebrow') }}</p>
-                    <h2 class="text-4xl font-semibold tracking-[-0.06em] text-highlighted sm:text-5xl">memi-board<span class="text-primary">.</span></h2>
+                    <h2 class="text-4xl font-semibold tracking-[-0.06em] text-highlighted sm:text-5xl">memi-board<sup class="ms-1 align-super text-sm font-medium tracking-normal text-muted">™</sup><span class="text-primary">.</span></h2>
                     <p class="mt-4 text-base font-medium tracking-tight text-toned sm:text-lg">{{ t('footer.tagline') }}</p>
                   </div>
                   <div>

@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: 'Titel',
     contentPlaceholder: 'Text eingeben… / öffnet das Blockmenü.',
+    contentGuide: 'Text eingeben…\n· Bilddatei hierher ziehen und ablegen, um sie hochzuladen.\n· Kopiertes Bild einfügen (Strg/⌘+V), um es sofort hochzuladen.\n· / öffnet das Blockmenü für Überschriften, Listen, Zitate und mehr.\n· YouTube-Link einfügen, um das Video einzubetten.',
     imageContentPlaceholder: 'Text eingeben…',
     tagsPlaceholder: 'Tag eingeben, dann Enter',
     pinNotice: 'Als Hinweis anheften',

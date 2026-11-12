@@ -4,6 +4,17 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.60.0] - 2026-11-12
+
+### Added
+- Body images now appear right where they will be inserted as a local preview with a large uploading overlay, so a slow upload no longer looks frozen. A failed upload removes the preview and shows the error.
+- Dropped images land at the drop point instead of the previous cursor position.
+- The empty body shows a short guide: drag and drop images, paste images, type `/` for the block menu, and paste a YouTube link to embed it. Available in all ten UI languages.
+- The About footer link, popup title, and About heading show the memi-board™ mark.
+
+### Host app steps
+- No Firestore, Storage, or index change is required. Update the package and redeploy.
+
 ## [0.59.0] - 2026-11-12
 
 ### Added

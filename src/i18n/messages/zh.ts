@@ -178,6 +178,7 @@ const messages: MemiBoardMessages = {
     },
     titlePlaceholder: '标题',
     contentPlaceholder: '输入正文… 输入 / 可打开块菜单。',
+    contentGuide: '输入正文…\n· 将图片文件拖放到此处即可上传。\n· 粘贴复制的图片（Ctrl/⌘+V）即可立即上传。\n· 输入 / 可打开标题、列表、引用等块菜单。\n· 粘贴 YouTube 链接即可嵌入视频。',
     imageContentPlaceholder: '输入内容…',
     tagsPlaceholder: '输入标签后按 Enter',
     pinNotice: '设为公告',

@@ -7,7 +7,7 @@ import MemiBoardSurface from './BoardSurface.vue'
  *
  * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
@@ -104,6 +104,11 @@ const submitHint = ref('')
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
+/** Body images still uploading: a local preview sits in the document and an overlay covers it. */
+interface PendingEditorImage { url: string, top: number, left: number, width: number, height: number }
+const pendingEditorImages = ref<PendingEditorImage[]>([])
+const editorFrame = ref<HTMLElement>()
+let pendingLayoutFrame = 0
 const imageDialogOpen = ref(false)
 const imageDialogEditor = ref<any | null>(null)
 const externalImageUrl = ref('')
@@ -200,6 +205,11 @@ const editorExtensions = [
     height: 360,
   }),
 ]
+
+/** Full how-to guide while the body is empty; the short block-menu hint on other empty lines. */
+const editorPlaceholder = computed(() => isImageEditor.value
+  ? t('editor.imageContentPlaceholder')
+  : { placeholder: ({ editor }: { editor: { isEmpty: boolean } }) => editor.isEmpty ? t('editor.contentGuide') : t('editor.contentPlaceholder') })
 
 function imageNamespace(): string {
   return props.postId || attachmentNamespace.value
@@ -426,35 +436,116 @@ function onCoverItemDragEnd() {
   coverDropActive.value = false
 }
 
-async function doUploadImage(file: File): Promise<EditorImageEntry> {
+function assertEditorImageFile(file: File) {
   if (!file.type.startsWith('image/')) {
     throw new Error(t('editor.errors.imageOnly'))
   }
   if (file.size > EDITOR_IMAGE_SOURCE_MAX_BYTES) {
     throw new Error(t('editor.errors.imageTooLarge', { mb: EDITOR_IMAGE_SOURCE_MAX_BYTES / 1024 / 1024 }))
   }
+}
+
+async function doUploadImage(file: File): Promise<EditorImageEntry> {
+  assertEditorImageFile(file)
   const entry = await uploadEditorImage(file, imageNamespace())
   uploadedEditorImages.value.push(entry)
   return entry
 }
 
-async function uploadAndSetImage(editor: any, file: File) {
+function findImageNode(editor: any, src: string): { pos: number, node: any } | null {
+  let found: { pos: number, node: any } | null = null
+  editor.state.doc.descendants((node: any, pos: number) => {
+    if (found) return false
+    if (node.type.name === 'image' && node.attrs.src === src) {
+      found = { pos, node }
+      return false
+    }
+  })
+  return found
+}
+
+/** Keeps each uploading overlay on top of its preview image while the document moves. */
+function layoutPendingEditorImages() {
+  pendingLayoutFrame = 0
+  const editor = resolveEditor()
+  const frame = editorFrame.value
+  if (!editor?.view || !frame || !pendingEditorImages.value.length) return
+  const base = frame.getBoundingClientRect()
+  for (const item of pendingEditorImages.value) {
+    const img = editor.view.dom.querySelector(`img[src="${CSS.escape(item.url)}"]`) as HTMLElement | null
+    if (!img) {
+      item.width = 0
+      continue
+    }
+    const rect = img.getBoundingClientRect()
+    item.top = rect.top - base.top
+    item.left = rect.left - base.left
+    item.width = Math.max(rect.width, 200)
+    item.height = Math.max(rect.height, 120)
+  }
+  pendingLayoutFrame = requestAnimationFrame(layoutPendingEditorImages)
+}
+
+function startPendingLayout() {
+  if (!pendingLayoutFrame) pendingLayoutFrame = requestAnimationFrame(layoutPendingEditorImages)
+}
+
+onBeforeUnmount(() => {
+  if (pendingLayoutFrame) cancelAnimationFrame(pendingLayoutFrame)
+  for (const item of pendingEditorImages.value) URL.revokeObjectURL(item.url)
+})
+
+/**
+ * Inserts a local preview where the image goes, shows a large uploading overlay on it,
+ * then swaps in the uploaded URL (or removes the preview on failure).
+ */
+async function uploadAndSetImage(editor: any, file: File, at?: number) {
   // 이미지 보드: TipTap 삽입 금지 → 갤러리에 추가
   if (isImageEditor.value) {
     await uploadCoverImages([file])
     return
   }
-  imageUploading.value = true
   imageUploadError.value = ''
   try {
-    const entry = await doUploadImage(file)
-    editor.chain().focus().setImage({ src: entry.originalUrl }).run()
+    assertEditorImageFile(file)
   }
   catch (e) {
+    imageUploadError.value = (e as Error).message
+    return
+  }
+
+  const previewUrl = URL.createObjectURL(file)
+  const chain = editor.chain().focus()
+  if (at !== undefined) chain.setTextSelection(at)
+  chain.setImage({ src: previewUrl }).run()
+  pendingEditorImages.value.push({ url: previewUrl, top: 0, left: 0, width: 0, height: 0 })
+  imageUploading.value = true
+  startPendingLayout()
+
+  try {
+    const entry = await doUploadImage(file)
+    const found = findImageNode(editor, previewUrl)
+    if (found) {
+      editor.view.dispatch(
+        editor.state.tr
+          .setNodeMarkup(found.pos, undefined, { ...found.node.attrs, src: entry.originalUrl })
+          .setMeta('addToHistory', false),
+      )
+    }
+  }
+  catch (e) {
+    const found = findImageNode(editor, previewUrl)
+    if (found) {
+      editor.view.dispatch(
+        editor.state.tr.delete(found.pos, found.pos + found.node.nodeSize).setMeta('addToHistory', false),
+      )
+    }
     imageUploadError.value = (e as Error).message || t('editor.errors.imageUploadFailed')
   }
   finally {
-    imageUploading.value = false
+    pendingEditorImages.value = pendingEditorImages.value.filter(item => item.url !== previewUrl)
+    URL.revokeObjectURL(previewUrl)
+    imageUploading.value = pendingEditorImages.value.length > 0
   }
 }
 
@@ -996,7 +1087,8 @@ function onEditorRootDrop(e: DragEvent) {
   }
   const editor = resolveEditor()
   if (!editor) return
-  void uploadAndSetImage(editor, image)
+  const dropPos = editor.view?.posAtCoords({ left: e.clientX, top: e.clientY })?.pos
+  void uploadAndSetImage(editor, image, dropPos)
 }
 
 function onEditorRootDragOver(e: DragEvent) {
@@ -1437,14 +1529,15 @@ async function handleSubmit() {
         class="rounded-none rounded-t-xl"
       />
 
+      <div ref="editorFrame" class="relative">
       <UEditor
         ref="editorRef"
         v-model="content"
         content-type="html"
         :extensions="editorExtensions"
         :handlers="handlers"
-        :placeholder="isImageEditor ? t('editor.imageContentPlaceholder') : t('editor.contentPlaceholder')"
-        :ui="{ content: 'min-h-64 p-4' }"
+        :placeholder="editorPlaceholder"
+        :ui="{ content: 'min-h-64 p-4 [&_.is-empty]:before:whitespace-pre-line' }"
         class="board-content w-full"
       >
         <template #default="{ editor, handlers: editorHandlers }">
@@ -1506,6 +1599,19 @@ async function handleSubmit() {
           </UEditorDragHandle>
         </template>
       </UEditor>
+
+      <div
+        v-for="item in pendingEditorImages"
+        v-show="item.width"
+        :key="item.url"
+        role="status"
+        class="pointer-events-none absolute z-10 flex flex-col items-center justify-center gap-3 overflow-hidden rounded-lg bg-default/75 p-4 text-center ring ring-inset ring-default backdrop-blur-sm"
+        :style="{ top: `${item.top}px`, left: `${item.left}px`, width: `${item.width}px`, height: `${item.height}px` }"
+      >
+        <UIcon name="i-lucide-loader-circle" class="size-10 shrink-0 animate-spin text-primary" />
+        <span class="text-sm font-medium text-highlighted">{{ t('editor.imageOptimizing') }}</span>
+      </div>
+      </div>
 
       <p
         v-if="aiError"

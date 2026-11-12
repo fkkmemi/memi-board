@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.60.0',
+    date: '2026-11-12',
+    highlights: [
+      '본문 이미지를 올리면 들어갈 자리에 미리보기와 큰 업로드 표시가 바로 보여요',
+      '이미지를 끌어다 놓으면 놓은 위치에 들어가요',
+      '빈 본문에 이미지 드래그·붙여넣기, / 블록 메뉴 사용법 안내가 보여요',
+    ],
+    highlightsEn: [
+      'Body images show a preview with a large uploading overlay right where they go',
+      'Dropped images land where you drop them',
+      'The empty body shows how to drag, paste images, and open the / block menu',
+    ],
+  },
+  {
     version: '0.59.0',
     date: '2026-11-12',
     highlights: [

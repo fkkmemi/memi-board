@@ -2,6 +2,7 @@ export default {
   confirmLeave: '저장하지 않은 내용이 있습니다. 이 페이지를 나가시겠습니까?',
   titlePlaceholder: '제목',
   contentPlaceholder: '본문을 입력하세요… / 를 입력하면 블록 메뉴가 열립니다.',
+  contentGuide: '본문을 입력하세요…\n· 이미지 파일을 여기로 끌어다 놓으면 업로드됩니다.\n· 복사한 이미지를 붙여넣어도(Ctrl/⌘+V) 바로 업로드됩니다.\n· / 를 입력하면 제목, 목록, 인용 같은 블록 메뉴가 열립니다.\n· YouTube 링크를 붙여넣으면 영상으로 삽입됩니다.',
   imageContentPlaceholder: '내용을 입력하세요…',
   tagsPlaceholder: '태그 입력 후 Enter',
   pinNotice: '공지로 등록',
