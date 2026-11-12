@@ -22,11 +22,13 @@ export const versionHistory: VersionHistoryEntry[] = [
       '글과 댓글을 수정하면 이전 내용이 수정 기록으로 남고, 누구도 고치거나 지울 수 없어요',
       '수정된 글과 댓글에 수정됨 표시와 수정 횟수가 보여요',
       '보드 관리자는 수정 기록에서 이전 버전과 수정한 사람을 확인할 수 있어요',
+      '글은 20번, 댓글은 10번까지 수정할 수 있고, 넘으면 경고가 떠요',
     ],
     highlightsEn: [
       'Editing a post or comment keeps the previous version in a history nobody can change or delete',
       'Edited posts and comments show an Edited badge with the edit count',
       'Board managers can open the history to see earlier versions and who edited them',
+      'Posts can be edited up to 20 times and comments up to 10, with a warning past the limit',
     ],
   },
   {

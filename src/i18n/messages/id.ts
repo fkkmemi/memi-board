@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: 'Diedit',
     editedTooltip: 'Diedit {count} kali · terakhir diedit {time}',
     history: 'Riwayat edit',
+    editLimitTitle: 'Batas edit tercapai',
   },
   commentList: {
     loading: 'Memuat komentar',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'Utas komentar tidak ditemukan.',
     hasRepliesCannotDelete: 'Komentar yang memiliki balasan tidak dapat dihapus saat ini.',
     commentNotFound: 'Komentar tidak ditemukan.',
+    editLimitReached: 'Komentar bisa diedit paling banyak {max} kali. Minta pengelola papan jika perlu perubahan lagi.',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: 'Diedit {count} kali',
     editedTooltip: 'Diedit {count} kali · terakhir diedit {time}',
     revisions: 'Riwayat {count}',
+    editLimitTitle: 'Batas edit tercapai',
   },
   postRevisions: {
     title: 'Riwayat edit',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: 'Tambahkan foto.',
     bodyRequired: 'Masukkan teks atau lampirkan gambar.',
     titleRequired: 'Masukkan judul.',
+    editLimitReached: 'Postingan bisa diedit paling banyak {max} kali. Minta pengelola papan jika perlu perubahan lagi.',
   },
   profile: {
     stats: {

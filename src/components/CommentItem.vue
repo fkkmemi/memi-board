@@ -6,6 +6,7 @@ import type { Attachment, CommentModel, CommentTranslationSet } from 'memi-board
 import { useMemiBoardStorage } from 'memi-board/storage'
 import {
   COMMENT_BODY_MAX_LENGTH,
+  COMMENT_EDIT_LIMIT,
   displayCommentBody,
   memiBoardCommentLikesKey,
   useMemiBoardAuth,
@@ -65,6 +66,7 @@ const localBlinded = ref(props.comment.isBlinded ?? false)
 const localRevision = ref(props.comment.revision ?? 0)
 const localEditedAt = ref(props.comment.editedAt)
 const revisionsOpen = ref(false)
+const editLimitOpen = ref(false)
 const saving = ref(false)
 const blindSaving = ref(false)
 const likeError = ref('')
@@ -99,6 +101,11 @@ const timestampDetails = computed(() => formatTimestampDetails(props.comment.cre
 const blindLines = computed(() => Math.min(3, Math.max(1, Math.ceil(localBody.value.length / 45))))
 
 function startEdit() {
+  // 작성자는 COMMENT_EDIT_LIMIT 번까지만 고칠 수 있다. 매니저는 제한 없음. rules 도 같은 숫자로 막는다.
+  if (localRevision.value >= COMMENT_EDIT_LIMIT && !canManageBoard(props.comment.boardId)) {
+    editLimitOpen.value = true
+    return
+  }
   editBody.value = localBody.value
   editImage.value = localImage.value
   editError.value = ''
@@ -423,6 +430,21 @@ async function toggleLike() {
         />
       </UTooltip>
     </div>
+    <UModal v-model:open="editLimitOpen" :title="t('commentItem.editLimitTitle')">
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-triangle-alert"
+            :description="t('comments.editLimitReached', { max: COMMENT_EDIT_LIMIT })"
+          />
+          <div class="flex justify-end">
+            <UButton :label="t('common.action.confirm')" @click="editLimitOpen = false" />
+          </div>
+        </div>
+      </template>
+    </UModal>
     <MemiBoardCommentRevisions
       v-if="localRevision > 0 && canManageBoard(comment.boardId) && comment.id"
       v-model:open="revisionsOpen"

@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: 'Editado',
     editedTooltip: 'Editado {count} veces · última edición {time}',
     history: 'Historial de ediciones',
+    editLimitTitle: 'Límite de ediciones alcanzado',
   },
   commentList: {
     loading: 'Cargando comentarios',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'No se encontró el hilo de comentarios.',
     hasRepliesCannotDelete: 'Por ahora no se pueden eliminar comentarios que tienen respuestas.',
     commentNotFound: 'No se encontró el comentario.',
+    editLimitReached: 'Los comentarios se pueden editar hasta {max} veces. Pide a un gestor del tablero si necesita más cambios.',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: 'Editado {count} veces',
     editedTooltip: 'Editado {count} veces · última edición {time}',
     revisions: 'Historial {count}',
+    editLimitTitle: 'Límite de ediciones alcanzado',
   },
   postRevisions: {
     title: 'Historial de ediciones',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: 'Agrega una foto.',
     bodyRequired: 'Escribe algo de texto o adjunta una imagen.',
     titleRequired: 'Ingresa un título.',
+    editLimitReached: 'Las publicaciones se pueden editar hasta {max} veces. Pide a un gestor del tablero si necesita más cambios.',
   },
   profile: {
     stats: {

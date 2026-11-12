@@ -240,3 +240,31 @@ rulesTest('comment edits without a revision depend on the required flag', async 
     await setRequired(false)
   }
 })
+
+const int = n => ({ integerValue: String(n) })
+
+rulesTest('authors stop at 20 post edits, managers can keep editing', async () => {
+  await seedPost('p-limit')
+  await seed('memiBoardPosts/p-limit', {
+    boardId: str('board'), authorUid: str(clients.user.auth.currentUser.uid), listed: bool(true),
+    isPublished: bool(true), title: str('original'), tags: arr(str('a')), attachments: arr(), revision: int(19),
+  })
+  await editWithRevision(clients.user.db, 'p-limit', { title: 'edit 20', content: '<p>20</p>' })
+  await assert.rejects(editWithRevision(clients.user.db, 'p-limit', { title: 'edit 21', content: '<p>21</p>' }), denied)
+  // The compatibility path cannot skip the limit either.
+  await assert.rejects(updateDoc(doc(clients.user.db, 'memiBoardPosts', 'p-limit'), { title: 'silent' }), denied)
+  await assert.rejects(setDoc(doc(clients.user.db, 'memiBoardPosts', 'p-limit', 'body', 'main'), { content: '<p>silent</p>' }, { merge: true }), denied)
+  await editWithRevision(clients.staff.db, 'p-limit', { title: 'manager fix', content: '<p>fix</p>' })
+})
+
+rulesTest('authors stop at 10 comment edits, managers can keep editing', async () => {
+  await seedPost('pc-limit')
+  await seed('memiBoardComments/c-limit', {
+    postId: str('pc-limit'), boardId: str('board'), authorUid: str(clients.user.auth.currentUser.uid),
+    body: str('original'), listed: bool(true), moderationStatus: str('approved'), revision: int(9),
+  })
+  await editCommentWithRevision(clients.user.db, 'c-limit', 'edit 10')
+  await assert.rejects(editCommentWithRevision(clients.user.db, 'c-limit', 'edit 11'), denied)
+  await assert.rejects(updateDoc(doc(clients.user.db, 'memiBoardComments', 'c-limit'), { body: 'silent', updatedAt: serverTimestamp() }), denied)
+  await editCommentWithRevision(clients.staff.db, 'c-limit', 'manager fix')
+})

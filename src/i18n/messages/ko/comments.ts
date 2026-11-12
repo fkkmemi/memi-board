@@ -5,4 +5,5 @@ export default {
   threadNotFound: '댓글 스레드를 찾을 수 없습니다.',
   hasRepliesCannotDelete: '답글이 있는 댓글은 현재 삭제할 수 없습니다.',
   commentNotFound: '댓글을 찾을 수 없습니다.',
+  editLimitReached: '댓글 수정은 최대 {max}번까지 할 수 있어요. 더 고쳐야 하면 보드 관리자에게 요청해 주세요.',
 }

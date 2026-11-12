@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: 'معدّل',
     editedTooltip: 'عُدّل {count} مرات · آخر تعديل {time}',
     history: 'سجل التعديلات',
+    editLimitTitle: 'تم بلوغ حد التعديلات',
   },
   commentList: {
     loading: 'جارٍ تحميل التعليقات',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'تعذّر العثور على سلسلة التعليقات.',
     hasRepliesCannotDelete: 'لا يمكن حذف التعليقات التي لها ردود حاليًا.',
     commentNotFound: 'تعذّر العثور على التعليق.',
+    editLimitReached: 'يمكن تعديل التعليق {max} مرات كحد أقصى. اطلب من مدير اللوحة إن احتاج إلى تغييرات أخرى.',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: 'عُدّل {count} مرات',
     editedTooltip: 'عُدّل {count} مرات · آخر تعديل {time}',
     revisions: 'السجل {count}',
+    editLimitTitle: 'تم بلوغ حد التعديلات',
   },
   postRevisions: {
     title: 'سجل التعديلات',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: 'يُرجى إضافة صورة.',
     bodyRequired: 'يُرجى إدخال نص أو إرفاق صورة.',
     titleRequired: 'يُرجى إدخال عنوان.',
+    editLimitReached: 'يمكن تعديل المنشور {max} مرات كحد أقصى. اطلب من مدير اللوحة إن احتاج إلى تغييرات أخرى.',
   },
   profile: {
     stats: {

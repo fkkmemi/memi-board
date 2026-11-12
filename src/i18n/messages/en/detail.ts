@@ -16,4 +16,5 @@ export default {
   editedCount: 'Edited {count} times',
   editedTooltip: 'Edited {count} times · last edited {time}',
   revisions: 'History {count}',
+  editLimitTitle: 'Edit limit reached',
 }

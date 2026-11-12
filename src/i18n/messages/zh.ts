@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: '已编辑',
     editedTooltip: '已编辑 {count} 次 · 最后编辑于 {time}',
     history: '编辑记录',
+    editLimitTitle: '已达到编辑次数上限',
   },
   commentList: {
     loading: '正在加载评论',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: '找不到该评论串。',
     hasRepliesCannotDelete: '有回复的评论目前无法删除。',
     commentNotFound: '找不到该评论。',
+    editLimitReached: '评论最多可编辑 {max} 次。如需继续修改，请联系版块管理员。',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: '已编辑 {count} 次',
     editedTooltip: '已编辑 {count} 次 · 最后编辑于 {time}',
     revisions: '编辑记录 {count}',
+    editLimitTitle: '已达到编辑次数上限',
   },
   postRevisions: {
     title: '编辑记录',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: '请上传照片。',
     bodyRequired: '请在正文中输入文字或添加图片。',
     titleRequired: '请输入标题。',
+    editLimitReached: '帖子最多可编辑 {max} 次。如需继续修改，请联系版块管理员。',
   },
   profile: {
     stats: {

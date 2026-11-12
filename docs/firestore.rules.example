@@ -406,9 +406,11 @@ service cloud.firestore {
       let marker = /databases/$(database)/documents/memiBoardPostsSlugs/__migration;
       return exists(marker) && get(marker).data.get('revisionsRequired', false) == true;
     }
+    // Authors may edit a post up to 20 times (POST_EDIT_LIMIT). Board managers are not limited.
     function isValidPostRevisionBump(postId) {
       let before = resource.data.get('revision', 0);
       return request.resource.data.revision == before + 1
+        && (request.resource.data.revision <= 20 || isBoardManager(resource.data.boardId))
         && request.resource.data.editedAt == request.time
         && existsAfter(postRevisionPath(postId, before));
     }
@@ -416,12 +418,16 @@ service cloud.firestore {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return isValidPostRevisionBump(postId)
         || (!changed.hasAny(['revision', 'editedAt'])
-          && (!changed.hasAny(['title', 'tags', 'attachments', 'extend']) || !revisionsRequired()));
+          && (!changed.hasAny(['title', 'tags', 'attachments', 'extend'])
+            || (!revisionsRequired()
+              && (resource.data.get('revision', 0) < 20 || isBoardManager(resource.data.boardId)))));
     }
     // Body content may change only together with a revision bump on the post.
     function bodyRevisionOk(postId) {
       return getAfter(postPath(postId)).data.get('revision', 0) == get(postPath(postId)).data.get('revision', 0) + 1
-        || !revisionsRequired();
+        || (!revisionsRequired()
+          && (get(postPath(postId)).data.get('revision', 0) < 20
+            || isBoardManager(get(postPath(postId)).data.boardId)));
     }
     function isValidPostRevision(postId, revisionId) {
       let post = get(postPath(postId)).data;
@@ -512,14 +518,18 @@ service cloud.firestore {
     function commentRevisionPath(commentId, revision) {
       return /databases/$(database)/documents/memiBoardComments/$(commentId)/revisions/$(string(revision));
     }
+    // Authors may edit a comment up to 10 times (COMMENT_EDIT_LIMIT). Board managers are not limited.
     function commentRevisionOk(commentId) {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       let before = resource.data.get('revision', 0);
       return (request.resource.data.get('revision', 0) == before + 1
+          && (request.resource.data.get('revision', 0) <= 10 || isBoardManager(resource.data.boardId))
           && request.resource.data.editedAt == request.time
           && existsAfter(commentRevisionPath(commentId, before)))
         || (!changed.hasAny(['revision', 'editedAt'])
-          && (!changed.hasAny(['body', 'images']) || !revisionsRequired()));
+          && (!changed.hasAny(['body', 'images'])
+            || (!revisionsRequired()
+              && (resource.data.get('revision', 0) < 10 || isBoardManager(resource.data.boardId)))));
     }
     function isValidCommentRevision(commentId, revisionId) {
       let comment = get(commentPath(commentId)).data;

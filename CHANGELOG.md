@@ -10,6 +10,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 - Post edit history. Every content edit (title, body, tags, attachments, custom fields) saves the version it replaces to `memiBoardPosts/{postId}/revisions/{n}` in the same transaction and raises the post's `revision` count. Rules check that each archived version matches the stored post and body, and nobody can change or delete it, so a post cannot be quietly rewritten after a dispute.
 - Edited posts show an "Edited" badge with the edit count and last edit time. Board managers and admins get a History button that lists earlier versions with who replaced them and when. Available in all ten UI languages.
 - Comment edit history. Editing a comment's text or image saves the replaced version to `memiBoardComments/{commentId}/revisions/{n}` with the same checks. Edited comments show an "Edited" badge, and board managers get a history button on the comment.
+- Edit limits. Authors can edit a post up to 20 times (`POST_EDIT_LIMIT`) and a comment up to 10 times (`COMMENT_EDIT_LIMIT`). Trying to edit past the limit shows a warning, saving is refused, and Rules deny it. Board managers and admins are not limited.
 - `useMemiBoardPostRevisions(boardId, postId)`, `useMemiBoardCommentRevisions(boardId, commentId)`, `postRevisionsCol` / `postRevisionDoc` / `commentRevisionsCol` / `commentRevisionDoc` path helpers, and the `PostRevisionModel` / `CommentRevisionModel` types. `PostModel` and `CommentModel` gain optional `revision` and `editedAt`.
 
 ### Changed

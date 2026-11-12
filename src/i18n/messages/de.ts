@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: 'Bearbeitet',
     editedTooltip: '{count}-mal bearbeitet · zuletzt bearbeitet {time}',
     history: 'Bearbeitungsverlauf',
+    editLimitTitle: 'Bearbeitungslimit erreicht',
   },
   commentList: {
     loading: 'Kommentare werden geladen',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'Kommentar-Thread nicht gefunden.',
     hasRepliesCannotDelete: 'Kommentare mit Antworten können derzeit nicht gelöscht werden.',
     commentNotFound: 'Kommentar nicht gefunden.',
+    editLimitReached: 'Kommentare können höchstens {max}-mal bearbeitet werden. Bitte einen Board-Manager, wenn weitere Änderungen nötig sind.',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: '{count}-mal bearbeitet',
     editedTooltip: '{count}-mal bearbeitet · zuletzt bearbeitet {time}',
     revisions: 'Verlauf {count}',
+    editLimitTitle: 'Bearbeitungslimit erreicht',
   },
   postRevisions: {
     title: 'Bearbeitungsverlauf',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: 'Bitte ein Foto hinzufügen.',
     bodyRequired: 'Bitte Text eingeben oder ein Bild anhängen.',
     titleRequired: 'Bitte einen Titel eingeben.',
+    editLimitReached: 'Beiträge können höchstens {max}-mal bearbeitet werden. Bitte einen Board-Manager, wenn weitere Änderungen nötig sind.',
   },
   profile: {
     stats: {

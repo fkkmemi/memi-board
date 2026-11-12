@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: 'Modifié',
     editedTooltip: 'Modifié {count} fois · dernière modification {time}',
     history: 'Historique des modifications',
+    editLimitTitle: 'Limite de modifications atteinte',
   },
   commentList: {
     loading: 'Chargement des commentaires',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'Fil de commentaires introuvable.',
     hasRepliesCannotDelete: 'Les commentaires ayant des réponses ne peuvent pas être supprimés pour le moment.',
     commentNotFound: 'Commentaire introuvable.',
+    editLimitReached: 'Un commentaire peut être modifié {max} fois au maximum. Demandez à un gestionnaire du forum si d’autres changements sont nécessaires.',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: 'Modifié {count} fois',
     editedTooltip: 'Modifié {count} fois · dernière modification {time}',
     revisions: 'Historique {count}',
+    editLimitTitle: 'Limite de modifications atteinte',
   },
   postRevisions: {
     title: 'Historique des modifications',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: 'Veuillez ajouter une photo.',
     bodyRequired: 'Veuillez saisir du texte ou joindre une image.',
     titleRequired: 'Veuillez saisir un titre.',
+    editLimitReached: 'Une publication peut être modifiée {max} fois au maximum. Demandez à un gestionnaire du forum si d’autres changements sont nécessaires.',
   },
   profile: {
     stats: {

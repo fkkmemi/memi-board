@@ -32,6 +32,7 @@ import { hasBodyImage, hasBodyText, titleFromBody } from '../utils/postBody'
 import { assertMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
 import { buildPostPreview } from '../utils/postPreview'
 import { readExtend } from '../utils/customFields'
+import { POST_EDIT_LIMIT } from '../utils/editLimits'
 import {
   postBodyDoc,
   postDoc,
@@ -395,6 +396,9 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         || !sameValue(beforeExtend ?? null, nextExtend ?? null)
 
       const revision = typeof before.revision === 'number' ? before.revision : 0
+      if (changed && revision >= POST_EDIT_LIMIT && !canManageBoard(before.boardId)) {
+        throw new Error(t('posts.editLimitReached', { max: POST_EDIT_LIMIT }))
+      }
       if (changed) {
         transaction.set(postRevisionDoc(db, cfg(), id, revision), {
           boardId: before.boardId,

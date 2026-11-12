@@ -3,4 +3,5 @@ export default {
   photoRequired: '사진을 올려 주세요.',
   bodyRequired: '본문에 글자를 입력하거나 이미지를 첨부해 주세요.',
   titleRequired: '제목을 입력해 주세요.',
+  editLimitReached: '수정은 최대 {max}번까지 할 수 있어요. 더 고쳐야 하면 보드 관리자에게 요청해 주세요.',
 }

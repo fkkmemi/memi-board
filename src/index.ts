@@ -75,6 +75,7 @@ export { useMemiBoardUserComments } from './composables/useMemiBoardUserComments
 export { useMemiBoardCommentFeed } from './composables/useMemiBoardCommentFeed'
 export type { CommentFeedSort } from './composables/useMemiBoardCommentFeed'
 export { AUTHOR_MEMO_MAX_LENGTH, useMemiBoardAuthorMemo } from './composables/useMemiBoardAuthorMemo'
+export { POST_EDIT_LIMIT, COMMENT_EDIT_LIMIT } from './utils/editLimits'
 export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardCommentRevisions, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
 export {

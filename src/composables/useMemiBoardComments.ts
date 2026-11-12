@@ -33,6 +33,8 @@ import {
 } from '../utils/boardPaths'
 import { commentImagePathsUnder, normalizeCommentImages } from '../utils/commentImages'
 import { deleteLikesForComment } from '../utils/deletePostCascade'
+import { COMMENT_EDIT_LIMIT } from '../utils/editLimits'
+import { useMemiBoardAuth } from './useMemiBoardAuth'
 import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import type { Attachment, CommentModel, CommentRevisionModel, CommentTranslationSet } from '../types'
@@ -122,6 +124,7 @@ export function useMemiBoardComments(
   const firebaseApp = useFirebaseApp()
   const cfg = () => useBoardPathConfig()
   const { isBoardHidden, getBoard } = useMemiBoardSettings()
+  const { canManageBoard } = useMemiBoardAuth()
   const { translateComment } = useMemiBoardWritingAssistant()
   let cachedTranslation: CommentTranslationSet | undefined
   /** 직전 저장에서 자동 번역이 실패해 원문만 저장했는지. */
@@ -388,6 +391,9 @@ export function useMemiBoardComments(
       const changed = before.body !== trimmed
         || (nextImages !== undefined && JSON.stringify(sortedKeys(beforeImages)) !== JSON.stringify(sortedKeys(nextImages)))
       const revision = typeof before.revision === 'number' ? before.revision : 0
+      if (changed && revision >= COMMENT_EDIT_LIMIT && !canManageBoard(before.boardId)) {
+        throw new Error(t('comments.editLimitReached', { max: COMMENT_EDIT_LIMIT }))
+      }
       if (changed) {
         transaction.set(commentRevisionDoc(db, cfg(), commentId, revision), {
           boardId: before.boardId,

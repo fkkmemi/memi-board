@@ -3,7 +3,7 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostContent, displayPostTitle, readExtend, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostContent, displayPostTitle, POST_EDIT_LIMIT, readExtend, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -66,6 +66,16 @@ const editCount = computed(() => post.value?.revision ?? 0)
 // 수정 기록(이전 버전 원문)은 보드 매니저만 본다.
 const canViewRevisions = computed(() => editCount.value > 0 && canManageBoard(props.boardId))
 const revisionsOpen = ref(false)
+const editLimitOpen = ref(false)
+
+// 작성자는 POST_EDIT_LIMIT 번까지만 고칠 수 있다. 매니저는 제한 없음. rules 도 같은 숫자로 막는다.
+function handleEdit() {
+  if (editCount.value >= POST_EDIT_LIMIT && !canManageBoard(props.boardId)) {
+    editLimitOpen.value = true
+    return
+  }
+  emit('edit', props.postId)
+}
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
 const now = ref(Date.now())
@@ -387,7 +397,7 @@ watch(() => props.postId, () => {
           variant="ghost"
           color="neutral"
           :label="t('common.action.edit')"
-          @click="emit('edit', postId)"
+          @click="handleEdit"
         />
         <UButton
           v-if="canDelete(post)"
@@ -462,6 +472,22 @@ watch(() => props.postId, () => {
       />
       <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />
     </section>
+
+    <UModal v-model:open="editLimitOpen" :title="t('detail.editLimitTitle')">
+      <template #body>
+        <div class="space-y-4">
+          <UAlert
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-triangle-alert"
+            :description="t('posts.editLimitReached', { max: POST_EDIT_LIMIT })"
+          />
+          <div class="flex justify-end">
+            <UButton :label="t('common.action.confirm')" @click="editLimitOpen = false" />
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <MemiBoardPostRevisions
       v-if="canViewRevisions"

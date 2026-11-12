@@ -15,4 +15,5 @@ export default {
   edited: '수정됨',
   editedTooltip: '{count}번 수정됨 · 마지막 수정 {time}',
   history: '수정 기록',
+  editLimitTitle: '더 이상 수정할 수 없어요',
 }

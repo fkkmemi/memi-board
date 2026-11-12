@@ -8,7 +8,7 @@ import MemiBoardSurface from './BoardSurface.vue'
  * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { imeSafeSubmitClick, imeSafeSubmitPointerDown } from 'memi-board/runtime'
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown, POST_EDIT_LIMIT } from 'memi-board/runtime'
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
 import { mapEditorItems } from '@nuxt/ui/utils/editor'
@@ -1113,6 +1113,10 @@ async function loadPost(id: string) {
     loadedExtend.value = readExtend(post.extend)
     extendValues.value = storedExtend(post.extend)
     pinned.value = loadedPinned.value = post.pinned === true
+    // 수정 횟수를 다 쓴 글은 열 수는 있어도 저장되지 않는다. 주소로 바로 들어온 경우를 위해 미리 알린다.
+    if ((post.revision ?? 0) >= POST_EDIT_LIMIT && !canManageBoard(post.boardId)) {
+      error.value = t('posts.editLimitReached', { max: POST_EDIT_LIMIT })
+    }
     loadedPublished.value = post.isPublished === true
     tags.value = post.tags ?? []
     attachments.value = post.attachments ?? []

@@ -5,4 +5,5 @@ export default {
   threadNotFound: 'The comment thread could not be found.',
   hasRepliesCannotDelete: 'Comments with replies cannot be deleted right now.',
   commentNotFound: 'The comment could not be found.',
+  editLimitReached: 'Comments can be edited up to {max} times. Ask a board manager if it needs more changes.',
 }

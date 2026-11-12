@@ -86,6 +86,7 @@ const messages: MemiBoardMessages = {
     edited: '編集済み',
     editedTooltip: '{count}回編集 · 最終編集 {time}',
     history: '編集履歴',
+    editLimitTitle: 'これ以上編集できません',
   },
   commentList: {
     loading: 'コメントを読み込んでいます',
@@ -107,6 +108,7 @@ const messages: MemiBoardMessages = {
     threadNotFound: 'コメントスレッドが見つかりません。',
     hasRepliesCannotDelete: '返信があるコメントは現在削除できません。',
     commentNotFound: 'コメントが見つかりません。',
+    editLimitReached: 'コメントの編集は最大{max}回までです。さらに修正が必要な場合はボード管理者に依頼してください。',
   },
   common: {
     action: {
@@ -176,6 +178,7 @@ const messages: MemiBoardMessages = {
     editedCount: '{count}回編集',
     editedTooltip: '{count}回編集 · 最終編集 {time}',
     revisions: '編集履歴 {count}',
+    editLimitTitle: 'これ以上編集できません',
   },
   postRevisions: {
     title: '編集履歴',
@@ -464,6 +467,7 @@ const messages: MemiBoardMessages = {
     photoRequired: '写真をアップロードしてください。',
     bodyRequired: '本文にテキストを入力するか、画像を添付してください。',
     titleRequired: 'タイトルを入力してください。',
+    editLimitReached: '投稿の編集は最大{max}回までです。さらに修正が必要な場合はボード管理者に依頼してください。',
   },
   profile: {
     stats: {
