@@ -1,4 +1,12 @@
 export default {
+  target: {
+    post: 'Post',
+    comment: 'Comment',
+  },
+  deletedComment: 'Comment text unavailable',
+  blindComment: 'Also hide this comment',
+  blindCommentHint: 'Blinds the comment for everyone. Staff can restore it from the comment.',
+  commentActionHint: 'This only changes the report status. It does not hide or delete the comment.',
   staffOnly: 'Only staff can view reports.',
   loadFailed: 'Couldn’t load the list: {error}',
   empty: 'No pending reports.',

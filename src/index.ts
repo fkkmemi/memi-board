@@ -31,6 +31,9 @@ export {
   reportsCol,
   reportDoc,
   reportDocId,
+  commentReportDoc,
+  commentReportDocId,
+  reportDocById,
   boardUsersCol,
   boardUserDoc,
   postStorageFolder,
@@ -82,6 +85,8 @@ export {
   REPORT_REASONS,
   reportReasonLabel,
   useMemiBoardReports,
+  useMemiBoardCommentReport,
+  REPORT_COMMENT_EXCERPT_MAX_LENGTH,
   useMemiBoardReportQueue,
 } from './composables/useMemiBoardReports'
 export { useMemiBoardViews } from './composables/useMemiBoardViews'

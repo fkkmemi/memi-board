@@ -1,4 +1,5 @@
 export default {
+  commentTitle: '댓글 신고',
   failed: '신고하지 못했습니다.',
   reported: '신고함',
   title: '게시물 신고',

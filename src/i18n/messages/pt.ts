@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: 'Conte um pouco sobre você',
   },
   reportButton: {
+    commentTitle: 'Denunciar comentário',
     failed: 'Não foi possível enviar a denúncia.',
     reported: 'Denunciado',
     title: 'Denunciar publicação',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "Detalhes (obrigatórios para Outro)",
   },
   reportList: {
+    target: {
+      post: 'Post',
+      comment: 'Comentário',
+    },
+    deletedComment: 'Texto do comentário indisponível',
+    blindComment: 'Ocultar também este comentário',
+    blindCommentHint: 'Oculta o comentário para todos. A equipe pode restaurá-lo pelo comentário.',
+    commentActionHint: 'Altera apenas o status da denúncia. O comentário não é ocultado nem excluído.',
     staffOnly: 'Somente a equipe pode ver as denúncias.',
     loadFailed: 'Não foi possível carregar a lista: {error}',
     empty: 'Nenhuma denúncia pendente.',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "Não foi possível processar. Tente novamente.",
   },
   reports: {
+    cannotReportOwnComment: 'Você não pode denunciar seu próprio comentário.',
+    alreadyReportedComment: 'Você já denunciou este comentário.',
     reason: {
       spam: 'Spam / publicidade',
       abuse: 'Ofensa / ódio / assédio',

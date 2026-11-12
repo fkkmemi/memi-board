@@ -10,9 +10,10 @@ function harness() {
   const user = vue.ref({ uid: 'reporter', displayName: 'Reporter' })
   const listeners = []
   const writes = []
+  const reads = []
   let stored = { status: 'open' }
   const firestore = {
-    documentId: () => '__name__', getDocs: async () => ({ docs: [] }), limit: value => ({ limit: value }),
+    documentId: () => '__name__', getDoc: async target => { reads.push(target); return { id: target, exists: () => false } }, getDocs: async () => ({ docs: [] }), limit: value => ({ limit: value }),
     onSnapshot: (target, success, error) => { const sub = { target, success, error }; listeners.push(sub); return () => { sub.stopped = true } },
     orderBy: (...values) => ({ orderBy: values }), query: (...values) => values,
     serverTimestamp: () => 'server-time', setDoc: async (target, data) => { writes.push({ target, data }) },
@@ -24,7 +25,13 @@ function harness() {
     vue, 'firebase/firestore': firestore, vuefire: { useCurrentUser: () => user, useFirestore: () => 'db' },
     '../config': { useBoardPathConfig: () => ({}) },
     './useMemiBoardAuth': { useMemiBoardAuth: () => ({ isAdmin: admin, canManageContent: vue.ref(true), canManageBoard: () => true }) },
-    '../utils/boardPaths': { reportDoc: (_db, _cfg, post, uid) => `${post}_${uid}`, reportsCol: () => 'reports' },
+    '../utils/boardPaths': {
+      reportDoc: (_db, _cfg, post, uid) => `${post}_${uid}`,
+      commentReportDoc: (_db, _cfg, comment, uid) => `c_${comment}_${uid}`,
+      reportDocById: (_db, _cfg, id) => id,
+      commentDoc: (_db, _cfg, id) => `comment:${id}`,
+      reportsCol: () => 'reports',
+    },
     '../i18n/translate': { translate: (_locale, key) => key },
     '../i18n/useMemiBoardI18n': { useMemiBoardI18n: () => ({ t: key => key }) },
   }
@@ -32,7 +39,7 @@ function harness() {
   const mod = { exports: {} }
   new Function('require', 'module', 'exports', js)(name => { if (!(name in deps)) throw Error(name); return deps[name] }, mod, mod.exports)
   const scope = vue.effectScope()
-  return { api: mod.exports, run: fn => scope.run(fn), stop: () => scope.stop(), user, listeners, writes, stored: value => { stored = value } }
+  return { api: mod.exports, run: fn => scope.run(fn), stop: () => scope.stop(), user, listeners, writes, reads, stored: value => { stored = value } }
 }
 
 test('Other requires a non-whitespace description before any write', async () => {
@@ -75,4 +82,30 @@ test('history query includes both processed statuses and discards an outdated su
   assert.equal(q.reports.value.length, 0)
   h.listeners[1].success({ docs: [{ id: 'history', data: () => ({ boardId: 'board', status: 'actioned' }) }] })
   assert.equal(q.reports.value[0].id, 'history'); h.stop()
+})
+test('comment report loads status on demand and writes a comment-keyed document with an excerpt', async () => {
+  const h = harness(); const r = h.run(() => h.api.useMemiBoardCommentReport('board', 'post', 'comment'))
+  assert.equal(h.listeners.length, 0)
+  await r.loadReport()
+  assert.deepEqual(h.reads, ['c_comment_reporter'])
+  await assert.rejects(r.submitReport({ reason: 'spam', authorUid: 'reporter' }), /cannotReportOwnComment/)
+  await r.submitReport({ reason: 'spam', authorUid: 'author', commentBody: ' ' + 'x'.repeat(300) })
+  assert.equal(h.writes[0].target, 'c_comment_reporter')
+  assert.equal(h.writes[0].data.target, 'comment')
+  assert.equal(h.writes[0].data.commentId, 'comment')
+  assert.equal(h.writes[0].data.commentExcerpt.length, 200)
+  await assert.rejects(r.submitReport({ reason: 'spam', authorUid: 'author' }), /alreadyReportedComment/)
+  h.stop()
+})
+test('reviewing a comment report targets its stored document ID', async () => {
+  const h = harness(); const q = h.run(() => h.api.useMemiBoardReportQueue())
+  h.stored({ status: 'open' })
+  await q.actionReport({ id: 'c_comment_reporter', target: 'comment', postId: 'post', commentId: 'comment', uid: 'reporter', boardId: 'board' }, 'Hidden', { blindComment: true })
+  assert.deepEqual(h.writes.map(w => w.target).sort(), ['c_comment_reporter', 'comment:comment'])
+  assert.equal(h.writes.find(w => w.target === 'comment:comment').data.isBlinded, true); h.stop()
+})
+test('global admin queue includes post and comment reports', () => {
+  const h = harness(); h.run(() => h.api.useMemiBoardReportQueue())
+  assert.ok(h.listeners[0].target.some(x => x?.where?.[0] === 'target' && x.where[1] === 'in' && x.where[2].includes('comment')))
+  h.stop()
 })

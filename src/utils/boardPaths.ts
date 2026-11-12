@@ -9,6 +9,7 @@
  * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
  * memiBoardLikes/{targetId}_{uid}              // 글: postId_uid / 댓글: commentId_uid
  * memiBoardReports/{postId}_{uid}              // 글 신고. 유저당 글당 1건
+ * memiBoardReports/c_{commentId}_{uid}         // 댓글 신고. 유저당 댓글당 1건
  * ```
  *
  * Storage: `memiBoardPosts/{postId}/...` (postId 가 전역 고유이므로 boardId 불필요)
@@ -134,6 +135,25 @@ export function reportDoc(
   uid: string,
 ): DocumentReference {
   return doc(db, cfg.reportsCollection, reportDocId(postId, uid))
+}
+
+/** 댓글 신고 문서ID: `c_${commentId}_{uid}` — 유저당 댓글당 1건. 글 신고 ID 와 겹치지 않게 접두어를 붙인다. */
+export function commentReportDocId(commentId: string, uid: string): string {
+  return `c_${commentId}_${uid}`
+}
+
+export function commentReportDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  commentId: string,
+  uid: string,
+): DocumentReference {
+  return doc(db, cfg.reportsCollection, commentReportDocId(commentId, uid))
+}
+
+/** 이미 읽은 신고 문서를 ID 그대로 다시 가리킨다 (글·댓글 신고 공통). */
+export function reportDocById(db: Firestore, cfg: BoardPathConfig, reportId: string): DocumentReference {
+  return doc(db, cfg.reportsCollection, reportId)
 }
 
 export function boardUsersCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {

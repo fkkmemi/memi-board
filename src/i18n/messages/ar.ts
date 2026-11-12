@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: 'عرّف الآخرين بنفسك',
   },
   reportButton: {
+    commentTitle: 'الإبلاغ عن التعليق',
     failed: 'تعذّر إرسال البلاغ.',
     reported: 'تم الإبلاغ',
     title: 'الإبلاغ عن المنشور',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "التفاصيل (مطلوبة عند اختيار أخرى)",
   },
   reportList: {
+    target: {
+      post: 'منشور',
+      comment: 'تعليق',
+    },
+    deletedComment: 'نص التعليق غير متاح',
+    blindComment: 'إخفاء هذا التعليق أيضًا',
+    blindCommentHint: 'يخفي التعليق عن الجميع. يمكن للفريق استعادته من التعليق.',
+    commentActionHint: 'يغيّر حالة البلاغ فقط. لا يخفي التعليق ولا يحذفه.',
     staffOnly: 'يمكن لفريق العمل فقط عرض البلاغات.',
     loadFailed: 'تعذّر تحميل القائمة: {error}',
     empty: 'لا توجد بلاغات معلّقة.',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "تعذرت المعالجة. حاول مجددًا.",
   },
   reports: {
+    cannotReportOwnComment: 'لا يمكنك الإبلاغ عن تعليقك.',
+    alreadyReportedComment: 'لقد أبلغت عن هذا التعليق بالفعل.',
     reason: {
       spam: 'رسائل مزعجة / إعلانات',
       abuse: 'إساءة / كراهية / تحرّش',

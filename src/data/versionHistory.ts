@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.61.0',
+    date: '2026-11-12',
+    highlights: [
+      '다른 사람의 댓글을 신고할 수 있어요',
+      '댓글 신고 버튼에서 처리 상태와 처리 사유를 확인할 수 있어요',
+      '신고 목록에 글/댓글 구분과 댓글 내용이 보여요',
+      '댓글 신고를 검토 완료하면서 댓글을 바로 블라인드할 수 있어요',
+    ],
+    highlightsEn: [
+      'Report other people\'s comments',
+      'The comment report button shows the review status and reason',
+      'The report list shows post/comment badges and the comment text',
+      'Blind a comment while marking its report reviewed',
+    ],
+  },
+  {
     version: '0.60.0',
     date: '2026-11-12',
     highlights: [

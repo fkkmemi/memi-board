@@ -1,4 +1,6 @@
 export default {
+  cannotReportOwnComment: '자신의 댓글은 신고할 수 없습니다.',
+  alreadyReportedComment: '이미 신고한 댓글입니다.',
   reason: {
     spam: '스팸·광고',
     abuse: '욕설·혐오·괴롭힘',

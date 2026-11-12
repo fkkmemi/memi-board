@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: 'Erzähl etwas über dich',
   },
   reportButton: {
+    commentTitle: 'Kommentar melden',
     failed: 'Meldung konnte nicht gesendet werden.',
     reported: 'Gemeldet',
     title: 'Beitrag melden',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "Details (bei Sonstiges erforderlich)",
   },
   reportList: {
+    target: {
+      post: 'Beitrag',
+      comment: 'Kommentar',
+    },
+    deletedComment: 'Kommentartext nicht verfügbar',
+    blindComment: 'Diesen Kommentar auch ausblenden',
+    blindCommentHint: 'Blendet den Kommentar für alle aus. Das Team kann ihn am Kommentar wiederherstellen.',
+    commentActionHint: 'Ändert nur den Meldungsstatus. Der Kommentar wird weder ausgeblendet noch gelöscht.',
     staffOnly: 'Nur das Team kann Meldungen einsehen.',
     loadFailed: 'Liste konnte nicht geladen werden: {error}',
     empty: 'Keine offenen Meldungen.',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "Verarbeitung fehlgeschlagen. Bitte erneut versuchen.",
   },
   reports: {
+    cannotReportOwnComment: 'Du kannst deinen eigenen Kommentar nicht melden.',
+    alreadyReportedComment: 'Du hast diesen Kommentar bereits gemeldet.',
     reason: {
       spam: 'Spam / Werbung',
       abuse: 'Beleidigung / Hass / Belästigung',

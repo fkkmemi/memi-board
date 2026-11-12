@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } 
 import type { Unsubscribe } from 'firebase/firestore'
 import {
   documentId,
+  getDoc,
   getDocs,
   limit as fbLimit,
   onSnapshot,
@@ -17,7 +18,7 @@ import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useCurrentUser, useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
 import { useMemiBoardAuth } from './useMemiBoardAuth'
-import { reportDoc, reportsCol } from '../utils/boardPaths'
+import { commentDoc, commentReportDoc, reportDoc, reportDocById, reportsCol } from '../utils/boardPaths'
 import type { BoardReportModel, BoardReportReason, BoardReportStatus } from '../types'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
@@ -25,6 +26,8 @@ import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export const REPORT_DETAIL_MAX_LENGTH = 200
 export const REPORT_REVIEW_NOTE_MAX_LENGTH = 200
+/** 댓글 신고에 복제해 두는 본문 발췌 길이. */
+export const REPORT_COMMENT_EXCERPT_MAX_LENGTH = 200
 /**
  * 신고 사유 목록. `label` 은 호환용 한국어 원문이다 — 화면에는 `reportReasonLabel(value, locale)` 로
  * 현재 언어 문구를 쓴다.
@@ -40,6 +43,23 @@ export const REPORT_REASONS: { value: BoardReportReason, label: string }[] = [
 export function reportReasonLabel(reason: BoardReportReason | string | undefined, locale?: MemiBoardLocale) {
   if (REPORT_REASONS.some(item => item.value === reason)) return translate(locale, `reports.reason.${reason}`)
   return reason || translate(locale, 'reports.fallbackLabel')
+}
+
+type Translate = ReturnType<typeof useMemiBoardI18n>['t']
+
+/** 글·댓글 신고 공통 사유 검증. 통과하면 정리된 reason/detail 을 돌려준다. */
+function validateReportInput(
+  t: Translate,
+  input: { reason: BoardReportReason, detail?: string },
+) {
+  const reason = REPORT_REASONS.some(item => item.value === input.reason) ? input.reason : null
+  if (!reason) throw new Error(t('reports.reasonRequired'))
+  const detail = (input.detail || '').trim()
+  if (reason === 'other' && !detail) throw new Error(t('reports.otherDetailRequired'))
+  if (detail.length > REPORT_DETAIL_MAX_LENGTH) {
+    throw new Error(t('reports.detailTooLong', { max: REPORT_DETAIL_MAX_LENGTH }))
+  }
+  return { reason, detail }
 }
 
 export function useMemiBoardReports(boardId: string, postId: string) {
@@ -89,14 +109,8 @@ export function useMemiBoardReports(boardId: string, postId: string) {
     if (!uid) throw new Error(t('reports.signInRequired'))
     if (pending.value) return
     if (input.authorUid && input.authorUid === uid) throw new Error(t('reports.cannotReportOwn'))
-    const reason = REPORT_REASONS.some(item => item.value === input.reason) ? input.reason : null
-    if (!reason) throw new Error(t('reports.reasonRequired'))
     if (hasReported.value) throw new Error(t('reports.alreadyReported'))
-    const detail = (input.detail || '').trim()
-    if (reason === 'other' && !detail) throw new Error(t('reports.otherDetailRequired'))
-    if (detail.length > REPORT_DETAIL_MAX_LENGTH) {
-      throw new Error(t('reports.detailTooLong', { max: REPORT_DETAIL_MAX_LENGTH }))
-    }
+    const { reason, detail } = validateReportInput(t, input)
 
     pending.value = true
     try {
@@ -121,6 +135,93 @@ export function useMemiBoardReports(boardId: string, postId: string) {
   }
 
   return { hasReported, report, reportPending, reportError, pending, submitReport }
+}
+
+/**
+ * 댓글 하나의 신고. 댓글 목록에서 댓글마다 실시간 구독을 열지 않도록, 신고 상태는
+ * `loadReport()` 를 부를 때(신고 버튼을 눌렀을 때) 한 번만 읽는다.
+ */
+export function useMemiBoardCommentReport(boardId: string, postId: string, commentId: string) {
+  const cfg = () => useBoardPathConfig()
+  const db = useFirestore()
+  const user = useCurrentUser()
+  const { t } = useMemiBoardI18n()
+
+  const report = ref<BoardReportModel | null>(null)
+  const hasReported = computed(() => !!report.value)
+  const reportPending = ref(false)
+  const reportError = ref('')
+  const pending = ref(false)
+  let loadVersion = 0
+
+  watch(() => user.value?.uid, () => {
+    loadVersion++
+    report.value = null
+    reportError.value = ''
+    reportPending.value = false
+  })
+
+  async function loadReport(): Promise<void> {
+    const uid = user.value?.uid
+    if (!uid) return
+    const version = ++loadVersion
+    reportPending.value = true
+    reportError.value = ''
+    try {
+      const snap = await getDoc(commentReportDoc(db, cfg(), commentId, uid))
+      if (version !== loadVersion) return
+      report.value = snap.exists() ? { id: snap.id, ...snap.data() } as BoardReportModel : null
+    }
+    catch (cause) {
+      if (version !== loadVersion) return
+      reportError.value = t('reports.statusLoadFailed')
+      console.error('[memi-board:reports] comment report load failed', cause)
+    }
+    finally {
+      if (version === loadVersion) reportPending.value = false
+    }
+  }
+
+  async function submitReport(input: {
+    reason: BoardReportReason
+    detail?: string
+    commentBody?: string
+    postTitle?: string
+    authorUid?: string
+    authorName?: string | null
+  }): Promise<void> {
+    const uid = user.value?.uid
+    if (!uid) throw new Error(t('reports.signInRequired'))
+    if (pending.value) return
+    if (input.authorUid && input.authorUid === uid) throw new Error(t('reports.cannotReportOwnComment'))
+    if (hasReported.value) throw new Error(t('reports.alreadyReportedComment'))
+    const { reason, detail } = validateReportInput(t, input)
+
+    pending.value = true
+    try {
+      const data = {
+        uid,
+        target: 'comment' as const,
+        postId,
+        commentId,
+        boardId,
+        reason,
+        detail,
+        status: 'open' as const,
+        postTitle: (input.postTitle || '').trim().slice(0, 200),
+        commentExcerpt: (input.commentBody || '').trim().slice(0, REPORT_COMMENT_EXCERPT_MAX_LENGTH),
+        authorUid: input.authorUid || '',
+        authorName: input.authorName ?? null,
+      }
+      await setDoc(commentReportDoc(db, cfg(), commentId, uid), { ...data, createdAt: serverTimestamp() })
+      report.value = data as BoardReportModel
+    }
+    finally {
+      pending.value = false
+    }
+  }
+
+  return { hasReported, report, reportPending, reportError, pending, loadReport, submitReport }
 }
 
 const QUEUE_PAGE_SIZE = 20
@@ -166,7 +267,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     pending.value = true
     const constraints = boardFilter.value
       ? [statusConstraint(), where('boardId', '==', boardFilter.value)]
-      : [statusConstraint(), where('target', '==', 'post')]
+      : [statusConstraint(), where('target', 'in', ['post', 'comment'])]
     stop = onSnapshot(query(
       reportsCol(db, cfg()),
       ...constraints,
@@ -198,7 +299,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     try {
       const constraints = boardFilter.value
         ? [statusConstraint(), where('boardId', '==', boardFilter.value)]
-        : [statusConstraint(), where('target', '==', 'post')]
+        : [statusConstraint(), where('target', 'in', ['post', 'comment'])]
       const snapshot = await getDocs(query(
         reportsCol(db, cfg()),
         ...constraints,
@@ -223,7 +324,16 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     }
   }
 
-  async function resolveReport(report: BoardReportModel, status: Exclude<BoardReportStatus, 'open'>, note = '') {
+  /**
+   * @param options.blindComment 댓글 신고를 검토 완료할 때 같은 트랜잭션에서 댓글도 블라인드한다.
+   *   댓글이 이미 지워졌으면 블라인드는 건너뛰고 신고 상태만 바꾼다.
+   */
+  async function resolveReport(
+    report: BoardReportModel,
+    status: Exclude<BoardReportStatus, 'open'>,
+    note = '',
+    options: { blindComment?: boolean } = {},
+  ) {
     const current = useCurrentUser().value
     if (!current || !report.id || !canManageBoard(report.boardId)) throw new Error(t('reports.manageRequired'))
     const reviewNote = note.trim()
@@ -231,9 +341,17 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     if (reviewNote.length > REPORT_REVIEW_NOTE_MAX_LENGTH) throw new Error(t('reports.detailTooLong', { max: REPORT_REVIEW_NOTE_MAX_LENGTH }))
     // Two reviewers cannot overwrite each other's decision.
     await runTransaction(db, async transaction => {
-      const target = reportDoc(db, cfg(), report.postId, report.uid)
+      // Use the stored document ID: comment reports are keyed by commentId, not postId.
+      const target = reportDocById(db, cfg(), report.id!)
       const snapshot = await transaction.get(target)
+      const comment = options.blindComment && status === 'actioned' && report.target === 'comment' && report.commentId
+        ? commentDoc(db, cfg(), report.commentId)
+        : null
+      const commentSnapshot = comment ? await transaction.get(comment) : null
       if (!snapshot.exists() || snapshot.data().status !== 'open') throw new Error(t('reports.alreadyReviewed'))
+      if (comment && commentSnapshot?.exists() && !commentSnapshot.data().isBlinded) {
+        transaction.update(comment, { isBlinded: true, moderatedAt: serverTimestamp(), moderatedBy: current.uid })
+      }
       transaction.update(target, {
         status,
         reviewedAt: serverTimestamp(),
@@ -252,6 +370,7 @@ export function useMemiBoardReportQueue(options: { pageSize?: number, boardId?: 
     loadError,
     loadMore,
     dismissReport: (report: BoardReportModel, note?: string) => resolveReport(report, 'dismissed', note),
-    actionReport: (report: BoardReportModel, note?: string) => resolveReport(report, 'actioned', note),
+    actionReport: (report: BoardReportModel, note?: string, options?: { blindComment?: boolean }) =>
+      resolveReport(report, 'actioned', note, options),
   }
 }

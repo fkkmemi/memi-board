@@ -16,6 +16,7 @@ import {
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
+import MemiBoardCommentReportButton from './CommentReportButton.vue'
 import MemiBoardImageLightbox from './ImageLightbox.vue'
 
 const props = defineProps<{
@@ -189,7 +190,7 @@ async function toggleLike() {
 </script>
 
 <template>
-  <div class="flex items-start gap-3">
+  <div :id="comment.id ? `memi-comment-${comment.id}` : undefined" class="flex items-start gap-3 scroll-mt-20">
     <UAvatar
       :src="comment.authorPhoto ?? undefined"
       :alt="comment.authorName ?? t('common.label.anonymous')"
@@ -370,6 +371,15 @@ async function toggleLike() {
           @click="emit('reply', comment)"
         />
       </UTooltip>
+      <MemiBoardCommentReportButton
+        v-if="comment.id"
+        :board-id="boardId"
+        :post-id="postId"
+        :comment-id="comment.id"
+        :author-uid="comment.authorUid"
+        :author-name="comment.authorName"
+        :comment-body="localBody"
+      />
       <UTooltip v-if="canDeleteComment(comment) && comment.id" :text="t('commentItem.delete')" :delay-duration="200">
         <UButton
           icon="i-lucide-trash-2"

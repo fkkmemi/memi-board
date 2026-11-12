@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: 'Ceritakan tentang diri Anda',
   },
   reportButton: {
+    commentTitle: 'Laporkan komentar',
     failed: 'Gagal mengirim laporan.',
     reported: 'Dilaporkan',
     title: 'Laporkan postingan',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "Detail (wajib untuk Lainnya)",
   },
   reportList: {
+    target: {
+      post: 'Postingan',
+      comment: 'Komentar',
+    },
+    deletedComment: 'Teks komentar tidak tersedia',
+    blindComment: 'Sembunyikan juga komentar ini',
+    blindCommentHint: 'Menyembunyikan komentar untuk semua orang. Staf dapat memulihkannya dari komentar.',
+    commentActionHint: 'Hanya mengubah status laporan. Komentar tidak disembunyikan atau dihapus.',
     staffOnly: 'Hanya staf yang dapat melihat laporan.',
     loadFailed: 'Gagal memuat daftar: {error}',
     empty: 'Tidak ada laporan yang tertunda.',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "Pemrosesan gagal. Silakan coba lagi.",
   },
   reports: {
+    cannotReportOwnComment: 'Anda tidak dapat melaporkan komentar Anda sendiri.',
+    alreadyReportedComment: 'Anda sudah melaporkan komentar ini.',
     reason: {
       spam: 'Spam / iklan',
       abuse: 'Kata kasar / kebencian / pelecehan',

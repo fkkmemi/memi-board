@@ -1,4 +1,12 @@
 export default {
+  target: {
+    post: '글',
+    comment: '댓글',
+  },
+  deletedComment: '댓글 내용 없음',
+  blindComment: '이 댓글도 블라인드 처리',
+  blindCommentHint: '모든 사용자에게 댓글을 가립니다. 스태프가 댓글에서 다시 해제할 수 있습니다.',
+  commentActionHint: '이 처리는 신고 상태만 변경합니다. 댓글을 숨기거나 삭제하지 않습니다.',
   staffOnly: '스태프만 신고 목록을 볼 수 있습니다.',
   loadFailed: '목록을 불러오지 못했습니다: {error}',
   empty: '대기 중인 신고가 없습니다.',

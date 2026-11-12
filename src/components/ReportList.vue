@@ -30,14 +30,24 @@ const selectedAction = ref<'dismiss' | 'action'>('dismiss')
 const reviewNote = ref('')
 const actionError = ref('')
 const modalOpen = ref(false)
+const blindComment = ref(true)
+const isCommentReport = (report: BoardReportModel | null) => report?.target === 'comment'
 const modalTitle = computed(() => t(selectedAction.value === 'dismiss' ? 'reportList.dismissTitle' : 'reportList.resolveTitle'))
 
-function postLink(report: BoardReportModel) { return props.getPostLink?.(report) }
+function postLink(report: BoardReportModel) {
+  const link = props.getPostLink?.(report)
+  return link && isCommentReport(report) && report.commentId ? `${link}#memi-comment-${report.commentId}` : link
+}
+function reportHeading(report: BoardReportModel | null) {
+  if (isCommentReport(report)) return report?.commentExcerpt || t('reportList.deletedComment')
+  return report?.postTitle || t('reportList.untitled')
+}
 function openReview(report: BoardReportModel, action: 'dismiss' | 'action') {
   selectedReport.value = report
   selectedAction.value = action
   reviewNote.value = ''
   actionError.value = ''
+  blindComment.value = true
   modalOpen.value = true
 }
 watch(() => props.boardId, () => { if (!actingId.value) modalOpen.value = false })
@@ -49,7 +59,7 @@ async function handle() {
   actionError.value = ''
   try {
     if (selectedAction.value === 'dismiss') await dismissReport(report, reviewNote.value)
-    else await actionReport(report, reviewNote.value)
+    else await actionReport(report, reviewNote.value, { blindComment: isCommentReport(report) && blindComment.value })
     modalOpen.value = false
   }
   catch (cause) {
@@ -74,7 +84,10 @@ async function handle() {
         <ul v-else class="flex flex-col divide-y divide-default overflow-hidden rounded-lg border border-default">
           <li v-for="report in reports" :key="report.id" class="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0 flex-1 space-y-2">
-              <component :is="postLink(report) ? NuxtLink : 'p'" :to="postLink(report)" class="block break-words text-sm font-medium text-highlighted" :class="postLink(report) ? 'hover:underline' : ''">{{ report.postTitle || t('reportList.untitled') }}</component>
+              <div class="flex min-w-0 items-start gap-2">
+                <UBadge :color="isCommentReport(report) ? 'info' : 'neutral'" variant="subtle" size="sm" class="shrink-0" :label="t(isCommentReport(report) ? 'reportList.target.comment' : 'reportList.target.post')" />
+                <component :is="postLink(report) ? NuxtLink : 'p'" :to="postLink(report)" class="block min-w-0 break-words text-sm font-medium text-highlighted" :class="[postLink(report) ? 'hover:underline' : '', isCommentReport(report) ? 'line-clamp-3 whitespace-pre-wrap' : '']">{{ reportHeading(report) }}</component>
+              </div>
               <p class="text-xs text-muted">{{ reportReasonLabel(report.reason, locale) }}<span v-if="report.authorName"> · {{ t('reportList.author', { name: report.authorName }) }}</span> · {{ formatRelativeDate(report.createdAt, now) }}</p>
               <p v-if="report.detail" class="whitespace-pre-wrap break-words text-sm text-toned">{{ report.detail }}</p>
               <template v-if="report.status !== 'open'">
@@ -95,8 +108,15 @@ async function handle() {
     <UModal v-model:open="modalOpen" :title="modalTitle" :dismissible="!actingId" :close="actingId ? false : undefined">
       <template #body>
         <form class="space-y-4" @submit.prevent="handle">
-          <p class="break-words text-sm font-medium text-highlighted">{{ selectedReport?.postTitle || t('reportList.untitled') }}</p>
-          <p class="text-sm text-muted">{{ t('reportList.actionHint') }}</p>
+          <p class="line-clamp-4 whitespace-pre-wrap break-words text-sm font-medium text-highlighted">{{ reportHeading(selectedReport) }}</p>
+          <UCheckbox
+            v-if="selectedAction === 'action' && isCommentReport(selectedReport)"
+            v-model="blindComment"
+            :disabled="!!actingId"
+            :label="t('reportList.blindComment')"
+            :description="t('reportList.blindCommentHint')"
+          />
+          <p v-else class="text-sm text-muted">{{ t(isCommentReport(selectedReport) ? 'reportList.commentActionHint' : 'reportList.actionHint') }}</p>
           <UFormField :label="t('reportList.reviewNote')" :description="t('reportList.publicNote')" required>
             <UTextarea v-model="reviewNote" required :maxlength="REPORT_REVIEW_NOTE_MAX_LENGTH" :rows="3" :disabled="!!actingId" class="w-full" />
           </UFormField>

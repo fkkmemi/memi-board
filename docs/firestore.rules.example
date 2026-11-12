@@ -510,7 +510,34 @@ service cloud.firestore {
       // update is not allowed — toggling is always create-or-delete.
     }
 
-    // Post reports. Doc ID = `${postId}_{uid}`. Contents are readable only by the reporter and staff.
+    // Post reports: doc ID = `${postId}_{uid}`.
+    function isValidPostReport(reportId) {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'target', 'postId', 'boardId', 'reason', 'detail', 'status',
+          'createdAt', 'postTitle', 'authorUid', 'authorName'
+        ])
+        && request.resource.data.target == 'post'
+        && reportId == request.resource.data.postId + '_' + request.auth.uid
+        && request.resource.data.authorUid == get(postPath(request.resource.data.postId)).data.authorUid;
+    }
+    // Comment reports: doc ID = `c_${commentId}_{uid}`. The excerpt keeps the reported text reviewable after deletion.
+    function isValidCommentReport(reportId) {
+      return request.resource.data.keys().hasOnly([
+          'uid', 'target', 'postId', 'commentId', 'boardId', 'reason', 'detail', 'status',
+          'createdAt', 'postTitle', 'commentExcerpt', 'authorUid', 'authorName'
+        ])
+        && request.resource.data.target == 'comment'
+        && request.resource.data.commentId is string
+        && request.resource.data.commentExcerpt is string
+        && request.resource.data.commentExcerpt.size() <= 200
+        && reportId == 'c_' + request.resource.data.commentId + '_' + request.auth.uid
+        && exists(commentPath(request.resource.data.commentId))
+        && get(commentPath(request.resource.data.commentId)).data.postId == request.resource.data.postId
+        && get(commentPath(request.resource.data.commentId)).data.get('deletionPending', false) == false
+        && request.resource.data.authorUid == get(commentPath(request.resource.data.commentId)).data.authorUid;
+    }
+
+    // Post and comment reports. Contents are readable only by the reporter and staff.
     match /memiBoardReports/{reportId} {
       allow read: if (isSignedIn() && resource == null)
         || (isSignedIn() && request.auth.uid == resource.data.uid)
@@ -518,11 +545,6 @@ service cloud.firestore {
 
       allow create: if isBoardWriter()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly([
-          'uid', 'target', 'postId', 'boardId', 'reason', 'detail', 'status',
-          'createdAt', 'postTitle', 'authorUid', 'authorName'
-        ])
-        && request.resource.data.target == 'post'
         && request.resource.data.status == 'open'
         && request.resource.data.postId is string
         && request.resource.data.boardId is string
@@ -534,13 +556,12 @@ service cloud.firestore {
         && request.resource.data.postTitle is string
         && request.resource.data.postTitle.size() <= 200
         && request.resource.data.authorUid is string
+        && request.resource.data.authorUid != request.auth.uid
         && (request.resource.data.authorName == null || request.resource.data.authorName is string)
-        && reportId == request.resource.data.postId + '_' + request.auth.uid
         && exists(postPath(request.resource.data.postId))
         && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
         && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false
-        && request.resource.data.authorUid == get(postPath(request.resource.data.postId)).data.authorUid
-        && get(postPath(request.resource.data.postId)).data.authorUid != request.auth.uid;
+        && (isValidPostReport(reportId) || isValidCommentReport(reportId));
 
       allow update: if isBoardManager(resource.data.boardId)
         && request.resource.data.diff(resource.data).affectedKeys()

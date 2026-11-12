@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: '自己紹介を書いてみましょう',
   },
   reportButton: {
+    commentTitle: 'コメントを通報',
     failed: '通報できませんでした。',
     reported: '通報済み',
     title: '投稿を通報',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "詳細（その他の場合は必須）",
   },
   reportList: {
+    target: {
+      post: '投稿',
+      comment: 'コメント',
+    },
+    deletedComment: 'コメント本文はありません',
+    blindComment: 'このコメントも非表示にする',
+    blindCommentHint: 'すべてのユーザーに対してコメントを非表示にします。スタッフはコメントから元に戻せます。',
+    commentActionHint: '通報のステータスのみを変更します。コメントを非表示・削除しません。',
     staffOnly: '通報一覧はスタッフのみ閲覧できます。',
     loadFailed: '一覧を読み込めませんでした: {error}',
     empty: '対応待ちの通報はありません。',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "処理できませんでした。再度お試しください。",
   },
   reports: {
+    cannotReportOwnComment: '自分のコメントは通報できません。',
+    alreadyReportedComment: 'このコメントはすでに通報済みです。',
     reason: {
       spam: 'スパム・広告',
       abuse: '暴言・ヘイト・嫌がらせ',

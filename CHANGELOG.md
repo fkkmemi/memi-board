@@ -4,6 +4,22 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.61.0] - 2026-11-12
+
+### Added
+- Signed-in users can report other people's comments with the same reasons and details as post reports. Each user can report a comment once, and the comment's flag button opens the report status and the public review reason, including after the comment is blinded. Report status is read when the button is clicked, so long comment lists do not open one listener per comment.
+- Report queues show a Post/Comment badge and the reported comment's text. Comment report links jump to `#memi-comment-{commentId}` on the post page. Staff can blind the comment while marking a comment report reviewed.
+- `useMemiBoardCommentReport(boardId, postId, commentId)`, `commentReportDoc` / `commentReportDocId` / `reportDocById` path helpers, and `actionReport(report, note, { blindComment })`.
+
+### Changed
+- `BoardReportTarget` is now `'post' | 'comment'`. Comment reports are stored in the same reports collection at `c_{commentId}_{uid}`, with `commentId` and a 200-character `commentExcerpt`.
+- Reviewing a report now writes to the report's stored document ID instead of rebuilding it from `postId`.
+
+### Host app steps
+- Merge the updated `memiBoardReports` block (`isValidPostReport` / `isValidCommentReport`) from `docs/firestore.rules.example` and deploy Firestore rules before releasing. Without it, comment report submissions are denied.
+- No index change is required. The admin queue now filters `target in ['post', 'comment']`, which uses the existing `status` + `target` + `createdAt` index.
+- If you pass `getPostLink` to `MemiBoardReportList`, comment reports append `#memi-comment-{commentId}` to the link.
+
 ## [0.60.0] - 2026-11-12
 
 ### Added

@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: 'Présentez-vous',
   },
   reportButton: {
+    commentTitle: 'Signaler le commentaire',
     failed: 'Impossible d’envoyer le signalement.',
     reported: 'Signalé',
     title: 'Signaler la publication',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "Détails (obligatoires pour Autre)",
   },
   reportList: {
+    target: {
+      post: 'Publication',
+      comment: 'Commentaire',
+    },
+    deletedComment: 'Texte du commentaire indisponible',
+    blindComment: 'Masquer aussi ce commentaire',
+    blindCommentHint: 'Masque le commentaire pour tout le monde. L’équipe peut le rétablir depuis le commentaire.',
+    commentActionHint: 'Modifie uniquement le statut du signalement. Le commentaire n’est ni masqué ni supprimé.',
     staffOnly: 'Seule l’équipe peut consulter les signalements.',
     loadFailed: 'Impossible de charger la liste : {error}',
     empty: 'Aucun signalement en attente.',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "Échec du traitement. Réessayez.",
   },
   reports: {
+    cannotReportOwnComment: 'Vous ne pouvez pas signaler votre propre commentaire.',
+    alreadyReportedComment: 'Vous avez déjà signalé ce commentaire.',
     reason: {
       spam: 'Spam / publicité',
       abuse: 'Insultes / haine / harcèlement',

@@ -812,4 +812,12 @@ Reporters can reopen the report button to read the current status, review time a
 
 Deploy the report section in `docs/firestore.rules.example` before enabling these controls. Review records add optional `reviewedByName` and `reviewNote` fields; older client decisions without these fields remain compatible. Custom callers must pass a nonblank reason to `dismissReport(report, note)` / `actionReport(report, note)`.
 
+#### Comment reports
+
+Signed-in users can report other people's comments from the flag button on each comment, using the same reasons as post reports. A comment report is stored in the same reports collection at `c_{commentId}_{uid}` with `target: 'comment'`, `commentId`, and a `commentExcerpt` (up to 200 characters) so staff can still review it after the comment is deleted. The button reads the report status on click instead of subscribing per comment.
+
+`MemiBoardReportList` shows a Post/Comment badge and the comment excerpt. When `getPostLink` is set, comment reports link to `#memi-comment-{commentId}` on the post. Marking a comment report reviewed offers a checkbox that also blinds the comment in the same transaction (`actionReport(report, note, { blindComment: true })`).
+
+Rules: merge the whole `memiBoardReports` block from `docs/firestore.rules.example`, including the `isValidPostReport` and `isValidCommentReport` functions, then run `firebase deploy --only firestore:rules`. The comment branch checks that the comment exists, belongs to the same post, is not pending deletion, and was not written by the reporter. Until the rules are deployed, comment report submissions are denied. No index change is required.
+
 Comment blind/restore is a separate manager action, not a user report. Its in-page confirmation preserves the requested action while saving and displays errors in the dialog. Updated comment rules prevent authors from changing `isBlinded`, `moderatedAt`, or `moderatedBy`; managers must use their own UID and a server timestamp. Blinding changes presentation and retains the original document; it is not deletion or a data-access boundary.

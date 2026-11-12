@@ -471,6 +471,7 @@ const messages: MemiBoardMessages = {
     bioPlaceholder: '介绍一下自己吧',
   },
   reportButton: {
+    commentTitle: '举报评论',
     failed: '举报失败。',
     reported: '已举报',
     title: '举报帖子',
@@ -496,6 +497,14 @@ const messages: MemiBoardMessages = {
     "detailRequired": "详细说明（其他原因必填）",
   },
   reportList: {
+    target: {
+      post: '帖子',
+      comment: '评论',
+    },
+    deletedComment: '评论内容不可用',
+    blindComment: '同时隐藏此评论',
+    blindCommentHint: '对所有人隐藏该评论。工作人员可在评论处恢复。',
+    commentActionHint: '仅更改举报状态，不会隐藏或删除评论。',
     staffOnly: '仅工作人员可查看举报列表。',
     loadFailed: '无法加载列表：{error}',
     empty: '暂无待处理的举报。',
@@ -521,6 +530,8 @@ const messages: MemiBoardMessages = {
     "actionFailed": "处理失败，请重试。",
   },
   reports: {
+    cannotReportOwnComment: '不能举报自己的评论。',
+    alreadyReportedComment: '你已举报过此评论。',
     reason: {
       spam: '垃圾信息/广告',
       abuse: '辱骂/仇恨/骚扰',

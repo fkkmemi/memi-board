@@ -1,4 +1,6 @@
 export default {
+  cannotReportOwnComment: 'You cannot report your own comment.',
+  alreadyReportedComment: 'You already reported this comment.',
   reason: {
     spam: 'Spam / advertising',
     abuse: 'Abuse / hate / harassment',

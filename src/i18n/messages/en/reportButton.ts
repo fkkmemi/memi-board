@@ -1,4 +1,5 @@
 export default {
+  commentTitle: 'Report comment',
   failed: 'Couldn’t submit the report.',
   reported: 'Reported',
   title: 'Report post',

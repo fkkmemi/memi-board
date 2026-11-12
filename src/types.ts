@@ -352,9 +352,12 @@ export interface BoardSectionLayout {
 
 export type BoardReportReason = 'spam' | 'abuse' | 'adult' | 'illegal' | 'other'
 export type BoardReportStatus = 'open' | 'dismissed' | 'actioned'
-export type BoardReportTarget = 'post'
+export type BoardReportTarget = 'post' | 'comment'
 
-/** memiBoardReports/{postId}_{uid} — 유저당 글당 신고 1건. */
+/**
+ * memiBoardReports/{postId}_{uid} — 유저당 글당 신고 1건.
+ * memiBoardReports/c_{commentId}_{uid} — 유저당 댓글당 신고 1건 (`target: 'comment'`).
+ */
 export interface BoardReportModel {
   id?: string
   uid: string
@@ -366,6 +369,10 @@ export interface BoardReportModel {
   status: BoardReportStatus
   createdAt: Timestamp
   postTitle?: string
+  /** `target: 'comment'` 일 때 신고한 댓글 ID. */
+  commentId?: string
+  /** 신고 시점의 댓글 본문 일부 (최대 200자). 댓글이 지워져도 검토할 수 있게 복제한다. */
+  commentExcerpt?: string
   authorUid?: string
   authorName?: string | null
   reviewedAt?: Timestamp
