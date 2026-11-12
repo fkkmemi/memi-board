@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'Notizen dürfen höchstens {max} Zeichen lang sein.',
   },
   authorMenu: {
+    menu: 'Autorenmenü',
     viewProfile: 'Profil ansehen',
     viewPosts: 'Beiträge ansehen',
     viewComments: 'Kommentare ansehen',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: 'Bild',
       draft: 'Entwurf',
       loading: 'Wird geladen…',
+      viewCount: '{count} Aufrufe',
     },
     role: {
       admin: 'Admin',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: 'Diesen Beitrag löschen? Das kann nicht rückgängig gemacht werden.',
     notFound: 'Beitrag nicht gefunden.',
     draftPreview: 'Unveröffentlichte Vorschau',
+    tag: 'Schlagwort',
     draftNotice: 'Noch nicht veröffentlicht. Bis zur Veröffentlichung nur für dich sichtbar.',
     publish: 'Veröffentlichen',
     notice: 'Hinweis',

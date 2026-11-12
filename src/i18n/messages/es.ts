@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'Las notas pueden tener hasta {max} caracteres.',
   },
   authorMenu: {
+    menu: 'Menú del autor',
     viewProfile: 'Ver perfil',
     viewPosts: 'Ver publicaciones',
     viewComments: 'Ver comentarios',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: 'Imagen',
       draft: 'Borrador',
       loading: 'Cargando…',
+      viewCount: '{count} visitas',
     },
     role: {
       admin: 'Administrador',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: '¿Eliminar esta publicación? No se puede deshacer.',
     notFound: 'No se encontró la publicación.',
     draftPreview: 'Vista previa sin publicar',
+    tag: 'Etiqueta',
     draftNotice: 'Esta publicación aún no está publicada. Solo tú puedes verla hasta que la publiques.',
     publish: 'Publicar',
     notice: 'Aviso',

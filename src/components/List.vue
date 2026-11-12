@@ -38,8 +38,8 @@ const props = withDefaults(defineProps<{
   /** 목록 위 헤더에 표시할 제목(예: 카테고리 이름). 지정하면 헤더 행(제목 + 버튼들)을 보여준다. */
   title?: string
   /**
-   * 카테고리 라벨(제목) 호버 툴팁 문구.
-   * 비우면 category가 있을 때 해당 카테고리 description을 쓴다. 둘 다 없으면 툴팁 없음.
+   * 보드 문서에 설명이 없을 때 제목 아래에 보여줄 문구.
+   * 보드 설정 설명이 있으면 그 전문을 쓰고, 이것만 있으면 이 값을 쓴다.
    */
   description?: string
   /** '게시판 설정' 버튼 링크. 지정하면(그리고 canManageSettings가 true면) 헤더에 버튼을 보여준다. */
@@ -70,10 +70,9 @@ const resolvedBoardId = computed(() => props.boardId || props.category || '')
 const { t, dir, locale } = useMemiBoardI18n({ boardLocale: () => getBoard(resolvedBoardId.value)?.locale })
 const introductionText = computed(() => props.introduction ?? t('list.introduction'))
 const listDescription = computed(() => {
-  const explicit = props.description?.trim()
-  if (explicit) return explicit
-  if (resolvedBoardId.value) return boardDescription(resolvedBoardId.value, locale.value)
-  return undefined
+  const fromBoard = resolvedBoardId.value ? boardDescription(resolvedBoardId.value, locale.value) : undefined
+  if (fromBoard) return fromBoard
+  return props.description?.trim() || undefined
 })
 const { posts, notices, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
   resolvedBoardId,
@@ -100,10 +99,14 @@ function cancelAutomaticLoad() {
 }
 
 // 옵저버가 트리거를 보자마자 바로 불러오면 스크롤 중 살짝만 걸쳐도 계속 재요청된다 —
-// 500ms 뒤에도 여전히 보이는 경우에만(자동 요청) 실제로 더 불러온다. 버튼 클릭은 즉시 실행.
+// 1초 뒤에도 여전히 보이는 경우에만(자동 요청) 실제로 더 불러온다. 버튼 클릭은 즉시 실행.
 function scheduleLoadMore(automatic = false) {
   if (loadMoreDelayTimer || loadingMore.value || !hasMore.value) return
-  automaticRequest = automatic
+  if (!automatic) {
+    void loadMore()
+    return
+  }
+  automaticRequest = true
   waitingToLoad.value = true
   loadMoreDelayTimer = setTimeout(() => {
     loadMoreDelayTimer = undefined
@@ -115,7 +118,7 @@ function scheduleLoadMore(automatic = false) {
     automaticRequest = false
     waitingToLoad.value = false
     if (hasMore.value && !loadingMore.value) void loadMore()
-  }, 500)
+  }, 1000)
 }
 
 onMounted(() => {
@@ -220,9 +223,10 @@ function postTo(post: PostModel): string | undefined {
 <template>
   <MemiBoardSurface :introduction="introduction">
   <div class="flex flex-col gap-2" :dir="dir">
-    <div v-if="hasHeader" class="flex items-center justify-between gap-4">
+    <div v-if="hasHeader" class="flex items-start justify-between gap-4">
       <MemiBoardInfo
         v-if="title"
+        class="min-w-0 flex-1"
         :board-id="resolvedBoardId"
         :title="title"
         :description="listDescription"
@@ -230,7 +234,7 @@ function postTo(post: PostModel): string | undefined {
         :author-posts-to="authorPostsTo"
         :author-comments-to="authorCommentsTo"
       />
-      <div class="flex shrink-0 items-center gap-2">
+      <div v-if="(settingsTo && canManageSettings) || (writeTo && canWrite)" class="flex shrink-0 items-center gap-2">
         <UButton
           v-if="settingsTo && canManageSettings"
           :to="settingsTo"
@@ -252,6 +256,14 @@ function postTo(post: PostModel): string | undefined {
         />
       </div>
     </div>
+    <img
+      v-if="getBoard(resolvedBoardId)?.banner?.url"
+      :src="getBoard(resolvedBoardId)?.banner?.url"
+      alt=""
+      width="2400"
+      height="300"
+      class="mb-2 aspect-[8/1] w-full rounded-xl object-cover"
+    >
     <!-- 테스트용 목록 뷰 전환 UI.
     <div v-else-if="view === undefined" class="flex justify-end">
       <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />

@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: '备注最多 {max} 个字。',
   },
   authorMenu: {
+    menu: '作者菜单',
     viewProfile: '查看资料',
     viewPosts: '查看帖子',
     viewComments: '查看评论',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: '图片',
       draft: '草稿',
       loading: '加载中…',
+      viewCount: '浏览 {count}',
     },
     role: {
       admin: '管理员',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: '确定要删除这篇帖子吗？此操作无法撤销。',
     notFound: '找不到该帖子。',
     draftPreview: '未发布预览',
+    tag: '标签',
     draftNotice: '尚未发布。发布前仅作者本人可见。',
     publish: '发布',
     notice: '公告',

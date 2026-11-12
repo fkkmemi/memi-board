@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'Catatan maksimal {max} karakter.',
   },
   authorMenu: {
+    menu: 'Menu penulis',
     viewProfile: 'Lihat profil',
     viewPosts: 'Lihat postingan',
     viewComments: 'Lihat komentar',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: 'Gambar',
       draft: 'Draf',
       loading: 'Memuat…',
+      viewCount: '{count} tayangan',
     },
     role: {
       admin: 'Admin',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: 'Hapus postingan ini? Tindakan ini tidak dapat dibatalkan.',
     notFound: 'Postingan tidak ditemukan.',
     draftPreview: 'Pratinjau belum terbit',
+    tag: 'Tag',
     draftNotice: 'Postingan ini belum diterbitkan. Hanya Anda yang dapat melihatnya hingga diterbitkan.',
     publish: 'Terbitkan',
     notice: 'Pengumuman',

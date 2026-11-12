@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useCollection, useFirebaseApp, useFirestore } from 'vuefire'
-import { getStorage } from 'firebase/storage'
+import { deleteObject, getStorage, listAll, ref as storageRef } from 'firebase/storage'
 import {
   deleteDoc,
   getDocs,
@@ -54,6 +54,13 @@ function normalizeVisibility(value: unknown): BoardVisibility {
   return value === 'hidden' ? 'hidden' : 'public'
 }
 
+function readBanner(value: unknown): BoardModel['banner'] {
+  if (!value || typeof value !== 'object') return null
+  const banner = value as Record<string, unknown>
+  return typeof banner.url === 'string' && banner.url.startsWith('https://')
+    && typeof banner.path === 'string' ? { url: banner.url, path: banner.path } : null
+}
+
 function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): BoardModel {
   return {
     id,
@@ -74,6 +81,10 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
     createdAt: data.createdAt && typeof (data.createdAt as { toDate?: unknown }).toDate === 'function'
       ? data.createdAt as BoardModel['createdAt']
       : undefined,
+    updatedAt: data.updatedAt && typeof (data.updatedAt as { toMillis?: unknown }).toMillis === 'function'
+      ? data.updatedAt as BoardModel['updatedAt']
+      : undefined,
+    banner: readBanner(data.banner),
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
     autoTranslate: data.autoTranslate === true,
     autoTranslatePosts: data.autoTranslatePosts === true,
@@ -191,6 +202,7 @@ export function useMemiBoardSettings() {
       ...(board.i18n ? { i18n: board.i18n } : {}),
       ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,
+      banner: readBanner(board.banner),
       updatedAt: serverTimestamp(),
     }
   }
@@ -240,7 +252,15 @@ export function useMemiBoardSettings() {
     const visibility = normalizeVisibility(board.visibility)
     const payload = settingsPayload({ ...board, label, visibility }, order)
 
+    const previousBanner = boards.value.find(item => item.id === id)?.banner
     await saveBoardWithVisibility(db, cfg(), id, payload, user.value?.uid)
+    // The old image remains valid until the replacement settings have been committed.
+    if (previousBanner?.path && previousBanner.path !== payload.banner?.path
+      && previousBanner.path.startsWith(`${cfg().settingsCollection}/${id}/banners/`)) {
+      await deleteObject(storageRef(getStorage(app), previousBanner.path)).catch(cause => {
+        console.warn('[memi-board] old banner cleanup failed', cause)
+      })
+    }
   }
 
   /** @deprecated saveBoard */
@@ -274,6 +294,11 @@ export function useMemiBoardSettings() {
       for (const post of page.docs) {
         await deletePostCascade(db, getStorage(app), cfg(), post.id)
       }
+    }
+    if (boards.value.find(board => board.id === boardId)?.banner) {
+      const bannerFolder = storageRef(getStorage(app), `${cfg().settingsCollection}/${boardId}/banners`)
+      const bannerFiles = await listAll(bannerFolder)
+      await Promise.all(bannerFiles.items.map(file => deleteObject(file)))
     }
     await deleteDoc(settingsDoc(db, cfg(), id))
   }

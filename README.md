@@ -333,6 +333,8 @@ Hosts updating to 0.45.1 should also check the [procedure for applying the new r
 **If Rules are only in the file and not deployed**, writing posts fails with `permission-denied` — the most common installation mistake.
 **If Storage rules are deployed to a bucket other than the one the app uses**, body images fail with `storage/unauthorized`.
 
+Board banner uploads also require the banner-specific Storage rule block. See [banner permissions, bucket configuration and deployment verification](docs/firebase-setup.md#board-banner-storage-rules).
+
 #### Composite indexes
 
 Merge [docs/firestore.indexes.json.example](docs/firestore.indexes.json.example) into the host `firestore.indexes.json`. If you customized collection names (`memiBoard.postsCollection`, etc.), change the indexes' `collectionGroup` values to match.

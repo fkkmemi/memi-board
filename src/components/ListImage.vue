@@ -84,10 +84,12 @@ function image(post: PostModel): string | undefined {
       </div>
 
       <!-- 우측 상단: 좋아요 개수만 -->
-      <span class="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-xs tabular-nums text-white sm:right-3 sm:top-3">
-        <UIcon name="i-lucide-heart" class="size-3" />
-        {{ post.likeCount ?? 0 }}
-      </span>
+      <UTooltip :text="t('list.likeCount', { count: post.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }" class="absolute right-2.5 top-2.5 sm:right-3 sm:top-3">
+        <span class="flex items-center gap-1 rounded-full bg-black/50 px-2 py-0.5 text-xs tabular-nums text-white">
+          <UIcon name="i-lucide-heart" class="size-3" />
+          {{ post.likeCount ?? 0 }}
+        </span>
+      </UTooltip>
     </component>
   </div>
   </MemiBoardSurface>

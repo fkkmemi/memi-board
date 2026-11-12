@@ -1,4 +1,5 @@
 export default {
+  menu: '작성자 메뉴',
   viewProfile: '프로필 보기',
   viewPosts: '작성글 보기',
   viewComments: '작성한 댓글 보기',

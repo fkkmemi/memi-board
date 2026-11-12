@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'يمكن أن تصل الملاحظة إلى {max} حرف كحد أقصى.',
   },
   authorMenu: {
+    menu: 'قائمة الكاتب',
     viewProfile: 'عرض الملف الشخصي',
     viewPosts: 'عرض المنشورات',
     viewComments: 'عرض التعليقات',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: 'صورة',
       draft: 'مسودة',
       loading: 'جارٍ التحميل…',
+      viewCount: '{count} مشاهدة',
     },
     role: {
       admin: 'مشرف',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: 'هل تريد حذف هذا المنشور؟ لا يمكن التراجع عن ذلك.',
     notFound: 'لم يتم العثور على المنشور.',
     draftPreview: 'معاينة غير منشورة',
+    tag: 'وسم',
     draftNotice: 'لم يُنشر هذا المنشور بعد. لا يمكن لأحد غيرك رؤيته حتى تنشره.',
     publish: 'نشر',
     notice: 'إعلان',

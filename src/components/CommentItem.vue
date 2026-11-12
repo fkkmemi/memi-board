@@ -208,19 +208,17 @@ async function toggleLike() {
           :author-comments-to="authorCommentsTo"
         />
         <span v-else class="text-sm font-medium">{{ comment.authorName ?? t('common.label.anonymous') }}</span>
-        <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
+        <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
           <time
             :datetime="date?.toISOString()"
-            class="cursor-pointer text-xs text-muted"
+            class="text-xs text-muted"
           >
             {{ relativeDate }}
           </time>
           <template #content>
-            <p class="whitespace-pre-line px-3 py-2 text-xs">
-              {{ timestampDetails }}
-            </p>
+            <span class="whitespace-pre-line">{{ timestampDetails }}</span>
           </template>
-        </UPopover>
+        </UTooltip>
       </div>
       <form
         v-if="editing"
@@ -331,14 +329,15 @@ async function toggleLike() {
           @click="toggleLike"
         />
       </UTooltip>
-      <span
-        v-else
-        class="flex items-center gap-0.5 px-1 text-xs text-muted"
-        :aria-label="t('common.action.like')"
-      >
-        <UIcon name="i-lucide-heart" class="size-3.5" />
-        {{ localLikeCount }}
-      </span>
+      <UTooltip v-else :text="t('list.likeCount', { count: localLikeCount })" :delay-duration="200" :content="{ side: 'top' }">
+        <span
+          class="flex items-center gap-0.5 px-1 text-xs text-muted"
+          :aria-label="t('list.likeCount', { count: localLikeCount })"
+        >
+          <UIcon name="i-lucide-heart" class="size-3.5" />
+          {{ localLikeCount }}
+        </span>
+      </UTooltip>
       <UTooltip v-if="canEditComment(comment) && comment.id && !localBlinded" :text="t('commentItem.edit')" :delay-duration="200">
         <UButton
           icon="i-lucide-pencil"

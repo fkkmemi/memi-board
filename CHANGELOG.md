@@ -4,6 +4,18 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.59.0] - 2026-11-12
+
+### Added
+- Board settings can crop an 8:1 banner and generate one with Firebase AI Logic from the board title, description, and an optional style request. The generated image stays a local preview until the settings are saved.
+- List headers show the board title, settings, and write actions above the banner. The title expands the description, creator, managers, and staff below it.
+- Post tags appear at the bottom right of the detail view in the primary color. Hovering a tag shows the localized word for “tag”.
+- Localized tooltips for view counts, created and updated times, the author menu, and like counts in all ten UI languages.
+
+### Host app steps
+- Merge the banner block in `docs/storage.rules.example` and deploy Storage rules before saving banners. Reads are public. Only owners, admins, and that board's assigned managers can upload JPEG files under 3 MiB. No Firestore rule or index change is required.
+- AI banner generation needs a Blaze plan, Firebase AI Logic with an image model (default `gemini-nano-banana-2.1`), and the existing App Check setup. Turn off site AI to hide the generate button.
+
 ## [0.58.0] - 2026-11-11
 
 ### Security

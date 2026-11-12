@@ -141,6 +141,7 @@ export type {
   BoardCategory,
   BoardCustomField,
   BoardModel,
+  BoardBanner,
   BoardListView,
   BoardEditorType,
   BoardWriteRole,
@@ -242,3 +243,5 @@ export { useMemiBoardPostTranslations } from './composables/useMemiBoardPostTran
 export { useMemiBoardUserStats } from './composables/useMemiBoardUserStats'
 export { useMemiBoardAppSettings } from './composables/useMemiBoardAppSettings'
 export type { OrphanItem, OrphanKind } from './utils/orphanCleanup'
+
+export { useMemiBoardBannerGeneration } from './composables/useMemiBoardBannerGeneration'

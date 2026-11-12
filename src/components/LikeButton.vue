@@ -26,14 +26,13 @@ const { isLiked, likePending, toggleLike } = useMemiBoardLikes(props.boardId, pr
       @click="toggleLike"
     />
   </UTooltip>
-  <span
-    v-else
-    class="flex items-center gap-1 text-sm text-muted"
-  >
-    <UIcon
-      name="i-lucide-heart"
-      class="size-4"
-    />
-    {{ likeCount ?? 0 }}
-  </span>
+  <UTooltip v-else :text="t('list.likeCount', { count: likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+    <span class="flex items-center gap-1 text-sm text-muted">
+      <UIcon
+        name="i-lucide-heart"
+        class="size-4"
+      />
+      {{ likeCount ?? 0 }}
+    </span>
+  </UTooltip>
 </template>

@@ -33,6 +33,7 @@ export default {
     image: 'Image',
     draft: 'Draft',
     loading: 'Loading…',
+    viewCount: '{count} views',
   },
   role: {
     owner: 'Owner',

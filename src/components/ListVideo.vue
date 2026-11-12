@@ -88,23 +88,20 @@ function cover(post: PostModel): string | undefined {
           :show-avatar="false"
         />
         <div class="flex shrink-0 items-center gap-2">
-          <span class="inline-flex items-center gap-1 tabular-nums">
-            <UIcon name="i-lucide-eye" class="size-3" />
-            {{ post.viewCount ?? 0 }}
-          </span>
-          <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
-            <time
-              :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="cursor-pointer"
-            >
+          <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+            <span class="inline-flex items-center gap-1 tabular-nums">
+              <UIcon name="i-lucide-eye" class="size-3" />
+              {{ post.viewCount ?? 0 }}
+            </span>
+          </UTooltip>
+          <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
+            <time :datetime="post.createdAt?.toDate?.().toISOString()">
               {{ formatRelativeDate(post.createdAt, now) }}
             </time>
             <template #content>
-              <p class="whitespace-pre-line px-3 py-2 text-xs">
-                {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
-              </p>
+              <span class="whitespace-pre-line">{{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}</span>
             </template>
-          </UPopover>
+          </UTooltip>
         </div>
       </div>
     </div>

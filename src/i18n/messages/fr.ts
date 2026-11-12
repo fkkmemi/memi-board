@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'Les notes sont limitées à {max} caractères.',
   },
   authorMenu: {
+    menu: 'Menu de l’auteur',
     viewProfile: 'Voir le profil',
     viewPosts: 'Voir les publications',
     viewComments: 'Voir les commentaires',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: 'Image',
       draft: 'Brouillon',
       loading: 'Chargement…',
+      viewCount: '{count} vues',
     },
     role: {
       admin: 'Admin',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: 'Supprimer cette publication ? Cette action est irréversible.',
     notFound: 'Publication introuvable.',
     draftPreview: 'Aperçu non publié',
+    tag: 'Tag',
     draftNotice: 'Pas encore publiée. Vous seul pouvez la voir jusqu’à sa publication.',
     publish: 'Publier',
     notice: 'Annonce',

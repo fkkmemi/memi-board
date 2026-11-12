@@ -187,6 +187,56 @@ Storage rules can read at most 2 distinct Firestore documents, so the example re
 
 File reads and listing in the example remain public. Services that need files of hidden boards or private drafts to be stored privately must design a separate Storage read policy.
 
+### Board banner Storage rules
+
+Board settings support an optional 8:1 banner. The crop editor exports a 2400 × 300 JPEG, previews it locally, and uploads only when settings are saved. The saved board document contains `banner: { url, path }`; removing the banner stores `banner: null`. The image appears above the board list.
+
+Banner files use `memiBoardSettings/{boardId}/banners/{uuid}.jpg`. Merge **both** `canConfigureBanner(boardId)` and its `match /memiBoardSettings/{boardId}/banners/{fileName}` block from [storage.rules.example](storage.rules.example) into the host's existing `match /b/{bucket}/o` block. Keep the existing `isSignedIn()` helper, including its account-deletion check, and retain other application rules. The Storage path uses the configured settings collection; if `memiBoard.settingsCollection` or `usersCollection` is customized, update the corresponding paths in the rules too.
+
+The banner editor also offers **Generate with AI**. An optional **Style and additional requests** field accepts up to 1,000 characters describing colors, mood, style or desired elements. It sends the current board title (label), description and this request to Firebase AI Logic, receives a raster image, and opens it in the same crop/preview dialog. Confirming a crop stages the image locally; settings must still be saved before upload. Generation does not publish a banner automatically. The site's AI-off setting hides the button and prevents requests.
+
+Image generation uses a dedicated model, separate from the moderation/writing model. The default is `gemini-nano-banana-2.1`, with image-only output, an 8:1 aspect ratio and 2K image size. Override the model in the host's `nuxt.config.ts` when needed:
+
+```ts
+memiBoard: {
+  bannerGeneration: { model: 'gemini-nano-banana-2.1' },
+}
+```
+
+Use an image-capable model that supports the configured 8:1 ratio and 2K size. Per the [Firebase AI Logic image-generation guide](https://firebase.google.com/docs/ai-logic/generate-images-gemini), Nano Banana image generation requires the Blaze plan. The host must have Firebase AI Logic's Gemini Developer API backend configured, permit the selected model if model access is restricted, and initialize App Check before generation. The request reuses `moderation.useLimitedUseAppCheckTokens` (enabled unless explicitly false). No browser Gemini API key or new server endpoint is added. Generation makes a billed AI request only after the button is clicked, with no automatic retries; Storage permissions are unchanged. Existing deployed banner rules also cover generated JPEG crops.
+
+The banner rules enforce:
+
+- Public file reads. Banners are public decoration even for hidden boards; do not use them for private images.
+- Creation, listing and deletion by `owner`/`admin`, or a `manager` listed in that board's `allowedManagerUids`. An assigned `staff` role alone does not grant banner upload rights.
+- JPEG content type and a file size **below 3 MiB**. The editor accepts JPG, PNG and WebP source images up to 25 MiB, then crops and converts them before upload.
+- New object paths only: `resource == null` prevents overwrites. Replacements use a fresh UUID. After settings are committed, the previous banner is deleted; if saving settings fails, the newly uploaded file is cleaned up.
+
+The permission check reads at most the user-role document and the board-settings document. It requires the cross-service Firestore permission described below. The existing Firestore board-settings rules already allow administrators and assigned configuration managers to save the banner field; a separate Firestore rule change is not needed when using the current examples.
+
+Deploy from the **host app root**, where its `firebase.json`, `.firebaserc` and `storage.rules` live:
+
+```bash
+firebase deploy --only storage --project YOUR_FIREBASE_PROJECT_ID
+```
+
+Confirm `firebase.json` includes every bucket used by the app, and that its `rules` entry points to the edited file. For a host using both bucket names, the configuration is:
+
+```json
+{
+  "storage": [
+    { "bucket": "YOUR_FIREBASE_PROJECT_ID.appspot.com", "rules": "storage.rules" },
+    { "bucket": "YOUR_FIREBASE_PROJECT_ID.firebasestorage.app", "rules": "storage.rules" }
+  ]
+}
+```
+
+Include only buckets that exist in the intended project. Deploying the package, restarting the dev server, or publishing the host website does not deploy Storage rules. The CLI must report successful rule compilation and release for every configured bucket. In CI, `--non-interactive` can be added after the initial cross-service IAM setup is complete.
+
+After deployment, select a banner in a board's settings, move/zoom the crop, confirm it and save. Reload the board to verify persistence and the 8:1 display. Check replacement and removal using a disposable test board, and check that an unassigned manager or ordinary user cannot upload. A `storage/unauthorized` error usually means the wrong bucket was deployed, a missing role/assignment, or missing cross-service IAM access.
+
+For automated rules verification, run `tests/banner-rules.test.mjs` in this package with the Auth, Firestore and Storage emulators and the example rules loaded. The test uses project `demo-memi-banners`; set the three emulator host variables via `firebase emulators:exec`. It verifies permitted roles, public reads, denied roles, MIME/size restrictions, overwrite denial and deletion permissions without writing to production.
+
 ### Firestore read access for Storage rules (required host app setup)
 
 On image/attachment uploads and file deletion, the example Storage rules use `firestore.exists()` / `firestore.get()` to look up whether the post exists, its `authorUid`, and the user's `role`. The **Storage service account of the host app's Firebase project** therefore needs a Firestore read role. Installing the package or deploying the Firestore rules does not complete this IAM setup.

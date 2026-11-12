@@ -34,6 +34,7 @@ export default {
     image: '이미지',
     draft: '초안',
     loading: '불러오는 중…',
+    viewCount: '조회수 {count}',
   },
   role: {
     owner: '최고 관리자',

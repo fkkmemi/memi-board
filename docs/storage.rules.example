@@ -105,5 +105,24 @@ service firebase.storage {
         && request.resource.size < 3 * 1024 * 1024
         && request.resource.contentType.matches('image/jpeg');
     }
+
+    // Board banners are public decoration; only board configuration managers can upload.
+    function canConfigureBanner(boardId) {
+      let user = firestore.get(/databases/(default)/documents/memiBoardUsers/$(request.auth.uid));
+      return isSignedIn() && (
+        user.data.role in ['owner', 'admin']
+        || (user.data.role == 'manager'
+          && request.auth.uid in firestore.get(/databases/(default)/documents/memiBoardSettings/$(boardId)).data.get('allowedManagerUids', []))
+      );
+    }
+    match /memiBoardSettings/{boardId}/banners/{fileName} {
+      allow get: if true;
+      allow list, delete: if canConfigureBanner(boardId);
+      allow create: if canConfigureBanner(boardId)
+        && resource == null
+        && request.resource.size < 3 * 1024 * 1024
+        && request.resource.contentType == 'image/jpeg';
+    }
+
   }
 }

@@ -114,19 +114,17 @@ function image(post: PostModel): string | undefined {
             truncate
             class="max-w-full"
           />
-          <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
+          <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
             <time
               :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="cursor-pointer text-xs leading-snug text-muted"
+              class="text-xs leading-snug text-muted"
             >
               {{ formatRelativeDate(post.createdAt, now) }}
             </time>
             <template #content>
-              <p class="whitespace-pre-line px-3 py-2 text-xs">
-                {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
-              </p>
+              <span class="whitespace-pre-line">{{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}</span>
             </template>
-          </UPopover>
+          </UTooltip>
           <div class="flex flex-wrap items-center justify-end gap-x-2 gap-y-0.5 text-xs leading-snug text-muted">
             <span
               v-if="post.attachments?.length"
@@ -134,12 +132,16 @@ function image(post: PostModel): string | undefined {
             >
               <UIcon name="i-lucide-paperclip" class="size-3 shrink-0" />{{ post.attachments.length }}
             </span>
-            <span class="inline-flex items-center gap-0.5 tabular-nums">
-              <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
-            </span>
-            <span class="inline-flex items-center gap-0.5 tabular-nums">
-              <UIcon name="i-lucide-heart" class="size-3 shrink-0" />{{ post.likeCount ?? 0 }}
-            </span>
+            <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="inline-flex items-center gap-0.5 tabular-nums">
+                <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
+              </span>
+            </UTooltip>
+            <UTooltip :text="t('list.likeCount', { count: post.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="inline-flex items-center gap-0.5 tabular-nums">
+                <UIcon name="i-lucide-heart" class="size-3 shrink-0" />{{ post.likeCount ?? 0 }}
+              </span>
+            </UTooltip>
           </div>
         </div>
       </div>

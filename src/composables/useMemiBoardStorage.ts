@@ -14,7 +14,7 @@ import { safeFileName } from '../utils/slugify'
 import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
 import { postStorageFolder } from '../utils/boardPaths'
-import type { Attachment, EditorImageEntry } from '../types'
+import type { Attachment, BoardBanner, EditorImageEntry } from '../types'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -266,7 +266,23 @@ export function useMemiBoardStorage() {
     return getDownloadURL(fileRef)
   }
 
+  async function uploadBoardBanner(boardId: string, file: File): Promise<BoardBanner> {
+    if (!boardId || boardId.includes('/') || file.type !== 'image/jpeg' || file.size >= 3 * 1024 * 1024) {
+      throw new Error(t('settings.banner.invalid'))
+    }
+    const fileRef = storageRef(getStorage(app), `${cfg().settingsCollection}/${boardId}/banners/${crypto.randomUUID()}.jpg`)
+    await uploadBytes(fileRef, file, { contentType: 'image/jpeg', customMetadata: uploadMetadata() })
+    try {
+      return { url: await getDownloadURL(fileRef), path: fileRef.fullPath }
+    }
+    catch (cause) {
+      await deleteObject(fileRef).catch(() => {})
+      throw cause
+    }
+  }
+
   return {
+    uploadBoardBanner,
     uploadAttachment,
     deleteAttachment,
     uploadCommentImage,

@@ -119,13 +119,12 @@ const emptyMessage = computed(() =>
               class="mr-1 text-primary"
             >@{{ comment.replyToName }}</span><span v-text="displayCommentBody(comment, locale)" />
           </p>
-          <p
-            v-if="(comment.likeCount ?? 0) > 0"
-            class="mt-1 flex items-center gap-1 text-xs text-muted"
-          >
-            <UIcon name="i-lucide-heart" class="size-3" />
-            {{ comment.likeCount }}
-          </p>
+          <UTooltip v-if="(comment.likeCount ?? 0) > 0" :text="t('list.likeCount', { count: comment.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+            <p class="mt-1 flex items-center gap-1 text-xs text-muted">
+              <UIcon name="i-lucide-heart" class="size-3" />
+              {{ comment.likeCount }}
+            </p>
+          </UTooltip>
         </component>
       </li>
     </ul>

@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.59.0',
+    date: '2026-11-12',
+    highlights: [
+      '보드 배너를 자르거나 AI로 만들고, 목록 상단에 보여요',
+      '제목·설정·글쓰기는 배너 위에 있고, 제목을 누르면 보드 정보가 아래로 펼쳐져요',
+      '글 태그는 본문 아래 오른쪽에 프라이머리 색으로 보여요',
+      '조회수, 시간, 작성자, 추천에 10개 언어 툴팁을 추가했어요',
+    ],
+    highlightsEn: [
+      'Crop or generate a board banner with AI and show it at the top of the list',
+      'Title, settings, and write sit above the banner; the title expands board info below',
+      'Post tags sit at the bottom right in the primary color',
+      'Added tooltips for views, timestamps, authors, and likes in all ten UI languages',
+    ],
+  },
+  {
     version: '0.58.0',
     date: '2026-11-11',
     highlights: [

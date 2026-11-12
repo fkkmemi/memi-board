@@ -80,9 +80,11 @@ function image(post: PostModel): string | undefined {
             truncate
             class="min-w-0"
           />
-          <span class="inline-flex shrink-0 items-center gap-1 tabular-nums">
-            <UIcon name="i-lucide-heart" class="size-3.5" />{{ post.likeCount ?? 0 }}
-          </span>
+          <UTooltip :text="t('list.likeCount', { count: post.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+            <span class="inline-flex shrink-0 items-center gap-1 tabular-nums">
+              <UIcon name="i-lucide-heart" class="size-3.5" />{{ post.likeCount ?? 0 }}
+            </span>
+          </UTooltip>
         </div>
       </template>
     </UCard>

@@ -256,8 +256,8 @@ watch(() => props.postId, () => {
     </div>
 
     <header class="flex flex-col gap-2">
-      <div class="flex items-start justify-between gap-4">
-        <div class="flex items-center gap-2 min-w-0">
+      <div class="flex items-start gap-3">
+        <div class="flex min-w-0 flex-1 items-center gap-2">
           <UBadge
             v-if="post.category"
             :label="shownBoardLabel"
@@ -271,31 +271,6 @@ watch(() => props.postId, () => {
             {{ shownTitle }}
           </h1>
         </div>
-        <UTooltip :text="t('detail.backToList')" :delay-duration="200">
-          <UButton
-            icon="i-lucide-arrow-left"
-            :aria-label="t('detail.backToList')"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            class="shrink-0"
-            @click="emit('list')"
-          />
-        </UTooltip>
-      </div>
-      <div
-        v-if="post.tags?.length"
-        class="flex gap-1"
-      >
-        <UBadge
-          v-for="tag in post.tags"
-          :key="tag"
-          variant="subtle"
-          color="neutral"
-          size="sm"
-        >
-          {{ tag }}
-        </UBadge>
       </div>
     </header>
 
@@ -325,6 +300,25 @@ watch(() => props.postId, () => {
       </div>
     </dl>
 
+    <div v-if="post.tags?.length" class="flex flex-wrap justify-end gap-1">
+      <UTooltip
+        v-for="tag in post.tags"
+        :key="tag"
+        :text="t('detail.tag')"
+        :delay-duration="200"
+        :content="{ side: 'top' }"
+        :ui="{ content: 'h-auto px-3 py-2' }"
+      >
+        <UBadge
+          variant="subtle"
+          color="primary"
+          size="sm"
+        >
+          {{ tag }}
+        </UBadge>
+      </UTooltip>
+    </div>
+
     <div class="flex flex-col items-end gap-2">
       <div class="flex items-center justify-end gap-3 text-sm text-muted">
         <MemiBoardAuthorMenu
@@ -335,23 +329,20 @@ watch(() => props.postId, () => {
           :author-profile-to="authorProfileTo"
           :author-comments-to="authorCommentsTo"
         />
-        <span class="inline-flex items-center gap-1 tabular-nums">
-          <UIcon name="i-lucide-eye" class="size-3.5" />
-          {{ post.viewCount ?? 0 }}
-        </span>
-        <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
-          <time
-            :datetime="post.createdAt?.toDate?.().toISOString()"
-            class="cursor-pointer"
-          >
+        <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+          <span class="inline-flex items-center gap-1 tabular-nums">
+            <UIcon name="i-lucide-eye" class="size-3.5" />
+            {{ post.viewCount ?? 0 }}
+          </span>
+        </UTooltip>
+        <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
+          <time :datetime="post.createdAt?.toDate?.().toISOString()">
             {{ formatRelativeDate(post.createdAt, now) }}
           </time>
           <template #content>
-            <p class="whitespace-pre-line px-3 py-2 text-xs">
-              {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
-            </p>
+            <span class="whitespace-pre-line">{{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}</span>
           </template>
-        </UPopover>
+        </UTooltip>
       </div>
       <div v-if="canPin || canEdit(post) || canDelete(post)" class="flex gap-2">
         <UButton

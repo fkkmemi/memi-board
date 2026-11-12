@@ -245,6 +245,11 @@ export interface BoardCustomField {
  * 보드 1개 메타 (= 예전 BoardCategory).
  * id 가 곧 boardId — memiBoardSettings/{id} 에 저장.
  */
+export interface BoardBanner {
+  url: string
+  path: string
+}
+
 export interface BoardModel {
   /** boardId (예: 'notice', 'free') */
   id: string
@@ -273,6 +278,8 @@ export interface BoardModel {
   createdByUid?: string
   /** 게시판을 만든 시각. 이 기능 이전에 만든 게시판은 비어 있다. */
   createdAt?: Timestamp
+  /** 게시판 설정을 마지막으로 저장한 시각. */
+  updatedAt?: Timestamp
   /**
    * 게시판 화면 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 호스트 언어를 따른다.
    */
@@ -298,6 +305,8 @@ export interface BoardModel {
    * 키는 보드 안에서 고유하고, 이름은 번역하지 않는다.
    */
   customFields?: BoardCustomField[]
+  /** 목록 상단의 8:1 배너 이미지. */
+  banner?: BoardBanner | null
   /** 보드 목록 정렬 */
   order?: number
 }

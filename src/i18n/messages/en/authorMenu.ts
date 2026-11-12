@@ -1,4 +1,5 @@
 export default {
+  menu: 'Author menu',
   viewProfile: 'View profile',
   viewPosts: 'View posts',
   viewComments: 'View comments',

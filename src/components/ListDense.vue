@@ -67,19 +67,17 @@ function thumb(post: PostModel): string | undefined {
         </component>
 
         <div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] leading-none text-muted">
-          <UPopover :content="{ side: 'top' }" :ui="{ content: 'h-auto w-max' }">
+          <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
             <time
               :datetime="post.createdAt?.toDate?.().toISOString()"
-              class="cursor-pointer tabular-nums"
+              class="tabular-nums"
             >
               {{ formatRelativeDate(post.createdAt, now) }}
             </time>
             <template #content>
-              <p class="whitespace-pre-line px-3 py-2 text-xs">
-                {{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}
-              </p>
+              <span class="whitespace-pre-line">{{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}</span>
             </template>
-          </UPopover>
+          </UTooltip>
           <span class="text-default/40" aria-hidden="true">|</span>
           <span class="font-medium text-toned">
             <MemiBoardAuthorMenu
@@ -99,9 +97,11 @@ function thumb(post: PostModel): string | undefined {
           >
             <UIcon name="i-lucide-paperclip" class="size-3 shrink-0" />{{ post.attachments.length }}
           </span>
-          <span class="inline-flex items-center gap-0.5 tabular-nums">
-            <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
-          </span>
+          <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+            <span class="inline-flex items-center gap-0.5 tabular-nums">
+              <UIcon name="i-lucide-eye" class="size-3 shrink-0" />{{ post.viewCount ?? 0 }}
+            </span>
+          </UTooltip>
           <template v-if="(post.likeCount ?? 0) > 0">
             <span class="text-default/40" aria-hidden="true">|</span>
             <span class="inline-flex items-center gap-0.5 tabular-nums">

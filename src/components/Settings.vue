@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, slugify, useMemiBoardAppSettings, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
+import MemiBoardBannerEditor from './BannerEditor.vue'
 import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
 
 const props = withDefaults(defineProps<{
@@ -158,6 +160,9 @@ const savedId = ref<string | null>(null)
 const deletingId = ref<string | null>(null)
 const ordering = ref(false)
 const error = ref('')
+const bannerBusy = ref(false)
+const bannerFiles = reactive<Record<string, File | null | undefined>>({})
+const { uploadBoardBanner, deleteAttachment } = useMemiBoardStorage()
 const deleteConfirm = ref('')
 const deletingAll = ref(false)
 const deleteDone = ref(false)
@@ -372,10 +377,12 @@ async function translateCopy(category: BoardCategory) {
 }
 
 async function save(category: BoardCategory, index: number) {
-  if (translatingId.value || savingId.value) return
+  if (translatingId.value || savingId.value || bannerBusy.value) return
   error.value = ''
   savedId.value = null
   savingId.value = category.id
+  let uploadedPath: string | undefined
+  const previousBanner = category.banner
   category.autoTranslate = category.autoTranslate === true
   let translateFailed = false
   if (translationEnabled.value && category.autoTranslate) {
@@ -393,7 +400,13 @@ async function save(category: BoardCategory, index: number) {
   }
   try {
     const order = props.categoryId ? (category.order ?? index) : index
+    if (bannerFiles[category.id] !== undefined) {
+      const file = bannerFiles[category.id]
+      category.banner = file ? await uploadBoardBanner(category.id, file) : null
+      uploadedPath = category.banner?.path
+    }
     await saveCategory(category, order)
+    delete bannerFiles[category.id]
     category.order = order
     savedId.value = category.id
     translatedDraftIds.value.delete(category.id)
@@ -401,6 +414,8 @@ async function save(category: BoardCategory, index: number) {
     if (translateFailed) error.value = t('settings.autoTranslate.failed', { count: translationCount(category) })
   }
   catch (cause) {
+    category.banner = previousBanner
+    if (uploadedPath) await deleteAttachment({ path: uploadedPath }).catch(() => {})
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
   }
   finally {
@@ -770,6 +785,15 @@ async function runDeleteAll() {
       </summary>
 
       <div class="flex flex-col gap-5 border-t border-default px-4 py-4">
+        <MemiBoardBannerEditor
+          :banner="category.banner"
+          :board-id="category.id"
+          :title="category.label"
+          :description="category.description"
+          @busy="bannerBusy = $event"
+          :disabled="savingId === category.id || translatingId === category.id"
+          @change="bannerFiles[category.id] = $event; savedId = null"
+        />
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.id.label') }}</p><p class="text-xs text-muted">{{ t('settings.id.help') }}</p></div>
           <UInput :model-value="category.id" disabled class="font-mono" />
@@ -919,7 +943,7 @@ async function runDeleteAll() {
               icon="i-lucide-save"
               size="sm"
               :loading="savingId === category.id"
-              :disabled="translatingId !== null || savingId !== null"
+              :disabled="translatingId !== null || savingId !== null || bannerBusy"
               @click="save(category, index)"
             />
           </div>

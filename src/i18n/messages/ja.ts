@@ -18,6 +18,7 @@ const messages: MemiBoardMessages = {
     tooLong: 'メモは{max}文字まで入力できます。',
   },
   authorMenu: {
+    menu: '投稿者メニュー',
     viewProfile: 'プロフィールを見る',
     viewPosts: '投稿を見る',
     viewComments: 'コメントを見る',
@@ -138,6 +139,7 @@ const messages: MemiBoardMessages = {
       image: '画像',
       draft: '下書き',
       loading: '読み込み中…',
+      viewCount: '閲覧数 {count}',
     },
     role: {
       admin: '管理者',
@@ -156,6 +158,7 @@ const messages: MemiBoardMessages = {
     deleteConfirm: 'この投稿を削除しますか？元に戻すことはできません。',
     notFound: '投稿が見つかりません。',
     draftPreview: '非公開プレビュー',
+    tag: 'タグ',
     draftNotice: 'まだ公開されていません。公開するまでは投稿者だけが閲覧できます。',
     publish: '公開する',
     notice: 'お知らせ',

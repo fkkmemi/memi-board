@@ -85,19 +85,23 @@ async function onDeleteMemo() {
     class="flex max-w-full items-center"
     :class="truncate ? 'w-full min-w-0 justify-end' : 'inline-flex'"
   >
-    <UDropdownMenu v-model:open="menuOpen" :items="items" :content="{ align: 'start' }">
-      <UButton
-        :avatar="showAvatar ? { src: authorPhoto ?? undefined, alt: authorName ?? t('common.label.anonymous') } : undefined"
-        :label="authorName ?? t('common.label.anonymous')"
-        variant="ghost"
-        color="neutral"
-        size="xs"
-        class="max-w-full"
-        :ui="truncate
-          ? { base: 'max-w-full' }
-          : { base: 'max-w-full', label: 'whitespace-normal overflow-visible text-clip' }"
-      />
-    </UDropdownMenu>
+    <UTooltip :text="t('authorMenu.menu')" :delay-duration="200" :content="{ side: 'top' }">
+      <span class="inline-flex max-w-full">
+        <UDropdownMenu v-model:open="menuOpen" :items="items" :content="{ align: 'start' }">
+          <UButton
+            :avatar="showAvatar ? { src: authorPhoto ?? undefined, alt: authorName ?? t('common.label.anonymous') } : undefined"
+            :label="authorName ?? t('common.label.anonymous')"
+            variant="ghost"
+            color="neutral"
+            size="xs"
+            class="max-w-full"
+            :ui="truncate
+              ? { base: 'max-w-full' }
+              : { base: 'max-w-full', label: 'whitespace-normal overflow-visible text-clip' }"
+          />
+        </UDropdownMenu>
+      </span>
+    </UTooltip>
 
     <UModal
       v-if="showMemo"

@@ -1,4 +1,20 @@
 export default {
+  banner: {
+    requestLabel: 'Style and additional requests (optional)',
+    requestHelp: 'Describe colors, mood, visual style, or elements to include. Up to 1,000 characters.',
+    requestPlaceholder: 'For example: pastel watercolor, a warm and calm mood, with small books and plants on the right.',
+    generate: 'Generate with AI', generateHelp: 'Create a banner from the current title, description, and additional requests, then review the crop and save.',
+    generating: 'Creating a banner from the title and description. Please wait.',
+    titleRequired: 'Enter a board title before generating a banner.',
+    noImage: 'AI returned no image. Adjust the title and description and try again.',
+    contextChanged: 'The title or description changed during generation. Generate again using the current copy.',
+    generateFailed: 'Could not generate a banner. Check AI Logic image-model access and App Check, then try again.',
+    label: 'Board banner', help: 'Recommended: 2400 × 300px (8:1). Move or zoom the image to choose the visible area. Save the settings to apply.',
+    select: 'Choose image', remove: 'Remove banner', crop: 'Crop banner image', preview: 'Banner preview', confirm: 'Use this crop',
+    invalid: 'Choose a JPG, PNG, or WebP image up to 25MB.', failed: 'Could not process this image. Try another image.',
+    zoomIn: 'Zoom in', zoomOut: 'Zoom out',
+  },
+
   managers: 'Assigned managers',
   loading: 'Loading settings…',
   noAccess: 'You don’t have access',

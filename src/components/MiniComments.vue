@@ -61,13 +61,12 @@ function commentTo(comment: CommentModel) {
           <p class="flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted">
             <span>{{ comment.authorName || t('common.label.anonymous') }}</span>
             <time>{{ formatRelativeDate(comment.createdAt, now) }}</time>
-            <span
-              v-if="(comment.likeCount ?? 0) > 0"
-              class="inline-flex items-center gap-0.5"
-            >
-              <UIcon name="i-lucide-heart" class="size-3" />
-              {{ comment.likeCount }}
-            </span>
+            <UTooltip v-if="(comment.likeCount ?? 0) > 0" :text="t('list.likeCount', { count: comment.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="inline-flex items-center gap-0.5">
+                <UIcon name="i-lucide-heart" class="size-3" />
+                {{ comment.likeCount }}
+              </span>
+            </UTooltip>
           </p>
         </component>
       </li>

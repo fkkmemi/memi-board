@@ -1,4 +1,20 @@
 export default {
+  banner: {
+    requestLabel: '원하는 스타일·추가 요청 (선택)',
+    requestHelp: '색감, 분위기, 표현 방식이나 넣고 싶은 요소를 자유롭게 적어 주세요. 최대 1,000자.',
+    requestPlaceholder: '예: 파스텔톤 수채화 느낌, 따뜻하고 차분한 분위기. 오른쪽에 작은 책과 식물을 배치해 주세요.',
+    generate: 'AI로 배너 생성', generateHelp: '입력한 제목·설명과 추가 요청으로 배너를 만듭니다. 생성 후 크롭·미리보기를 확인하고 저장하세요.',
+    generating: '제목과 설명을 바탕으로 배너를 만드는 중입니다. 잠시 기다려 주세요.',
+    titleRequired: '배너를 생성하려면 보드 제목을 먼저 입력해 주세요.',
+    noImage: 'AI가 이미지를 반환하지 않았습니다. 제목과 설명을 바꾸고 다시 시도해 주세요.',
+    contextChanged: '생성 중 제목이나 설명이 바뀌었습니다. 현재 내용으로 다시 생성해 주세요.',
+    generateFailed: '배너를 생성하지 못했습니다. AI Logic 이미지 모델 사용 설정과 App Check를 확인한 뒤 다시 시도해 주세요.',
+    label: '보드 상단 배너', help: '권장 크기 2400 × 300px (8:1). 이미지를 이동하거나 확대해 표시할 영역을 선택하세요. 설정을 저장하면 적용됩니다.',
+    select: '이미지 선택', remove: '배너 제거', crop: '배너 이미지 자르기', preview: '배너 미리보기', confirm: '이 영역 사용',
+    invalid: 'JPG, PNG, WebP 이미지(25MB 이하)를 선택해 주세요.', failed: '이미지를 처리하지 못했습니다. 다른 이미지로 다시 시도해 주세요.',
+    zoomIn: '확대', zoomOut: '축소',
+  },
+
   managers: '담당 매니저',
   loading: '설정을 불러오고 있습니다.',
   noAccess: '접근 권한이 없습니다',
