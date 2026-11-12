@@ -92,6 +92,9 @@ jobs:
       - name: Test post URL reservations
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-post-slugs --only auth,firestore 'node --experimental-strip-types --test tests/post-slug.test.mjs'
 
+      - name: Test post edit history security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-post-revisions --only auth,firestore 'node --test tests/post-revision-rules.test.mjs'
+
       - name: Test public profile security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-profile-rules --only auth,firestore 'node --test tests/profile-rules.test.mjs'
 

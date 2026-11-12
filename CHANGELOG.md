@@ -4,6 +4,23 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.62.0] - 2026-11-12
+
+### Added
+- Post edit history. Every content edit (title, body, tags, attachments, custom fields) saves the version it replaces to `memiBoardPosts/{postId}/revisions/{n}` in the same transaction and raises the post's `revision` count. Rules check that each archived version matches the stored post and body, and nobody can change or delete it, so a post cannot be quietly rewritten after a dispute.
+- Edited posts show an "Edited" badge with the edit count and last edit time. Board managers and admins get a History button that lists earlier versions with who replaced them and when. Available in all ten UI languages.
+- `useMemiBoardPostRevisions(boardId, postId)`, `postRevisionsCol` / `postRevisionDoc` path helpers, and the `PostRevisionModel` type. `PostModel` gains optional `revision` and `editedAt`.
+
+### Changed
+- `updatePost` now runs in a transaction and only archives a version when the content actually changed. Saving without changes, translation saves, pins, and counters do not create history.
+- Deleting a post removes its body and post documents in one batch. Edit history is kept after the post is deleted and stays readable by admins.
+
+### Host app steps
+- Merge the `memiBoardPosts` block and the post edit history functions above it from `docs/firestore.rules.example`, then deploy Firestore rules. The rules start in compatibility mode: edits from older packages are still accepted, and edits from 0.62.0 must include a valid history entry.
+- Deploy the rules before or together with the 0.62.0 site. Without them, edits from 0.62.0 are denied because the history document has no matching rule.
+- After every site writing to the project runs 0.62.0+, set `postRevisionsRequired: true` on `memiBoardPostsSlugs/__migration` to deny edits that skip history. Leave it unset until then.
+- No index change is required. History is loaded with a `boardId` equality filter and sorted in the browser.
+
 ## [0.61.0] - 2026-11-12
 
 ### Added

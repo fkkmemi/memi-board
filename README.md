@@ -328,6 +328,8 @@ Because it is the browser's native `:visited`, no server or DB storage is needed
 
 New text posts use a title URL within their board; only a conflicting address receives `-2`, `-3`, etc. Unpublished drafts count too. Address reservation, post metadata, and body are saved atomically. Editing or publishing preserves the address, and deleting a post keeps its reservation so an old link cannot point to a different post. Image boards keep ID URLs. See [URL behavior and reservation permissions](docs/host-integration.md#title-only-urls-for-new-posts).
 
+8. **Optional, after every host is on 0.62.0+: require post edit history.** Add the Boolean field `postRevisionsRequired: true` to `memiBoardPostsSlugs/__migration`. From then on, Rules deny any post edit that does not archive the previous version, and a post body can only be deleted together with its post. Leave it unset while older packages still write to the project, or their edits are denied.
+
 Hosts updating to 0.45.1 should also check the [procedure for applying the new rules and migrating](docs/firebase-setup.md#0451-rule-changes-and-migrating-existing-hosts). Installing the package or pushing the site does not deploy Firebase rules.
 
 **If Rules are only in the file and not deployed**, writing posts fails with `permission-denied` — the most common installation mistake.

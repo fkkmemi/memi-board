@@ -111,10 +111,39 @@ export interface PostModel {
   moderationModel?: string
   createdAt: Timestamp
   updatedAt: Timestamp
+  /**
+   * 내용 수정 횟수. 수정할 때마다 1씩 오르고, 직전 상태가 revisions/{이전 값}에 남는다.
+   * 기존 글에는 없다(0으로 본다).
+   */
+  revision?: number
+  /** 마지막 내용 수정 시각. 번역·공지·카운터 갱신에는 바뀌지 않는다. */
+  editedAt?: Timestamp
   /** 제목·요약의 10개 언어 번역. 본문은 body/main 에 따로 둔다. */
   i18n?: MemiBoardI18nMap
   /** 번역을 만들 때의 제목·요약. 지금 원문과 다르면 번역을 쓰지 않는다. */
   i18nSource?: MemiBoardI18nSource
+}
+
+/**
+ * memiBoardPosts/{postId}/revisions/{n} — 수정으로 덮어쓰이기 직전의 글.
+ * rules가 이전 상태와 같은지 검증하고, 누구도 고치거나 지울 수 없다. 보드 매니저만 읽는다.
+ */
+export interface PostRevisionModel {
+  id: string
+  boardId: string
+  /** 이 스냅샷의 revision 번호. 문서 ID와 같다. */
+  revision: number
+  title: string
+  content: string
+  tags: string[]
+  attachments: Attachment[]
+  extend?: Record<string, string>
+  authorUid: string
+  /** 이 버전을 덮어쓴 사람(작성자 또는 매니저). */
+  editedBy: string
+  editedByName: string | null
+  /** 덮어쓴 시각. */
+  createdAt: Timestamp
 }
 
 export interface PostDetail extends PostModel {

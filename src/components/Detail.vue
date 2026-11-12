@@ -17,6 +17,7 @@ import MemiBoardReportButton from './ReportButton.vue'
 import MemiBoardShareButton from './ShareButton.vue'
 import MemiBoardSwipeHint from './SwipeHint.vue'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
+import MemiBoardPostRevisions from './PostRevisions.vue'
 
 const props = defineProps<{
   boardId: string
@@ -40,7 +41,7 @@ const { getAdjacentPosts, deletePost, publishPost, setPostPinned } = useMemiBoar
 const { canEdit, canDelete, canManageBoard } = useMemiBoardAuth()
 const { boardLabel, getBoard } = useMemiBoardSettings()
 // 보드 설정 언어 → 호스트 언어 순. 댓글 등 자식 컴포넌트도 이 언어를 따른다.
-const { t, dir, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
+const { t, dir, locale, formatRelativeDate, formatTimestampDetails, formatFullDate } = useMemiBoardI18n({ boardLocale: () => getBoard(props.boardId)?.locale })
 const { recordView } = useMemiBoardViews()
 
 // 실시간 구독 — 다른 사람의 좋아요·댓글 수 변경이 화면에 바로 반영된다.
@@ -60,6 +61,11 @@ const publishing = ref(false)
 const pinning = ref(false)
 // 공지는 게시된 글에만, 보드 매니저만 지정한다.
 const canPin = computed(() => !!post.value && !isDraft.value && canManageBoard(props.boardId))
+// 내용 수정 횟수. 기존 글은 필드가 없어 0이다.
+const editCount = computed(() => post.value?.revision ?? 0)
+// 수정 기록(이전 버전 원문)은 보드 매니저만 본다.
+const canViewRevisions = computed(() => editCount.value > 0 && canManageBoard(props.boardId))
+const revisionsOpen = ref(false)
 const previousPost = ref<PostModel | null>(null)
 const nextPost = ref<PostModel | null>(null)
 const now = ref(Date.now())
@@ -343,8 +349,27 @@ watch(() => props.postId, () => {
             <span class="whitespace-pre-line">{{ formatTimestampDetails(post.createdAt, post.updatedAt).join('\n') }}</span>
           </template>
         </UTooltip>
+        <UTooltip
+          v-if="editCount > 0"
+          :text="post.editedAt ? t('detail.editedTooltip', { count: editCount, time: formatFullDate(post.editedAt) }) : t('detail.editedCount', { count: editCount })"
+          :delay-duration="200"
+          :content="{ side: 'top' }"
+        >
+          <UBadge variant="subtle" color="neutral" size="sm">
+            {{ t('detail.edited') }}
+          </UBadge>
+        </UTooltip>
       </div>
-      <div v-if="canPin || canEdit(post) || canDelete(post)" class="flex gap-2">
+      <div v-if="canPin || canViewRevisions || canEdit(post) || canDelete(post)" class="flex gap-2">
+        <UButton
+          v-if="canViewRevisions"
+          icon="i-lucide-history"
+          size="sm"
+          variant="ghost"
+          color="neutral"
+          :label="t('detail.revisions', { count: editCount })"
+          @click="revisionsOpen = true"
+        />
         <UButton
           v-if="canPin"
           :icon="post.pinned ? 'i-lucide-pin-off' : 'i-lucide-pin'"
@@ -437,6 +462,13 @@ watch(() => props.postId, () => {
       />
       <MemiBoardCommentForm :board-id="boardId" :post-id="postId" />
     </section>
+
+    <MemiBoardPostRevisions
+      v-if="canViewRevisions"
+      v-model:open="revisionsOpen"
+      :board-id="boardId"
+      :post-id="postId"
+    />
 
     <MemiBoardImageLightbox
       v-model:open="imageViewerOpen"

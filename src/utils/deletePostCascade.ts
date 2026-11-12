@@ -1,5 +1,4 @@
 import {
-  deleteDoc,
   getDoc,
   getDocs,
   query,
@@ -158,6 +157,9 @@ export async function deletePostCascade(
 
   await deleteQueryDocs(db, query(commentsCol(db, cfg), where('postId', '==', id)))
   await deleteLikesForPost(db, cfg, id)
-  await deleteDoc(bodyRef)
-  await deleteDoc(metaRef)
+  // 본문만 따로 지우면 수정 기록 없이 내용을 비울 수 있으므로 rules는 글과 함께 지울 때만 허용한다.
+  const batch = writeBatch(db)
+  batch.delete(bodyRef)
+  batch.delete(metaRef)
+  await batch.commit()
 }

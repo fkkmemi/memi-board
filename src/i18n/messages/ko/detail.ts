@@ -12,4 +12,8 @@ export default {
   postNav: '게시글 이동',
   list: '목록',
   comments: '댓글',
+  edited: '수정됨',
+  editedCount: '{count}번 수정됨',
+  editedTooltip: '{count}번 수정됨 · 마지막 수정 {time}',
+  revisions: '수정 기록 {count}',
 }

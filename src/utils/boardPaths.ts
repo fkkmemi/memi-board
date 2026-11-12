@@ -6,6 +6,7 @@
  * memiBoardSettings/{boardId}                  // 보드 설정 (구 memiBoards/{id} stub + settings/config 통합)
  * memiBoardPosts/{postId}                      // boardId 는 문서 필드
  * memiBoardPosts/{postId}/body/main
+ * memiBoardPosts/{postId}/revisions/{n}        // 수정 직전 상태. n = 덮어쓰인 revision 번호
  * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
  * memiBoardLikes/{targetId}_{uid}              // 글: postId_uid / 댓글: commentId_uid
  * memiBoardReports/{postId}_{uid}              // 글 신고. 유저당 글당 1건
@@ -87,6 +88,24 @@ export function postBodyDoc(
   postId: string,
 ): DocumentReference {
   return doc(db, cfg.postsCollection, postId, 'body', 'main')
+}
+
+/** 글 수정 기록. 문서 ID는 덮어쓰인 revision 번호(0, 1, 2…)다. */
+export function postRevisionsCol(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  postId: string,
+): CollectionReference {
+  return collection(db, cfg.postsCollection, postId, 'revisions')
+}
+
+export function postRevisionDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  postId: string,
+  revision: number,
+): DocumentReference {
+  return doc(db, cfg.postsCollection, postId, 'revisions', String(revision))
 }
 
 export function commentsCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {

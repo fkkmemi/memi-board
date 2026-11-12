@@ -390,6 +390,62 @@ service cloud.firestore {
       }
     }
 
+    // Post edit history: memiBoardPosts/{postId}/revisions/{n}.
+    // A content edit raises `revision` by one and, in the same commit, archives the state it overwrites
+    // as revisions/{previous revision}. The revision rule checks the snapshot against the stored post and
+    // body, and nobody can change or delete it afterwards.
+    // Until memiBoardPostsSlugs/__migration has postRevisionsRequired == true, edits without a revision
+    // are still accepted so host apps on packages before 0.62.0 keep working.
+    function postRevisionPath(postId, revision) {
+      return /databases/$(database)/documents/memiBoardPosts/$(postId)/revisions/$(string(revision));
+    }
+    function postBodyPath(postId) {
+      return /databases/$(database)/documents/memiBoardPosts/$(postId)/body/main;
+    }
+    function postRevisionsRequired() {
+      let marker = /databases/$(database)/documents/memiBoardPostsSlugs/__migration;
+      return exists(marker) && get(marker).data.get('postRevisionsRequired', false) == true;
+    }
+    function isValidPostRevisionBump(postId) {
+      let before = resource.data.get('revision', 0);
+      return request.resource.data.revision == before + 1
+        && request.resource.data.editedAt == request.time
+        && existsAfter(postRevisionPath(postId, before));
+    }
+    function postRevisionOk(postId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return isValidPostRevisionBump(postId)
+        || (!changed.hasAny(['revision', 'editedAt'])
+          && (!changed.hasAny(['title', 'tags', 'attachments', 'extend']) || !postRevisionsRequired()));
+    }
+    // Body content may change only together with a revision bump on the post.
+    function bodyRevisionOk(postId) {
+      return getAfter(postPath(postId)).data.get('revision', 0) == get(postPath(postId)).data.get('revision', 0) + 1
+        || !postRevisionsRequired();
+    }
+    function isValidPostRevision(postId, revisionId) {
+      let post = get(postPath(postId)).data;
+      let before = post.get('revision', 0);
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'boardId', 'revision', 'title', 'content', 'tags', 'attachments', 'extend',
+          'authorUid', 'editedBy', 'editedByName', 'createdAt'
+        ])
+        && revisionId == string(before)
+        && getAfter(postPath(postId)).data.get('revision', 0) == before + 1
+        && data.revision == before
+        && data.boardId == post.boardId
+        && data.authorUid == post.authorUid
+        && data.title == post.get('title', '')
+        && data.tags == post.get('tags', [])
+        && data.attachments == post.get('attachments', [])
+        && data.get('extend', null) == post.get('extend', null)
+        && data.content == (exists(postBodyPath(postId)) ? get(postBodyPath(postId)).data.get('content', '') : '')
+        && data.editedBy == request.auth.uid
+        && data.createdAt == request.time
+        && (data.editedByName == null || (data.editedByName is string && data.editedByName.size() <= 80));
+    }
+
     match /memiBoardPosts/{postId} {
       // Transactions check that a fresh attachment namespace has not already been saved.
       allow get: if isBoardWriter() && resource == null;
@@ -414,6 +470,7 @@ service cloud.firestore {
           && request.resource.data.get('slug', null) == resource.data.get('slug', null)
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
+          && postRevisionOk(postId)
           && (
             (request.resource.data.listed == resource.data.listed
               && postPinUnchanged()
@@ -427,8 +484,26 @@ service cloud.firestore {
 
       match /body/{docId} {
         allow read: if isBoardAdmin() || canReadPost(get(postPath(postId)).data);
-        allow write: if isOwner(getAfter(postPath(postId)))
-          || isBoardManager(getAfter(postPath(postId)).data.boardId);
+        // New posts create the body in the same transaction as the post.
+        allow create: if (isOwner(getAfter(postPath(postId)))
+            || isBoardManager(getAfter(postPath(postId)).data.boardId))
+          && (!exists(postPath(postId)) || bodyRevisionOk(postId));
+        allow update: if (isOwner(getAfter(postPath(postId)))
+            || isBoardManager(getAfter(postPath(postId)).data.boardId))
+          && (request.resource.data.get('content', '') == resource.data.get('content', '')
+            || bodyRevisionOk(postId));
+        // The body is deleted only together with its post, so content cannot be cleared without a revision.
+        allow delete: if (isOwner(get(postPath(postId))) || isBoardManager(get(postPath(postId)).data.boardId))
+          && (!existsAfter(postPath(postId)) || !postRevisionsRequired());
+      }
+
+      // Edit history. Readable by board managers and admins only. Kept when the post is deleted.
+      // List queries must filter where('boardId', '==', boardId) so the manager check can be proven.
+      match /revisions/{revisionId} {
+        allow read: if isBoardAdmin() || isBoardManager(resource.data.boardId);
+        allow create: if (isOwner(get(postPath(postId))) || isBoardManager(get(postPath(postId)).data.boardId))
+          && isValidPostRevision(postId, revisionId);
+        allow update, delete: if false;
       }
     }
 

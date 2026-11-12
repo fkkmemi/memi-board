@@ -17,6 +17,7 @@ import {
   endBefore,
   serverTimestamp,
   deleteField,
+  runTransaction,
 } from 'firebase/firestore'
 import type { QueryConstraint, Unsubscribe } from 'firebase/firestore'
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'
@@ -34,6 +35,8 @@ import { readExtend } from '../utils/customFields'
 import {
   postBodyDoc,
   postDoc,
+  postRevisionDoc,
+  postRevisionsCol,
   postsCol,
 } from '../utils/boardPaths'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
@@ -41,7 +44,7 @@ import { useMemiBoardAuth } from './useMemiBoardAuth'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
-import type { Attachment, PostDetail, PostModel, PostTranslationSet } from '../types'
+import type { Attachment, PostDetail, PostModel, PostRevisionModel, PostTranslationSet } from '../types'
 import { readContentI18nSource, readI18nSource, readLocalizedFields } from '../utils/localizedFields'
 
 export interface CreatePostInput {
@@ -90,6 +93,20 @@ export type ResolvePostIdResult =
  * 저장 직후 상세(미리보기)로 갈 때 slug 재조회 왕복을 건너뛴다. slug 는 바뀌지 않는다.
  */
 const createdPostIds = new Map<string, string>()
+
+/** Firestore 값 비교용. 맵 키 순서는 저장·조회 때 달라질 수 있어 정렬해서 비교한다. */
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue)
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).sort()
+      .map(key => [key, stableValue((value as Record<string, unknown>)[key])])
+  }
+  return value
+}
+
+function sameValue(a: unknown, b: unknown): boolean {
+  return JSON.stringify(stableValue(a)) === JSON.stringify(stableValue(b))
+}
 
 export function isFirestorePermissionDenied(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -354,16 +371,55 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
     const extend = input.extend ? readExtend(input.extend) : undefined
-    await Promise.all([
-      updateDoc(postDocRef(id), {
+    const tags = input.tags ?? []
+    const attachments = input.attachments ?? []
+    const editorUid = user.value?.uid
+    if (!editorUid) throw new Error(t('reports.signInRequired'))
+    const editorName = (user.value?.displayName ?? '').trim().slice(0, 80) || null
+
+    // 내용이 바뀌면 직전 상태를 revisions/{이전 revision}에 남기고 revision을 1 올린다.
+    // rules가 스냅샷이 실제 이전 상태와 같은지 같은 커밋 안에서 검증하므로 한 트랜잭션으로 쓴다.
+    await runTransaction(db, async (transaction) => {
+      const postRef = postDocRef(id)
+      const bodyRef = bodyDocRef(id)
+      const [postSnap, bodySnap] = await Promise.all([transaction.get(postRef), transaction.get(bodyRef)])
+      if (!postSnap.exists()) throw new Error(t('detail.notFound'))
+      const before = postSnap.data() as PostModel
+      const beforeContent = bodySnap.exists() ? String(bodySnap.data().content ?? '') : ''
+      const beforeExtend = before.extend && Object.keys(before.extend).length ? before.extend : undefined
+      const nextExtend = extend === undefined ? beforeExtend : (Object.keys(extend).length ? extend : undefined)
+      const changed = before.title !== title
+        || beforeContent !== input.content
+        || !sameValue(before.tags ?? [], tags)
+        || !sameValue(before.attachments ?? [], attachments)
+        || !sameValue(beforeExtend ?? null, nextExtend ?? null)
+
+      const revision = typeof before.revision === 'number' ? before.revision : 0
+      if (changed) {
+        transaction.set(postRevisionDoc(db, cfg(), id, revision), {
+          boardId: before.boardId,
+          revision,
+          title: before.title ?? '',
+          content: beforeContent,
+          tags: before.tags ?? [],
+          attachments: before.attachments ?? [],
+          ...(before.extend !== undefined ? { extend: before.extend } : {}),
+          authorUid: before.authorUid,
+          editedBy: editorUid,
+          editedByName: editorName,
+          createdAt: serverTimestamp(),
+        })
+      }
+      transaction.update(postRef, {
         title,
         ...preview,
         previewImage: preview.previewImage ? preview.previewImage : deleteField(),
         videoUrl: preview.videoUrl ? preview.videoUrl : deleteField(),
-        tags: input.tags ?? [],
+        tags,
         listed,
-        attachments: input.attachments ?? [],
+        attachments,
         updatedAt: serverTimestamp(),
+        ...(changed ? { revision: revision + 1, editedAt: serverTimestamp() } : {}),
         ...(input.translations ? {
           i18n: input.translations.i18n,
           i18nSource: input.translations.i18nSource,
@@ -371,16 +427,16 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         ...(extend
           ? { extend: Object.keys(extend).length ? extend : deleteField() }
           : {}),
-      }),
-      setDoc(bodyDocRef(id), {
+      })
+      transaction.set(bodyRef, {
         content: input.content,
         ...(input.translations
           ? (input.translations.contentI18n
               ? { i18n: input.translations.contentI18n, i18nSource: input.translations.contentI18nSource }
               : { i18n: deleteField(), i18nSource: deleteField() })
           : {}),
-      }, { merge: true }),
-    ])
+      }, { merge: true })
+    })
   }
 
   /** 이미 있는 글에 10개 언어 번역만 기록한다. 제목·본문 원문은 바꾸지 않는다. */
@@ -663,4 +719,39 @@ export function useMemiBoardPost(
   const pending = computed(() => metaPending.value || bodyPending.value)
 
   return { post, pending }
+}
+
+/**
+ * 글 수정 기록(revisions)을 최신순으로 불러온다. rules상 보드 매니저·관리자만 읽을 수 있다.
+ * boardId 등호 필터는 rules가 목록 조회 권한을 증명하는 데 필요하다. 정렬은 클라이언트에서 해 복합 색인이 필요 없다.
+ */
+export function useMemiBoardPostRevisions(boardId: MaybeRefOrGetter<string>, postId: MaybeRefOrGetter<string>) {
+  const db = useFirestore()
+  const cfg = () => useBoardPathConfig()
+  const revisions = ref<PostRevisionModel[]>([])
+  const pending = ref(false)
+  const error = ref<unknown>(null)
+
+  async function load(): Promise<void> {
+    pending.value = true
+    error.value = null
+    try {
+      const snapshot = await getDocs(query(
+        postRevisionsCol(db, cfg(), toValue(postId)),
+        where('boardId', '==', resolveBoardId(boardId)),
+      ))
+      revisions.value = snapshot.docs
+        .map(item => ({ ...item.data(), id: item.id }) as PostRevisionModel)
+        .sort((a, b) => b.revision - a.revision)
+    }
+    catch (cause) {
+      error.value = cause
+      revisions.value = []
+    }
+    finally {
+      pending.value = false
+    }
+  }
+
+  return { revisions, pending, error, load }
 }

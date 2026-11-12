@@ -27,6 +27,7 @@ import miniPost from './miniPost'
 import moderation from './moderation'
 import moderationPrompt from './moderationPrompt'
 import moderationStrike from './moderationStrike'
+import postRevisions from './postRevisions'
 import posts from './posts'
 import profile from './profile'
 import profileEditModal from './profileEditModal'
@@ -75,6 +76,7 @@ export default {
   moderation,
   moderationPrompt,
   moderationStrike,
+  postRevisions,
   posts,
   profile,
   profileEditModal,

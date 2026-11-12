@@ -34,6 +34,8 @@ export {
   commentReportDoc,
   commentReportDocId,
   reportDocById,
+  postRevisionsCol,
+  postRevisionDoc,
   boardUsersCol,
   boardUserDoc,
   postStorageFolder,
@@ -63,7 +65,7 @@ export type { BoardPostSeoPayload, BoardListSeoPayload } from './utils/boardSeo'
 
 export { useMemiBoardAuth } from './composables/useMemiBoardAuth'
 export { imeSafeSubmitClick, imeSafeSubmitPointerDown } from './utils/imeSafeSubmit'
-export { useMemiBoardPosts, useMemiBoardPostList, useMemiBoardPost } from './composables/useMemiBoardPosts'
+export { useMemiBoardPosts, useMemiBoardPostList, useMemiBoardPost, useMemiBoardPostRevisions } from './composables/useMemiBoardPosts'
 export type { CreatePostInput, UpdatePostInput, GetPostBySlugResult, ResolvePostIdResult } from './composables/useMemiBoardPosts'
 export { isFirestorePermissionDenied } from './composables/useMemiBoardPosts'
 export { useMemiBoardUserPosts } from './composables/useMemiBoardUserPosts'
@@ -134,6 +136,7 @@ export type {
   EditorImageEntry,
   ModerationStatus,
   PostModel,
+  PostRevisionModel,
   PostDetail,
   UserPostModel,
   CommentModel,

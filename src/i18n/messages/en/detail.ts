@@ -12,4 +12,8 @@ export default {
   postNav: 'Post navigation',
   list: 'List',
   comments: 'Comments',
+  edited: 'Edited',
+  editedCount: 'Edited {count} times',
+  editedTooltip: 'Edited {count} times · last edited {time}',
+  revisions: 'History {count}',
 }
