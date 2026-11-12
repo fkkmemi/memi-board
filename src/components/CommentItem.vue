@@ -18,6 +18,7 @@ import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
 import MemiBoardCommentReportButton from './CommentReportButton.vue'
 import MemiBoardImageLightbox from './ImageLightbox.vue'
+import MemiBoardCommentRevisions from './CommentRevisions.vue'
 
 const props = defineProps<{
   comment: CommentModel
@@ -43,7 +44,7 @@ const { updateComment, setCommentBlinded } = useMemiBoardComments(
 )
 const { checkText } = useMemiBoardModeration()
 const { deleteAttachment } = useMemiBoardStorage()
-const { t, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
+const { t, locale, formatRelativeDate, formatTimestampDetails, formatFullDate } = useMemiBoardI18n()
 const commentLikes = inject(memiBoardCommentLikesKey, null)
 
 const editing = ref(false)
@@ -60,6 +61,10 @@ const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(n
 const imageBusy = ref(false)
 const localUpdatedAt = ref(props.comment.updatedAt)
 const localBlinded = ref(props.comment.isBlinded ?? false)
+// 본문·이미지 수정 횟수. 기존 댓글은 필드가 없어 0이다.
+const localRevision = ref(props.comment.revision ?? 0)
+const localEditedAt = ref(props.comment.editedAt)
+const revisionsOpen = ref(false)
 const saving = ref(false)
 const blindSaving = ref(false)
 const likeError = ref('')
@@ -82,6 +87,8 @@ watch(() => props.comment.images, (images) => {
 })
 watch(() => props.comment.updatedAt, (updatedAt) => { localUpdatedAt.value = updatedAt })
 watch(() => props.comment.isBlinded, (isBlinded) => { localBlinded.value = isBlinded ?? false })
+watch(() => props.comment.revision, (revision) => { localRevision.value = revision ?? 0 })
+watch(() => props.comment.editedAt, (editedAt) => { localEditedAt.value = editedAt })
 watch(() => props.comment.likeCount, (likeCount) => {
   if (likeCount != null) localLikeCount.value = likeCount
 })
@@ -133,12 +140,16 @@ async function saveEdit() {
     const previous = localImage.value
     const next = editImage.value
     await updateComment(props.comment.id, body, next ? [next] : [], translations.value)
+    if (body !== localBody.value || (previous?.path ?? '') !== (next?.path ?? '')) {
+      localRevision.value += 1
+      localEditedAt.value = Timestamp.now()
+    }
     localTranslations.value = translations.value
     localBody.value = body
     localImage.value = next
     localUpdatedAt.value = Timestamp.now()
     editing.value = false
-    if (previous?.path && previous.path !== next?.path) await deleteAttachment(previous)
+    // 바뀌기 전 이미지는 수정 기록이 가리키므로 Storage에서 지우지 않는다.
   }
   catch (cause) {
     editError.value = cause instanceof Error ? cause.message : t('commentItem.editFailed')
@@ -219,6 +230,16 @@ async function toggleLike() {
           <template #content>
             <span class="whitespace-pre-line">{{ timestampDetails }}</span>
           </template>
+        </UTooltip>
+        <UTooltip
+          v-if="localRevision > 0"
+          :text="t('commentItem.editedTooltip', { count: localRevision, time: localEditedAt ? formatFullDate(localEditedAt) : '' })"
+          :delay-duration="200"
+          :content="{ side: 'top' }"
+        >
+          <UBadge variant="subtle" color="neutral" size="sm">
+            {{ t('commentItem.edited') }}
+          </UBadge>
         </UTooltip>
       </div>
       <form
@@ -361,6 +382,16 @@ async function toggleLike() {
           @click="toggleBlind"
         />
       </UTooltip>
+      <UTooltip v-if="localRevision > 0 && canManageBoard(comment.boardId) && comment.id" :text="t('commentItem.history')" :delay-duration="200">
+        <UButton
+          icon="i-lucide-history"
+          size="xs"
+          color="neutral"
+          variant="ghost"
+          :aria-label="t('commentItem.history')"
+          @click="revisionsOpen = true"
+        />
+      </UTooltip>
       <UTooltip :text="t('common.action.reply')" :delay-duration="200">
         <UButton
           icon="i-lucide-reply"
@@ -392,6 +423,12 @@ async function toggleLike() {
         />
       </UTooltip>
     </div>
+    <MemiBoardCommentRevisions
+      v-if="localRevision > 0 && canManageBoard(comment.boardId) && comment.id"
+      v-model:open="revisionsOpen"
+      :board-id="comment.boardId"
+      :comment-id="comment.id"
+    />
     <UModal v-model:open="blindConfirmOpen" :title="t(blindTarget ? 'commentItem.blind' : 'commentItem.unblind')" :dismissible="!blindSaving" :close="blindSaving ? false : undefined">
       <template #body>
         <div class="space-y-4">

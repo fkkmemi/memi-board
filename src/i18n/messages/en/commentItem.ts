@@ -12,4 +12,7 @@ export default {
   blind: 'Hide comment',
   unblind: 'Unhide comment',
   delete: 'Delete comment',
+  edited: 'Edited',
+  editedTooltip: 'Edited {count} times · last edited {time}',
+  history: 'Edit history',
 }

@@ -12,4 +12,7 @@ export default {
   blind: '댓글 블라인드',
   unblind: '댓글 블라인드 해제',
   delete: '댓글 삭제',
+  edited: '수정됨',
+  editedTooltip: '{count}번 수정됨 · 마지막 수정 {time}',
+  history: '수정 기록',
 }

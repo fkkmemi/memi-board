@@ -8,6 +8,7 @@
  * memiBoardPosts/{postId}/body/main
  * memiBoardPosts/{postId}/revisions/{n}        // 수정 직전 상태. n = 덮어쓰인 revision 번호
  * memiBoardComments/{commentId}                // postId, boardId 는 문서 필드
+ * memiBoardComments/{commentId}/revisions/{n}  // 댓글 수정 직전 상태
  * memiBoardLikes/{targetId}_{uid}              // 글: postId_uid / 댓글: commentId_uid
  * memiBoardReports/{postId}_{uid}              // 글 신고. 유저당 글당 1건
  * memiBoardReports/c_{commentId}_{uid}         // 댓글 신고. 유저당 댓글당 1건
@@ -118,6 +119,24 @@ export function commentDoc(
   commentId: string,
 ): DocumentReference {
   return doc(db, cfg.commentsCollection, commentId)
+}
+
+/** 댓글 수정 기록. 문서 ID는 덮어쓰인 revision 번호(0, 1, 2…)다. */
+export function commentRevisionsCol(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  commentId: string,
+): CollectionReference {
+  return collection(db, cfg.commentsCollection, commentId, 'revisions')
+}
+
+export function commentRevisionDoc(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  commentId: string,
+  revision: number,
+): DocumentReference {
+  return doc(db, cfg.commentsCollection, commentId, 'revisions', String(revision))
 }
 
 export function likesCol(db: Firestore, cfg: BoardPathConfig): CollectionReference {

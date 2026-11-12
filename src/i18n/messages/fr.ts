@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'Masquer le commentaire',
     unblind: 'Afficher le commentaire',
     delete: 'Supprimer le commentaire',
+    edited: 'Modifié',
+    editedTooltip: 'Modifié {count} fois · dernière modification {time}',
+    history: 'Historique des modifications',
   },
   commentList: {
     loading: 'Chargement des commentaires',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: 'Le commentaire auquel vous répondez est introuvable.',
     threadNotFound: 'Fil de commentaires introuvable.',
     hasRepliesCannotDelete: 'Les commentaires ayant des réponses ne peuvent pas être supprimés pour le moment.',
+    commentNotFound: 'Commentaire introuvable.',
   },
   common: {
     action: {

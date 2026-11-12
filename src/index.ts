@@ -36,6 +36,8 @@ export {
   reportDocById,
   postRevisionsCol,
   postRevisionDoc,
+  commentRevisionsCol,
+  commentRevisionDoc,
   boardUsersCol,
   boardUserDoc,
   postStorageFolder,
@@ -73,7 +75,7 @@ export { useMemiBoardUserComments } from './composables/useMemiBoardUserComments
 export { useMemiBoardCommentFeed } from './composables/useMemiBoardCommentFeed'
 export type { CommentFeedSort } from './composables/useMemiBoardCommentFeed'
 export { AUTHOR_MEMO_MAX_LENGTH, useMemiBoardAuthorMemo } from './composables/useMemiBoardAuthorMemo'
-export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardReplies } from './composables/useMemiBoardComments'
+export { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments, useMemiBoardCommentRevisions, useMemiBoardReplies } from './composables/useMemiBoardComments'
 export type { AddCommentInput, AddReplyInput } from './composables/useMemiBoardComments'
 export {
   useMemiBoardLikes,
@@ -137,6 +139,7 @@ export type {
   ModerationStatus,
   PostModel,
   PostRevisionModel,
+  CommentRevisionModel,
   PostDetail,
   UserPostModel,
   CommentModel,

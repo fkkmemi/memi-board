@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: '屏蔽评论',
     unblind: '取消屏蔽评论',
     delete: '删除评论',
+    edited: '已编辑',
+    editedTooltip: '已编辑 {count} 次 · 最后编辑于 {time}',
+    history: '编辑记录',
   },
   commentList: {
     loading: '正在加载评论',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: '找不到要回复的评论。',
     threadNotFound: '找不到该评论串。',
     hasRepliesCannotDelete: '有回复的评论目前无法删除。',
+    commentNotFound: '找不到该评论。',
   },
   common: {
     action: {

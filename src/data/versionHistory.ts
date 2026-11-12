@@ -19,13 +19,13 @@ export const versionHistory: VersionHistoryEntry[] = [
     version: '0.62.0',
     date: '2026-11-12',
     highlights: [
-      '글을 수정하면 이전 내용이 수정 기록으로 남고, 누구도 고치거나 지울 수 없어요',
-      '수정된 글에 수정됨 표시와 수정 횟수가 보여요',
+      '글과 댓글을 수정하면 이전 내용이 수정 기록으로 남고, 누구도 고치거나 지울 수 없어요',
+      '수정된 글과 댓글에 수정됨 표시와 수정 횟수가 보여요',
       '보드 관리자는 수정 기록에서 이전 버전과 수정한 사람을 확인할 수 있어요',
     ],
     highlightsEn: [
-      'Editing a post keeps the previous version in a history nobody can change or delete',
-      'Edited posts show an Edited badge with the edit count',
+      'Editing a post or comment keeps the previous version in a history nobody can change or delete',
+      'Edited posts and comments show an Edited badge with the edit count',
       'Board managers can open the history to see earlier versions and who edited them',
     ],
   },

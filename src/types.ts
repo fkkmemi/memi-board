@@ -146,6 +146,23 @@ export interface PostRevisionModel {
   createdAt: Timestamp
 }
 
+/**
+ * memiBoardComments/{commentId}/revisions/{n} — 수정으로 덮어쓰이기 직전의 댓글.
+ * rules가 이전 상태와 같은지 검증하고, 누구도 고치거나 지울 수 없다. 보드 매니저만 읽는다.
+ */
+export interface CommentRevisionModel {
+  id: string
+  boardId: string
+  postId: string
+  revision: number
+  body: string
+  images: Attachment[]
+  authorUid: string
+  editedBy: string
+  editedByName: string | null
+  createdAt: Timestamp
+}
+
 export interface PostDetail extends PostModel {
   content: string
   /** body/main 의 본문 번역. */
@@ -186,6 +203,13 @@ export interface CommentModel {
   createdAt: Timestamp
   /** 기존 댓글에는 없을 수 있다. 댓글 수정 기능에서 갱신한다. */
   updatedAt?: Timestamp
+  /**
+   * 내용(본문·이미지) 수정 횟수. 수정할 때마다 1씩 오르고, 직전 상태가 revisions/{이전 값}에 남는다.
+   * 기존 댓글에는 없다(0으로 본다).
+   */
+  revision?: number
+  /** 마지막 내용 수정 시각. 번역·블라인드·카운터 갱신에는 바뀌지 않는다. */
+  editedAt?: Timestamp
   /** 관리자·스태프의 블라인드 상태. 본문 데이터는 보존한다. */
   isBlinded?: boolean
   moderatedAt?: Timestamp

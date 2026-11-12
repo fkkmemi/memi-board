@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'Sembunyikan komentar',
     unblind: 'Tampilkan komentar',
     delete: 'Hapus komentar',
+    edited: 'Diedit',
+    editedTooltip: 'Diedit {count} kali · terakhir diedit {time}',
+    history: 'Riwayat edit',
   },
   commentList: {
     loading: 'Memuat komentar',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: 'Komentar yang Anda balas tidak ditemukan.',
     threadNotFound: 'Utas komentar tidak ditemukan.',
     hasRepliesCannotDelete: 'Komentar yang memiliki balasan tidak dapat dihapus saat ini.',
+    commentNotFound: 'Komentar tidak ditemukan.',
   },
   common: {
     action: {

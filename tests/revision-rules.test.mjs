@@ -7,7 +7,7 @@ import {
   runTransaction, serverTimestamp, setDoc, terminate, updateDoc, where, writeBatch,
 } from 'firebase/firestore'
 
-const projectId = 'demo-memi-post-revisions'
+const projectId = 'demo-memi-revisions'
 const enabled = process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST
 const clients = {}
 const apps = []
@@ -32,7 +32,7 @@ async function seedPost(id, title = 'original', content = '<p>original</p>') {
 }
 
 async function setRequired(required) {
-  await seed('memiBoardPostsSlugs/__migration', { ready: bool(true), postRevisionsRequired: bool(required) })
+  await seed('memiBoardPostsSlugs/__migration', { ready: bool(true), revisionsRequired: bool(required) })
 }
 
 /** Mirrors useMemiBoardPosts.updatePost: archive the previous state and bump the revision in one commit. */
@@ -161,6 +161,80 @@ rulesTest('once required, edits without a revision are denied', async () => {
     await batch.commit()
     const kept = await getDoc(doc(clients.admin.db, 'memiBoardPosts', 'p7', 'revisions', '0'))
     assert.equal(kept.data().title, 'original')
+  }
+  finally {
+    await setRequired(false)
+  }
+})
+
+async function seedComment(id, postId = 'p1', body = 'original comment') {
+  await seed(`memiBoardComments/${id}`, {
+    postId: str(postId), boardId: str('board'), authorUid: str(clients.user.auth.currentUser.uid),
+    body: str(body), listed: bool(true), moderationStatus: str('approved'),
+  })
+}
+
+/** Mirrors useMemiBoardComments.updateComment. */
+async function editCommentWithRevision(db, id, body, override = {}) {
+  const uid = getAuth(db.app).currentUser.uid
+  await runTransaction(db, async (transaction) => {
+    const ref = doc(db, 'memiBoardComments', id)
+    const before = (await transaction.get(ref)).data()
+    const revision = before.revision ?? 0
+    transaction.set(doc(db, 'memiBoardComments', id, 'revisions', String(revision)), {
+      boardId: before.boardId, postId: before.postId, revision, body: before.body, images: before.images ?? [],
+      authorUid: before.authorUid, editedBy: uid, editedByName: null, createdAt: serverTimestamp(), ...override,
+    })
+    transaction.update(ref, { body, updatedAt: serverTimestamp(), revision: revision + 1, editedAt: serverTimestamp() })
+  })
+}
+
+rulesTest('comment edits archive the previous body', async () => {
+  await seedPost('pc')
+  await seedComment('c1', 'pc')
+  await editCommentWithRevision(clients.user.db, 'c1', 'edit one')
+  await editCommentWithRevision(clients.user.db, 'c1', 'edit two')
+  const revisions = await getDocs(query(collection(clients.staff.db, 'memiBoardComments', 'c1', 'revisions'), where('boardId', '==', 'board')))
+  const byId = Object.fromEntries(revisions.docs.map(item => [item.id, item.data()]))
+  assert.equal(byId['0'].body, 'original comment')
+  assert.equal(byId['1'].body, 'edit one')
+})
+
+rulesTest('comment revisions must match, cannot change, and are staff-only', async () => {
+  await seedPost('pc2')
+  await seedComment('c2', 'pc2')
+  const db = clients.user.db
+  await assert.rejects(editCommentWithRevision(db, 'c2', 'x', { body: 'forged' }), denied)
+  await assert.rejects(editCommentWithRevision(clients.other.db, 'c2', 'x'), denied)
+  await assert.rejects(updateDoc(doc(db, 'memiBoardComments', 'c2'), { body: 'x', revision: 1, editedAt: serverTimestamp() }), denied)
+  await editCommentWithRevision(db, 'c2', 'real edit')
+  for (const role of ['user', 'staff', 'admin']) {
+    const ref = doc(clients[role].db, 'memiBoardComments', 'c2', 'revisions', '0')
+    await assert.rejects(updateDoc(ref, { body: 'rewritten' }), denied)
+    await assert.rejects(deleteDoc(ref), denied)
+  }
+  await assert.rejects(getDoc(doc(db, 'memiBoardComments', 'c2', 'revisions', '0')), denied)
+  await getDoc(doc(clients.staff.db, 'memiBoardComments', 'c2', 'revisions', '0'))
+})
+
+rulesTest('comment edits without a revision depend on the required flag', async () => {
+  await seedPost('pc3')
+  await seedComment('c3', 'pc3')
+  const ref = doc(clients.user.db, 'memiBoardComments', 'c3')
+  await updateDoc(ref, { body: 'legacy edit', updatedAt: serverTimestamp() })
+  await setRequired(true)
+  try {
+    await assert.rejects(updateDoc(ref, { body: 'silent edit', updatedAt: serverTimestamp() }), denied)
+    await editCommentWithRevision(clients.user.db, 'c3', 'tracked edit')
+    // Blinding and likes do not need a revision.
+    await updateDoc(doc(clients.staff.db, 'memiBoardComments', 'c3'), {
+      isBlinded: true, moderatedAt: serverTimestamp(), moderatedBy: clients.staff.auth.currentUser.uid,
+    })
+    await updateDoc(doc(clients.other.db, 'memiBoardComments', 'c3'), { likeCount: 1 })
+    // Deleting the comment keeps its history.
+    await deleteDoc(ref)
+    const kept = await getDoc(doc(clients.admin.db, 'memiBoardComments', 'c3', 'revisions', '0'))
+    assert.equal(kept.data().body, 'legacy edit')
   }
   finally {
     await setRequired(false)

@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'إخفاء التعليق',
     unblind: 'إظهار التعليق',
     delete: 'حذف التعليق',
+    edited: 'معدّل',
+    editedTooltip: 'عُدّل {count} مرات · آخر تعديل {time}',
+    history: 'سجل التعديلات',
   },
   commentList: {
     loading: 'جارٍ تحميل التعليقات',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: 'تعذّر العثور على التعليق الذي تردّ عليه.',
     threadNotFound: 'تعذّر العثور على سلسلة التعليقات.',
     hasRepliesCannotDelete: 'لا يمكن حذف التعليقات التي لها ردود حاليًا.',
+    commentNotFound: 'تعذّر العثور على التعليق.',
   },
   common: {
     action: {

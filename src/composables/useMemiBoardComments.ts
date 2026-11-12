@@ -14,15 +14,19 @@ import {
   query,
   serverTimestamp,
   startAfter,
+  runTransaction,
   updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
 import { isMemiBoardTranslationEnabled, useBoardPathConfig } from '../config'
 import { boardTranslationLocales } from '../utils/localizedFields'
 import { useMemiBoardWritingAssistant } from './useMemiBoardWritingAssistant'
 import {
   commentDoc,
+  commentRevisionDoc,
+  commentRevisionsCol,
   commentsCol,
   postDoc,
   postStorageFolder,
@@ -31,7 +35,7 @@ import { commentImagePathsUnder, normalizeCommentImages } from '../utils/comment
 import { deleteLikesForComment } from '../utils/deletePostCascade'
 import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
-import type { Attachment, CommentModel, CommentTranslationSet } from '../types'
+import type { Attachment, CommentModel, CommentRevisionModel, CommentTranslationSet } from '../types'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 import type { MemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
@@ -61,6 +65,51 @@ function normalizedCommentBody(body: string, { t, formatNumber }: Pick<MemiBoard
     throw new Error(t('comments.bodyTooLong', { max: formatNumber(COMMENT_BODY_MAX_LENGTH) }))
   }
   return trimmed
+}
+
+/** 비교용: 맵 키 순서는 저장·조회 때 달라질 수 있어 정렬한다. */
+function sortedKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortedKeys)
+  if (value && typeof value === 'object') {
+    return Object.keys(value as Record<string, unknown>).sort()
+      .map(key => [key, sortedKeys((value as Record<string, unknown>)[key])])
+  }
+  return value
+}
+
+/**
+ * 댓글 수정 기록(revisions)을 최신순으로 불러온다. rules상 보드 매니저·관리자만 읽을 수 있다.
+ * boardId 등호 필터는 rules가 목록 조회 권한을 증명하는 데 필요하다.
+ */
+export function useMemiBoardCommentRevisions(boardId: MaybeRefOrGetter<string>, commentId: MaybeRefOrGetter<string>) {
+  const db = useFirestore()
+  const cfg = () => useBoardPathConfig()
+  const revisions = ref<CommentRevisionModel[]>([])
+  const pending = ref(false)
+  const error = ref<unknown>(null)
+
+  async function load(): Promise<void> {
+    pending.value = true
+    error.value = null
+    try {
+      const snapshot = await getDocs(query(
+        commentRevisionsCol(db, cfg(), toValue(commentId)),
+        where('boardId', '==', toValue(boardId)),
+      ))
+      revisions.value = snapshot.docs
+        .map(item => ({ ...item.data(), id: item.id }) as CommentRevisionModel)
+        .sort((a, b) => b.revision - a.revision)
+    }
+    catch (cause) {
+      error.value = cause
+      revisions.value = []
+    }
+    finally {
+      pending.value = false
+    }
+  }
+
+  return { revisions, pending, error, load }
 }
 
 /** 10개씩 순차 조회하고 불러온 범위의 수정·좋아요·삭제를 실시간 구독한다. */
@@ -322,19 +371,44 @@ export function useMemiBoardComments(
 
   async function updateComment(commentId: string, body: string, images?: Attachment[] | null, translations?: CommentTranslationSet): Promise<void> {
     const trimmed = normalizedCommentBody(body, i18n)
-    const patch: {
-      body: string
-      updatedAt: ReturnType<typeof serverTimestamp>
-      images?: Attachment[] | ReturnType<typeof deleteField>
-    } = {
-      body: trimmed,
-      updatedAt: serverTimestamp(),
-    }
-    if (images !== undefined) {
-      const normalized = imagesFor(commentId, images)
-      patch.images = normalized.length ? normalized : deleteField()
-    }
-    await updateDoc(commentDoc(db, cfg(), commentId), { ...patch, ...await translationFor(trimmed, translations) })
+    const nextImages = images === undefined ? undefined : imagesFor(commentId, images)
+    const translation = await translationFor(trimmed, translations)
+    const editor = getAuth(firebaseApp).currentUser
+    if (!editor) throw new Error(t('reports.signInRequired'))
+    const editorName = (editor.displayName ?? '').trim().slice(0, 80) || null
+
+    // 본문·이미지가 바뀌면 직전 상태를 revisions/{이전 revision}에 남기고 revision을 1 올린다.
+    // rules가 같은 커밋 안에서 스냅샷이 실제 이전 댓글과 같은지 검증한다.
+    await runTransaction(db, async (transaction) => {
+      const ref = commentDoc(db, cfg(), commentId)
+      const snap = await transaction.get(ref)
+      if (!snap.exists()) throw new Error(t('comments.commentNotFound'))
+      const before = snap.data() as CommentModel
+      const beforeImages = before.images ?? []
+      const changed = before.body !== trimmed
+        || (nextImages !== undefined && JSON.stringify(sortedKeys(beforeImages)) !== JSON.stringify(sortedKeys(nextImages)))
+      const revision = typeof before.revision === 'number' ? before.revision : 0
+      if (changed) {
+        transaction.set(commentRevisionDoc(db, cfg(), commentId, revision), {
+          boardId: before.boardId,
+          postId: before.postId,
+          revision,
+          body: before.body,
+          images: beforeImages,
+          authorUid: before.authorUid,
+          editedBy: editor.uid,
+          editedByName: editorName,
+          createdAt: serverTimestamp(),
+        })
+      }
+      transaction.update(ref, {
+        body: trimmed,
+        updatedAt: serverTimestamp(),
+        ...(nextImages !== undefined ? { images: nextImages.length ? nextImages : deleteField() } : {}),
+        ...(changed ? { revision: revision + 1, editedAt: serverTimestamp() } : {}),
+        ...translation,
+      })
+    })
   }
 
   async function setCommentBlinded(commentId: string, isBlinded: boolean, moderatorUid: string): Promise<void> {

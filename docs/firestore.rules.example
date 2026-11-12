@@ -394,7 +394,7 @@ service cloud.firestore {
     // A content edit raises `revision` by one and, in the same commit, archives the state it overwrites
     // as revisions/{previous revision}. The revision rule checks the snapshot against the stored post and
     // body, and nobody can change or delete it afterwards.
-    // Until memiBoardPostsSlugs/__migration has postRevisionsRequired == true, edits without a revision
+    // Until memiBoardPostsSlugs/__migration has revisionsRequired == true, edits without a revision
     // are still accepted so host apps on packages before 0.62.0 keep working.
     function postRevisionPath(postId, revision) {
       return /databases/$(database)/documents/memiBoardPosts/$(postId)/revisions/$(string(revision));
@@ -402,9 +402,9 @@ service cloud.firestore {
     function postBodyPath(postId) {
       return /databases/$(database)/documents/memiBoardPosts/$(postId)/body/main;
     }
-    function postRevisionsRequired() {
+    function revisionsRequired() {
       let marker = /databases/$(database)/documents/memiBoardPostsSlugs/__migration;
-      return exists(marker) && get(marker).data.get('postRevisionsRequired', false) == true;
+      return exists(marker) && get(marker).data.get('revisionsRequired', false) == true;
     }
     function isValidPostRevisionBump(postId) {
       let before = resource.data.get('revision', 0);
@@ -416,12 +416,12 @@ service cloud.firestore {
       let changed = request.resource.data.diff(resource.data).affectedKeys();
       return isValidPostRevisionBump(postId)
         || (!changed.hasAny(['revision', 'editedAt'])
-          && (!changed.hasAny(['title', 'tags', 'attachments', 'extend']) || !postRevisionsRequired()));
+          && (!changed.hasAny(['title', 'tags', 'attachments', 'extend']) || !revisionsRequired()));
     }
     // Body content may change only together with a revision bump on the post.
     function bodyRevisionOk(postId) {
       return getAfter(postPath(postId)).data.get('revision', 0) == get(postPath(postId)).data.get('revision', 0) + 1
-        || !postRevisionsRequired();
+        || !revisionsRequired();
     }
     function isValidPostRevision(postId, revisionId) {
       let post = get(postPath(postId)).data;
@@ -494,7 +494,7 @@ service cloud.firestore {
             || bodyRevisionOk(postId));
         // The body is deleted only together with its post, so content cannot be cleared without a revision.
         allow delete: if (isOwner(get(postPath(postId))) || isBoardManager(get(postPath(postId)).data.boardId))
-          && (!existsAfter(postPath(postId)) || !postRevisionsRequired());
+          && (!existsAfter(postPath(postId)) || !revisionsRequired());
       }
 
       // Edit history. Readable by board managers and admins only. Kept when the post is deleted.
@@ -505,6 +505,41 @@ service cloud.firestore {
           && isValidPostRevision(postId, revisionId);
         allow update, delete: if false;
       }
+    }
+
+    // Comment edit history: memiBoardComments/{commentId}/revisions/{n}. Same contract as posts:
+    // a body or image edit raises `revision` by one and archives the replaced state in the same commit.
+    function commentRevisionPath(commentId, revision) {
+      return /databases/$(database)/documents/memiBoardComments/$(commentId)/revisions/$(string(revision));
+    }
+    function commentRevisionOk(commentId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let before = resource.data.get('revision', 0);
+      return (request.resource.data.get('revision', 0) == before + 1
+          && request.resource.data.editedAt == request.time
+          && existsAfter(commentRevisionPath(commentId, before)))
+        || (!changed.hasAny(['revision', 'editedAt'])
+          && (!changed.hasAny(['body', 'images']) || !revisionsRequired()));
+    }
+    function isValidCommentRevision(commentId, revisionId) {
+      let comment = get(commentPath(commentId)).data;
+      let before = comment.get('revision', 0);
+      let data = request.resource.data;
+      return data.keys().hasOnly([
+          'boardId', 'postId', 'revision', 'body', 'images',
+          'authorUid', 'editedBy', 'editedByName', 'createdAt'
+        ])
+        && revisionId == string(before)
+        && getAfter(commentPath(commentId)).data.get('revision', 0) == before + 1
+        && data.revision == before
+        && data.boardId == comment.boardId
+        && data.postId == comment.postId
+        && data.authorUid == comment.authorUid
+        && data.body == comment.body
+        && data.get('images', []) == comment.get('images', [])
+        && data.editedBy == request.auth.uid
+        && data.createdAt == request.time
+        && (data.editedByName == null || (data.editedByName is string && data.editedByName.size() <= 80));
     }
 
     match /memiBoardComments/{commentId} {
@@ -552,11 +587,22 @@ service cloud.firestore {
               && request.resource.data.moderatedBy == request.auth.uid
               && request.resource.data.moderatedAt == request.time))
           && commentImagesValid(request.resource.data.postId, commentId)
+          && commentRevisionOk(commentId)
           && (
             request.resource.data.get('listed', true) == resource.data.get('listed', true)
             || isBoardManager(resource.data.boardId)
           )
         );
+
+      // Edit history. Readable by board managers and admins only. Kept when the comment is deleted.
+      // List queries must filter where('boardId', '==', boardId) so the manager check can be proven.
+      match /revisions/{revisionId} {
+        allow read: if isBoardAdmin() || isBoardManager(resource.data.boardId);
+        allow create: if (isOwner(get(commentPath(commentId)))
+            || isBoardManager(get(commentPath(commentId)).data.boardId))
+          && isValidCommentRevision(commentId, revisionId);
+        allow update, delete: if false;
+      }
     }
 
     // Flat collection for like toggles only. Doc ID convention = `${targetId}_{uid}`.

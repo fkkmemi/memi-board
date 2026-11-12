@@ -4,4 +4,5 @@ export default {
   replyTargetNotFound: 'The comment you are replying to could not be found.',
   threadNotFound: 'The comment thread could not be found.',
   hasRepliesCannotDelete: 'Comments with replies cannot be deleted right now.',
+  commentNotFound: 'The comment could not be found.',
 }

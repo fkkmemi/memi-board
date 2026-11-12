@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'Ocultar comentário',
     unblind: 'Reexibir comentário',
     delete: 'Excluir comentário',
+    edited: 'Editado',
+    editedTooltip: 'Editado {count} vezes · última edição {time}',
+    history: 'Histórico de edições',
   },
   commentList: {
     loading: 'Carregando comentários',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: 'O comentário que você está respondendo não foi encontrado.',
     threadNotFound: 'A conversa de comentários não foi encontrada.',
     hasRepliesCannotDelete: 'No momento, não é possível excluir comentários com respostas.',
+    commentNotFound: 'Comentário não encontrado.',
   },
   common: {
     action: {

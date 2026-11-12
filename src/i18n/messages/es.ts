@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'Ocultar comentario',
     unblind: 'Mostrar comentario',
     delete: 'Eliminar comentario',
+    edited: 'Editado',
+    editedTooltip: 'Editado {count} veces · última edición {time}',
+    history: 'Historial de ediciones',
   },
   commentList: {
     loading: 'Cargando comentarios',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: 'No se encontró el comentario al que respondes.',
     threadNotFound: 'No se encontró el hilo de comentarios.',
     hasRepliesCannotDelete: 'Por ahora no se pueden eliminar comentarios que tienen respuestas.',
+    commentNotFound: 'No se encontró el comentario.',
   },
   common: {
     action: {

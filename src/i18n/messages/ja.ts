@@ -83,6 +83,9 @@ const messages: MemiBoardMessages = {
     blind: 'コメントを非表示',
     unblind: 'コメントの非表示を解除',
     delete: 'コメントを削除',
+    edited: '編集済み',
+    editedTooltip: '{count}回編集 · 最終編集 {time}',
+    history: '編集履歴',
   },
   commentList: {
     loading: 'コメントを読み込んでいます',
@@ -103,6 +106,7 @@ const messages: MemiBoardMessages = {
     replyTargetNotFound: '返信先のコメントが見つかりません。',
     threadNotFound: 'コメントスレッドが見つかりません。',
     hasRepliesCannotDelete: '返信があるコメントは現在削除できません。',
+    commentNotFound: 'コメントが見つかりません。',
   },
   common: {
     action: {
