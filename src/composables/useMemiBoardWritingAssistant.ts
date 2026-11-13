@@ -287,11 +287,13 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     const fields: Record<string, string> = {}
     if (title) fields.title = title
     if (summary) fields.summary = summary
-    const hasText = !!plainTextFromHtml(content)
-    if (!Object.keys(fields).length && !hasText) throw new Error(t('writingAssistant.translateEmpty'))
-    if (hasText && content.length > HTML_MAX_CHARS) {
+    const bodyTooLong = !!plainTextFromHtml(content) && content.length > HTML_MAX_CHARS
+    // 자동 번역은 본문이 길어도 제목·요약은 번역해서 저장한다. 직접 누른 번역은 이유를 알려 준다.
+    if (bodyTooLong && !input.automatic) {
       throw new Error(t('writingAssistant.translateTooLong', { limit: HTML_MAX_CHARS, count: targets.length }))
     }
+    const hasText = !!plainTextFromHtml(content) && !bodyTooLong
+    if (!Object.keys(fields).length && !hasText) throw new Error(t('writingAssistant.translateEmpty'))
 
     return withDailyUse(async () => {
       const source = input.source ?? await detectSourceLocale([plainTextFromHtml(content), title, summary].filter(Boolean).join('\n'))
@@ -309,7 +311,12 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
               purpose: 'message board post title and short summary',
             })
           : Promise.resolve(emptyFields),
-        hasText ? translateHtml(content, { source, targets }) : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
+        hasText
+          ? translateHtml(content, { source, targets }).catch((cause) => {
+              if (!input.automatic) throw cause
+              return {} as Partial<Record<MemiBoardLocale, string>>
+            })
+          : Promise.resolve({} as Partial<Record<MemiBoardLocale, string>>),
       ])
 
       const i18n = mergeSourceFields(source, fields, fieldMap.post)
@@ -327,10 +334,14 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
           const localeCode = normalizeMemiBoardLocale(code)
           if (localeCode && typeof text === 'string' && text.trim()) htmlFields[localeCode] = { content: text.trim() }
         }
-        const contentI18n = mergeSourceFields(source, { content }, htmlFields)
-        if (!coversLocales(contentI18n, ['content'], required)) throw new Error(t('writingAssistant.translateIncomplete'))
-        result.contentI18n = contentI18n
-        result.contentI18nSource = { locale: source, hash: hashText(content) }
+        // 일부 언어만 성공해도 그만큼은 저장한다. 빠진 언어는 원문 본문을 보여 준다.
+        if (Object.keys(htmlFields).length) {
+          result.contentI18n = mergeSourceFields(source, { content }, htmlFields)
+          result.contentI18nSource = { locale: source, hash: hashText(content) }
+        }
+        else if (!input.automatic) {
+          throw new Error(t('writingAssistant.translateIncomplete'))
+        }
       }
       return result
     }, input.automatic === true)

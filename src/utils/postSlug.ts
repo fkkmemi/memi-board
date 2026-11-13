@@ -1,13 +1,17 @@
 import { doc, getDoc, runTransaction, type Firestore, type Transaction } from 'firebase/firestore'
 import type { BoardPathConfig } from './boardPaths'
 
-/** Keep room for numeric suffixes within Firestore's 1,500-byte document ID limit. */
+/** 제목에서 만드는 주소(slug) 글자 수. 한글은 주소창에서 글자당 9자로 늘어난다. */
+export const POST_SLUG_MAX = 60
+
+/** Short enough for a readable URL, and leaves room for numeric suffixes within Firestore's 1,500-byte document ID limit. */
 export function postSlugBase(slug: string): string {
   let result = ''
   let bytes = 0
+  let chars = 0
   for (const char of slug) {
     bytes += new TextEncoder().encode(char).length
-    if (bytes > 1400) break
+    if (bytes > 1400 || ++chars > POST_SLUG_MAX) break
     result += char
   }
   return result.replace(/-+$/g, '') || 'post'

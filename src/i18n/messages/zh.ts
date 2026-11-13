@@ -207,6 +207,8 @@ const messages: MemiBoardMessages = {
     submitNext: '下一步：预览',
     apply: '应用',
     imageOptimizing: '正在优化并上传图片…',
+    bodyUsage: '正文 {count} / {max} 字符（HTML）',
+    bodyUsageTranslated: '按 {languages} 种翻译语言计算的上限。',
     cover: {
       imageLink: '图片链接',
       addPhoto: '添加照片',
@@ -466,6 +468,7 @@ const messages: MemiBoardMessages = {
     boardIdRequired: '[memi-board] 需要提供 boardId。',
     photoRequired: '请上传照片。',
     bodyRequired: '请在正文中输入文字或添加图片。',
+    bodyTooLong: '正文过长。此版块最多可保存 {max} 个 HTML 字符。',
     titleRequired: '请输入标题。',
     editLimitReached: '帖子最多可编辑 {max} 次。如需继续修改，请联系版块管理员。',
   },

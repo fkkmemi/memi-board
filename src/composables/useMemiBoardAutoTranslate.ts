@@ -1,4 +1,5 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema } from 'firebase/ai'
+import { POST_TRANSLATION_CALL_MAX } from '../utils/postLimits'
 import { useFirebaseApp } from 'vuefire'
 import { assertMemiBoardTranslationEnabled, memiBoardEnabledLocales, useMemiBoardConfig } from '../config'
 import {
@@ -33,7 +34,7 @@ export interface MemiBoardTranslateOptions {
 
 const REQUEST_TIMEOUT_MS = 30_000
 const HTML_TIMEOUT_MS = 45_000
-export const HTML_MAX_CHARS = 12_000
+export const HTML_MAX_CHARS = POST_TRANSLATION_CALL_MAX
 const HTML_CONCURRENCY = 3
 
 function cleanModelOutput(value: string): string {
@@ -211,14 +212,15 @@ export function useMemiBoardAutoTranslate() {
       ].join('\n'),
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 8192,
+        maxOutputTokens: 16_384,
       },
     })
   }
 
   /**
    * 게시글 본문 HTML 을 언어마다 한 번씩 번역한다.
-   * 원문 언어는 넣지 않는다. 12,000자를 넘으면 reject 한다.
+   * 원문 언어는 넣지 않는다. HTML_MAX_CHARS 를 넘으면 reject 한다.
+   * 실패하거나 출력이 끝까지 나오지 않은 언어는 빼고 돌려준다. 모두 실패하면 reject 한다.
    */
   async function translateHtml(
     html: string,
@@ -234,19 +236,31 @@ export function useMemiBoardAutoTranslate() {
       throw new Error(`translation is limited to ${HTML_MAX_CHARS} characters`)
     }
 
+    let lastError: unknown
     const rows = await mapPool(targets, HTML_CONCURRENCY, async (code) => {
-      const prompt = [
-        `Source language: ${memiBoardLanguageLabel(source)} (${source})`,
-        `Translate into: ${code} = ${memiBoardLanguageLabel(code)}`,
-        'HTML:',
-        text,
-      ].join('\n')
-      const result = await withTimeout(getHtmlModel().generateContent(prompt), HTML_TIMEOUT_MS)
-      const output = cleanModelOutput(result.response.text())
-      if (!output) throw new Error(`empty translation for ${code}`)
-      return [code, output] as const
+      try {
+        const prompt = [
+          `Source language: ${memiBoardLanguageLabel(source)} (${source})`,
+          `Translate into: ${code} = ${memiBoardLanguageLabel(code)}`,
+          'HTML:',
+          text,
+        ].join('\n')
+        const result = await withTimeout(getHtmlModel().generateContent(prompt), HTML_TIMEOUT_MS)
+        // MAX_TOKENS 등으로 끊긴 HTML 을 번역으로 저장하지 않는다.
+        const finishReason = result.response.candidates?.[0]?.finishReason
+        if (finishReason && finishReason !== 'STOP') throw new Error(`translation for ${code} stopped: ${finishReason}`)
+        const output = cleanModelOutput(result.response.text())
+        if (!output) throw new Error(`empty translation for ${code}`)
+        return [code, output] as const
+      }
+      catch (cause) {
+        lastError = cause
+        return null
+      }
     })
-    return Object.fromEntries(rows)
+    const done = rows.filter((row): row is readonly [MemiBoardLocale, string] => row !== null)
+    if (!done.length && targets.length) throw lastError instanceof Error ? lastError : new Error('translation failed')
+    return Object.fromEntries(done)
   }
 
   return { translateEntries, translateHtml, detectSourceLocale }

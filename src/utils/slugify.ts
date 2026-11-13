@@ -16,5 +16,10 @@ export function slugify(text: string): string {
 
 /** Storage 경로/파일명에 안전한 문자열로 변환 (한글은 유지) */
 export function safeFileName(name: string, maxLength = 60): string {
-  return name.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎ._-]/g, '-').slice(0, maxLength)
+  const safe = name.replace(/[^a-zA-Z0-9가-힣ㄱ-ㅎ._-]/g, '-')
+  if (safe.length <= maxLength) return safe
+  // 확장자는 남긴다 — 내려받은 파일 이름과 storage.rules 의 형식 검사가 확장자를 본다.
+  const dot = safe.lastIndexOf('.')
+  const ext = dot > 0 && safe.length - dot <= 10 ? safe.slice(dot) : ''
+  return safe.slice(0, maxLength - ext.length) + ext
 }

@@ -1,5 +1,6 @@
 import { MEMI_BOARD_LOCALES, normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { isMemiBoardTranslationEnabled, memiBoardEnabledLocales } from '../config'
+import { postBodyMax } from './postLimits'
 import type { CommentModel, MemiBoardI18nMap, MemiBoardI18nSource, PostContentI18nSource, PostDetail, PostModel } from '../types'
 
 const SOURCE_KEYS = ['label', 'description', 'title', 'summary', 'contentHash'] as const
@@ -200,4 +201,12 @@ export function boardCopyIsTranslated(board: {
 export function displayCommentBody(comment: Pick<CommentModel, 'body' | 'i18n' | 'i18nSource'>, locale?: string | null): string {
   if (comment.i18nSource?.body !== comment.body) return comment.body
   return localizedText(comment.i18n, locale, 'body', comment.body, comment.i18nSource.locale)
+}
+
+/** 보드에서 저장할 수 있는 본문 길이. 자동 번역 보드는 번역할 언어 수만큼 나눠 줄인다. */
+export function boardPostBodyMax(board?: { autoTranslatePosts?: boolean, translationLocales?: readonly string[] | null } | null): { max: number, translationTargets: number } {
+  const translationTargets = isMemiBoardTranslationEnabled() && board?.autoTranslatePosts === true
+    ? Math.max(0, boardTranslationLocales(board).length - 1)
+    : 0
+  return { max: postBodyMax(translationTargets), translationTargets }
 }

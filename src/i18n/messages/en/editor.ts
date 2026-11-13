@@ -10,6 +10,8 @@ export default {
   submitNext: 'Next: Preview',
   apply: 'Apply',
   imageOptimizing: 'Optimizing and uploading image…',
+  bodyUsage: 'Body {count} / {max} characters (HTML)',
+  bodyUsageTranslated: 'Limit set for {languages} translation languages.',
   cover: {
     hint: 'Photos {count}/{max} · Pick a cover · Drag to reorder · Drop or paste files to add',
     imageLink: 'Image link',

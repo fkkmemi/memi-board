@@ -54,6 +54,8 @@ test('title URL, numeric suffixes and bounded Unicode document IDs', async () =>
   assert.equal(await choosePostSlug('new', async () => true), 'new-2')
   assert.equal(postSlugBase(''), 'post')
   assert.ok(Buffer.byteLength(postSlugBase('가'.repeat(1000))) <= 1400)
+  assert.equal([...postSlugBase('가'.repeat(100))].length, 60)
+  assert.equal(postSlugBase('a'.repeat(59) + '-b'), 'a'.repeat(59))
 })
 integration('simultaneous authors get distinct title URLs, including private drafts', async () => {
   const results = await Promise.all([save(clients[0], 'parallel-a', '동시-작성'), save(clients[1], 'parallel-b', '동시-작성')])

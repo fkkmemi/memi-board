@@ -26,6 +26,8 @@ import { getAuth } from 'firebase/auth'
 import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
 import { clampProfileName } from '../utils/profileLimits'
+import { clampI18nSourceTitle, clampI18nTitles, clampPostTitle, normalizePostTags, POST_ATTACHMENT_MAX } from '../utils/postLimits'
+import { boardPostBodyMax } from '../utils/localizedFields'
 import { availablePostSlug, createPostWithSlug } from '../utils/postSlug'
 import { findReadablePostBySlug } from '../utils/findReadablePost'
 import { deletePostCascade } from '../utils/deletePostCascade'
@@ -160,6 +162,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     input: { title?: string, content: string, attachments?: Attachment[] },
   ) {
     const imageBoard = isImageEditorBoard()
+    const { max: bodyMax } = boardPostBodyMax(getBoard(bid()))
+    if (input.content.length > bodyMax) {
+      throw new Error(t('posts.bodyTooLong', { max: bodyMax.toLocaleString('en-US') }))
+    }
     const hasText = hasBodyText(input.content)
     const hasImage = hasBodyImage(input.content, input.attachments)
     if (imageBoard) {
@@ -318,10 +324,10 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     let title: string
     if (imageBoard) {
       slug = id
-      title = input.title?.trim() || titleFromBody(input.content)
+      title = clampPostTitle(input.title?.trim() || titleFromBody(input.content))
     }
     else {
-      title = input.title.trim()
+      title = clampPostTitle(input.title)
       slug = slugify(input.slug?.trim() || title) || 'post'
     }
 
@@ -334,8 +340,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         slug: reservedSlug,
         title,
         ...preview,
-        tags: input.tags ?? [],
-        attachments: input.attachments ?? [],
+        tags: normalizePostTags(input.tags),
+        attachments: (input.attachments ?? []).slice(0, POST_ATTACHMENT_MAX),
         commentCount: 0,
         likeCount: 0,
         viewCount: 0,
@@ -349,8 +355,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         ...(input.translations ? {
-          i18n: input.translations.i18n,
-          i18nSource: input.translations.i18nSource,
+          i18n: clampI18nTitles(input.translations.i18n),
+          i18nSource: clampI18nSourceTitle(input.translations.i18nSource),
         } : {}),
         ...(input.extend && Object.keys(input.extend).length ? { extend: readExtend(input.extend) } : {}),
       })
@@ -369,12 +375,12 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
   async function updatePost(id: string, input: UpdatePostInput): Promise<void> {
     assertPostContent(input)
     const imageBoard = isImageEditorBoard()
-    const title = imageBoard ? (input.title?.trim() || titleFromBody(input.content)) : input.title.trim()
+    const title = clampPostTitle(imageBoard ? (input.title?.trim() || titleFromBody(input.content)) : input.title)
     const preview = buildPostPreview(input.content, input.attachments)
     const listed = listedForBoard()
     const extend = input.extend ? readExtend(input.extend) : undefined
-    const tags = input.tags ?? []
-    const attachments = input.attachments ?? []
+    const tags = normalizePostTags(input.tags)
+    const attachments = (input.attachments ?? []).slice(0, POST_ATTACHMENT_MAX)
     const editorUid = user.value?.uid
     if (!editorUid) throw new Error(t('reports.signInRequired'))
     const editorName = (user.value?.displayName ?? '').trim().slice(0, 80) || null
@@ -426,8 +432,8 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         updatedAt: serverTimestamp(),
         ...(changed ? { revision: revision + 1, editedAt: serverTimestamp() } : {}),
         ...(input.translations ? {
-          i18n: input.translations.i18n,
-          i18nSource: input.translations.i18nSource,
+          i18n: clampI18nTitles(input.translations.i18n),
+          i18nSource: clampI18nSourceTitle(input.translations.i18nSource),
         } : {}),
         ...(extend
           ? { extend: Object.keys(extend).length ? extend : deleteField() }

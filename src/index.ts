@@ -128,6 +128,9 @@ export { formatDate, formatFullDate, formatRelativeDate, formatTimestampDetails 
 export { BOARD_NAME_MAX, slugify } from './utils/slugify'
 export { PROFILE_BIO_MAX, PROFILE_NAME_MAX, clampProfileName } from './utils/profileLimits'
 export { COMMENT_IMAGE_LIMIT } from './utils/commentImages'
+export { POST_ATTACHMENT_MAX, POST_TAG_LENGTH_MAX, POST_TAG_MAX, normalizePostTags } from './utils/postLimits'
+export { POST_BODY_MAX, POST_TITLE_MAX, POST_TITLE_TRANSLATION_MAX, POST_TRANSLATION_BUDGET, POST_TRANSLATION_CALL_MAX, postBodyMax } from './utils/postLimits'
+export { POST_SLUG_MAX } from './utils/postSlug'
 export {
   DEFAULT_BLOCK_BAN_THRESHOLD,
   DEFAULT_BLOCK_BAN_DECAY_MS,
@@ -226,6 +229,7 @@ export {
   displayPostContent,
   displayCommentBody,
   boardCopyIsTranslated,
+  boardPostBodyMax,
 } from './utils/localizedFields'
 export { renderMarkdownToHtml } from './utils/renderMarkdown'
 export { buildPostPreview, youtubeId, videoListCoverUrl } from './utils/postPreview'

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import type { Attachment } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
-import { useMemiBoardI18n } from 'memi-board/runtime'
+import { POST_ATTACHMENT_MAX, useMemiBoardI18n } from 'memi-board/runtime'
 import MemiBoardImageLightbox from './ImageLightbox.vue'
 
 const props = withDefaults(defineProps<{
@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
   maxFiles?: number
 }>(), {
   editable: false,
-  maxFiles: 5,
+  maxFiles: POST_ATTACHMENT_MAX,
 })
 
 const emit = defineEmits<{ 'update:modelValue': [attachments: Attachment[]] }>()

@@ -2,6 +2,7 @@ export default {
   boardIdRequired: '[memi-board] boardId 가 필요합니다.',
   photoRequired: '사진을 올려 주세요.',
   bodyRequired: '본문에 글자를 입력하거나 이미지를 첨부해 주세요.',
+  bodyTooLong: '본문이 너무 깁니다. 이 보드에서는 HTML 기준 {max}자까지 저장할 수 있어요.',
   titleRequired: '제목을 입력해 주세요.',
   editLimitReached: '수정은 최대 {max}번까지 할 수 있어요. 더 고쳐야 하면 보드 관리자에게 요청해 주세요.',
 }

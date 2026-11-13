@@ -207,6 +207,8 @@ const messages: MemiBoardMessages = {
     submitNext: 'Berikutnya: Pratinjau',
     apply: 'Terapkan',
     imageOptimizing: 'Mengoptimalkan dan mengunggah gambar…',
+    bodyUsage: 'Isi {count} / {max} karakter (HTML)',
+    bodyUsageTranslated: 'Batas dihitung untuk {languages} bahasa terjemahan.',
     cover: {
       imageLink: 'Tautan gambar',
       addPhoto: 'Tambah foto',
@@ -466,6 +468,7 @@ const messages: MemiBoardMessages = {
     boardIdRequired: '[memi-board] boardId wajib diisi.',
     photoRequired: 'Tambahkan foto.',
     bodyRequired: 'Masukkan teks atau lampirkan gambar.',
+    bodyTooLong: 'Postingan terlalu panjang. Papan ini mengizinkan hingga {max} karakter HTML.',
     titleRequired: 'Masukkan judul.',
     editLimitReached: 'Postingan bisa diedit paling banyak {max} kali. Minta pengelola papan jika perlu perubahan lagi.',
   },

@@ -207,6 +207,8 @@ const messages: MemiBoardMessages = {
     submitNext: '次へ: プレビュー',
     apply: '適用',
     imageOptimizing: '画像を最適化してアップロード中…',
+    bodyUsage: '本文 {count} / {max} 文字（HTML）',
+    bodyUsageTranslated: '翻訳言語 {languages} 件に合わせた上限です。',
     cover: {
       imageLink: '画像リンク',
       addPhoto: '写真を追加',
@@ -466,6 +468,7 @@ const messages: MemiBoardMessages = {
     boardIdRequired: '[memi-board] boardIdが必要です。',
     photoRequired: '写真をアップロードしてください。',
     bodyRequired: '本文にテキストを入力するか、画像を添付してください。',
+    bodyTooLong: '本文が長すぎます。このボードでは HTML で {max} 文字まで保存できます。',
     titleRequired: 'タイトルを入力してください。',
     editLimitReached: '投稿の編集は最大{max}回までです。さらに修正が必要な場合はボード管理者に依頼してください。',
   },

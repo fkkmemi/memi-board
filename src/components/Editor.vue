@@ -8,7 +8,7 @@ import MemiBoardSurface from './BoardSurface.vue'
  * 커스텀은 handlers.image(파일 업로드), YouTube 임베드 + DOM paste/drop.
  */
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
-import { imeSafeSubmitClick, imeSafeSubmitPointerDown, POST_EDIT_LIMIT } from 'memi-board/runtime'
+import { imeSafeSubmitClick, imeSafeSubmitPointerDown, normalizePostTags, POST_EDIT_LIMIT, POST_TAG_LENGTH_MAX, POST_TAG_MAX, POST_TITLE_MAX } from 'memi-board/runtime'
 import Youtube from '@tiptap/extension-youtube'
 import type { DropdownMenuItem, EditorSuggestionMenuItem } from '@nuxt/ui'
 import { mapEditorItems } from '@nuxt/ui/utils/editor'
@@ -19,6 +19,7 @@ import {
   useMemiBoardPosts,
   useMemiBoardModeration,
   boardTranslationLocales,
+  boardPostBodyMax,
   MEMI_BOARD_LOCALES,
   useMemiBoardAppSettings,
   useMemiBoardI18n,
@@ -893,6 +894,19 @@ function currentBodyContent(): string {
     : content.value
 }
 
+// X(트위터)식 링: 평소엔 흐리게, 80%부터 노랑·남은 글자 수, 넘으면 빨강.
+const bodyLimit = computed(() => boardPostBodyMax(getBoard(resolvedBoardId.value)))
+const bodyLength = computed(() => currentBodyContent().length)
+const bodyRatio = computed(() => bodyLength.value / bodyLimit.value.max)
+const bodyOverLimit = computed(() => bodyLength.value > bodyLimit.value.max)
+const BODY_RING_CIRCUMFERENCE = 2 * Math.PI * 8
+const bodyUsageText = computed(() => {
+  const usage = t('editor.bodyUsage', { count: bodyLength.value.toLocaleString(), max: bodyLimit.value.max.toLocaleString() })
+  return bodyLimit.value.translationTargets
+    ? `${usage} · ${t('editor.bodyUsageTranslated', { languages: bodyLimit.value.translationTargets })}`
+    : usage
+})
+
 function currentStoredTitle(body: string): string {
   return isImageEditor.value ? (title.value.trim() || titleFromBody(body)) : title.value.trim()
 }
@@ -954,7 +968,7 @@ function applyAiPreview() {
   const { action, result, hasSelection, from, to } = pending
 
   if (action === 'title') {
-    title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim()
+    title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim().slice(0, POST_TITLE_MAX)
   }
   else if (action === 'continue') {
     const position = hasSelection ? to : editor.state.doc.content.size
@@ -1299,7 +1313,7 @@ async function handleSubmit() {
     const payload = {
       title: title.value.trim(),
       content: bodyContent,
-      tags: tags.value.map(t => t.trim()).filter(Boolean),
+      tags: normalizePostTags(tags.value),
       // 이미지 보드: 파일 첨부 없음 (커버는 본문 앞 img 로 저장)
       attachments: imageBoard ? [] : attachments.value,
       extend: extendForFields(extendValues.value, customFields.value),
@@ -1363,9 +1377,15 @@ async function handleSubmit() {
       v-model="title"
       :placeholder="postId || !aiTitleEnabled ? t('editor.titlePlaceholder') : t('editor.titleOptionalPlaceholder')"
       size="lg"
+      :maxlength="POST_TITLE_MAX"
       :required="(Boolean(postId) || !aiTitleEnabled) && !isImageEditor"
+      :ui="{ trailing: 'pointer-events-none' }"
       @keydown.tab.exact.prevent="focusContentFromTitle"
-    />
+    >
+      <template v-if="title.length >= POST_TITLE_MAX * 0.8" #trailing>
+        <span class="text-xs tabular-nums text-muted">{{ title.length }} / {{ POST_TITLE_MAX }}</span>
+      </template>
+    </UInput>
     <!-- 이미지 보드: 여러 장 갤러리 (TipTap 과 분리) -->
     <div
       v-if="isImageEditor"
@@ -1617,6 +1637,36 @@ async function handleSubmit() {
       </div>
       </div>
 
+      <div class="flex items-center justify-end gap-2 border-t border-default px-4 py-1.5">
+        <UTooltip :text="bodyUsageText" :delay-duration="200" :content="{ side: 'top' }">
+          <span
+            role="meter"
+            :aria-label="bodyUsageText"
+            :aria-valuenow="bodyLength"
+            aria-valuemin="0"
+            :aria-valuemax="bodyLimit.max"
+            class="inline-flex items-center gap-1.5 text-xs tabular-nums"
+            :class="bodyOverLimit ? 'text-error' : bodyRatio >= 0.8 ? 'text-warning' : 'text-dimmed'"
+          >
+            <span v-if="bodyRatio >= 0.8">{{ (bodyLimit.max - bodyLength).toLocaleString() }}</span>
+            <svg viewBox="0 0 20 20" class="size-5 -rotate-90" aria-hidden="true">
+              <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2.5" class="opacity-20" />
+              <circle
+                cx="10"
+                cy="10"
+                r="8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                :stroke-dasharray="BODY_RING_CIRCUMFERENCE"
+                :stroke-dashoffset="BODY_RING_CIRCUMFERENCE * (1 - Math.min(bodyRatio, 1))"
+              />
+            </svg>
+          </span>
+        </UTooltip>
+      </div>
+
       <p
         v-if="aiError"
         class="flex items-center gap-2 border-t border-default px-4 py-2 text-xs text-error"
@@ -1648,9 +1698,15 @@ async function handleSubmit() {
       v-model="tags"
       :placeholder="t('editor.tagsPlaceholder')"
       :delimiter="','"
+      :max="POST_TAG_MAX"
+      :max-length="POST_TAG_LENGTH_MAX"
       add-on-paste
       @keydown.enter.prevent
-    />
+    >
+      <template v-if="tags.length" #trailing>
+        <span class="text-xs tabular-nums" :class="tags.length >= POST_TAG_MAX ? 'text-warning' : 'text-dimmed'">{{ tags.length }} / {{ POST_TAG_MAX }}</span>
+      </template>
+    </UInputTags>
 
     <!-- 이미지 보드: 본문 이미지 업로드만 (파일 첨부 없음) -->
     <MemiBoardAttachments
@@ -1706,7 +1762,7 @@ async function handleSubmit() {
       <UButton
         type="submit"
         :loading="saving"
-        :disabled="isWriteRestricted || imageUploading"
+        :disabled="isWriteRestricted || imageUploading || bodyOverLimit"
         :label="isEdit ? t('editor.submitEdit') : t('editor.submitNext')"
         @pointerdown="imeSafeSubmitPointerDown"
         @click="imeSafeSubmitClick"

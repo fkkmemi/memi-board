@@ -207,6 +207,8 @@ const messages: MemiBoardMessages = {
     submitNext: 'التالي: معاينة',
     apply: 'تطبيق',
     imageOptimizing: 'جارٍ تحسين الصورة ورفعها…',
+    bodyUsage: 'النص {count} / {max} حرفًا (HTML)',
+    bodyUsageTranslated: 'الحد محسوب على {languages} لغات ترجمة.',
     cover: {
       imageLink: 'رابط الصورة',
       addPhoto: 'إضافة صور',
@@ -466,6 +468,7 @@ const messages: MemiBoardMessages = {
     boardIdRequired: '[memi-board] boardId مطلوب.',
     photoRequired: 'يُرجى إضافة صورة.',
     bodyRequired: 'يُرجى إدخال نص أو إرفاق صورة.',
+    bodyTooLong: 'المنشور طويل جدًا. يسمح هذا اللوح بما يصل إلى {max} حرفًا من HTML.',
     titleRequired: 'يُرجى إدخال عنوان.',
     editLimitReached: 'يمكن تعديل المنشور {max} مرات كحد أقصى. اطلب من مدير اللوحة إن احتاج إلى تغييرات أخرى.',
   },

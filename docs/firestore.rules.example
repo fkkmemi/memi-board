@@ -219,6 +219,79 @@ service cloud.firestore {
     //    to have a where('boardId','==', b) equality filter — that lets Firestore
     //    statically prove data.boardId == b for the entire potential result set and
     //    safely run get(boardSettingsPath(b)) as a constant lookup.
+    // Profile name 50 chars, bio 200 (PROFILE_NAME_MAX, PROFILE_BIO_MAX). Updates check these fields only
+    // when they change, so documents with older, longer values can still be edited otherwise.
+    function nameFitsLimit(value) {
+      return value == null || (value is string && value.size() <= 50);
+    }
+    function profileTextValid(data) {
+      return (!('displayName' in data) || nameFitsLimit(data.displayName))
+        && (!('authorName' in data) || nameFitsLimit(data.authorName))
+        && (!('replyToName' in data) || nameFitsLimit(data.replyToName))
+        && (!('bio' in data) || data.bio == null || (data.bio is string && data.bio.size() <= 200));
+    }
+    function profileTextChangeOk() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['displayName', 'authorName', 'replyToName', 'bio'])
+        || profileTextValid(request.resource.data);
+    }
+    // Post title 150 chars (POST_TITLE_MAX), translated titles 300 (POST_TITLE_TRANSLATION_MAX).
+    // Updates check them only when the title or translations change.
+    function i18nTitleFits(m, locale) {
+      return !(locale in m) || !(m[locale] is map) || !('title' in m[locale])
+        || (m[locale].title is string && m[locale].title.size() <= 300);
+    }
+    function postTitleValid(data) {
+      let m = data.get('i18n', {});
+      return data.title is string && data.title.size() <= 150
+        && (m == null || (m is map
+          && i18nTitleFits(m, 'ko') && i18nTitleFits(m, 'en') && i18nTitleFits(m, 'ja')
+          && i18nTitleFits(m, 'de') && i18nTitleFits(m, 'fr') && i18nTitleFits(m, 'es')
+          && i18nTitleFits(m, 'pt') && i18nTitleFits(m, 'zh') && i18nTitleFits(m, 'ar')
+          && i18nTitleFits(m, 'id')));
+    }
+    function postTitleChangeOk() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['title', 'i18n'])
+        || postTitleValid(request.resource.data);
+    }
+    // 10 tags (POST_TAG_MAX), 30 chars each (POST_TAG_LENGTH_MAX). Rules have no loops, so each slot is checked.
+    function tagFits(tags, i) {
+      return tags.size() <= i || (tags[i] is string && tags[i].size() <= 30);
+    }
+    function postTagsValid(data) {
+      let tags = data.get('tags', []);
+      return tags is list && tags.size() <= 10
+        && tagFits(tags, 0) && tagFits(tags, 1) && tagFits(tags, 2) && tagFits(tags, 3) && tagFits(tags, 4)
+        && tagFits(tags, 5) && tagFits(tags, 6) && tagFits(tags, 7) && tagFits(tags, 8) && tagFits(tags, 9);
+    }
+    function postTagsChangeOk() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tags'])
+        || postTagsValid(request.resource.data);
+    }
+    // 5 attachments (POST_ATTACHMENT_MAX). Each entry must point into this post's attachments folder.
+    // File size and type are decided by storage.rules.
+    function attachmentEntryValid(a, postId) {
+      return a is map
+        && a.keys().hasOnly(['name', 'url', 'path', 'size', 'type'])
+        && a.name is string && a.name.size() > 0 && a.name.size() <= 200
+        && a.url is string && a.url.matches('https://.*') && a.url.size() <= 2000
+        && a.path is string && a.path.matches('^memiBoardPosts/' + postId + '/attachments/[^/]+$')
+        && a.size is int && a.size > 0
+        && a.type is string && a.type.size() <= 200;
+    }
+    function attachmentFits(list, i, postId) {
+      return list.size() <= i || attachmentEntryValid(list[i], postId);
+    }
+    function postAttachmentsValid(data, postId) {
+      let list = data.get('attachments', []);
+      return list is list && list.size() <= 5
+        && attachmentFits(list, 0, postId) && attachmentFits(list, 1, postId) && attachmentFits(list, 2, postId)
+        && attachmentFits(list, 3, postId) && attachmentFits(list, 4, postId);
+    }
+    function postAttachmentsChangeOk(postId) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attachments'])
+        || postAttachmentsValid(request.resource.data, postId);
+    }
     function canReadPost(data) {
       return (data.get('listed', true) == true && data.isPublished == true)
         || (isSignedIn() && request.auth.uid == data.authorUid)
@@ -250,11 +323,12 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isSignedIn()
         && request.auth.uid == uid
+        && profileTextValid(request.resource.data)
         && request.resource.data.role == 'user'
         && (!('moderationBlockCount' in request.resource.data)
             || request.resource.data.moderationBlockCount == 0
             || request.resource.data.moderationBlockCount == 1);
-      allow update: if (canChangeRole(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
+      allow update: if profileTextChangeOk() && ((canChangeRole(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
         || (isSignedIn()
           && request.auth.uid == uid
           && request.resource.data.role == resource.data.role
@@ -325,12 +399,19 @@ service cloud.firestore {
               && request.resource.data.aiWritingCount == 0
               && request.resource.data.aiWritingPending == 1
             )
-          ));
+          )));
 
       // A private memo about another author, visible only to me. The doc ID is targetUid, so there is
       // one per target. Even admins can't read it — it is purely for personal reference, not moderation.
       match /memos/{targetUid} {
-        allow read, write: if isSignedIn() && request.auth.uid == uid;
+        allow read, delete: if isSignedIn() && request.auth.uid == uid;
+        // Memo text up to 100 chars (AUTHOR_MEMO_MAX_LENGTH); sentiment is good, bad or none.
+        allow create, update: if isSignedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['text', 'sentiment', 'updatedAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 100
+          && (request.resource.data.get('sentiment', null) == null
+            || request.resource.data.sentiment in ['good', 'bad']);
       }
 
       // Private subcollection holding only the email. Only the user and admins can read and write.
@@ -379,7 +460,9 @@ service cloud.firestore {
       match /slugs/{slug} {
         allow get: if isBoardWriter() && canWriteBoard(boardId);
         allow list, update, delete: if false;
+        // POST_SLUG_MAX(60) plus room for a numeric suffix.
         allow create: if isBoardWriter()
+          && slug.size() <= 80
           && get(/databases/$(database)/documents/memiBoardPostsSlugs/__migration).data.ready == true
           && request.resource.data.keys().hasOnly(['postId'])
           && request.resource.data.postId is string
@@ -462,6 +545,10 @@ service cloud.firestore {
         && validNewPostSlug(postId)
         && request.resource.data.boardId is string
         && request.resource.data.authorUid == request.auth.uid
+        && profileTextValid(request.resource.data)
+        && postTitleValid(request.resource.data)
+        && postTagsValid(request.resource.data)
+        && postAttachmentsValid(request.resource.data, postId)
         && request.resource.data.moderationStatus == 'approved'
         && canWriteBoard(request.resource.data.boardId)
         && boardWritesOpen(request.resource.data.boardId)
@@ -471,7 +558,8 @@ service cloud.firestore {
         && !('pinned' in request.resource.data)
         && !('pinnedAt' in request.resource.data);
 
-      allow update: if (
+      allow update: if profileTextChangeOk() && postTitleChangeOk() && postTagsChangeOk() && postAttachmentsChangeOk(postId) && (
+        (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
           && request.resource.data.get('slug', null) == resource.data.get('slug', null)
           && request.resource.data.boardId == resource.data.boardId
@@ -485,19 +573,26 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listed']))
             || (isBoardManager(resource.data.boardId) && isValidPostPinUpdate())
           )
-        ) || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate();
+        ) || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate());
       allow delete: if isOwner(resource) || isBoardManager(resource.data.boardId);
 
       match /body/{docId} {
+        // Absolute body cap: 50,000 HTML chars (POST_BODY_MAX). The smaller limit that depends on the
+        // number of translation languages is enforced by the app.
+        function bodyContentFits() {
+          return request.resource.data.get('content', '') is string
+            && request.resource.data.get('content', '').size() <= 50000;
+        }
         allow read: if isBoardAdmin() || canReadPost(get(postPath(postId)).data);
         // New posts create the body in the same transaction as the post.
         allow create: if (isOwner(getAfter(postPath(postId)))
             || isBoardManager(getAfter(postPath(postId)).data.boardId))
+          && bodyContentFits()
           && (!exists(postPath(postId)) || bodyRevisionOk(postId));
         allow update: if (isOwner(getAfter(postPath(postId)))
             || isBoardManager(getAfter(postPath(postId)).data.boardId))
           && (request.resource.data.get('content', '') == resource.data.get('content', '')
-            || bodyRevisionOk(postId));
+            || (bodyContentFits() && bodyRevisionOk(postId)));
         // The body is deleted only together with its post, so content cannot be cleared without a revision.
         allow delete: if (isOwner(get(postPath(postId))) || isBoardManager(get(postPath(postId)).data.boardId))
           && (!existsAfter(postPath(postId)) || !revisionsRequired());
@@ -572,6 +667,7 @@ service cloud.firestore {
         && canWriteBoardComment(request.resource.data.boardId)
         && boardWritesOpen(request.resource.data.boardId)
         && request.resource.data.authorUid == request.auth.uid
+        && profileTextValid(request.resource.data)
         && request.resource.data.body is string
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
@@ -584,7 +680,7 @@ service cloud.firestore {
       allow delete: if isBoardAdmin() || isOwner(resource)
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardManager(resource.data.boardId);
-      allow update: if isReplyCountUpdate() || isReplyTargetProfileUpdate()
+      allow update: if profileTextChangeOk() && (isReplyCountUpdate() || isReplyTargetProfileUpdate()
         || isLikeCountUpdate()
         || (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
@@ -602,7 +698,7 @@ service cloud.firestore {
             request.resource.data.get('listed', true) == resource.data.get('listed', true)
             || isBoardManager(resource.data.boardId)
           )
-        );
+        ));
 
       // Edit history. Readable by board managers and admins only. Kept when the comment is deleted.
       // List queries must filter where('boardId', '==', boardId) so the manager check can be proven.
@@ -688,7 +784,7 @@ service cloud.firestore {
         && request.resource.data.postTitle.size() <= 200
         && request.resource.data.authorUid is string
         && request.resource.data.authorUid != request.auth.uid
-        && (request.resource.data.authorName == null || request.resource.data.authorName is string)
+        && nameFitsLimit(request.resource.data.get('authorName', null))
         && exists(postPath(request.resource.data.postId))
         && get(postPath(request.resource.data.postId)).data.boardId == request.resource.data.boardId
         && get(postPath(request.resource.data.postId)).data.get('deletionPending', false) == false

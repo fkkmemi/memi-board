@@ -207,6 +207,8 @@ const messages: MemiBoardMessages = {
     submitNext: 'Weiter: Vorschau',
     apply: 'Übernehmen',
     imageOptimizing: 'Bild wird optimiert und hochgeladen…',
+    bodyUsage: 'Text {count} / {max} Zeichen (HTML)',
+    bodyUsageTranslated: 'Limit für {languages} Übersetzungssprachen.',
     cover: {
       imageLink: 'Bildlink',
       addPhoto: 'Fotos hinzufügen',
@@ -466,6 +468,7 @@ const messages: MemiBoardMessages = {
     boardIdRequired: '[memi-board] boardId ist erforderlich.',
     photoRequired: 'Bitte ein Foto hinzufügen.',
     bodyRequired: 'Bitte Text eingeben oder ein Bild anhängen.',
+    bodyTooLong: 'Der Beitrag ist zu lang. Dieses Board erlaubt bis zu {max} HTML-Zeichen.',
     titleRequired: 'Bitte einen Titel eingeben.',
     editLimitReached: 'Beiträge können höchstens {max}-mal bearbeitet werden. Bitte einen Board-Manager, wenn weitere Änderungen nötig sind.',
   },

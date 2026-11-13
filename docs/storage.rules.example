@@ -61,10 +61,19 @@ service firebase.storage {
       allow delete: if canDeletePostFile(postId);
     }
 
+    // Attachments — the size and type limits below are RECOMMENDED defaults. Adjust them for your site.
+    // Example: an app distribution site (e.g. safe-pedal) allows .apk/.bin and raises the size to 100 MB.
+    function isBlockedAttachment(fileName) {
+      // Formats that open directly from the public URL and are easy to abuse for phishing or malware:
+      // HTML, SVG, scripts and executables.
+      return fileName.lower().matches('.*[.](html?|xhtml|svgz?|js|mjs|exe|msi|bat|cmd|scr|com|ps1|vbs|jar)$')
+        || (request.resource.contentType is string && request.resource.contentType.matches('(?i)(text/html|application/xhtml[+]xml|image/svg[+]xml|(text|application)/(x-)?javascript|application/(x-msdownload|x-msi|x-dosexec|java-archive)).*'));
+    }
     match /memiBoardPosts/{postId}/attachments/{fileName} {
       allow get: if true;
       allow create, update: if canWritePostFile(postId)
-        && request.resource.size < 20 * 1024 * 1024;
+        && request.resource.size < 20 * 1024 * 1024
+        && !isBlockedAttachment(fileName);
       allow delete: if canDeletePostFile(postId);
     }
 

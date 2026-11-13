@@ -10,6 +10,8 @@ export default {
   submitNext: '다음: 미리보기',
   apply: '적용',
   imageOptimizing: '이미지 최적화 및 업로드 중…',
+  bodyUsage: '본문 {count} / {max}자 (HTML 기준)',
+  bodyUsageTranslated: '번역 언어 {languages}개에 맞춘 한도입니다.',
   cover: {
     hint: '사진 {count}/{max} · 대표사진 선택 · 끌어 순서 변경 · 파일 드롭/붙여넣기로 추가',
     imageLink: '이미지 링크',

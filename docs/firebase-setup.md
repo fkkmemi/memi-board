@@ -237,6 +237,29 @@ After deployment, select a banner in a board's settings, move/zoom the crop, con
 
 For automated rules verification, run `tests/banner-rules.test.mjs` in this package with the Auth, Firestore and Storage emulators and the example rules loaded. The test uses project `demo-memi-banners`; set the three emulator host variables via `firebase emulators:exec`. It verifies permitted roles, public reads, denied roles, MIME/size restrictions, overwrite denial and deletion permissions without writing to production.
 
+### Content limits (recommended defaults)
+
+`firestore.rules.example` and `storage.rules.example` cap what a client can write, so a direct API call cannot go past the limits the editor shows. **These values are recommendations.** Keep them, or adjust them to what your site actually needs. The full list, with where each limit is enforced, is in the **Spec** tab of the "About memi-board™" popup.
+
+| Item | Default | Enforced in | Notes |
+|---|---|---|---|
+| Profile name / bio | 50 / 200 chars | Firestore rules + app | `PROFILE_NAME_MAX`, `PROFILE_BIO_MAX` |
+| Post title / translated title | 150 / 300 chars | Firestore rules + app | `POST_TITLE_MAX`, `POST_TITLE_TRANSLATION_MAX` |
+| Post URL (slug) | 60 chars | Firestore rules (80) + app | room for a `-2` suffix |
+| Post body | 50,000 HTML chars | Firestore rules + app | on auto-translated boards the app lowers it to `min(10,000, 50,000 ÷ target languages)` |
+| Tags | 10 × 30 chars | Firestore rules + app | `POST_TAG_MAX`, `POST_TAG_LENGTH_MAX` |
+| Attachments per post | 5 | Firestore rules + app | `POST_ATTACHMENT_MAX`; each entry must point into the post's own `attachments/` folder |
+| Attachment file | 20 MB, no HTML/SVG/script/executable | Storage rules only | see below |
+| Author memo | 100 chars | Firestore rules + app | |
+
+**Attachments are the limit most likely to differ per site.** The default blocks formats that open straight from the public Storage URL and are easy to abuse for phishing or malware (HTML, SVG, JavaScript, `.exe`/`.msi`/`.bat` and similar), and caps files at 20 MB. The app itself does not limit attachment size or type, so you only need to edit `storage.rules`:
+
+- An app distribution site that ships `.apk` or firmware `.bin` files: `.apk` and `.bin` are not blocked by default, so only raise the size, for example to `100 * 1024 * 1024`.
+- A site that must accept a blocked format: remove that extension and MIME type from `isBlockedAttachment`.
+- A site that only needs documents and images: replace the blocklist with an allowlist of content types.
+
+Storage rules cannot count the files in a folder, so a client can still upload files without attaching them to a post. Those files are removed by the orphan cleanup in board settings after 24 hours; keep App Check enforced and set a Storage budget alert as well.
+
 ### Firestore read access for Storage rules (required host app setup)
 
 On image/attachment uploads and file deletion, the example Storage rules use `firestore.exists()` / `firestore.get()` to look up whether the post exists, its `authorUid`, and the user's `role`. The **Storage service account of the host app's Firebase project** therefore needs a Firestore read role. Installing the package or deploying the Firestore rules does not complete this IAM setup.
