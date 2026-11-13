@@ -110,3 +110,25 @@ integration('image board ID URLs remain supported; uninitialized migration canno
     await seed('memiBoardPostsSlugs/__migration', { ready: bool(true) })
   }
 })
+integration('a post with every limited field at its maximum stays within the rule expression limit', async () => {
+  const client = clients[0]
+  const id = 'max-fields'
+  const locales = ['ko', 'en', 'ja', 'de', 'fr', 'es', 'pt', 'zh', 'ar', 'id']
+  const i18n = Object.fromEntries(locales.map(locale => [locale, { title: 't'.repeat(300), summary: 's' }]))
+  const tags = Array.from({ length: 10 }, (_, i) => `${i}`.padEnd(30, 'x'))
+  const extend = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`f${i}`, 'v'.repeat(200)]))
+  const attachments = [0, 1, 2, 3, 4].map(n => ({ name: `a${n}.pdf`, url: `https://example.com/a${n}`, path: `memiBoardPosts/${id}/attachments/${n}-a.pdf`, size: 10, type: 'application/pdf' }))
+  await createPostWithSlug(client.db, cfg, 'board', id, '최대-필드', (transaction, slug) => {
+    transaction.set(doc(client.db, 'memiBoardPosts', id), {
+      boardId: 'board', slug, title: '제'.repeat(150), authorUid: client.uid, authorName: '이'.repeat(50),
+      moderationStatus: 'approved', listed: true, isPublished: false, i18n, tags, extend, attachments,
+    })
+    transaction.set(doc(client.db, 'memiBoardPosts', id, 'body', 'main'), { content: 'x'.repeat(50000) })
+  })
+  const post = doc(client.db, 'memiBoardPosts', id)
+  await updateDoc(post, { title: '다'.repeat(150), tags: [...tags].reverse(), extend: { ...extend, f0: 'w'.repeat(200) }, attachments: [...attachments].reverse() })
+  await assert.rejects(updateDoc(post, { tags: [...tags, 'one-more'] }), e => e.code === 'permission-denied')
+  await assert.rejects(updateDoc(post, { title: '가'.repeat(151) }), e => e.code === 'permission-denied')
+  await assert.rejects(updateDoc(post, { extend: { ...extend, f1: 'v'.repeat(201) } }), e => e.code === 'permission-denied')
+  await assert.rejects(updateDoc(post, { attachments: [{ ...attachments[0], path: 'memiBoardPosts/other/attachments/x.pdf' }] }), e => e.code === 'permission-denied')
+})

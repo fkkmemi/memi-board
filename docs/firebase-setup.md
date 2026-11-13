@@ -239,7 +239,7 @@ For automated rules verification, run `tests/banner-rules.test.mjs` in this pack
 
 ### Content limits (recommended defaults)
 
-`firestore.rules.example` and `storage.rules.example` cap what a client can write, so a direct API call cannot go past the limits the editor shows. **These values are recommendations.** Keep them, or adjust them to what your site actually needs. The full list, with where each limit is enforced, is in the **Spec** tab of the "About memi-board™" popup.
+`firestore.rules.example` and `storage.rules.example` cap what a client can write (a post with every field at its maximum is covered by an emulator test, since Firestore evaluates at most 1,000 rule expressions per request), so a direct API call cannot go past the limits the editor shows. **These values are recommendations.** Keep them, or adjust them to what your site actually needs. The full list, with where each limit is enforced, is in the **Spec** tab of the "About memi-board™" popup.
 
 | Item | Default | Enforced in | Notes |
 |---|---|---|---|
@@ -252,7 +252,7 @@ For automated rules verification, run `tests/banner-rules.test.mjs` in this pack
 | Attachment file | 20 MB, no HTML/SVG/script/executable | Storage rules only | see below |
 | Author memo | 100 chars | Firestore rules + app | |
 | Moderation ban | 10 blocks, −1 every 24 h | Firestore rules + app | rules refuse new posts and comments; keep `10` and `86400000.0` in `notModerationBanned` in sync with `moderation.blockBanThreshold` / `blockBanDecayMs`. The block count is reported by the client |
-| Custom field values on a post | 20 × 200 chars | Firestore rules + app | keys must match `^[a-z][A-Za-z0-9_]{0,31}$`; whether a key is declared by the board is checked by the app only |
+| Custom field values on a post | 20 × 200 chars | Firestore rules + app | values must be single-line strings; key format and whether a key is declared by the board are checked by the app only |
 
 **Attachments are the limit most likely to differ per site.** The default blocks formats that open straight from the public Storage URL and are easy to abuse for phishing or malware (HTML, SVG, JavaScript, `.exe`/`.msi`/`.bat` and similar), and caps files at 20 MB. The app itself does not limit attachment size or type, so you only need to edit `storage.rules`:
 

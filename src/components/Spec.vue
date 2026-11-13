@@ -81,7 +81,7 @@ const sections: Section[] = [
       { id: '2.2', parameter: 'Translated title length', value: POST_TITLE_TRANSLATION_MAX, unit: 'chars', symbol: 'POST_TITLE_TRANSLATION_MAX', enforced: 'rules', note: 'Per locale in post.i18n.' },
       { id: '2.3', parameter: 'Post URL (slug)', value: POST_SLUG_MAX, unit: 'chars', symbol: 'POST_SLUG_MAX', enforced: 'rules', note: 'Rules allow up to 80 to leave room for a numeric suffix. New posts only.' },
       { id: '2.4', parameter: 'Body length', value: POST_BODY_MAX, unit: 'HTML chars', symbol: 'POST_BODY_MAX', enforced: 'partial', note: 'Rules cap every board at this value. On auto-translated boards the app lowers it to min(6.3, 6.4 ÷ target languages): 9 targets → 5,500, 7 → 7,100, 3 or fewer → 10,000.' },
-      { id: '2.5', parameter: 'Tags per post', value: POST_TAG_MAX, unit: 'tags', symbol: 'POST_TAG_MAX', enforced: 'rules', note: 'Display only; tags are not translated or searchable. Duplicates (case-insensitive) are dropped.' },
+      { id: '2.5', parameter: 'Tags per post', value: POST_TAG_MAX, unit: 'tags', symbol: 'POST_TAG_MAX', enforced: 'rules', note: 'Display only; tags are not translated or searchable. Duplicates (case-insensitive) are dropped. Tags cannot contain line breaks.' },
       { id: '2.6', parameter: 'Tag length', value: POST_TAG_LENGTH_MAX, unit: 'chars', symbol: 'POST_TAG_LENGTH_MAX', enforced: 'rules' },
       { id: '2.7', parameter: 'Attachments per post', value: POST_ATTACHMENT_MAX, unit: 'files', symbol: 'POST_ATTACHMENT_MAX', enforced: 'rules', note: 'Each entry must point into the post\'s own attachments folder.' },
       { id: '2.8', parameter: 'Attachment file', value: 20, unit: 'MiB', enforced: 'rules', note: 'Recommended default in storage.rules, which also blocks HTML, SVG, scripts and executables. Sites may adjust both, e.g. larger files for app downloads.' },
@@ -110,7 +110,7 @@ const sections: Section[] = [
       { id: '4.2', parameter: 'Custom fields per board', value: CUSTOM_FIELD_MAX, unit: 'fields', symbol: 'CUSTOM_FIELD_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.3', parameter: 'Custom field label', value: CUSTOM_FIELD_LABEL_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_LABEL_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.4', parameter: 'Custom field placeholder', value: CUSTOM_FIELD_PLACEHOLDER_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_PLACEHOLDER_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
-      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'rules', note: 'Stored on each post in post.extend. Rules check up to 20 entries, the key format and the value length, but not whether the key is declared by the board.' },
+      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'rules', note: 'Stored on each post in post.extend. Rules check up to 20 entries and each value\'s length (strings without line breaks), but not the keys.' },
       { id: '4.6', parameter: 'Board banner file', value: 3, unit: 'MiB', enforced: 'rules', note: 'JPEG only. Literal in storage.rules.' }
     ]
   },

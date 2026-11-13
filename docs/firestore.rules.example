@@ -249,87 +249,54 @@ service cloud.firestore {
     }
     // Post title 150 chars (POST_TITLE_MAX), translated titles 300 (POST_TITLE_TRANSLATION_MAX).
     // Updates check them only when the title or translations change.
-    function i18nTitleFits(m, locale) {
-      return !(locale in m) || !(m[locale] is map) || !('title' in m[locale])
-        || (m[locale].title is string && m[locale].title.size() <= 300);
-    }
     function postTitleValid(data) {
       let m = data.get('i18n', {});
       return data.title is string && data.title.size() <= 150
-        && (m == null || (m is map
-          && i18nTitleFits(m, 'ko') && i18nTitleFits(m, 'en') && i18nTitleFits(m, 'ja')
-          && i18nTitleFits(m, 'de') && i18nTitleFits(m, 'fr') && i18nTitleFits(m, 'es')
-          && i18nTitleFits(m, 'pt') && i18nTitleFits(m, 'zh') && i18nTitleFits(m, 'ar')
-          && i18nTitleFits(m, 'id')));
+        && (m.size() == 0
+          || m.get('ko', {}).get('title', '').size() <= 300
+          && m.get('en', {}).get('title', '').size() <= 300
+          && m.get('ja', {}).get('title', '').size() <= 300
+          && m.get('de', {}).get('title', '').size() <= 300
+          && m.get('fr', {}).get('title', '').size() <= 300
+          && m.get('es', {}).get('title', '').size() <= 300
+          && m.get('pt', {}).get('title', '').size() <= 300
+          && m.get('zh', {}).get('title', '').size() <= 300
+          && m.get('ar', {}).get('title', '').size() <= 300
+          && m.get('id', {}).get('title', '').size() <= 300);
     }
-    function postTitleChangeOk() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['title', 'i18n'])
-        || postTitleValid(request.resource.data);
-    }
-    // 10 tags (POST_TAG_MAX), 30 chars each (POST_TAG_LENGTH_MAX). Rules have no loops, so each slot is checked.
-    function tagFits(tags, i) {
-      return tags.size() <= i || (tags[i] is string && tags[i].size() <= 30);
-    }
+    // 10 tags (POST_TAG_MAX) of 30 chars, 20 custom field values (CUSTOM_FIELD_MAX) of 200 chars. Rules evaluate at most
+    // 1,000 expressions per request, so instead of one check per item each list is joined with newlines and matched
+    // with a single regex. Non-string items and values containing a newline are rejected.
     function postTagsValid(data) {
-      let tags = data.get('tags', []);
-      return tags is list && tags.size() <= 10
-        && tagFits(tags, 0) && tagFits(tags, 1) && tagFits(tags, 2) && tagFits(tags, 3) && tagFits(tags, 4)
-        && tagFits(tags, 5) && tagFits(tags, 6) && tagFits(tags, 7) && tagFits(tags, 8) && tagFits(tags, 9);
-    }
-    function postTagsChangeOk() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['tags'])
-        || postTagsValid(request.resource.data);
-    }
-    // 5 attachments (POST_ATTACHMENT_MAX). Each entry must point into this post's attachments folder.
-    // File size and type are decided by storage.rules.
-    function attachmentEntryValid(a, postId) {
-      return a is map
-        && a.keys().hasOnly(['name', 'url', 'path', 'size', 'type'])
-        && a.name is string && a.name.size() > 0 && a.name.size() <= 200
-        && a.url is string && a.url.matches('https://.*') && a.url.size() <= 2000
-        && a.path is string && a.path.matches('^memiBoardPosts/' + postId + '/attachments/[^/]+$')
-        && a.size is int && a.size > 0
-        && a.type is string && a.type.size() <= 200;
-    }
-    function attachmentFits(list, i, postId) {
-      return list.size() <= i || attachmentEntryValid(list[i], postId);
-    }
-    function postAttachmentsValid(data, postId) {
-      let list = data.get('attachments', []);
-      return list is list && list.size() <= 5
-        && attachmentFits(list, 0, postId) && attachmentFits(list, 1, postId) && attachmentFits(list, 2, postId)
-        && attachmentFits(list, 3, postId) && attachmentFits(list, 4, postId);
-    }
-    function postAttachmentsChangeOk(postId) {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['attachments'])
-        || postAttachmentsValid(request.resource.data, postId);
-    }
-    // Custom field values (post.extend): 20 fields (CUSTOM_FIELD_MAX), key format, values up to 200 chars
-    // (CUSTOM_FIELD_VALUE_MAX). Rules have no loops, so each key and value slot is checked. Updates check
-    // extend only when it changes.
-    function extendKeyFits(keys, i) {
-      return keys.size() <= i || keys[i].matches('^[a-z][A-Za-z0-9_]{0,31}$');
-    }
-    function extendValueFits(values, i) {
-      return values.size() <= i || (values[i] is string && values[i].size() <= 200);
+      let t = data.get('tags', []);
+      return t.size() <= 10 && t.join('\n').matches('[^\n]{0,30}(\n[^\n]{0,30})*');
     }
     function postExtendValid(data) {
       let m = data.get('extend', {});
-      return m is map && m.size() <= 20
-        && extendKeyFits(m.keys(), 0) && extendKeyFits(m.keys(), 1) && extendKeyFits(m.keys(), 2) && extendKeyFits(m.keys(), 3)
-        && extendKeyFits(m.keys(), 4) && extendKeyFits(m.keys(), 5) && extendKeyFits(m.keys(), 6) && extendKeyFits(m.keys(), 7)
-        && extendKeyFits(m.keys(), 8) && extendKeyFits(m.keys(), 9) && extendKeyFits(m.keys(), 10) && extendKeyFits(m.keys(), 11)
-        && extendKeyFits(m.keys(), 12) && extendKeyFits(m.keys(), 13) && extendKeyFits(m.keys(), 14) && extendKeyFits(m.keys(), 15)
-        && extendKeyFits(m.keys(), 16) && extendKeyFits(m.keys(), 17) && extendKeyFits(m.keys(), 18) && extendKeyFits(m.keys(), 19)
-        && extendValueFits(m.values(), 0) && extendValueFits(m.values(), 1) && extendValueFits(m.values(), 2) && extendValueFits(m.values(), 3)
-        && extendValueFits(m.values(), 4) && extendValueFits(m.values(), 5) && extendValueFits(m.values(), 6) && extendValueFits(m.values(), 7)
-        && extendValueFits(m.values(), 8) && extendValueFits(m.values(), 9) && extendValueFits(m.values(), 10) && extendValueFits(m.values(), 11)
-        && extendValueFits(m.values(), 12) && extendValueFits(m.values(), 13) && extendValueFits(m.values(), 14) && extendValueFits(m.values(), 15)
-        && extendValueFits(m.values(), 16) && extendValueFits(m.values(), 17) && extendValueFits(m.values(), 18) && extendValueFits(m.values(), 19);
+      return m.size() <= 20 && m.values().join('\n').matches('[^\n]{0,200}(\n[^\n]{0,200})*');
     }
-    function postExtendChangeOk() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['extend'])
-        || postExtendValid(request.resource.data);
+    // Attachment entries must point into this post's attachments folder. File size and type are decided by storage.rules.
+    function attachmentEntryValid(a, postId) {
+      return a.name.size() <= 200
+        && a.url.size() <= 2000 && a.url.matches('https://.+')
+        && a.path.matches('memiBoardPosts/' + postId + '/attachments/[^/]+');
+    }
+    function postAttachmentsValid(data, postId) {
+      let a = data.get('attachments', []);
+      return a is list && a.size() <= 5
+        && (a.size() == 0 || (attachmentEntryValid(a[0], postId) && (a.size() == 1 || (attachmentEntryValid(a[1], postId)
+          && (a.size() == 2 || (attachmentEntryValid(a[2], postId) && (a.size() == 3 || (attachmentEntryValid(a[3], postId)
+          && (a.size() == 4 || attachmentEntryValid(a[4], postId))))))))));
+    }
+    // Post updates check only the fields that changed, computing the diff once.
+    function postFieldsChangeOk(postId) {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      let data = request.resource.data;
+      return (!changed.hasAny(['authorName']) || profileTextValid(data))
+        && (!changed.hasAny(['title', 'i18n']) || postTitleValid(data))
+        && (!changed.hasAny(['tags']) || postTagsValid(data))
+        && (!changed.hasAny(['attachments']) || postAttachmentsValid(data, postId))
+        && (!changed.hasAny(['extend']) || postExtendValid(data));
     }
     function canReadPost(data) {
       return (data.get('listed', true) == true && data.isPublished == true)
@@ -599,7 +566,7 @@ service cloud.firestore {
         && !('pinned' in request.resource.data)
         && !('pinnedAt' in request.resource.data);
 
-      allow update: if profileTextChangeOk() && postTitleChangeOk() && postTagsChangeOk() && postAttachmentsChangeOk(postId) && postExtendChangeOk() && (
+      allow update: if postFieldsChangeOk(postId) && (
         (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
           && request.resource.data.get('slug', null) == resource.data.get('slug', null)
