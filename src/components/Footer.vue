@@ -2,6 +2,7 @@
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowReactive, useId } from 'vue'
 import { useMemiBoardAppSettings, useMemiBoardI18n, versionHistory } from 'memi-board/runtime'
 import MemiBoardVersionHistory from './VersionHistory.vue'
+import MemiBoardSpec from './Spec.vue'
 
 const props = defineProps<{ introduction?: string }>()
 // One visible footer per app, even when a page combines several board views
@@ -27,7 +28,7 @@ const { showAbout } = useMemiBoardAppSettings()
 const introductionText = computed(() => props.introduction ?? t('footer.introduction'))
 
 const open = ref(false)
-const tab = ref<'about' | 'sites' | 'history'>('about')
+const tab = ref<'about' | 'sites' | 'spec' | 'history'>('about')
 const version = versionHistory[0]?.version
 const sites = [
   { name: 'memi.dev', domain: 'memi.dev', href: 'https://memi.dev', icon: 'i-lucide-code-2', key: 'memi' },
@@ -96,14 +97,14 @@ const stacks = computed(() => [
           </div>
           <div class="order-last flex w-full min-w-0 gap-1 overflow-x-auto rounded-full bg-elevated/70 p-1" role="group" :aria-label="t('footer.info.title')">
             <button
-              v-for="item in (['about', 'sites', 'history'] as const)"
+              v-for="item in (['about', 'sites', 'spec', 'history'] as const)"
               :key="item"
               type="button"
               :aria-pressed="tab === item"
               class="flex-1 shrink-0 cursor-pointer whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none sm:px-5"
               :class="tab === item ? 'bg-default text-highlighted shadow-sm ring ring-default' : 'text-muted hover:text-highlighted'"
               @click="tab = item"
-            >{{ t(`footer.info.${item}`) }}</button>
+            >{{ item === 'spec' ? 'Spec' : t(`footer.info.${item}`) }}</button>
           </div>
           <UButton color="neutral" variant="ghost" icon="i-lucide-x" class="rounded-full" :aria-label="t('common.action.close')" @click="close" />
         </div>
@@ -183,6 +184,7 @@ const stacks = computed(() => [
                   </div>
                 </div>
               </template>
+              <MemiBoardSpec v-else-if="tab === 'spec'" />
               <template v-else>
                 <div class="mb-8 flex flex-wrap items-end justify-between gap-3">
                   <div>
