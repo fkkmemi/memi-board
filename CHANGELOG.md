@@ -4,6 +4,23 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.63.0] - 2026-11-13
+
+### Added
+- Phone banner. Board settings now take a separate 3:1 phone banner (1200x400) next to the 8:1 desktop banner. Each can be uploaded, cropped, generated with AI, or removed on its own. AI generation for the phone slot asks for a wider-than-tall 21:9 image and crops it to 3:1.
+- The board list shows the phone banner below 640px and the desktop banner above it, using `<picture>`. If only one banner is set, it is used at both sizes.
+- `BoardModel.mobileBanner`, the `BoardBannerKind` (`'desktop' | 'mobile'`) and `BoardBannerFiles` types, and `applyBoardBannerFiles(board, files)`, which uploads both slots and deletes already-uploaded files if one fails.
+- Custom fields can be reordered. Drag the grip on desktop or use the arrow keys while it has focus. On phones, up and down buttons are shown instead. The saved order is the display order.
+
+### Changed
+- Boards can have up to 20 custom fields (`CUSTOM_FIELD_MAX`), up from 8.
+- `BannerEditor` now takes `banner` and `mobileBanner` and emits `change(kind, file)`. `useMemiBoardBannerGeneration().generateBanner` accepts an optional `kind`.
+- Saving a board deletes replaced or removed phone banner files, and deleting a board removes both banners.
+
+### Host app steps
+- No Firestore rules, Storage rules, or index change. The phone banner uses the existing `memiBoardSettings/{boardId}/banners/{fileName}` Storage path and a new optional `mobileBanner` field on the settings document.
+- Hosts that render `BannerEditor` directly must pass `mobile-banner` and handle the new `change(kind, file)` signature.
+
 ## [0.62.0] - 2026-11-12
 
 ### Added

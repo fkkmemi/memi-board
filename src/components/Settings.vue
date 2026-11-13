@@ -3,7 +3,7 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, slugify, useMemiBoardAppSettings, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
+import type { BoardBannerFiles, BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
@@ -161,8 +161,8 @@ const deletingId = ref<string | null>(null)
 const ordering = ref(false)
 const error = ref('')
 const bannerBusy = ref(false)
-const bannerFiles = reactive<Record<string, File | null | undefined>>({})
-const { uploadBoardBanner, deleteAttachment } = useMemiBoardStorage()
+const bannerFiles = reactive<Record<string, BoardBannerFiles>>({})
+const { applyBoardBannerFiles, deleteAttachment } = useMemiBoardStorage()
 const deleteConfirm = ref('')
 const deletingAll = ref(false)
 const deleteDone = ref(false)
@@ -381,8 +381,9 @@ async function save(category: BoardCategory, index: number) {
   error.value = ''
   savedId.value = null
   savingId.value = category.id
-  let uploadedPath: string | undefined
+  let uploadedPaths: string[] = []
   const previousBanner = category.banner
+  const previousMobileBanner = category.mobileBanner
   category.autoTranslate = category.autoTranslate === true
   let translateFailed = false
   if (translationEnabled.value && category.autoTranslate) {
@@ -400,11 +401,7 @@ async function save(category: BoardCategory, index: number) {
   }
   try {
     const order = props.categoryId ? (category.order ?? index) : index
-    if (bannerFiles[category.id] !== undefined) {
-      const file = bannerFiles[category.id]
-      category.banner = file ? await uploadBoardBanner(category.id, file) : null
-      uploadedPath = category.banner?.path
-    }
+    uploadedPaths = await applyBoardBannerFiles(category, bannerFiles[category.id])
     await saveCategory(category, order)
     delete bannerFiles[category.id]
     category.order = order
@@ -415,7 +412,8 @@ async function save(category: BoardCategory, index: number) {
   }
   catch (cause) {
     category.banner = previousBanner
-    if (uploadedPath) await deleteAttachment({ path: uploadedPath }).catch(() => {})
+    category.mobileBanner = previousMobileBanner
+    await Promise.all(uploadedPaths.map(path => deleteAttachment({ path }).catch(() => {})))
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
   }
   finally {
@@ -787,12 +785,13 @@ async function runDeleteAll() {
       <div class="flex flex-col gap-5 border-t border-default px-4 py-4">
         <MemiBoardBannerEditor
           :banner="category.banner"
+          :mobile-banner="category.mobileBanner"
           :board-id="category.id"
           :title="category.label"
           :description="category.description"
           @busy="bannerBusy = $event"
           :disabled="savingId === category.id || translatingId === category.id"
-          @change="bannerFiles[category.id] = $event; savedId = null"
+          @change="(kind, file) => { bannerFiles[category.id] = { ...bannerFiles[category.id], [kind]: file }; savedId = null }"
         />
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.id.label') }}</p><p class="text-xs text-muted">{{ t('settings.id.help') }}</p></div>

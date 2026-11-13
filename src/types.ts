@@ -303,6 +303,12 @@ export interface BoardBanner {
   path: string
 }
 
+/** desktop = 8:1 list banner, mobile = optional 3:1 banner for phones. */
+export type BoardBannerKind = 'desktop' | 'mobile'
+
+/** Staged banner changes: File uploads on save, null removes, undefined keeps. */
+export type BoardBannerFiles = Partial<Record<BoardBannerKind, File | null>>
+
 export interface BoardModel {
   /** boardId (예: 'notice', 'free') */
   id: string
@@ -360,6 +366,8 @@ export interface BoardModel {
   customFields?: BoardCustomField[]
   /** 목록 상단의 8:1 배너 이미지. */
   banner?: BoardBanner | null
+  /** 휴대폰용 3:1 배너. 없으면 휴대폰에서도 banner 를 쓴다. */
+  mobileBanner?: BoardBanner | null
   /** 보드 목록 정렬 */
   order?: number
 }

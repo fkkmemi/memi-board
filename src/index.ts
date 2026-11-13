@@ -154,6 +154,8 @@ export type {
   BoardCustomField,
   BoardModel,
   BoardBanner,
+  BoardBannerFiles,
+  BoardBannerKind,
   BoardListView,
   BoardEditorType,
   BoardWriteRole,

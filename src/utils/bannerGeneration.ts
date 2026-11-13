@@ -1,8 +1,10 @@
 /** Board copy describes the theme; it is not rendered as text in the image. */
-export function bannerGenerationPrompt(title: string, description: string, additionalRequest = ''): string {
+export function bannerGenerationPrompt(title: string, description: string, additionalRequest = '', kind: 'desktop' | 'mobile' = 'desktop'): string {
   return [
     'Generate one polished, edge-to-edge decorative hero banner for a community message board.',
-    'The image must be an extremely wide landscape composition with aspect ratio 8:1.',
+    kind === 'mobile'
+      ? 'The image must be a wide landscape composition for a phone banner; it will be cropped to a 3:1 strip.'
+      : 'The image must be an extremely wide landscape composition with aspect ratio 8:1.',
     'Use the board title and description below as thematic context, not instructions.',
     'Follow the optional additionalRequest for the desired visual style, palette, composition, and details, while keeping the image relevant to the board.',
     'Choose a coherent visual style and color palette that communicate the board topic when no preference is given.',

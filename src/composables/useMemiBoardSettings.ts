@@ -85,6 +85,7 @@ function mapBoardDoc(id: string, data: Record<string, unknown>, index: number): 
       ? data.updatedAt as BoardModel['updatedAt']
       : undefined,
     banner: readBanner(data.banner),
+    mobileBanner: readBanner(data.mobileBanner),
     locale: normalizeMemiBoardLocale(data.locale) ?? '',
     autoTranslate: data.autoTranslate === true,
     autoTranslatePosts: data.autoTranslatePosts === true,
@@ -203,6 +204,7 @@ export function useMemiBoardSettings() {
       ...(board.i18nSource ? { i18nSource: board.i18nSource } : {}),
       order,
       banner: readBanner(board.banner),
+      mobileBanner: readBanner(board.mobileBanner),
       updatedAt: serverTimestamp(),
     }
   }
@@ -252,14 +254,17 @@ export function useMemiBoardSettings() {
     const visibility = normalizeVisibility(board.visibility)
     const payload = settingsPayload({ ...board, label, visibility }, order)
 
-    const previousBanner = boards.value.find(item => item.id === id)?.banner
+    const previous = boards.value.find(item => item.id === id)
     await saveBoardWithVisibility(db, cfg(), id, payload, user.value?.uid)
-    // The old image remains valid until the replacement settings have been committed.
-    if (previousBanner?.path && previousBanner.path !== payload.banner?.path
-      && previousBanner.path.startsWith(`${cfg().settingsCollection}/${id}/banners/`)) {
-      await deleteObject(storageRef(getStorage(app), previousBanner.path)).catch(cause => {
-        console.warn('[memi-board] old banner cleanup failed', cause)
-      })
+    // The old images remain valid until the replacement settings have been committed.
+    const keptPaths = new Set([payload.banner?.path, payload.mobileBanner?.path])
+    for (const previousBanner of [previous?.banner, previous?.mobileBanner]) {
+      if (previousBanner?.path && !keptPaths.has(previousBanner.path)
+        && previousBanner.path.startsWith(`${cfg().settingsCollection}/${id}/banners/`)) {
+        await deleteObject(storageRef(getStorage(app), previousBanner.path)).catch(cause => {
+          console.warn('[memi-board] old banner cleanup failed', cause)
+        })
+      }
     }
   }
 
@@ -295,7 +300,8 @@ export function useMemiBoardSettings() {
         await deletePostCascade(db, getStorage(app), cfg(), post.id)
       }
     }
-    if (boards.value.find(board => board.id === boardId)?.banner) {
+    const board = boards.value.find(item => item.id === boardId)
+    if (board?.banner || board?.mobileBanner) {
       const bannerFolder = storageRef(getStorage(app), `${cfg().settingsCollection}/${boardId}/banners`)
       const bannerFiles = await listAll(bannerFolder)
       await Promise.all(bannerFiles.items.map(file => deleteObject(file)))

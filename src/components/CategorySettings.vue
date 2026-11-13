@@ -3,7 +3,7 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, ref, watch } from 'vue'
 import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, useMemiBoardAuth, useMemiBoardPostTranslations, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
-import type { BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
+import type { BoardBannerFiles, BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
@@ -107,8 +107,8 @@ const translatedDraft = ref(false)
 const saved = ref(false)
 const error = ref('')
 const bannerBusy = ref(false)
-const bannerFile = ref<File | null | undefined>()
-const { uploadBoardBanner, deleteAttachment } = useMemiBoardStorage()
+const bannerFiles = ref<BoardBannerFiles>({})
+const { applyBoardBannerFiles, deleteAttachment } = useMemiBoardStorage()
 
 function emptyDraft(id: string): BoardCategory {
   return {
@@ -159,7 +159,7 @@ function toDraft(category: BoardCategory): BoardCategory {
 // 카테고리 전환·최초 로드 시에만 draft를 서버 값으로 맞춘다.
 // 저장 직후 onSnapshot 갱신으로 draft.description 이 비워지거나 입력 중이던 값이 덮이지 않게 한다.
 watch(() => props.categoryId, (id) => {
-  bannerFile.value = undefined
+  bannerFiles.value = {}
   translatedDraft.value = false
   if (source.value) draft.value = toDraft(source.value)
   else if (canCreate.value) draft.value = emptyDraft(id)
@@ -219,7 +219,7 @@ async function save() {
   saved.value = false
   error.value = ''
   const snapshot = { ...draft.value, autoTranslate: draft.value.autoTranslate === true }
-  let uploadedPath: string | undefined
+  let uploadedPaths: string[] = []
   let translateFailed = false
   if (translationEnabled.value && snapshot.autoTranslate) {
     try {
@@ -236,12 +236,9 @@ async function save() {
   }
   try {
     const order = isNew.value ? categories.value.length : (snapshot.order ?? 0)
-    if (bannerFile.value !== undefined) {
-      snapshot.banner = bannerFile.value ? await uploadBoardBanner(snapshot.id, bannerFile.value) : null
-      uploadedPath = snapshot.banner?.path
-    }
+    uploadedPaths = await applyBoardBannerFiles(snapshot, bannerFiles.value)
     await saveCategory(snapshot, order)
-    bannerFile.value = undefined
+    bannerFiles.value = {}
     snapshot.order = order
     snapshot.visibilityTransition = undefined
     // 저장 성공 직후 draft 유지 (스냅샷 오기 전에 watch가 비우지 않도록)
@@ -252,7 +249,7 @@ async function save() {
     if (translateFailed) error.value = t('settings.autoTranslate.failed', { count: translationCount(snapshot) })
   }
   catch (cause) {
-    if (uploadedPath) await deleteAttachment({ path: uploadedPath }).catch(() => {})
+    await Promise.all(uploadedPaths.map(path => deleteAttachment({ path }).catch(() => {})))
     error.value = cause instanceof Error ? cause.message : t('settings.error.saveFailed')
   }
   finally {
@@ -278,12 +275,13 @@ async function save() {
     <MemiBoardBannerEditor
       :key="draft.id"
       :banner="draft.banner"
+      :mobile-banner="draft.mobileBanner"
       :board-id="draft.id"
       :title="draft.label"
       :description="draft.description"
       @busy="bannerBusy = $event"
       :disabled="saving || translating"
-      @change="bannerFile = $event; saved = false"
+      @change="(kind, file) => { bannerFiles = { ...bannerFiles, [kind]: file }; saved = false }"
     />
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.id.label') }}</p><p class="text-xs text-muted">{{ t('settings.id.help') }}</p></div>

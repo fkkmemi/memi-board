@@ -1,7 +1,7 @@
 import type { BoardCustomField } from '../types'
 
 /** 보드당 커스텀 필드 개수. 글의 extend 키와 1:1 이다. */
-export const CUSTOM_FIELD_MAX = 8
+export const CUSTOM_FIELD_MAX = 20
 export const CUSTOM_FIELD_LABEL_MAX = 40
 /** 글쓰기 입력칸에 희미하게 보여 주는 예시. */
 export const CUSTOM_FIELD_PLACEHOLDER_MAX = 80

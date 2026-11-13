@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.63.0',
+    date: '2026-11-13',
+    highlights: [
+      '보드 배너를 휴대폰용(3:1)과 데스크톱용(8:1)으로 따로 정할 수 있어요',
+      '하나만 정하면 다른 화면에서도 그 배너를 써요',
+      '커스텀 필드 순서를 드래그나 화살표로 바꿀 수 있어요',
+      '커스텀 필드를 20개까지 만들 수 있어요',
+    ],
+    highlightsEn: [
+      'Boards can set separate phone (3:1) and desktop (8:1) banners',
+      'If only one banner is set, it is used on both screen sizes',
+      'Custom fields can be reordered by dragging or with arrow buttons',
+      'Boards can have up to 20 custom fields',
+    ],
+  },
+  {
     version: '0.62.0',
     date: '2026-11-12',
     highlights: [

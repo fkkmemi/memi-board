@@ -191,6 +191,14 @@ onBeforeUnmount(() => {
   if (clock) clearInterval(clock)
 })
 // 카테고리 설정값은 게시판을 처음 열 때 보여줄 방식일 뿐 — 화면에서 자유롭게 바꿔 볼 수 있다.
+/** Phone (3:1) and desktop (8:1) banners; each falls back to the other when only one is set. */
+const listBanner = computed(() => {
+  const board = getBoard(resolvedBoardId.value)
+  const desktop = board?.banner?.url || board?.mobileBanner?.url
+  const mobile = board?.mobileBanner?.url || desktop
+  return desktop && mobile ? { desktop, mobile, hasMobile: Boolean(board?.mobileBanner?.url) } : null
+})
+
 // props.view가 오면(호스트가 전환 버튼을 직접 배치) 그 값을 그대로 따르고, 없으면 내부에서 관리한다.
 const boardListView = computed(() =>
   getBoard(resolvedBoardId.value)?.listView ?? 'default',
@@ -256,14 +264,17 @@ function postTo(post: PostModel): string | undefined {
         />
       </div>
     </div>
-    <img
-      v-if="getBoard(resolvedBoardId)?.banner?.url"
-      :src="getBoard(resolvedBoardId)?.banner?.url"
-      alt=""
-      width="2400"
-      height="300"
-      class="mb-2 aspect-[8/1] w-full rounded-xl object-cover"
-    >
+    <picture v-if="listBanner" class="block">
+      <source media="(min-width: 640px)" :srcset="listBanner.desktop">
+      <img
+        :src="listBanner.mobile"
+        alt=""
+        :width="listBanner.hasMobile ? 1200 : 2400"
+        :height="listBanner.hasMobile ? 400 : 300"
+        class="mb-2 w-full rounded-xl object-cover object-center sm:aspect-[8/1]"
+        :class="listBanner.hasMobile ? 'aspect-[3/1]' : 'aspect-[8/1]'"
+      >
+    </picture>
     <!-- 테스트용 목록 뷰 전환 UI.
     <div v-else-if="view === undefined" class="flex justify-end">
       <MemiBoardListViewSwitch :model-value="viewMode" @update:model-value="setViewMode" />

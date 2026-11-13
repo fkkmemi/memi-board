@@ -14,7 +14,7 @@ import { safeFileName } from '../utils/slugify'
 import { compressImage } from '../utils/compressImage'
 import { useBoardPathConfig } from '../config'
 import { postStorageFolder } from '../utils/boardPaths'
-import type { Attachment, BoardBanner, EditorImageEntry } from '../types'
+import type { Attachment, BoardBanner, BoardBannerFiles, BoardModel, EditorImageEntry } from '../types'
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -281,8 +281,32 @@ export function useMemiBoardStorage() {
     }
   }
 
+  /**
+   * Uploads staged desktop/mobile banners onto the board and returns the new paths.
+   * If any upload fails, the ones already uploaded are deleted before rethrowing.
+   */
+  async function applyBoardBannerFiles(board: Pick<BoardModel, 'id' | 'banner' | 'mobileBanner'>, files: BoardBannerFiles | undefined): Promise<string[]> {
+    const uploaded: string[] = []
+    try {
+      if (files?.desktop !== undefined) {
+        board.banner = files.desktop ? await uploadBoardBanner(board.id, files.desktop) : null
+        if (board.banner) uploaded.push(board.banner.path)
+      }
+      if (files?.mobile !== undefined) {
+        board.mobileBanner = files.mobile ? await uploadBoardBanner(board.id, files.mobile) : null
+        if (board.mobileBanner) uploaded.push(board.mobileBanner.path)
+      }
+      return uploaded
+    }
+    catch (cause) {
+      await Promise.all(uploaded.map(path => deleteObject(storageRef(getStorage(app), path)).catch(() => {})))
+      throw cause
+    }
+  }
+
   return {
     uploadBoardBanner,
+    applyBoardBannerFiles,
     uploadAttachment,
     deleteAttachment,
     uploadCommentImage,

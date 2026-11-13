@@ -189,7 +189,7 @@ File reads and listing in the example remain public. Services that need files of
 
 ### Board banner Storage rules
 
-Board settings support an optional 8:1 banner. The crop editor exports a 2400 × 300 JPEG, previews it locally, and uploads only when settings are saved. The saved board document contains `banner: { url, path }`; removing the banner stores `banner: null`. The image appears above the board list.
+Board settings support an optional 8:1 desktop banner and an optional 3:1 phone banner. The crop editor exports a 2400 × 300 (desktop) or 1200 × 400 (phone) JPEG, previews it locally, and uploads only when settings are saved. The saved board document contains `banner: { url, path }` and `mobileBanner: { url, path }`; removing one stores `null`. The list shows the phone banner below 640px and the desktop banner above it; when only one is set, it is used on both.
 
 Banner files use `memiBoardSettings/{boardId}/banners/{uuid}.jpg`. Merge **both** `canConfigureBanner(boardId)` and its `match /memiBoardSettings/{boardId}/banners/{fileName}` block from [storage.rules.example](storage.rules.example) into the host's existing `match /b/{bucket}/o` block. Keep the existing `isSignedIn()` helper, including its account-deletion check, and retain other application rules. The Storage path uses the configured settings collection; if `memiBoard.settingsCollection` or `usersCollection` is customized, update the corresponding paths in the rules too.
 
