@@ -23,6 +23,7 @@ import type { BoardReportModel, BoardReportReason, BoardReportStatus } from '../
 import type { MemiBoardLocale } from '../i18n/locales'
 import { translate } from '../i18n/translate'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import { clampProfileName } from '../utils/profileLimits'
 
 export const REPORT_DETAIL_MAX_LENGTH = 200
 export const REPORT_REVIEW_NOTE_MAX_LENGTH = 200
@@ -124,7 +125,7 @@ export function useMemiBoardReports(boardId: string, postId: string) {
         status: 'open',
         postTitle: (input.postTitle || '').trim().slice(0, 200),
         authorUid: input.authorUid || '',
-        authorName: input.authorName ?? null,
+        authorName: clampProfileName(input.authorName),
         createdAt: serverTimestamp(),
       })
       report.value = { uid, target: 'post', postId, boardId, reason, detail, status: 'open' } as BoardReportModel
@@ -211,7 +212,7 @@ export function useMemiBoardCommentReport(boardId: string, postId: string, comme
         postTitle: (input.postTitle || '').trim().slice(0, 200),
         commentExcerpt: (input.commentBody || '').trim().slice(0, REPORT_COMMENT_EXCERPT_MAX_LENGTH),
         authorUid: input.authorUid || '',
-        authorName: input.authorName ?? null,
+        authorName: clampProfileName(input.authorName),
       }
       await setDoc(commentReportDoc(db, cfg(), commentId, uid), { ...data, createdAt: serverTimestamp() })
       report.value = data as BoardReportModel

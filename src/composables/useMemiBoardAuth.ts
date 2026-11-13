@@ -27,6 +27,7 @@ import {
   toBlockAtMs,
 } from '../utils/moderation-strike'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import { clampProfileName } from '../utils/profileLimits'
 
 export interface UseMemiBoardAuthReturn {
   user: ReturnType<typeof useCurrentUser>
@@ -136,7 +137,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       await Promise.all([
         setDoc(ref, {
           role: 'user',
-          displayName: firebaseUser.displayName,
+          displayName: clampProfileName(firebaseUser.displayName),
           photoURL: firebaseUser.photoURL,
           joinedAt: serverTimestamp(),
           lastVisitAt: serverTimestamp(),
@@ -156,7 +157,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
       updatedAt: serverTimestamp(),
     }
     // 이미 있는 이름·사진은 프로필이 주인. Auth(구글/애플) 값으로 되돌리지 않는다.
-    if (!hasName && firebaseUser.displayName) visit.displayName = firebaseUser.displayName
+    if (!hasName && firebaseUser.displayName) visit.displayName = clampProfileName(firebaseUser.displayName)
     if (!hasPhoto && firebaseUser.photoURL) visit.photoURL = firebaseUser.photoURL
     await Promise.all([
       updateDoc(ref, visit),
@@ -340,7 +341,7 @@ export function useMemiBoardAuth(): UseMemiBoardAuthReturn {
 
   async function signUpWithEmail(email: string, password: string, displayName?: string) {
     const credential = await createUserWithEmailAndPassword(requireAuth(), email, password)
-    if (displayName) await updateProfile(credential.user, { displayName })
+    if (displayName) await updateProfile(credential.user, { displayName: clampProfileName(displayName) ?? undefined })
     return credential
   }
 

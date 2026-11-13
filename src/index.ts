@@ -126,6 +126,8 @@ export type { MemiBoardI18n, UseMemiBoardI18nOptions } from './i18n/useMemiBoard
 
 export { formatDate, formatFullDate, formatRelativeDate, formatTimestampDetails } from './utils/formatDate'
 export { BOARD_NAME_MAX, slugify } from './utils/slugify'
+export { PROFILE_BIO_MAX, PROFILE_NAME_MAX, clampProfileName } from './utils/profileLimits'
+export { COMMENT_IMAGE_LIMIT } from './utils/commentImages'
 export {
   DEFAULT_BLOCK_BAN_THRESHOLD,
   DEFAULT_BLOCK_BAN_DECAY_MS,

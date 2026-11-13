@@ -39,6 +39,7 @@ import { subscribeCommentRange } from '../utils/subscribeCommentRange'
 import { useMemiBoardSettings } from './useMemiBoardSettings'
 import type { Attachment, CommentModel, CommentRevisionModel, CommentTranslationSet } from '../types'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
+import { clampProfileName } from '../utils/profileLimits'
 import type { MemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 export interface AddCommentInput {
@@ -293,7 +294,7 @@ export function useMemiBoardComments(
       body,
       ...await translationFor(body, input.translations),
       authorUid: input.authorUid,
-      authorName: input.authorName,
+      authorName: clampProfileName(input.authorName),
       authorPhoto: input.authorPhoto,
       moderationStatus: 'approved' as const,
       replyCount: 0,
@@ -342,7 +343,7 @@ export function useMemiBoardComments(
       rootId,
       depth,
       replyToUid: input.parent.authorUid,
-      replyToName: input.parent.authorName,
+      replyToName: clampProfileName(input.parent.authorName),
       isReply: true,
     })
     batch.update(commentDoc(db, cfg(), rootId), { replyCount: increment(1) })

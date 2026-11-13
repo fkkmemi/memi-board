@@ -25,6 +25,7 @@ import { getStorage } from 'firebase/storage'
 import { getAuth } from 'firebase/auth'
 import { useDocument, useFirebaseApp, useFirestore } from 'vuefire'
 import { slugify } from '../utils/slugify'
+import { clampProfileName } from '../utils/profileLimits'
 import { availablePostSlug, createPostWithSlug } from '../utils/postSlug'
 import { findReadablePostBySlug } from '../utils/findReadablePost'
 import { deletePostCascade } from '../utils/deletePostCascade'
@@ -341,7 +342,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         listed,
         isPublished: false,
         authorUid: input.authorUid,
-        authorName: input.authorName,
+        authorName: clampProfileName(input.authorName),
         authorPhoto: input.authorPhoto,
         moderationStatus: 'approved',
         moderationModel: input.moderationModel ?? null,

@@ -2,7 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { query, serverTimestamp, where, writeBatch, getDocs } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n, useMemiBoardModeration } from 'memi-board/runtime'
+import { PROFILE_BIO_MAX, PROFILE_NAME_MAX, boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n, useMemiBoardModeration } from 'memi-board/runtime'
+import type { FormError } from '@nuxt/ui'
 import type { BoardUserModel } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardAvatarCropModal from './AvatarCropModal.vue'
@@ -26,6 +27,13 @@ const photoURL = ref<string | null>(null)
 const saving = ref(false)
 const checkingName = ref(false)
 const error = ref('')
+
+const FORM_ID = 'memi-board-profile-edit-form'
+const formState = computed(() => ({ displayName: displayName.value, bio: bio.value }))
+// 공백만 있는 이름도 비어 있는 것으로 본다. 길이는 입력창 maxlength 가 막는다.
+function validate(state: Partial<{ displayName: string }>): FormError[] {
+  return state.displayName?.trim() ? [] : [{ name: 'displayName', message: t('profileEditModal.nameRequired') }]
+}
 
 // 열릴 때마다 최신 프로필로 폼을 리셋 — 이전에 취소한 입력이 남아있지 않게.
 watch(open, (isOpen) => {
@@ -113,7 +121,7 @@ async function updateProfileReferences(nextName: string, nextPhotoURL: string | 
   const profileBatch = writeBatch(db)
   profileBatch.update(boardUserDoc(db, config, props.uid), {
     displayName: nextName,
-    bio: bio.value.trim() || null,
+    bio: bio.value.trim().slice(0, PROFILE_BIO_MAX) || null,
     photoURL: nextPhotoURL,
     updatedAt: serverTimestamp(),
   })
@@ -122,11 +130,8 @@ async function updateProfileReferences(nextName: string, nextPhotoURL: string | 
 
 async function onSave() {
   if (saving.value) return
-  const trimmedName = displayName.value.trim()
-  if (!trimmedName) {
-    error.value = t('profileEditModal.nameRequired')
-    return
-  }
+  const trimmedName = displayName.value.trim().slice(0, PROFILE_NAME_MAX)
+  if (!trimmedName) return
   saving.value = true
   error.value = ''
   try {
@@ -172,7 +177,13 @@ async function onSave() {
     :ui="{ content: 'sm:max-w-md' }"
   >
     <template #body>
-      <div class="flex flex-col gap-4">
+      <UForm
+        :id="FORM_ID"
+        :state="formState"
+        :validate="validate"
+        class="flex flex-col gap-4"
+        @submit="onSave"
+      >
         <div class="flex items-center gap-3">
           <UAvatar
             :src="avatarPreview"
@@ -197,21 +208,32 @@ async function onSave() {
           >
         </div>
 
-        <UFormField :label="t('profileEditModal.name')" :help="t('profileEditModal.nameReviewHelp')">
+        <UFormField
+          name="displayName"
+          required
+          :label="t('profileEditModal.name')"
+          :help="t('profileEditModal.nameReviewHelp')"
+        >
+          <template #hint>
+            <span class="tabular-nums">{{ displayName.length }} / {{ PROFILE_NAME_MAX }}</span>
+          </template>
           <UInput
             v-model="displayName"
             :placeholder="t('profileEditModal.name')"
-            :maxlength="40"
+            :maxlength="PROFILE_NAME_MAX"
             :disabled="saving"
             class="w-full"
           />
         </UFormField>
 
-        <UFormField :label="t('profileEditModal.bio')">
+        <UFormField name="bio" :label="t('profileEditModal.bio')">
+          <template #hint>
+            <span class="tabular-nums">{{ bio.length }} / {{ PROFILE_BIO_MAX }}</span>
+          </template>
           <UTextarea
             v-model="bio"
             :rows="3"
-            :maxlength="200"
+            :maxlength="PROFILE_BIO_MAX"
             :disabled="saving"
             :placeholder="t('profileEditModal.bioPlaceholder')"
             class="w-full"
@@ -224,7 +246,7 @@ async function onSave() {
         >
           {{ error }}
         </p>
-      </div>
+      </UForm>
     </template>
 
     <template #footer>
@@ -238,8 +260,9 @@ async function onSave() {
           {{ t('common.action.cancel') }}
         </UButton>
         <UButton
+          type="submit"
+          :form="FORM_ID"
           :loading="saving"
-          @click="onSave"
         >
           {{ checkingName ? t('profileEditModal.checkingName') : t('common.action.save') }}
         </UButton>
