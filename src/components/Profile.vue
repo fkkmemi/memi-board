@@ -3,11 +3,16 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
 import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile, useMemiBoardUserStats, WRITING_ASSISTANT_DAILY_LIMIT } from 'memi-board/runtime'
 import MemiBoardProfileEditModal from './ProfileEditModal.vue'
+import MemiBoardAuthorMemoList from './AuthorMemoList.vue'
 
 const props = defineProps<{
   uid: string
   /** 본인 프로필의 수정 버튼 대신 표시할 호스트 계정 페이지 주소. */
   accountTo?: string
+  /** 본인 프로필의 "내가 남긴 메모" 목록에서 작성자 메뉴 링크로 쓴다. */
+  authorProfileTo?: (authorUid: string) => string | undefined
+  authorPostsTo?: (authorUid: string) => string | undefined
+  authorCommentsTo?: (authorUid: string) => string | undefined
 }>()
 
 const { profile, profilePending } = useMemiBoardUserProfile(() => props.uid)
@@ -134,6 +139,15 @@ const aiUsage = computed(() => {
     >
       {{ profile.bio }}
     </p>
+
+    <template v-if="isOwnProfile">
+      <USeparator class="mt-2" />
+      <MemiBoardAuthorMemoList
+        :author-profile-to="authorProfileTo"
+        :author-posts-to="authorPostsTo"
+        :author-comments-to="authorCommentsTo"
+      />
+    </template>
   </div>
 
   <MemiBoardProfileEditModal

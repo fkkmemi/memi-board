@@ -4,6 +4,24 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.65.0] - 2026-11-13
+
+### Added
+- Your own profile (`MemiBoardProfile`) shows a collapsible "My private notes" list, closed by default. It lists every author memo you left, newest first, with the author, the memo text, and a good/bad badge. Clicking an author opens the author menu to edit or delete the memo. `MemiBoardProfile` takes optional `authorProfileTo`, `authorPostsTo`, and `authorCommentsTo` for the links in that menu.
+- `useMemiBoardMyAuthorMemos()` returns your memos as `MyAuthorMemo[]` and shares its cache with `useMemiBoardAuthorMemo`.
+- Settings and admin screens show the memi-board version at the bottom.
+
+### Changed
+- Author memos show again next to the author's name. A dot on the avatar (or on the name when there is no avatar) is colored by your rating, and hovering the name shows the memo text. Since 0.51.2 a memo only appeared after opening the author menu.
+- The "Private note" item in the author menu shows a good/bad badge and the memo text.
+- Memos load with one query for all your memos instead of one read per author. Unsaved edits in the memo dialog no longer leak into the displayed memo.
+- Each person can keep up to 100 author memos (`AUTHOR_MEMO_MAX_COUNT`). Editing an existing memo is always allowed. The cap is checked in the app; Firestore rules do not enforce it.
+- The card list puts the title above the cover image and shows the view count next to the like count.
+
+### Host app steps
+- No Firestore rules, Storage rules, or index change. The memo list query (`orderBy('updatedAt')` on `memos`) uses a single-field index that Firestore creates automatically.
+- Optional: pass `author-profile-to`, `author-posts-to`, and `author-comments-to` to `MemiBoardProfile` on your account page so the author menu links in the memo list work.
+
 ## [0.64.0] - 2026-11-13
 
 ### Added

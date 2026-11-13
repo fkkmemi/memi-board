@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import { computed, ref, resolveComponent, watch } from 'vue'
 import {
   imeSafeSubmitClick,
@@ -128,5 +129,6 @@ async function handle() {
         </form>
       </template>
     </UModal>
+  <MemiBoardSettingsVersion />
   </MemiBoardSurface>
 </template>

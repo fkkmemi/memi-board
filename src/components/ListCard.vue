@@ -56,15 +56,15 @@ function image(post: PostModel): string | undefined {
         class="memi-board-post-link flex flex-1 flex-col text-left text-highlighted"
         @click="!postTo(post) && emit('select', post)"
       >
+        <h3 class="line-clamp-2 break-words px-4 pb-3 pt-4 text-base font-bold leading-snug text-inherit">
+          <UBadge v-if="post.isPublished === false" :label="t('common.label.draft')" color="warning" variant="subtle" size="sm" class="me-1 align-middle" />
+          <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
+          {{ titleOf(post) }}
+        </h3>
         <div v-if="image(post)" class="aspect-video w-full overflow-hidden bg-elevated">
           <img :src="image(post)" :alt="titleOf(post)" class="size-full object-cover transition-transform duration-300 hover:scale-105">
         </div>
-        <div class="flex flex-1 flex-col gap-2 p-4">
-          <h3 class="line-clamp-2 break-words text-base font-bold leading-snug text-inherit">
-            <UBadge v-if="post.isPublished === false" :label="t('common.label.draft')" color="warning" variant="subtle" size="sm" class="me-1 align-middle" />
-            <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
-            {{ titleOf(post) }}
-          </h3>
+        <div class="flex flex-1 flex-col gap-2 px-4 pb-4" :class="image(post) ? 'pt-3' : 'pt-0'">
           <p v-if="summaryOf(post)" class="line-clamp-3 break-words whitespace-pre-line text-sm leading-relaxed text-muted">
             {{ summaryOf(post) }}
           </p>
@@ -101,11 +101,18 @@ function image(post: PostModel): string | undefined {
             truncate
             class="min-w-0"
           />
-          <UTooltip :text="t('list.likeCount', { count: post.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
-            <span class="inline-flex shrink-0 items-center gap-1 tabular-nums">
-              <UIcon name="i-lucide-heart" class="size-3.5" />{{ post.likeCount ?? 0 }}
-            </span>
-          </UTooltip>
+          <div class="flex shrink-0 items-center gap-3">
+            <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="inline-flex items-center gap-1 tabular-nums">
+                <UIcon name="i-lucide-eye" class="size-3.5" />{{ post.viewCount ?? 0 }}
+              </span>
+            </UTooltip>
+            <UTooltip :text="t('list.likeCount', { count: post.likeCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="inline-flex items-center gap-1 tabular-nums">
+                <UIcon name="i-lucide-heart" class="size-3.5" />{{ post.likeCount ?? 0 }}
+              </span>
+            </UTooltip>
+          </div>
         </div>
       </template>
     </UCard>

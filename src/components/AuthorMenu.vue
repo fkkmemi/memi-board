@@ -30,14 +30,28 @@ const authorCommentsLink = computed(() => props.authorUid ? props.authorComments
 const { user } = useMemiBoardAuth()
 const showMemo = computed(() => !!props.authorUid && !!user.value?.uid && user.value.uid !== props.authorUid)
 const { text: memoText, sentiment: memoSentiment, loaded: memoLoaded, saving: memoSaving, error: memoError, load: loadMemo, save: saveMemo, remove: removeMemo } = useMemiBoardAuthorMemo(() => props.authorUid)
-const menuOpen = ref(false)
 const memoOpen = ref(false)
 const memoPendingSentiment = ref<'good' | 'bad' | null>(null)
+// 모달에서 고치는 중인 텍스트 — 저장 전에는 이름 옆 표시·툴팁에 새지 않게 따로 둔다.
+const memoDraft = ref('')
 
-// 메뉴를 열 때 불러와 메모 항목 색으로 평가(좋음/나쁨)를 보여준다.
-watch(menuOpen, (open) => {
-  if (open && showMemo.value && !memoLoaded.value) void loadMemo()
+// 이름 옆 아이콘·툴팁으로 메모를 바로 보여줘야 해서 마운트 시 불러온다.
+// 뷰어의 메모 전체를 쿼리 한 번으로 읽고 모든 인스턴스가 공유하므로 작성자 수만큼 읽지 않는다.
+watch(showMemo, (show) => {
+  if (show && !memoLoaded.value) void loadMemo()
+}, { immediate: true })
+
+watch(memoOpen, (open) => {
+  if (open) memoDraft.value = memoText.value
 })
+
+const hasMemo = computed(() => showMemo.value && (!!memoText.value || !!memoSentiment.value))
+// 메모가 있으면 아바타(없으면 버튼) 모서리에 평가 색 닷을 찍는다 — 좋음 primary, 나쁨 error, 평가 없음 neutral.
+const memoChipColor = computed(() => memoSentiment.value === 'good' ? 'primary' as const : memoSentiment.value === 'bad' ? 'error' as const : 'neutral' as const)
+const avatar = computed(() => props.showAvatar
+  ? { src: props.authorPhoto ?? undefined, alt: props.authorName ?? t('common.label.anonymous'), chip: hasMemo.value ? { color: memoChipColor.value } : undefined }
+  : undefined)
+const tooltipText = computed(() => hasMemo.value && memoText.value ? memoText.value : t('authorMenu.menu'))
 
 const items = computed(() => [
   [
@@ -49,6 +63,8 @@ const items = computed(() => [
     ? [[{
         label: t('authorMenu.memoTitle'),
         icon: 'i-lucide-notebook-pen',
+        slot: 'memo' as const,
+        description: memoText.value || undefined,
         color: memoSentiment.value === 'good' ? 'primary' as const : memoSentiment.value === 'bad' ? 'error' as const : undefined,
         onSelect: () => { memoOpen.value = true },
       }]]
@@ -58,7 +74,7 @@ const items = computed(() => [
 async function onSaveMemo(sentiment: 'good' | 'bad') {
   memoPendingSentiment.value = sentiment
   try {
-    await saveMemo(memoText.value, sentiment)
+    await saveMemo(memoDraft.value, sentiment)
     memoOpen.value = false
   }
   catch {
@@ -85,21 +101,38 @@ async function onDeleteMemo() {
     class="flex max-w-full items-center"
     :class="truncate ? 'w-full min-w-0 justify-end' : 'inline-flex'"
   >
-    <UTooltip :text="t('authorMenu.menu')" :delay-duration="200" :content="{ side: 'top' }">
+    <UTooltip :text="tooltipText" :delay-duration="200" :content="{ side: 'top' }">
       <span class="inline-flex max-w-full">
-        <UDropdownMenu v-model:open="menuOpen" :items="items" :content="{ align: 'start' }">
-          <UButton
-            :avatar="showAvatar ? { src: authorPhoto ?? undefined, alt: authorName ?? t('common.label.anonymous') } : undefined"
-            :label="authorName ?? t('common.label.anonymous')"
-            variant="ghost"
-            color="neutral"
-            size="xs"
-            class="max-w-full"
-            :ui="truncate
-              ? { base: 'max-w-full' }
-              : { base: 'max-w-full', label: 'whitespace-normal overflow-visible text-clip' }"
-          />
-        </UDropdownMenu>
+        <UChip
+          :show="hasMemo && !showAvatar"
+          :color="memoChipColor"
+          class="max-w-full"
+        >
+          <UDropdownMenu :items="items" :content="{ align: 'start' }">
+            <UButton
+              :avatar="avatar"
+              :label="authorName ?? t('common.label.anonymous')"
+              variant="ghost"
+              color="neutral"
+              size="xs"
+              class="max-w-full"
+              :aria-label="hasMemo ? `${authorName ?? t('common.label.anonymous')} — ${t('authorMenu.memoAriaLabel')}` : undefined"
+              :ui="truncate
+                ? { base: 'max-w-full' }
+                : { base: 'max-w-full', label: 'whitespace-normal overflow-visible text-clip' }"
+            />
+            <template #memo-trailing>
+              <UBadge
+                v-if="memoSentiment"
+                :label="memoSentiment === 'good' ? t('authorMenu.good') : t('authorMenu.bad')"
+                :color="memoSentiment === 'good' ? 'primary' : 'error'"
+                variant="subtle"
+                size="sm"
+                class="ms-auto shrink-0"
+              />
+            </template>
+          </UDropdownMenu>
+        </UChip>
       </span>
     </UTooltip>
 
@@ -111,7 +144,7 @@ async function onDeleteMemo() {
     >
       <template #body>
         <UTextarea
-          v-model="memoText"
+          v-model="memoDraft"
           :rows="3"
           :maxlength="AUTHOR_MEMO_MAX_LENGTH"
           :placeholder="t('authorMenu.memoPlaceholder')"
@@ -127,7 +160,7 @@ async function onDeleteMemo() {
       </template>
       <template #footer>
         <UButton
-          v-if="memoText || memoSentiment"
+          v-if="hasMemo"
           :label="t('common.action.delete')"
           color="neutral"
           variant="ghost"

@@ -8,4 +8,6 @@ export default {
   memoPlaceholder: '이 작성자에 대해 적어두기…',
   bad: '나쁨',
   good: '좋음',
+  myMemosTitle: '내가 남긴 메모',
+  myMemosEmpty: '아직 남긴 메모가 없어요. 작성자 이름을 눌러 메모를 남길 수 있어요.',
 }

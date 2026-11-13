@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import { computed, ref } from 'vue'
 import { useMemiBoardCleanup, useMemiBoardI18n } from 'memi-board/runtime'
 
@@ -57,5 +58,6 @@ async function deleteSelected() {
     </template>
     <p v-if="result" role="status" class="text-sm">{{ result }}</p>
   </section>
+  <MemiBoardSettingsVersion />
   </MemiBoardSurface>
 </template>

@@ -225,6 +225,15 @@ export function authorMemoDoc(
   return doc(db, cfg.usersCollection, viewerUid, 'memos', targetUid)
 }
 
+/** 내가 남긴 작성자 메모 전체 — 목록 화면에서 한 번의 쿼리로 모두 불러올 때 쓴다. */
+export function authorMemosCollection(
+  db: Firestore,
+  cfg: BoardPathConfig,
+  viewerUid: string,
+): CollectionReference {
+  return collection(db, cfg.usersCollection, viewerUid, 'memos')
+}
+
 /** postId 가 전역 고유이므로 boardId 프리픽스 불필요 */
 export function postStorageFolder(cfg: BoardPathConfig, postId: string): string {
   return `${cfg.postsCollection}/${postId}`

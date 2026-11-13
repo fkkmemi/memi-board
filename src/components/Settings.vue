@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { BOARD_NAME_MAX, boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, slugify, useMemiBoardAppSettings, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
@@ -979,5 +980,6 @@ async function runDeleteAll() {
       <UAlert v-if="deleteDone" color="success" variant="subtle" :description="t('settings.danger.done')" />
     </section>
   </div>
+  <MemiBoardSettingsVersion />
   </MemiBoardSurface>
 </template>

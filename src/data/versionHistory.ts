@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.65.0',
+    date: '2026-11-13',
+    highlights: [
+      '작성자 메모가 이름 옆 닷과 툴팁으로 다시 보여요',
+      '내 프로필에서 내가 남긴 메모를 모아 볼 수 있어요',
+      '작성자 메모는 최대 100개까지 남길 수 있어요',
+      '카드형 목록에 조회수가 보이고, 설정 화면 아래에 버전이 표시돼요',
+    ],
+    highlightsEn: [
+      'Author memos show again as a dot and tooltip next to the name',
+      'See all the memos you left from your own profile',
+      'You can keep up to 100 author memos',
+      'Card lists show view counts, and settings screens show the version',
+    ],
+  },
+  {
     version: '0.64.0',
     date: '2026-11-13',
     highlights: [

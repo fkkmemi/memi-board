@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import UserManagementEmail from './UserManagementEmail.vue'
 import UserRoleGuide from './UserRoleGuide.vue'
 import UserListControls from './UserListControls.vue'
@@ -115,5 +116,6 @@ async function confirmRoleChange() {
       </div>
     </template>
   </UModal>
+  <MemiBoardSettingsVersion />
   </MemiBoardSurface>
 </template>

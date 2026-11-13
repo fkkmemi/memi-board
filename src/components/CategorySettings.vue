@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
+import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, ref, watch } from 'vue'
 import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, useMemiBoardAuth, useMemiBoardPostTranslations, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
@@ -412,5 +413,6 @@ async function save() {
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="saved" color="success" variant="subtle" :description="isNew ? t('settings.created') : t('settings.savedSettings')" />
   </div>
+  <MemiBoardSettingsVersion />
   </MemiBoardSurface>
 </template>
