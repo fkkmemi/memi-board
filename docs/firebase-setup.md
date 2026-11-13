@@ -251,6 +251,8 @@ For automated rules verification, run `tests/banner-rules.test.mjs` in this pack
 | Attachments per post | 5 | Firestore rules + app | `POST_ATTACHMENT_MAX`; each entry must point into the post's own `attachments/` folder |
 | Attachment file | 20 MB, no HTML/SVG/script/executable | Storage rules only | see below |
 | Author memo | 100 chars | Firestore rules + app | |
+| Moderation ban | 10 blocks, −1 every 24 h | Firestore rules + app | rules refuse new posts and comments; keep `10` and `86400000.0` in `notModerationBanned` in sync with `moderation.blockBanThreshold` / `blockBanDecayMs`. The block count is reported by the client |
+| Custom field values on a post | 20 × 200 chars | Firestore rules + app | keys must match `^[a-z][A-Za-z0-9_]{0,31}$`; whether a key is declared by the board is checked by the app only |
 
 **Attachments are the limit most likely to differ per site.** The default blocks formats that open straight from the public Storage URL and are easy to abuse for phishing or malware (HTML, SVG, JavaScript, `.exe`/`.msi`/`.bat` and similar), and caps files at 20 MB. The app itself does not limit attachment size or type, so you only need to edit `storage.rules`:
 

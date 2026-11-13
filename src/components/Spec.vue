@@ -110,7 +110,7 @@ const sections: Section[] = [
       { id: '4.2', parameter: 'Custom fields per board', value: CUSTOM_FIELD_MAX, unit: 'fields', symbol: 'CUSTOM_FIELD_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.3', parameter: 'Custom field label', value: CUSTOM_FIELD_LABEL_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_LABEL_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.4', parameter: 'Custom field placeholder', value: CUSTOM_FIELD_PLACEHOLDER_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_PLACEHOLDER_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
-      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'client', note: 'Written by any post author into post.extend. Rules check neither the keys nor the size.' },
+      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'rules', note: 'Stored on each post in post.extend. Rules check up to 20 entries, the key format and the value length, but not whether the key is declared by the board.' },
       { id: '4.6', parameter: 'Board banner file', value: 3, unit: 'MiB', enforced: 'rules', note: 'JPEG only. Literal in storage.rules.' }
     ]
   },
@@ -133,8 +133,8 @@ const sections: Section[] = [
       { id: '6.2', parameter: 'Writing assistant custom instruction', value: 200, unit: 'chars', enforced: 'client', note: 'CUSTOM_INSTRUCTION_MAX_LENGTH, not exported.' },
       { id: '6.3', parameter: 'Body translation per language call', value: HTML_MAX_CHARS, unit: 'HTML chars', symbol: 'HTML_MAX_CHARS', enforced: 'client', note: 'Output capped at 16,384 tokens; a cut-off translation is discarded and that language shows the original. Longer bodies keep title and summary translations.' },
       { id: '6.4', parameter: 'Body translation budget per save', value: POST_TRANSLATION_BUDGET, unit: 'HTML chars', symbol: 'POST_TRANSLATION_BUDGET', enforced: 'client', note: 'Divided by the number of target languages to set 2.4.' },
-      { id: '6.5', parameter: 'Moderation block ban threshold', value: DEFAULT_BLOCK_BAN_THRESHOLD, unit: 'blocks', symbol: 'DEFAULT_BLOCK_BAN_THRESHOLD', enforced: 'client', note: 'The browser reports its own block count, and write rules do not check it.' },
-      { id: '6.6', parameter: 'Block count decay', value: DEFAULT_BLOCK_BAN_DECAY_MS / 3_600_000, unit: 'h', symbol: 'DEFAULT_BLOCK_BAN_DECAY_MS', enforced: 'client' }
+      { id: '6.5', parameter: 'Moderation block ban threshold', value: DEFAULT_BLOCK_BAN_THRESHOLD, unit: 'blocks', symbol: 'DEFAULT_BLOCK_BAN_THRESHOLD', enforced: 'partial', note: 'Rules refuse new posts and comments at this count, but the block count itself is reported by the browser. Keep in sync with the host config.' },
+      { id: '6.6', parameter: 'Block count decay', value: DEFAULT_BLOCK_BAN_DECAY_MS / 3_600_000, unit: 'h', symbol: 'DEFAULT_BLOCK_BAN_DECAY_MS', enforced: 'partial', note: 'Same decay in rules and app.' }
     ]
   }
 ]
