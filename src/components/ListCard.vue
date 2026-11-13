@@ -56,11 +56,15 @@ function image(post: PostModel): string | undefined {
         class="memi-board-post-link flex flex-1 flex-col text-left text-highlighted"
         @click="!postTo(post) && emit('select', post)"
       >
-        <h3 class="line-clamp-2 break-words px-4 pb-3 pt-4 text-base font-bold leading-snug text-inherit">
-          <UBadge v-if="post.isPublished === false" :label="t('common.label.draft')" color="warning" variant="subtle" size="sm" class="me-1 align-middle" />
-          <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
-          {{ titleOf(post) }}
-        </h3>
+        <!-- line-clamp 는 overflow 를 padding 바깥 경계에서 자른다 — 패딩이 h3 자신한테 있으면
+             그 패딩 높이만큼 다음 줄이 살짝 비어져 나와 보인다. 패딩은 래퍼로 옮긴다. -->
+        <div class="px-4 pb-3 pt-4">
+          <h3 class="line-clamp-2 break-words text-base font-bold leading-snug text-inherit">
+            <UBadge v-if="post.isPublished === false" :label="t('common.label.draft')" color="warning" variant="subtle" size="sm" class="me-1 align-middle" />
+            <UIcon v-if="post.pinned" name="i-lucide-pin" class="me-1 align-[-0.125em] text-primary" :aria-label="t('list.notice')" />
+            {{ titleOf(post) }}
+          </h3>
+        </div>
         <div v-if="image(post)" class="aspect-video w-full overflow-hidden bg-elevated">
           <img :src="image(post)" :alt="titleOf(post)" class="size-full object-cover transition-transform duration-300 hover:scale-105">
         </div>
