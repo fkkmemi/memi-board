@@ -110,7 +110,7 @@ const sections: Section[] = [
       { id: '4.2', parameter: 'Custom fields per board', value: CUSTOM_FIELD_MAX, unit: 'fields', symbol: 'CUSTOM_FIELD_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.3', parameter: 'Custom field label', value: CUSTOM_FIELD_LABEL_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_LABEL_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
       { id: '4.4', parameter: 'Custom field placeholder', value: CUSTOM_FIELD_PLACEHOLDER_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_PLACEHOLDER_MAX', enforced: 'client', note: 'Field definitions: admins and board managers only.' },
-      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'rules', note: 'Stored on each post in post.extend. Rules check up to 20 entries and each value\'s length (strings without line breaks), but not the keys.' },
+      { id: '4.5', parameter: 'Custom field value', value: CUSTOM_FIELD_VALUE_MAX, unit: 'chars', symbol: 'CUSTOM_FIELD_VALUE_MAX', enforced: 'rules', note: 'Stored on each post in post.extend. Rules check up to 20 entries and each value\'s length (single line), but not the keys.' },
       { id: '4.6', parameter: 'Board banner file', value: 3, unit: 'MiB', enforced: 'rules', note: 'JPEG only. Literal in storage.rules.' }
     ]
   },

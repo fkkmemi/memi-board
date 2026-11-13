@@ -98,6 +98,9 @@ jobs:
       - name: Test public profile security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-profile-rules --only auth,firestore 'node --test tests/profile-rules.test.mjs'
 
+      - name: Test content limit security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-limits --only auth,firestore,storage 'node --test tests/limits-rules.test.mjs'
+
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts
 

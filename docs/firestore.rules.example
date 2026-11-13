@@ -266,14 +266,21 @@ service cloud.firestore {
     }
     // 10 tags (POST_TAG_MAX) of 30 chars, 20 custom field values (CUSTOM_FIELD_MAX) of 200 chars. Rules evaluate at most
     // 1,000 expressions per request, so instead of one check per item each list is joined with newlines and matched
-    // with a single regex. Non-string items and values containing a newline are rejected.
+    // with a single regex. Values containing a newline are rejected; non-string items are held to the same
+    // length in their text form.
+    // Joins the items with newlines and checks every length with one regex. Splitting again must give the same
+    // count, so a value that contains a newline (and would otherwise pass as two short items) is rejected.
+    function joinedItemsFit(items, pattern) {
+      let joined = items.join('\n');
+      return joined.split('\n').size() == items.size() && joined.matches(pattern);
+    }
     function postTagsValid(data) {
       let t = data.get('tags', []);
-      return t.size() <= 10 && t.join('\n').matches('[^\n]{0,30}(\n[^\n]{0,30})*');
+      return t.size() == 0 || (t.size() <= 10 && joinedItemsFit(t, '[^\n]{0,30}(\n[^\n]{0,30})*'));
     }
     function postExtendValid(data) {
       let m = data.get('extend', {});
-      return m.size() <= 20 && m.values().join('\n').matches('[^\n]{0,200}(\n[^\n]{0,200})*');
+      return m.size() == 0 || (m.size() <= 20 && joinedItemsFit(m.values(), '[^\n]{0,200}(\n[^\n]{0,200})*'));
     }
     // Attachment entries must point into this post's attachments folder. File size and type are decided by storage.rules.
     function attachmentEntryValid(a, postId) {
