@@ -28,7 +28,7 @@ function editor(review) {
   const io = { checks: [], reads: 0, writes: 0, uploads: 0, saved: 0 }
   const props = { uid: 'me', profile: { displayName: 'Old name', photoURL: null } }
   const bindings = {
-    ref, computed, watch,
+    ref, computed, watch, PROFILE_NAME_MAX: 50, PROFILE_BIO_MAX: 200,
     defineModel: () => ref(true), defineProps: () => props, defineEmits: () => () => { io.saved++ },
     useFirestore: () => ({}), useMemiBoardI18n: () => ({ t: key => key }),
     useMemiBoardModeration: options => {

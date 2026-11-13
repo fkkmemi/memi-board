@@ -34,6 +34,7 @@ function harness() {
     },
     '../i18n/translate': { translate: (_locale, key) => key },
     '../i18n/useMemiBoardI18n': { useMemiBoardI18n: () => ({ t: key => key }) },
+    '../utils/profileLimits': { clampProfileName: name => (name ?? '').trim().slice(0, 50) || null },
   }
   const js = ts.transpile(source, { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 })
   const mod = { exports: {} }

@@ -4,6 +4,29 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.66.0] - 2026-11-14
+
+### Added
+- The "About memi-board™" popup has a **Spec** tab: an English data sheet of every limit and constant, with where it is enforced (RULES, PARTIAL, CLIENT, OPEN).
+- Global board settings show a **Diagnostics** section (coming soon) next to the orphan cleanup. It will scan stored data that exceeds client-only limits, starting with author memo count.
+- The editor shows a small usage ring under the body. It turns yellow from 80% with the remaining count and red past the limit, where saving is disabled.
+- A mini-game overlay (memory, snake, sudoku) appears when translating and saving a post takes longer than 2 seconds.
+- New exports: `POST_TITLE_MAX`, `POST_TITLE_TRANSLATION_MAX`, `POST_SLUG_MAX`, `POST_BODY_MAX`, `POST_TRANSLATION_BUDGET`, `POST_TRANSLATION_CALL_MAX`, `postBodyMax`, `boardPostBodyMax`, `POST_TAG_MAX`, `POST_TAG_LENGTH_MAX`, `normalizePostTags`, `POST_ATTACHMENT_MAX`, `PROFILE_NAME_MAX`, `PROFILE_BIO_MAX`, `clampProfileName`, `COMMENT_IMAGE_LIMIT`.
+
+### Changed
+- Content limits, checked in the app and in the example rules: profile name 50 and bio 200 chars, post title 150 (translated titles 300), post URL 60, body 50,000 HTML chars, 10 tags of up to 30 chars, 5 attachments, author memo 100 chars, custom field values 20 × 200 chars.
+- On auto-translated boards the body limit is `min(10,000, 50,000 ÷ target languages)`: 5,500 with 9 target languages, 7,100 with 7, 10,000 with 3 or fewer.
+- Body translation: up to 10,000 HTML chars per language call (was 12,000), output up to 16,384 tokens (was 8,192). A translation cut off by the token limit is discarded, languages that succeed are kept, and title and summary translations are saved even when the body is too long or its translation fails.
+- The profile edit form uses `UForm`: an empty or whitespace-only name is rejected, and both fields show a character counter.
+- Comments put the avatar, name, time and actions on one row with the text at full width below. Long author names are cut with an ellipsis.
+- Card list titles stay within two lines.
+- Long attachment file names keep their extension when shortened.
+
+### Host app steps
+- **Merge the Firestore and Storage rule changes** from `docs/firestore.rules.example` and `docs/storage.rules.example`, then deploy. They add the limits above, the moderation ban check on new posts and comments (keep `10` and `86400000.0` in sync with `moderation.blockBanThreshold` / `blockBanDecayMs`), and a recommended attachment blocklist (HTML, SVG, scripts, executables) with a 20 MB cap. **The attachment limits are recommendations**; adjust them for your site, see "Content limits" in `docs/firebase-setup.md`.
+- Existing documents with longer values stay editable; the new checks only run when the limited field changes.
+- No index change.
+
 ## [0.65.0] - 2026-11-13
 
 ### Added

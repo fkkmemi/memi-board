@@ -16,6 +16,26 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.66.0',
+    date: '2026-11-14',
+    highlights: [
+      '제목·본문·태그·첨부·프로필에 길이 제한이 생기고, 서버 규칙으로도 확인해요',
+      '본문 아래 원형 표시로 남은 용량을 보여 주고, 번역 언어가 많은 보드는 본문 한도가 줄어요',
+      '자동 번역이 더 안전해졌어요 — 잘린 번역은 버리고, 본문이 길어도 제목은 번역돼요',
+      '번역을 기다리는 동안 미니 게임을 할 수 있어요',
+      '댓글은 이름·버튼을 위 한 줄에, 본문을 아래 전체 폭으로 보여 줘요',
+      'memi-board 소개 창에 제한값을 정리한 Spec 탭이 생겼어요',
+    ],
+    highlightsEn: [
+      'Titles, bodies, tags, attachments and profiles have length limits, also checked by server rules',
+      'A ring under the body shows remaining space; boards with many translation languages allow shorter bodies',
+      'Auto-translation is safer: cut-off translations are dropped and titles are translated even for long bodies',
+      'Play a mini game while a translation is in progress',
+      'Comments show the name and actions on one row with the text at full width below',
+      'The About popup has a Spec tab listing every limit',
+    ],
+  },
+  {
     version: '0.65.0',
     date: '2026-11-13',
     highlights: [
