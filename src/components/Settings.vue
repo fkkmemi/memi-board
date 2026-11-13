@@ -9,6 +9,7 @@ import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
 import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
+import MemiBoardDiagnostics from './Diagnostics.vue'
 
 const props = withDefaults(defineProps<{
   /** 호스트 자체 관리자 권한도 허용할 때 true. Firebase rules 권한은 호스트가 별도로 맞춰야 한다. */
@@ -955,6 +956,7 @@ async function runDeleteAll() {
     <UAlert v-if="error" color="error" variant="subtle" :description="error" />
     <UAlert v-if="savedId" color="success" variant="subtle" :description="t('settings.savedCategory', { label: draft.find(item => item.id === savedId)?.label })" />
 
+    <MemiBoardDiagnostics v-if="isAdmin && !categoryId" />
     <MemiBoardOrphanCleanup v-if="isAdmin && !categoryId" />
 
     <section v-if="deleteAll && !categoryId" class="mt-4 flex flex-col gap-3 border-t border-error/40 pt-6">

@@ -225,6 +225,15 @@ export default {
     result: '{deleted} deleted, {skipped} retained after connections were restored, {failed} failed. Failed items can be retried.',
     kinds: { file: 'File', comment: 'Comment document', like: 'Like document' },
   },
+  diagnostics: {
+    title: 'Diagnostics',
+    description: 'Scan every user once for stored data that exceeds limits the app enforces on its own. Not available yet.',
+    scan: 'Run diagnostics',
+    comingSoon: 'Coming soon',
+    checks: {
+      authorMemoCount: 'Users with more than {max} author memos',
+    },
+  },
   danger: {
     title: 'Danger zone',
     description: 'Permanently deletes all posts, comments, comment images, attachments, and category settings. Board users and admin roles are kept.',

@@ -225,6 +225,15 @@ export default {
     result: '{deleted}개 삭제, {skipped}개 연결 복구로 제외, {failed}개 실패. 실패한 항목은 다시 시도할 수 있습니다.',
     kinds: { file: '파일', comment: '댓글 문서', like: '좋아요 문서' },
   },
+  diagnostics: {
+    title: '진단',
+    description: '전체 사용자를 한 번 훑어서, 앱에서만 막고 있는 한도를 넘긴 데이터를 찾습니다. 아직 준비 중입니다.',
+    scan: '진단 실행',
+    comingSoon: '준비 중',
+    checks: {
+      authorMemoCount: '작성자 메모를 {max}개 넘게 저장한 사용자',
+    },
+  },
   danger: {
     title: '위험 영역',
     description: '모든 게시글, 댓글, 댓글 이미지, 첨부파일과 카테고리 설정을 영구 삭제합니다. 보드 사용자와 관리자 권한은 유지합니다.',
