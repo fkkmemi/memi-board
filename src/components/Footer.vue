@@ -3,6 +3,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, shallowR
 import { useMemiBoardAppSettings, useMemiBoardI18n, versionHistory } from 'memi-board/runtime'
 import MemiBoardVersionHistory from './VersionHistory.vue'
 import MemiBoardSpec from './Spec.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 
 const props = defineProps<{ introduction?: string }>()
 // One visible footer per app, even when a page combines several board views
@@ -28,6 +29,22 @@ const { showAbout } = useMemiBoardAppSettings()
 const introductionText = computed(() => props.introduction ?? t('footer.introduction'))
 
 const open = ref(false)
+const waitingDemo = ref(false)
+const waitingDemoDone = ref(false)
+let waitingDemoTimer: ReturnType<typeof setTimeout> | undefined
+function closeWaitingDemo() {
+  clearTimeout(waitingDemoTimer)
+  waitingDemo.value = false
+}
+onBeforeUnmount(() => clearTimeout(waitingDemoTimer))
+function openWaitingDemo() {
+  // 팝업 위에서는 전체 화면 오버레이가 포커스 트랩에 막히므로 소개 팝업을 닫고 연다.
+  open.value = false
+  waitingDemo.value = true
+  waitingDemoDone.value = false
+  // 실제 번역처럼 잠시 뒤 완료 상태가 된다.
+  waitingDemoTimer = setTimeout(() => { waitingDemoDone.value = true }, 8000)
+}
 const tab = ref<'about' | 'sites' | 'spec' | 'history'>('about')
 const version = versionHistory[0]?.version
 const sites = [
@@ -128,6 +145,10 @@ const stacks = computed(() => [
                       {{ t('footer.detail') }}
                       <UIcon name="i-lucide-arrow-up-right" class="size-3.5" />
                     </a>
+                    <button type="button" class="mt-3 flex cursor-pointer items-center gap-1.5 text-sm font-medium text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" @click="openWaitingDemo">
+                      <UIcon name="i-lucide-gamepad-2" class="size-4" />
+                      {{ t('waiting.demoLink') }}
+                    </button>
                   </div>
                 </div>
 
@@ -231,5 +252,6 @@ const stacks = computed(() => [
         </div>
       </template>
     </UModal>
+    <MemiBoardWaitingOverlay :open="waitingDemo" :done="waitingDemoDone" closable @close="closeWaitingDemo" @continue="closeWaitingDemo" />
   </div>
 </template>

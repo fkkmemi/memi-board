@@ -1,0 +1,14 @@
+export default {
+  title: 'Translating your post…',
+  subtitle: 'Translating into several languages takes a moment. Enjoy a mini game while you wait!',
+  demoLink: 'Try the translating screen',
+  doneTitle: 'Translated and posted!',
+  doneSubtitle: 'Feel free to keep playing. Go to your post when you are ready.',
+  continue: 'View post',
+  close: 'Close',
+  restart: 'Play again',
+  games: { memory: 'Memory match', snake: 'Snake', sudoku: 'Sudoku' },
+  memory: { moves: '{count} moves', cleared: 'All matched! ({count} moves)' },
+  snake: { score: 'Score {score}', best: 'Best {best}', gameOver: 'Game over', start: 'Press any direction to start', up: 'Up', down: 'Down', left: 'Left', right: 'Right' },
+  sudoku: { hint: 'Select a cell and fill in a number', solved: 'Solved! 🎉', erase: 'Erase' },
+}

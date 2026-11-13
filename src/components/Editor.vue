@@ -37,6 +37,7 @@ import {
 } from 'memi-board/runtime'
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 const props = defineProps<{
@@ -102,6 +103,31 @@ watch(customFields, (fields) => {
 const loading = ref(false)
 const saving = ref(false)
 const submitHint = ref('')
+// 자동 번역이 도는 동안 전체 화면 대기 오버레이(미니게임)를 띄운다. 저장까지 끝나면 'done'이 되고,
+// 사용자가 "계속하기"를 눌러야 saved 를 내보낸다(자동으로 닫지 않는다).
+const waiting = ref<'off' | 'translating' | 'done'>('off')
+let waitingSavedId = ''
+// 번역·저장이 이 시간 안에 끝나면 오버레이 없이 바로 이동한다(잠깐 번쩍이는 것을 막는다).
+const WAITING_DELAY_MS = 2000
+let waitingTimer: ReturnType<typeof setTimeout> | undefined
+function cancelWaiting() {
+  clearTimeout(waitingTimer)
+  waiting.value = 'off'
+}
+onBeforeUnmount(() => clearTimeout(waitingTimer))
+function finishSave(id: string) {
+  clearTimeout(waitingTimer)
+  if (waiting.value === 'translating') {
+    waiting.value = 'done'
+    waitingSavedId = id
+    return
+  }
+  emit('saved', id)
+}
+function continueAfterWaiting() {
+  waiting.value = 'off'
+  emit('saved', waitingSavedId)
+}
 const error = ref('')
 const imageUploading = ref(false)
 const imageUploadError = ref('')
@@ -1292,6 +1318,8 @@ async function handleSubmit() {
       || translationKey(bodyContent, storedTitle) !== loadedTranslationKey.value
     if (needsTranslation && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
       submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
+      clearTimeout(waitingTimer)
+      waitingTimer = setTimeout(() => { waiting.value = 'translating' }, WAITING_DELAY_MS)
       // 번역 한도 초과·실패가 글 저장을 막지 않게 원문만 저장한다. 번역은 나중에 도우미로 다시 할 수 있다.
       try {
         translations = await translatePost({
@@ -1328,7 +1356,7 @@ async function handleSubmit() {
       }
       saving.value = false
       markSaved()
-      emit('saved', props.postId)
+      finishSave(props.postId)
     }
     else {
       const id = await createPost({
@@ -1340,10 +1368,11 @@ async function handleSubmit() {
       })
       saving.value = false
       markSaved()
-      emit('saved', id)
+      finishSave(id)
     }
   }
   catch (e) {
+    cancelWaiting()
     error.value = friendlyWriteError(e)
   }
   finally {
@@ -1355,6 +1384,7 @@ async function handleSubmit() {
 
 <template>
   <MemiBoardSurface>
+  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" @continue="continueAfterWaiting" />
   <div
     v-if="loading"
     :dir="dir"

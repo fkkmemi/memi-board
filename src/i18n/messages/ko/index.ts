@@ -45,6 +45,7 @@ import swipeHint from './swipeHint'
 import userCommentList from './userCommentList'
 import userPostList from './userPostList'
 import users from './users'
+import waiting from './waiting'
 import writingAssistant from './writingAssistant'
 
 export default {
@@ -94,5 +95,6 @@ export default {
   userCommentList,
   userPostList,
   users,
+  waiting,
   writingAssistant,
 }
