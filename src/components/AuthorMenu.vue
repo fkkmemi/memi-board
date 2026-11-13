@@ -15,9 +15,12 @@ const props = withDefaults(defineProps<{
   showAvatar?: boolean
   /** 좁은 고정폭 칸에 넣을 때만 true로 — 기본은 줄이지 않고 이름을 그대로 보여준다. */
   truncate?: boolean
+  /** 이름을 한 줄로 줄이고 넘치면 …로 자른다. 이름 옆에 다른 요소가 같이 있는 줄(댓글 머리 등)에서 쓴다. */
+  ellipsis?: boolean
 }>(), {
   showAvatar: true,
   truncate: false,
+  ellipsis: false,
 })
 
 const { t } = useMemiBoardI18n()
@@ -99,14 +102,15 @@ async function onDeleteMemo() {
 <template>
   <div
     class="flex max-w-full items-center"
-    :class="truncate ? 'w-full min-w-0 justify-end' : 'inline-flex'"
+    :class="truncate ? 'w-full min-w-0 justify-end' : ellipsis ? 'inline-flex min-w-0 max-w-[12rem]' : 'inline-flex'"
   >
     <UTooltip :text="tooltipText" :delay-duration="200" :content="{ side: 'top' }">
-      <span class="inline-flex max-w-full">
+      <span class="inline-flex max-w-full" :class="ellipsis && 'min-w-0'">
         <UChip
           :show="hasMemo && !showAvatar"
           :color="memoChipColor"
           class="max-w-full"
+          :class="ellipsis && 'min-w-0 shrink'"
         >
           <UDropdownMenu :items="items" :content="{ align: 'start' }">
             <UButton
@@ -117,7 +121,7 @@ async function onDeleteMemo() {
               size="xs"
               class="max-w-full"
               :aria-label="hasMemo ? `${authorName ?? t('common.label.anonymous')} — ${t('authorMenu.memoAriaLabel')}` : undefined"
-              :ui="truncate
+              :ui="truncate || ellipsis
                 ? { base: 'max-w-full' }
                 : { base: 'max-w-full', label: 'whitespace-normal overflow-visible text-clip' }"
             />

@@ -208,20 +208,21 @@ async function toggleLike() {
 </script>
 
 <template>
-  <div :id="comment.id ? `memi-comment-${comment.id}` : undefined" class="flex items-start gap-3 scroll-mt-20">
-    <UAvatar
-      :src="comment.authorPhoto ?? undefined"
-      :alt="comment.authorName ?? t('common.label.anonymous')"
-      size="sm"
-    />
-    <div class="min-w-0 flex-1">
-      <div class="flex items-center gap-2">
+  <div :id="comment.id ? `memi-comment-${comment.id}` : undefined" class="flex flex-col gap-2 scroll-mt-20">
+    <div class="flex items-center gap-2">
+      <UAvatar
+        :src="comment.authorPhoto ?? undefined"
+        :alt="comment.authorName ?? t('common.label.anonymous')"
+        size="sm"
+      />
+      <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
         <MemiBoardAuthorMenu
           v-if="comment.authorUid"
           :author-uid="comment.authorUid"
           :author-name="comment.authorName"
           :author-photo="comment.authorPhoto"
           :show-avatar="false"
+          ellipsis
           :author-profile-to="authorProfileTo"
           :author-posts-to="authorPostsTo"
           :author-comments-to="authorCommentsTo"
@@ -249,186 +250,188 @@ async function toggleLike() {
           </UBadge>
         </UTooltip>
       </div>
-      <form
-        v-if="editing"
-        class="mt-2 flex flex-col gap-2"
-        @submit.prevent="saveEdit"
-      >
-        <UTextarea
-          v-model="editBody"
-          @paste="imageField?.handlePaste($event)"
-          :rows="2"
-          autoresize
-          :maxrows="10"
-          :maxlength="COMMENT_BODY_MAX_LENGTH"
-          :disabled="saving || aiBusy"
-          autofocus
-        />
-        <MemiBoardCommentAi v-model="editBody" v-model:translations="translations" :board-id="boardId"
-          :disabled="saving || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
-        <MemiBoardCommentImageField
-          ref="imageField"
-          v-if="comment.id"
-          v-model="editImage"
-          :post-id="postId"
-          :comment-id="comment.id"
-          :disabled="saving"
-          @busy="imageBusy = $event"
-        />
-        <p class="text-right text-xs text-dimmed">
-          {{ editBody.length.toLocaleString() }} / {{ COMMENT_BODY_MAX_LENGTH.toLocaleString() }}
-        </p>
-        <p v-if="editError" class="text-xs text-error">
-          {{ editError }}
-        </p>
-        <div class="flex justify-end gap-1">
+      <div class="flex shrink-0 items-center gap-1">
+        <UTooltip v-if="isSignedIn && commentLikes && comment.id" :text="isLiked ? t('common.action.unlike') : t('common.action.like')" :delay-duration="200">
           <UButton
-            type="button"
-            :label="t('common.action.cancel')"
+            icon="i-lucide-heart"
+            size="xs"
+            variant="ghost"
+            :color="isLiked ? 'error' : 'neutral'"
+            :label="String(localLikeCount)"
+            :loading="likePending"
+            :aria-label="isLiked ? t('common.action.unlike') : t('common.action.like')"
+            @click="toggleLike"
+          />
+        </UTooltip>
+        <UTooltip v-else :text="t('list.likeCount', { count: localLikeCount })" :delay-duration="200" :content="{ side: 'top' }">
+          <span
+            class="flex items-center gap-0.5 px-1 text-xs text-muted"
+            :aria-label="t('list.likeCount', { count: localLikeCount })"
+          >
+            <UIcon name="i-lucide-heart" class="size-3.5" />
+            {{ localLikeCount }}
+          </span>
+        </UTooltip>
+        <UTooltip v-if="canEditComment(comment) && comment.id && !localBlinded" :text="t('commentItem.edit')" :delay-duration="200">
+          <UButton
+            icon="i-lucide-pencil"
             size="xs"
             color="neutral"
             variant="ghost"
-            :disabled="saving || imageBusy || aiBusy"
-            @click="cancelEdit"
+            :aria-label="t('commentItem.edit')"
+            :disabled="editing"
+            @click="startEdit"
           />
+        </UTooltip>
+        <UTooltip v-if="canManageBoard(comment.boardId) && comment.id" :text="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')" :delay-duration="200">
           <UButton
-            type="submit"
-            @pointerdown="imeSafeSubmitPointerDown"
-            @click="imeSafeSubmitClick"
-            :label="t('common.action.save')"
+            :icon="localBlinded ? 'i-lucide-eye' : 'i-lucide-eye-off'"
             size="xs"
-            :loading="saving"
-            :disabled="!editBody.trim() || imageBusy || aiBusy || (editBody.trim() === localBody && !imageChanged && !translations)"
+            :color="localBlinded ? 'neutral' : 'warning'"
+            variant="ghost"
+            :loading="blindSaving"
+            :aria-label="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')"
+            @click="toggleBlind"
           />
-        </div>
-      </form>
-      <div
-        v-else-if="localBlinded"
-        class="relative min-h-10 overflow-hidden rounded-md py-1"
-      >
-        <div class="flex flex-col items-center gap-1.5 opacity-50 blur-[1px]" aria-hidden="true">
-          <USkeleton
-            v-for="line in blindLines"
-            :key="line"
-            class="h-3"
-            :class="line === blindLines ? 'w-1/2' : 'w-5/6'"
+        </UTooltip>
+        <UTooltip v-if="localRevision > 0 && canManageBoard(comment.boardId) && comment.id" :text="t('commentItem.history')" :delay-duration="200">
+          <UButton
+            icon="i-lucide-history"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            :aria-label="t('commentItem.history')"
+            @click="revisionsOpen = true"
           />
-        </div>
-        <div class="absolute inset-0 flex items-center justify-center px-3 text-center text-xs font-medium text-muted">
-          {{ t('commentItem.blinded') }}
-        </div>
-      </div>
-      <div v-else>
-        <p class="whitespace-pre-wrap break-words text-sm">
-          <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span><span v-text="displayedBody" />
-        </p>
-        <button
-          v-if="localImage"
-          type="button"
-          class="mt-2 inline-block cursor-zoom-in bg-transparent p-0"
-          :aria-label="t('commentItem.attachedImage')"
-          @click="imageOpen = true"
-        >
-          <img
-            :src="localImage.url"
-            :alt="t('commentItem.attachedImage')"
-            class="max-h-60 max-w-full rounded-md border border-default object-contain"
-          >
-        </button>
-        <MemiBoardImageLightbox
-          v-if="localImage"
-          v-model:open="imageOpen"
-          :images="[localImage.url]"
+        </UTooltip>
+        <UTooltip :text="t('common.action.reply')" :delay-duration="200">
+          <UButton
+            icon="i-lucide-reply"
+            size="xs"
+            color="neutral"
+            variant="ghost"
+            :aria-label="t('common.action.reply')"
+            @click="emit('reply', comment)"
+          />
+        </UTooltip>
+        <MemiBoardCommentReportButton
+          v-if="comment.id"
+          :board-id="boardId"
+          :post-id="postId"
+          :comment-id="comment.id"
+          :author-uid="comment.authorUid"
+          :author-name="comment.authorName"
+          :comment-body="localBody"
         />
+        <UTooltip v-if="canDeleteComment(comment) && comment.id" :text="t('commentItem.delete')" :delay-duration="200">
+          <UButton
+            icon="i-lucide-trash-2"
+            size="xs"
+            variant="ghost"
+            color="error"
+            :loading="deleting"
+            :aria-label="t('commentItem.delete')"
+            @click="emit('delete', comment.id)"
+          />
+        </UTooltip>
       </div>
-      <p v-if="likeError" class="mt-1 text-xs text-error">
-        {{ likeError }}
-      </p>
     </div>
-    <div class="flex shrink-0 items-center gap-1">
-      <UTooltip v-if="isSignedIn && commentLikes && comment.id" :text="isLiked ? t('common.action.unlike') : t('common.action.like')" :delay-duration="200">
-        <UButton
-          icon="i-lucide-heart"
-          size="xs"
-          variant="ghost"
-          :color="isLiked ? 'error' : 'neutral'"
-          :label="String(localLikeCount)"
-          :loading="likePending"
-          :aria-label="isLiked ? t('common.action.unlike') : t('common.action.like')"
-          @click="toggleLike"
-        />
-      </UTooltip>
-      <UTooltip v-else :text="t('list.likeCount', { count: localLikeCount })" :delay-duration="200" :content="{ side: 'top' }">
-        <span
-          class="flex items-center gap-0.5 px-1 text-xs text-muted"
-          :aria-label="t('list.likeCount', { count: localLikeCount })"
+    <div class="min-w-0">
+        <form
+          v-if="editing"
+          class="mt-2 flex flex-col gap-2"
+          @submit.prevent="saveEdit"
         >
-          <UIcon name="i-lucide-heart" class="size-3.5" />
-          {{ localLikeCount }}
-        </span>
-      </UTooltip>
-      <UTooltip v-if="canEditComment(comment) && comment.id && !localBlinded" :text="t('commentItem.edit')" :delay-duration="200">
-        <UButton
-          icon="i-lucide-pencil"
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          :aria-label="t('commentItem.edit')"
-          :disabled="editing"
-          @click="startEdit"
-        />
-      </UTooltip>
-      <UTooltip v-if="canManageBoard(comment.boardId) && comment.id" :text="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')" :delay-duration="200">
-        <UButton
-          :icon="localBlinded ? 'i-lucide-eye' : 'i-lucide-eye-off'"
-          size="xs"
-          :color="localBlinded ? 'neutral' : 'warning'"
-          variant="ghost"
-          :loading="blindSaving"
-          :aria-label="localBlinded ? t('commentItem.unblind') : t('commentItem.blind')"
-          @click="toggleBlind"
-        />
-      </UTooltip>
-      <UTooltip v-if="localRevision > 0 && canManageBoard(comment.boardId) && comment.id" :text="t('commentItem.history')" :delay-duration="200">
-        <UButton
-          icon="i-lucide-history"
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          :aria-label="t('commentItem.history')"
-          @click="revisionsOpen = true"
-        />
-      </UTooltip>
-      <UTooltip :text="t('common.action.reply')" :delay-duration="200">
-        <UButton
-          icon="i-lucide-reply"
-          size="xs"
-          color="neutral"
-          variant="ghost"
-          :aria-label="t('common.action.reply')"
-          @click="emit('reply', comment)"
-        />
-      </UTooltip>
-      <MemiBoardCommentReportButton
-        v-if="comment.id"
-        :board-id="boardId"
-        :post-id="postId"
-        :comment-id="comment.id"
-        :author-uid="comment.authorUid"
-        :author-name="comment.authorName"
-        :comment-body="localBody"
-      />
-      <UTooltip v-if="canDeleteComment(comment) && comment.id" :text="t('commentItem.delete')" :delay-duration="200">
-        <UButton
-          icon="i-lucide-trash-2"
-          size="xs"
-          variant="ghost"
-          color="error"
-          :loading="deleting"
-          :aria-label="t('commentItem.delete')"
-          @click="emit('delete', comment.id)"
-        />
-      </UTooltip>
+          <UTextarea
+            v-model="editBody"
+            @paste="imageField?.handlePaste($event)"
+            :rows="2"
+            autoresize
+            :maxrows="10"
+            :maxlength="COMMENT_BODY_MAX_LENGTH"
+            :disabled="saving || aiBusy"
+            autofocus
+          />
+          <MemiBoardCommentAi v-model="editBody" v-model:translations="translations" :board-id="boardId"
+            :disabled="saving || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
+          <MemiBoardCommentImageField
+            ref="imageField"
+            v-if="comment.id"
+            v-model="editImage"
+            :post-id="postId"
+            :comment-id="comment.id"
+            :disabled="saving"
+            @busy="imageBusy = $event"
+          />
+          <p class="text-right text-xs text-dimmed">
+            {{ editBody.length.toLocaleString() }} / {{ COMMENT_BODY_MAX_LENGTH.toLocaleString() }}
+          </p>
+          <p v-if="editError" class="text-xs text-error">
+            {{ editError }}
+          </p>
+          <div class="flex justify-end gap-1">
+            <UButton
+              type="button"
+              :label="t('common.action.cancel')"
+              size="xs"
+              color="neutral"
+              variant="ghost"
+              :disabled="saving || imageBusy || aiBusy"
+              @click="cancelEdit"
+            />
+            <UButton
+              type="submit"
+              @pointerdown="imeSafeSubmitPointerDown"
+              @click="imeSafeSubmitClick"
+              :label="t('common.action.save')"
+              size="xs"
+              :loading="saving"
+              :disabled="!editBody.trim() || imageBusy || aiBusy || (editBody.trim() === localBody && !imageChanged && !translations)"
+            />
+          </div>
+        </form>
+        <div
+          v-else-if="localBlinded"
+          class="relative min-h-10 overflow-hidden rounded-md py-1"
+        >
+          <div class="flex flex-col items-center gap-1.5 opacity-50 blur-[1px]" aria-hidden="true">
+            <USkeleton
+              v-for="line in blindLines"
+              :key="line"
+              class="h-3"
+              :class="line === blindLines ? 'w-1/2' : 'w-5/6'"
+            />
+          </div>
+          <div class="absolute inset-0 flex items-center justify-center px-3 text-center text-xs font-medium text-muted">
+            {{ t('commentItem.blinded') }}
+          </div>
+        </div>
+        <div v-else>
+          <p class="whitespace-pre-wrap break-words text-sm">
+            <span v-if="comment.parentId && comment.replyToName" class="mr-1 text-primary">@{{ comment.replyToName }}</span><span v-text="displayedBody" />
+          </p>
+          <button
+            v-if="localImage"
+            type="button"
+            class="mt-2 inline-block cursor-zoom-in bg-transparent p-0"
+            :aria-label="t('commentItem.attachedImage')"
+            @click="imageOpen = true"
+          >
+            <img
+              :src="localImage.url"
+              :alt="t('commentItem.attachedImage')"
+              class="max-h-60 max-w-full rounded-md border border-default object-contain"
+            >
+          </button>
+          <MemiBoardImageLightbox
+            v-if="localImage"
+            v-model:open="imageOpen"
+            :images="[localImage.url]"
+          />
+        </div>
+        <p v-if="likeError" class="mt-1 text-xs text-error">
+          {{ likeError }}
+        </p>
     </div>
     <UModal v-model:open="editLimitOpen" :title="t('commentItem.editLimitTitle')">
       <template #body>
