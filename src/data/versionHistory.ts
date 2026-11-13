@@ -16,6 +16,18 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.64.0',
+    date: '2026-11-13',
+    highlights: [
+      '일반·카드형 목록에서 글의 커스텀 필드 값을 바로 볼 수 있어요',
+      '필드는 3개까지 보이고, 나머지는 +N 으로 줄여서 보여 줘요',
+    ],
+    highlightsEn: [
+      'Default and card lists show each post\'s custom field values',
+      'Up to 3 fields are shown, and the rest are summarized as +N',
+    ],
+  },
+  {
     version: '0.63.0',
     date: '2026-11-13',
     highlights: [

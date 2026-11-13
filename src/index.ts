@@ -196,6 +196,7 @@ export {
   readCustomFields,
   prepareCustomFields,
   readExtend,
+  extendEntries,
   extendForFields,
 } from './utils/customFields'
 export {

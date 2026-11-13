@@ -4,6 +4,15 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.64.0] - 2026-11-13
+
+### Added
+- The default and card list views show a post's custom field values. They follow the board's field order and skip empty values. Up to 3 are shown, with a +N marker for the rest, whose hover text lists the remaining fields. The default view uses small label-value badges under the summary. The card view uses a compact label-value table above the date.
+- `extendEntries(extend, fields)` returns a post's custom field values as `{ key, label, value }` in board field order. The post page now uses it too.
+
+### Host app steps
+- No Firestore rules, Storage rules, or index change.
+
 ## [0.63.0] - 2026-11-13
 
 ### Added

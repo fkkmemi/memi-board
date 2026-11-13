@@ -3,7 +3,7 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostContent, displayPostTitle, POST_EDIT_LIMIT, readExtend, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostContent, displayPostTitle, POST_EDIT_LIMIT, extendEntries, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -49,13 +49,7 @@ const { recordView } = useMemiBoardViews()
 const { post, pending: loading } = useMemiBoardPost(() => props.boardId, computed(() => props.postId))
 const notFound = computed(() => !loading.value && !post.value)
 const isDraft = computed(() => post.value?.isPublished === false)
-const shownExtend = computed(() => {
-  const values = readExtend(post.value?.extend)
-  return (getBoard(props.boardId)?.customFields ?? []).flatMap((field) => {
-    const value = values[field.key]
-    return value ? [{ key: field.key, label: field.label, value }] : []
-  })
-})
+const shownExtend = computed(() => extendEntries(post.value?.extend, getBoard(props.boardId)?.customFields))
 const deleting = ref(false)
 const publishing = ref(false)
 const pinning = ref(false)

@@ -2,7 +2,7 @@
 import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostSummary, displayPostTitle, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostSummary, displayPostTitle, extendEntries, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 defineProps<{
@@ -17,6 +17,14 @@ defineProps<{
 const emit = defineEmits<{ select: [post: PostModel] }>()
 const NuxtLink = resolveComponent('NuxtLink')
 const { t, locale, formatRelativeDate } = useMemiBoardI18n()
+const { getBoard } = useMemiBoardSettings()
+
+/** 목록에서는 필드를 이만큼만 보여 주고 나머지는 +N 으로 줄인다. */
+const EXTEND_SHOWN = 3
+function extendOf(post: PostModel) {
+  const entries = extendEntries(post.extend, getBoard(post.boardId || post.category || '')?.customFields)
+  return { shown: entries.slice(0, EXTEND_SHOWN), more: Math.max(0, entries.length - EXTEND_SHOWN), all: entries }
+}
 
 function titleOf(post: PostModel) {
   return displayPostTitle(post, locale.value).trim() || displayPostSummary(post, locale.value).trim() || t('list.photo')
@@ -60,6 +68,19 @@ function image(post: PostModel): string | undefined {
           <p v-if="summaryOf(post)" class="line-clamp-3 break-words whitespace-pre-line text-sm leading-relaxed text-muted">
             {{ summaryOf(post) }}
           </p>
+          <dl v-if="extendOf(post).shown.length" class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-lg bg-elevated/50 px-3 py-2 text-xs">
+            <template v-for="field in extendOf(post).shown" :key="field.key">
+              <dt class="max-w-28 truncate text-muted">{{ field.label }}</dt>
+              <dd class="truncate font-medium text-default" :title="field.value">{{ field.value }}</dd>
+            </template>
+            <dd
+              v-if="extendOf(post).more"
+              class="col-span-2 text-dimmed"
+              :title="extendOf(post).all.slice(3).map(field => `${field.label}: ${field.value}`).join('\n')"
+            >
+              +{{ extendOf(post).more }}
+            </dd>
+          </dl>
           <p class="mt-auto pt-1 text-xs text-dimmed">
             <time :datetime="post.createdAt?.toDate?.().toISOString()">{{ formatRelativeDate(post.createdAt, now) }}</time>
             <template v-if="(post.commentCount ?? 0) > 0"> · {{ t('list.commentCount', { count: post.commentCount }) }}</template>

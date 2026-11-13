@@ -96,3 +96,9 @@ export function extendForFields(values: Record<string, string>, fields: BoardCus
   }
   return out
 }
+
+/** 글의 extend 를 보드 필드 순서대로, 값이 있는 것만 이름과 함께 돌려준다. */
+export function extendEntries(extend: unknown, fields: BoardCustomField[] | undefined): Array<{ key: string, label: string, value: string }> {
+  const values = readExtend(extend)
+  return (fields ?? []).flatMap(field => values[field.key] ? [{ key: field.key, label: field.label, value: values[field.key]! }] : [])
+}

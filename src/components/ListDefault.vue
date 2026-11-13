@@ -2,7 +2,7 @@
 import MemiBoardSurface from './BoardSurface.vue'
 import { resolveComponent } from 'vue'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostSummary, displayPostTitle, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
+import { displayPostSummary, displayPostTitle, extendEntries, useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 
 withDefaults(defineProps<{
@@ -15,7 +15,7 @@ withDefaults(defineProps<{
   authorCommentsTo?: (authorUid: string) => string | undefined
 }>(), { showCategory: true })
 const emit = defineEmits<{ select: [post: PostModel] }>()
-const { categoryLabel } = useMemiBoardSettings()
+const { categoryLabel, getBoard } = useMemiBoardSettings()
 const { t, locale, formatRelativeDate, formatTimestampDetails } = useMemiBoardI18n()
 
 function titleOf(post: PostModel) {
@@ -28,6 +28,13 @@ function summaryOf(post: PostModel) {
   return summary
 }
 const NuxtLink = resolveComponent('NuxtLink')
+
+/** 목록에서는 필드를 이만큼만 보여 주고 나머지는 +N 으로 줄인다. */
+const EXTEND_SHOWN = 3
+function extendOf(post: PostModel) {
+  const entries = extendEntries(post.extend, getBoard(post.boardId || post.category || '')?.customFields)
+  return { shown: entries.slice(0, EXTEND_SHOWN), more: Math.max(0, entries.length - EXTEND_SHOWN), all: entries }
+}
 
 function image(post: PostModel): string | undefined {
   return post.previewImage || post.attachments?.find(item => item.type.startsWith('image/'))?.url
@@ -88,6 +95,29 @@ function image(post: PostModel): string | undefined {
             >
               {{ summaryOf(post) }}
             </p>
+            <div v-if="extendOf(post).shown.length" class="flex min-w-0 flex-wrap items-center gap-1 pt-0.5">
+              <UBadge
+                v-for="field in extendOf(post).shown"
+                :key="field.key"
+                color="neutral"
+                variant="outline"
+                size="sm"
+                class="max-w-48 min-w-0 font-normal"
+                :title="`${field.label}: ${field.value}`"
+              >
+                <span class="shrink-0 text-dimmed">{{ field.label }}</span>
+                <span class="truncate text-default">{{ field.value }}</span>
+              </UBadge>
+              <UBadge
+                v-if="extendOf(post).more"
+                color="neutral"
+                variant="soft"
+                size="sm"
+                class="font-normal"
+                :label="`+${extendOf(post).more}`"
+                :title="extendOf(post).all.slice(3).map(field => `${field.label}: ${field.value}`).join('\n')"
+              />
+            </div>
           </div>
 
           <div
