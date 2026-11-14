@@ -4,6 +4,10 @@ export default {
     label: '사용자 정렬 기준',
     name: '이름순',
     role: '역할순',
+    joined: '가입일순',
+    visited: '최근 방문순',
+    updated: '수정일순',
+    dateNote: '해당 날짜가 기록되지 않은 사용자는 이 정렬에서 보이지 않습니다.',
     direction: '정렬 방향',
     asc: '오름차순',
     desc: '내림차순',
@@ -33,6 +37,18 @@ export default {
   aiUsage: {
     writing: '글쓰기 {used}/{limit}',
     image: '그림 {used}/{limit}',
+  },
+  dates: {
+    joined: '가입 {time}',
+    visited: '방문 {time}',
+    updated: '수정 {time}',
+  },
+  profileClear: {
+    bio: '소개 삭제',
+    photo: '사진 삭제',
+    confirm: '한 번 더 눌러 삭제',
+    done: '삭제했어요',
+    failed: '프로필을 삭제하지 못했습니다.',
   },
   roleGroup: '역할 선택',
   warningReset: {

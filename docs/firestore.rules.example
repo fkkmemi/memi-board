@@ -353,6 +353,13 @@ service cloud.firestore {
           .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
         && !request.resource.data.keys()
           .hasAny(['moderationBlockCount', 'moderationBlockAt']);
+      // Admins can clear an inappropriate profile photo URL and/or bio (set them to null); nothing else may change.
+      allow update: if profileTextChangeOk() && isBoardAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photoURL', 'bio', 'updatedAt'])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['photoURL'])
+          || request.resource.data.get('photoURL', null) == null)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['bio'])
+          || request.resource.data.get('bio', null) == null);
       allow update: if profileTextChangeOk() && ((canChangeRole(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
         || (isSignedIn()
           && request.auth.uid == uid

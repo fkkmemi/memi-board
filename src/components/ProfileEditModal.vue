@@ -22,6 +22,10 @@ const emit = defineEmits<{ saved: [] }>()
 const db = useFirestore()
 const { t, locale, aiEnabled } = useMemiBoardI18n()
 const { checkText: checkName } = useMemiBoardModeration({ context: 'profile-name' })
+const { checkText: checkBio } = useMemiBoardModeration({ context: 'profile-bio' })
+const { checkImage: checkPhoto } = useMemiBoardModeration({ context: 'profile-photo' })
+const checkingBio = ref(false)
+const checkingPhoto = ref(false)
 
 const displayName = ref('')
 const bio = ref('')
@@ -68,10 +72,26 @@ function onPickAvatar(event: Event) {
   cropOpen.value = true
 }
 
-function onCropConfirm(file: File) {
-  pendingAvatarFile = file
-  photoURL.value = URL.createObjectURL(file)
-  cropOpen.value = false
+// 올리기 전에 AI로 검사한다. 통과한 사진만 대기 파일이 되고, 막히면 이유를 보여 준다.
+async function onCropConfirm(file: File) {
+  if (checkingPhoto.value) return
+  checkingPhoto.value = true
+  error.value = ''
+  try {
+    const review = await checkPhoto(file)
+    if (review.flagged || review.error) {
+      error.value = review.reason || t('profileEditModal.photoRejected')
+      cropOpen.value = false
+      return
+    }
+    pendingAvatarFile = file
+    if (photoURL.value?.startsWith('blob:')) URL.revokeObjectURL(photoURL.value)
+    photoURL.value = URL.createObjectURL(file)
+    cropOpen.value = false
+  }
+  finally {
+    checkingPhoto.value = false
+  }
 }
 
 const avatarPreview = computed(() => photoURL.value ?? undefined)
@@ -207,6 +227,16 @@ async function onSave() {
         return
       }
     }
+    const trimmedBio = bio.value.trim().slice(0, PROFILE_BIO_MAX)
+    if (trimmedBio && trimmedBio !== (props.profile?.bio ?? '').trim()) {
+      checkingBio.value = true
+      const bioReview = await checkBio(trimmedBio)
+      checkingBio.value = false
+      if (bioReview.flagged || bioReview.error) {
+        error.value = bioReview.reason || t('profileEditModal.bioRejected')
+        return
+      }
+    }
     let nextPhotoURL = props.profile?.photoURL ?? null
     if (pendingAvatarFile) {
       avatarUploading.value = true
@@ -226,6 +256,7 @@ async function onSave() {
   finally {
     saving.value = false
     checkingName.value = false
+    checkingBio.value = false
     avatarUploading.value = false
   }
 }
@@ -341,7 +372,7 @@ async function onSave() {
           :form="FORM_ID"
           :loading="saving"
         >
-          {{ checkingName ? t('profileEditModal.checkingName') : t('common.action.save') }}
+          {{ checkingName || checkingBio ? t('profileEditModal.checkingName') : t('common.action.save') }}
         </UButton>
       </div>
     </template>
@@ -429,7 +460,7 @@ async function onSave() {
     v-model:open="cropOpen"
     :src="cropSrc"
     :output-size="256"
-    :loading="avatarUploading"
+    :loading="avatarUploading || checkingPhoto"
     @confirm="onCropConfirm"
   />
 </template>

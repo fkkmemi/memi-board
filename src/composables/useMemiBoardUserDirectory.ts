@@ -2,10 +2,11 @@ import { computed, onScopeDispose, ref, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
 import { deleteField, documentId, getDocs, limit, orderBy, query, serverTimestamp, startAfter, updateDoc, where } from 'firebase/firestore'
 import type { DocumentData, QueryConstraint, QueryDocumentSnapshot } from 'firebase/firestore'
-import { useFirestore } from 'vuefire'
+import { deleteObject, getStorage, ref as storageRef } from 'firebase/storage'
+import { useFirebaseApp, useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
 import { boardUserDoc, boardUsersCol } from '../utils/boardPaths'
-import { readUserDirectoryPage } from '../utils/userDirectoryPage'
+import { readUserDirectoryPage, USER_DIRECTORY_DATE_FIELDS, isUserDirectoryDateSort } from '../utils/userDirectoryPage'
 import type { UserDirectoryCursor, UserDirectoryDirection, UserDirectorySort } from '../utils/userDirectoryPage'
 import type { BoardUserModel, BoardUserRole } from '../types'
 import { BOARD_USER_ROLES } from './useMemiBoardUsers'
@@ -17,6 +18,7 @@ type Cursor = UserDirectoryCursor<QueryDocumentSnapshot<DocumentData>>
 /** Bounded, cursor-based directory. Assignment pickers keep useMemiBoardUsers. */
 export function useMemiBoardUserDirectory(options: { enabled?: MaybeRefOrGetter<boolean> } = {}) {
   const db = useFirestore()
+  const app = useFirebaseApp()
   const { t } = useMemiBoardI18n()
   const sort = ref<UserDirectorySort>('role')
   const direction = ref<UserDirectoryDirection>('asc')
@@ -48,7 +50,7 @@ export function useMemiBoardUserDirectory(options: { enabled?: MaybeRefOrGetter<
         readBatch: async (role, after, count) => {
           const constraints: QueryConstraint[] = selectedSort === 'role'
             ? [where('role', '==', role), orderBy(documentId(), selectedDirection)]
-            : [orderBy('displayName', selectedDirection), orderBy(documentId(), selectedDirection)]
+            : [orderBy(isUserDirectoryDateSort(selectedSort) ? USER_DIRECTORY_DATE_FIELDS[selectedSort] : 'displayName', selectedDirection), orderBy(documentId(), selectedDirection)]
           if (after) constraints.push(startAfter(after))
           const snapshot = await getDocs(query(col, ...constraints, limit(count)))
           return snapshot.docs
@@ -105,6 +107,27 @@ export function useMemiBoardUserDirectory(options: { enabled?: MaybeRefOrGetter<
     await refresh()
   }
 
+  /**
+   * 관리자: 부적절한 프로필 사진 또는 자기소개를 지운다. 사진은 문서의 photoURL 을 비우고
+   * 저장소의 avatar.jpg 도 지워서, 글·댓글에 남아 있는 예전 사진 주소도 더는 열리지 않게 한다.
+   */
+  async function clearUserProfile(uid: string, fields: { photo?: boolean, bio?: boolean }) {
+    const patch: Record<string, unknown> = { updatedAt: serverTimestamp() }
+    if (fields.photo) patch.photoURL = null
+    if (fields.bio) patch.bio = null
+    await updateDoc(boardUserDoc(db, useBoardPathConfig(), uid), patch)
+    if (fields.photo) {
+      try {
+        await deleteObject(storageRef(getStorage(app), `${useBoardPathConfig().usersCollection}/${uid}/avatar.jpg`))
+      }
+      catch (cause) {
+        // 파일이 이미 없으면 그대로 둔다. 그 밖의 오류도 문서는 이미 비웠으니 목록만 새로 고친다.
+        if ((cause as { code?: string }).code !== 'storage/object-not-found') console.warn('[memi-board] avatar delete failed', cause)
+      }
+    }
+    await refresh()
+  }
+
   /** 관리자: 사용자의 콘텐츠 경고 횟수와 마지막 경고 시각을 지운다. 글·댓글 작성 차단도 함께 풀린다. */
   async function resetUserWarnings(uid: string) {
     await updateDoc(boardUserDoc(db, useBoardPathConfig(), uid), {
@@ -117,5 +140,5 @@ export function useMemiBoardUserDirectory(options: { enabled?: MaybeRefOrGetter<
 
   watch([enabled, sort, direction, size, collectionName], reset, { immediate: true, flush: 'sync' })
   onScopeDispose(() => { disposed = true; generation++ })
-  return { users, usersPending: pending, loadError: error, sort, direction, pageSize, page, hasNext, nextPage, previousPage, refresh, updateUserRole, resetUserAiUsage, resetUserWarnings }
+  return { users, usersPending: pending, loadError: error, sort, direction, pageSize, page, hasNext, nextPage, previousPage, refresh, updateUserRole, resetUserAiUsage, resetUserWarnings, clearUserProfile }
 }

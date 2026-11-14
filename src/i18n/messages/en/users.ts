@@ -4,6 +4,10 @@ export default {
     label: 'Sort users by',
     name: 'Name',
     role: 'Role',
+    joined: 'Joined',
+    visited: 'Last visit',
+    updated: 'Last updated',
+    dateNote: 'Users without that date recorded are not shown in this sort.',
     direction: 'Sort direction',
     asc: 'Ascending',
     desc: 'Descending',
@@ -33,6 +37,18 @@ export default {
   aiUsage: {
     writing: 'Writing {used}/{limit}',
     image: 'Images {used}/{limit}',
+  },
+  dates: {
+    joined: 'Joined {time}',
+    visited: 'Visited {time}',
+    updated: 'Updated {time}',
+  },
+  profileClear: {
+    bio: 'Delete bio',
+    photo: 'Delete photo',
+    confirm: 'Click again to delete',
+    done: 'Deleted',
+    failed: 'Couldn’t delete the profile item.',
   },
   roleGroup: 'Choose a role',
   warningReset: {

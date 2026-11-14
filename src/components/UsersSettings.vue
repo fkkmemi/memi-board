@@ -5,15 +5,15 @@ import UserManagementEmail from './UserManagementEmail.vue'
 import UserRoleGuide from './UserRoleGuide.vue'
 import UserListControls from './UserListControls.vue'
 import UserListPagination from './UserListPagination.vue'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { BOARD_USER_ROLES, IMAGE_GENERATION_DAILY_LIMIT, WRITING_ASSISTANT_DAILY_LIMIT, aiUsageSummary, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserDirectory } from 'memi-board/runtime'
 import type { BoardUserModel, BoardUserRole } from 'memi-board/runtime'
 
 const props = withDefaults(defineProps<{ authorized?: boolean }>(), { authorized: false })
 const { isAdmin, isOwner, user, rolePending } = useMemiBoardAuth()
 const canManage = computed(() => isAdmin.value || props.authorized)
-const { users, usersPending, updateUserRole, resetUserAiUsage, resetUserWarnings, loadError, sort, direction, pageSize, page, hasNext, previousPage, nextPage, refresh } = useMemiBoardUserDirectory({ enabled: canManage })
-const { t, formatNumber } = useMemiBoardI18n()
+const { users, usersPending, updateUserRole, resetUserAiUsage, resetUserWarnings, clearUserProfile, loadError, sort, direction, pageSize, page, hasNext, previousPage, nextPage, refresh } = useMemiBoardUserDirectory({ enabled: canManage })
+const { t, formatNumber, formatRelativeDate } = useMemiBoardI18n()
 const roleItems = computed(() => BOARD_USER_ROLES.map(item => ({
   ...item,
   label: t(`common.role.${item.value}`),
@@ -25,6 +25,35 @@ const resettingUid = ref<string | null>(null)
 const resetUid = ref<string | null>(null)
 const resetError = ref('')
 const warningResetUid = ref<string | null>(null)
+// 사진·소개 삭제는 되돌릴 수 없어서 한 번 눌러 확인 상태로 바꾼 뒤 다시 눌러야 실행한다(4초 뒤 자동 해제).
+const armed = ref('')
+const clearedKey = ref('')
+let armedTimer: ReturnType<typeof setTimeout> | undefined
+function armClear(key: string) {
+  armed.value = key
+  clearTimeout(armedTimer)
+  armedTimer = setTimeout(() => { armed.value = '' }, 4000)
+}
+async function clearProfileField(target: BoardUserModel, kind: 'photo' | 'bio') {
+  if (!isAdmin.value || resettingUid.value) return
+  const key = `${target.id}:${kind}`
+  if (armed.value !== key) return armClear(key)
+  armed.value = ''
+  resettingUid.value = target.id
+  clearedKey.value = ''
+  resetError.value = ''
+  try {
+    await clearUserProfile(target.id, { photo: kind === 'photo', bio: kind === 'bio' })
+    clearedKey.value = key
+  }
+  catch (cause) {
+    resetError.value = cause instanceof Error ? cause.message : t('users.profileClear.failed')
+  }
+  finally {
+    resettingUid.value = null
+  }
+}
+onBeforeUnmount(() => clearTimeout(armedTimer))
 async function resetWarnings(target: BoardUserModel) {
   if (!isAdmin.value || resettingUid.value) return
   resettingUid.value = target.id
@@ -129,12 +158,43 @@ async function confirmRoleChange() {
     <div v-else-if="users.length === 0" class="py-12 text-center text-sm text-muted">{{ t('users.empty') }}</div>
     <div v-else class="divide-y divide-default rounded-lg border border-default">
       <div v-for="boardUser in users" :key="boardUser.id" class="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_minmax(12rem,20rem)] md:items-center">
-        <div class="min-w-0">
+        <div class="flex min-w-0 items-start gap-3">
+        <UAvatar :src="boardUser.photoURL || undefined" :alt="boardUser.displayName || t('users.noName')" class="shrink-0" />
+        <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
             <p class="truncate font-medium text-highlighted">{{ boardUser.displayName || t('users.noName') }}</p>
             <UBadge v-if="savedUid === boardUser.id" color="success" variant="subtle" :label="t('common.action.saved')" />
           </div>
           <UserManagementEmail :uid="boardUser.id" :authorized="canManage" />
+          <p class="mt-1 flex flex-wrap gap-x-3 text-xs text-dimmed tabular-nums">
+            <span :class="sort === 'joined' && 'font-medium text-default'">{{ t('users.dates.joined', { time: boardUser.joinedAt ? formatRelativeDate(boardUser.joinedAt, now) : '–' }) }}</span>
+            <span :class="sort === 'visited' && 'font-medium text-default'">{{ t('users.dates.visited', { time: boardUser.lastVisitAt ? formatRelativeDate(boardUser.lastVisitAt, now) : '–' }) }}</span>
+            <span :class="sort === 'updated' && 'font-medium text-default'">{{ t('users.dates.updated', { time: boardUser.updatedAt ? formatRelativeDate(boardUser.updatedAt, now) : '–' }) }}</span>
+          </p>
+          <div v-if="boardUser.bio || (isAdmin && boardUser.photoURL)" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+            <span v-if="boardUser.bio" class="min-w-0 max-w-full break-words">{{ boardUser.bio }}</span>
+            <UButton
+              v-if="isAdmin && boardUser.bio"
+              size="xs"
+              :color="armed === `${boardUser.id}:bio` ? 'error' : 'neutral'"
+              variant="ghost"
+              icon="i-lucide-eraser"
+              :label="armed === `${boardUser.id}:bio` ? t('users.profileClear.confirm') : t('users.profileClear.bio')"
+              :disabled="!!resettingUid"
+              @click="clearProfileField(boardUser, 'bio')"
+            />
+            <UButton
+              v-if="isAdmin && boardUser.photoURL"
+              size="xs"
+              :color="armed === `${boardUser.id}:photo` ? 'error' : 'neutral'"
+              variant="ghost"
+              icon="i-lucide-image-off"
+              :label="armed === `${boardUser.id}:photo` ? t('users.profileClear.confirm') : t('users.profileClear.photo')"
+              :disabled="!!resettingUid"
+              @click="clearProfileField(boardUser, 'photo')"
+            />
+            <UBadge v-if="clearedKey.startsWith(`${boardUser.id}:`)" color="success" variant="subtle" size="sm" :label="t('users.profileClear.done')" />
+          </div>
           <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
             <span class="inline-flex items-center gap-1 tabular-nums" :class="aiUsageOf(boardUser).writing.remaining < 1 && 'text-warning'">
               <UIcon name="i-lucide-sparkles" class="size-3.5" />
@@ -172,6 +232,7 @@ async function confirmRoleChange() {
               @click="resetWarnings(boardUser)"
             />
           </div>
+        </div>
         </div>
         <div class="flex flex-wrap gap-1.5" role="group" :aria-label="t('users.roleGroup')">
           <UButton

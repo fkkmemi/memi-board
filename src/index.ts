@@ -103,6 +103,7 @@ export { useMemiBoardSettings, DEFAULT_CATEGORIES, DEFAULT_BOARDS } from './comp
 export { canManageBoardByRole, canWriteCommentByRole, isAssignedStaff } from './utils/boardAccess'
 export { useMemiBoardUsers, BOARD_USER_ROLES } from './composables/useMemiBoardUsers'
 export { useMemiBoardUserDirectory } from './composables/useMemiBoardUserDirectory'
+export { isUserDirectoryDateSort, USER_DIRECTORY_DATE_FIELDS } from './utils/userDirectoryPage'
 export type { UserDirectorySort, UserDirectoryDirection } from './utils/userDirectoryPage'
 export { useMemiBoardUserProfile } from './composables/useMemiBoardUserProfile'
 export { useMemiBoardSections, normalizeBoardSection } from './composables/useMemiBoardSections'

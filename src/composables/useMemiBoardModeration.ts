@@ -11,7 +11,7 @@ import {
   parseModerationJson,
   memiBoardLanguageLabel,
 } from '../utils/moderation-prompt'
-import { buildProfileNameModerationPrompt, parseProfileNameModerationJson } from '../utils/profileNameModeration'
+import { buildProfileBioModerationPrompt, buildProfileNameModerationPrompt, buildProfilePhotoModerationPrompt, parseProfileNameModerationJson } from '../utils/profileNameModeration'
 import { isMemiBoardAiEnabled, useMemiBoardConfig } from '../config'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
@@ -27,8 +27,8 @@ const APPROVED: ModerationResult = { flagged: false, category: 'none', reason: '
  * 콘텐츠 차단(local/ai) 시 board users 경고 누적.
  */
 export function useMemiBoardModeration(options: {
-  /** Profile names use a dedicated policy, require a valid AI verdict, and do not add posting strikes. */
-  context?: 'content' | 'profile-name'
+  /** Profile fields (name, bio, photo) use dedicated policies, require a valid AI verdict, and do not add posting strikes. */
+  context?: 'content' | 'profile-name' | 'profile-bio' | 'profile-photo'
   /** 보드 언어. 같은 컴포넌트에서 boardLocale 을 provide 했다면 그 locale 을 넘긴다(자기 자신에게 inject 되지 않음). */
   locale?: MaybeRefOrGetter<string | undefined | null>
 } = {}) {
@@ -37,6 +37,10 @@ export function useMemiBoardModeration(options: {
   const config = useMemiBoardConfig()
   const moderation = config.moderation ?? {}
   const isProfileName = options.context === 'profile-name'
+  const isProfileBio = options.context === 'profile-bio'
+  const isProfilePhoto = options.context === 'profile-photo'
+  /** 프로필 항목은 AI 판정이 없으면 통과시키지 않고, 글쓰기 경고도 쌓지 않는다. */
+  const isProfile = isProfileName || isProfileBio || isProfilePhoto
   const app = useFirebaseApp()
   const t = (key: string) => translate(promptLocale.value, key)
   const {
@@ -72,7 +76,11 @@ export function useMemiBoardModeration(options: {
       model: modelName,
       systemInstruction: isProfileName
         ? buildProfileNameModerationPrompt(memiBoardLanguageLabel(promptLocale.value))
-        : buildModerationPrompt(promptLocale.value),
+        : isProfileBio
+          ? buildProfileBioModerationPrompt(memiBoardLanguageLabel(promptLocale.value))
+          : isProfilePhoto
+            ? buildProfilePhotoModerationPrompt(memiBoardLanguageLabel(promptLocale.value))
+            : buildModerationPrompt(promptLocale.value),
       generationConfig: {
         temperature: 0,
         maxOutputTokens: 256,
@@ -89,11 +97,17 @@ export function useMemiBoardModeration(options: {
   }
 
   function errorResult(): ModerationResult {
-    if (isProfileName || moderation.onError === 'block') {
+    if (isProfile || moderation.onError === 'block') {
       return {
         flagged: true,
         category: 'other',
-        reason: t(isProfileName ? 'profileEditModal.nameReviewFailed' : 'moderation.reviewFailed'),
+        reason: t(isProfileName
+          ? 'profileEditModal.nameReviewFailed'
+          : isProfileBio
+            ? 'profileEditModal.bioReviewFailed'
+            : isProfilePhoto
+              ? 'profileEditModal.photoReviewFailed'
+              : 'moderation.reviewFailed'),
         error: true,
         via: 'ai-error-block',
       }
@@ -121,7 +135,7 @@ export function useMemiBoardModeration(options: {
 
   /** 콘텐츠 위반(local/ai)만 경고 누적. API 오류·이용제한 자체는 제외. */
   async function applyStrikeIfContentBlock(result: ModerationResult): Promise<ModerationResult> {
-    if (isProfileName) return result
+    if (isProfile) return result
     if (!result.flagged || result.error) return result
     if (result.via !== 'local' && result.via !== 'ai') return result
     try {
@@ -135,7 +149,7 @@ export function useMemiBoardModeration(options: {
   }
 
   async function checkText(text: string): Promise<ModerationResult> {
-    if (!isProfileName && isWriteRestricted.value) {
+    if (!isProfile && isWriteRestricted.value) {
       return {
         flagged: true,
         category: 'other',
@@ -161,9 +175,11 @@ export function useMemiBoardModeration(options: {
       const model = getModerationModel()
       const result = await model.generateContent(isProfileName
         ? JSON.stringify({ displayName: trimmed })
-        : buildModerationTextPrompt(trimmed, promptLocale.value))
+        : isProfileBio
+          ? JSON.stringify({ bio: trimmed })
+          : buildModerationTextPrompt(trimmed, promptLocale.value))
       const raw = result.response.text()
-      const parsed = isProfileName ? parseProfileNameModerationJson(raw) : parseModerationJson(raw)
+      const parsed = isProfile ? parseProfileNameModerationJson(raw) : parseModerationJson(raw)
       if (!parsed) return errorResult()
       const out: ModerationResult = {
         flagged: parsed.flagged,
@@ -185,7 +201,7 @@ export function useMemiBoardModeration(options: {
   }
 
   async function checkImage(file: File): Promise<ModerationResult> {
-    if (isWriteRestricted.value) {
+    if (!isProfile && isWriteRestricted.value) {
       return {
         flagged: true,
         category: 'other',
@@ -195,7 +211,8 @@ export function useMemiBoardModeration(options: {
       }
     }
 
-    if (moderation.enabled === false || !isMemiBoardAiEnabled() || !moderation.moderateImages) {
+    // 프로필 사진은 호스트의 moderateImages 설정과 상관없이 AI 검사를 한다(AI가 꺼져 있으면 건너뜀).
+    if (moderation.enabled === false || !isMemiBoardAiEnabled() || (!isProfilePhoto && !moderation.moderateImages)) {
       return { ...APPROVED, via: 'disabled' }
     }
 
@@ -210,10 +227,10 @@ export function useMemiBoardModeration(options: {
       const model = getModerationModel()
       const result = await model.generateContent([
         { inlineData: { mimeType: file.type || 'image/jpeg', data: base64 } },
-        buildModerationImagePrompt(promptLocale.value),
+        isProfilePhoto ? 'Review this profile photo.' : buildModerationImagePrompt(promptLocale.value),
       ])
       const raw = result.response.text()
-      const parsed = parseModerationJson(raw)
+      const parsed = isProfilePhoto ? parseProfileNameModerationJson(raw) : parseModerationJson(raw)
       if (!parsed) return errorResult()
       const out: ModerationResult = {
         flagged: parsed.flagged,

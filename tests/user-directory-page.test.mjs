@@ -24,7 +24,7 @@ function reader(sort, direction, rows = source) {
   return { readBatch, calls }
 }
 
-for (const sort of ['name', 'role']) {
+for (const sort of ['name', 'role', 'joined', 'visited', 'updated']) {
   for (const direction of ['asc', 'desc']) {
     test(`${sort}/${direction}: cursor pages keep all users exactly once, including tied names and empty role groups`, async () => {
       const { readBatch, calls } = reader(sort, direction)
@@ -38,9 +38,10 @@ for (const sort of ['name', 'role']) {
         cursor = page.cursor
         hasNext = page.hasNext
       }
+      // Date sorts read one flat batch like the name sort; here the mock orders them by id (ties are the point).
       const expected = [...source].sort((a, b) => sort === 'role'
         ? USER_DIRECTORY_ROLES.indexOf(a.role) - USER_DIRECTORY_ROLES.indexOf(b.role) || a.id.localeCompare(b.id)
-        : a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+        : (sort === 'name' ? a.name.localeCompare(b.name) : 0) || a.id.localeCompare(b.id))
       if (direction === 'desc') expected.reverse()
       assert.deepEqual(actual, expected.map(doc => doc.id))
       assert.ok(calls.every(call => call.count >= 1 && call.count <= 3))

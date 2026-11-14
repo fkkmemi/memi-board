@@ -113,6 +113,8 @@ service firebase.storage {
         && request.auth.uid == uid
         && request.resource.size < 3 * 1024 * 1024
         && request.resource.contentType.matches('image/jpeg');
+      // Admins can delete an inappropriate profile photo (the user replaces theirs by uploading).
+      allow delete: if isBoardStaff();
     }
 
     // Board banners are public decoration; only board configuration managers can upload.

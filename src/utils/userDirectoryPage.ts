@@ -1,4 +1,8 @@
-export type UserDirectorySort = 'name' | 'role'
+export type UserDirectorySort = 'name' | 'role' | 'joined' | 'visited' | 'updated'
+
+/** 날짜 기준 정렬이 읽는 문서 필드. 이 필드가 없는 문서는 Firestore 정렬 특성상 목록에서 빠진다. */
+export const USER_DIRECTORY_DATE_FIELDS = { joined: 'joinedAt', visited: 'lastVisitAt', updated: 'updatedAt' } as const
+export const isUserDirectoryDateSort = (sort: UserDirectorySort): sort is keyof typeof USER_DIRECTORY_DATE_FIELDS => sort in USER_DIRECTORY_DATE_FIELDS
 export type UserDirectoryDirection = 'asc' | 'desc'
 
 export interface UserDirectoryCursor<T> {
@@ -19,7 +23,7 @@ export async function readUserDirectoryPage<T>(options: {
   const { sort, direction, pageSize, cursor, readBatch } = options
   const roles = direction === 'asc' ? [...USER_DIRECTORY_ROLES] : [...USER_DIRECTORY_ROLES].reverse()
   const entries: UserDirectoryCursor<T>[] = []
-  if (sort === 'name') {
+  if (sort !== 'role') {
     const docs = await readBatch(null, cursor?.document ?? null, pageSize + 1)
     entries.push(...docs.map(document => ({ document, roleIndex: 0 })))
   }
