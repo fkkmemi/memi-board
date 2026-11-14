@@ -18,7 +18,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 - The waiting card is generic and closable: "AI is working…" with a hint to try a mini game, an animated thinking-robot illustration (SVG and CSS, no image file) above the games, and an X at the top right that is always available (in the "done" state it also continues to the saved post). The card now also shows wherever AI makes you wait: post save (review, title suggestion, translation), comment post and edit, comment image check and upload, profile name, bio and photo review, and board settings (banner generation, copy translation, bulk post translation). The save-with-translation card has no X until it finishes, because closing it would abandon the save.
-- The waiting card swaps the thinking robot for a happy one (check bubble, waving hand) when the work is done, and keeps the hint's space, so the games below no longer jump up. On phones (under 640px) the card is centered and spans the screen width minus a 12px margin.
+- The waiting card swaps the thinking robot for a happy one (check bubble, waving hand) when the work is done, and keeps the hint's space, so the games below no longer jump up. On phones (under 640px) the card is centered with at least 24px of margin on each side (up to 21rem wide).
 - Waiting mini games: Snake (keyboard or swipe) is replaced by "Lights out", a 5x5 puzzle played with the mouse or a tap. The board is always solvable.
 - Waiting mini games: a 3x3 "Slide puzzle" (click a number next to the blank). The board is scrambled from the solved state, so it is always solvable.
 

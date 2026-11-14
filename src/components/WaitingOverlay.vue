@@ -92,12 +92,12 @@ watch(() => props.open, (open) => {
 </template>
 
 <style>
-/* 좁은 화면(폰)에서는 오른쪽에 붙이지 않고 가운데에 두고 폭을 화면에 맞춘다. */
+/* 좁은 화면(폰)에서는 오른쪽에 붙이지 않고 가운데에 둔다. 좌우로 24px 이상 여백을 둬서 답답하지 않게 한다. */
 @media (max-width: 639px) {
   .memi-waiting-card {
     inset-inline-start: 50%;
     inset-inline-end: auto;
-    width: calc(100vw - 1.5rem);
+    width: min(21rem, calc(100vw - 3rem));
     transform: translateX(-50%);
   }
   [dir='rtl'] .memi-waiting-card {
