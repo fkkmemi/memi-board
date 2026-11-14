@@ -18,6 +18,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 - Waiting mini games: Snake (keyboard or swipe) is replaced by "Lights out", a 5x5 puzzle played with the mouse or a tap. The board is always solvable.
+- Waiting mini games: a 3x3 "Slide puzzle" (click a number next to the blank). The board is scrambled from the solved state, so it is always solvable.
 
 ### Fixed
 - Saving a new post twice from the same editor ("Next: Preview", edit, "Next: Preview" again) failed with "This post has already been saved. Reload it before editing." The first save creates the draft, so later saves from that screen now update that draft instead of creating a second one. The waiting card's click-blocker now also stays up in its "done" state, so the editor can't be changed behind it.

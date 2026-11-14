@@ -14,8 +14,9 @@ export default {
   aiTitle: 'AI가 작업 중이에요',
   aiSubtitle: 'AI 작업은 조금 걸릴 수 있어요. 그동안 미니게임을 즐겨보세요!',
   restart: '다시 하기',
-  games: { memory: '짝 맞추기', lights: '불 끄기', sudoku: '스도쿠' },
+  games: { memory: '짝 맞추기', lights: '불 끄기', slide: '숫자 퍼즐', sudoku: '스도쿠' },
   memory: { moves: '시도 {count}회', cleared: '모두 맞췄어요! ({count}회)' },
+  slide: { hint: '숫자를 순서대로 맞춰 보세요 · {count}번', solved: '완성! ({count}번)', shuffle: '섞기' },
   lights: { hint: '불을 모두 꺼 보세요 · {count}번', solved: '모두 껐어요! ({count}번)', shuffle: '섞기' },
   sudoku: { hint: '칸을 눌러 숫자를 채워 보세요', solved: '완성! 🎉', erase: '지우기' },
 }

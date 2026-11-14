@@ -14,8 +14,9 @@ export default {
   aiSubtitle: 'AI tasks can take a while. Enjoy a mini game in the meantime!',
   close: 'Close',
   restart: 'Play again',
-  games: { memory: 'Memory match', lights: 'Lights out', sudoku: 'Sudoku' },
+  games: { memory: 'Memory match', lights: 'Lights out', slide: 'Slide puzzle', sudoku: 'Sudoku' },
   memory: { moves: '{count} moves', cleared: 'All matched! ({count} moves)' },
+  slide: { hint: 'Put the numbers in order · {count} moves', solved: 'Solved! ({count} moves)', shuffle: 'Shuffle' },
   lights: { hint: 'Turn every light off · {count} moves', solved: 'All off! ({count} moves)', shuffle: 'Shuffle' },
   sudoku: { hint: 'Select a cell and fill in a number', solved: 'Solved! 🎉', erase: 'Erase' },
 }
