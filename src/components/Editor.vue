@@ -110,6 +110,9 @@ const submitHint = ref('')
 // 사용자가 "계속하기"를 눌러야 saved 를 내보낸다(자동으로 닫지 않는다).
 const waiting = ref<'off' | 'translating' | 'done'>('off')
 let waitingSavedId = ''
+// 새 글을 처음 저장하면(미리보기용 초안) 글이 이미 만들어져 있다. 이 화면에 남아 다시 저장하면
+// 새로 만들지 않고 이 초안을 고쳐 쓴다. 다시 만들면 같은 글 id 라 "이미 저장된 글입니다"로 막힌다.
+let createdDraft: { id: string, slug: string } | null = null
 // 번역·저장이 이 시간 안에 끝나면 오버레이 없이 바로 이동한다(잠깐 번쩍이는 것을 막는다).
 const WAITING_DELAY_MS = 2000
 let waitingTimer: ReturnType<typeof setTimeout> | undefined
@@ -1439,7 +1442,7 @@ async function handleSubmit() {
       ? pendingTranslations.value
       : undefined
     // 새 글은 항상, 수정 글은 원문이 바뀌었거나 저장된 번역이 이미 낡았을 때 다시 번역한다.
-    const needsTranslation = !props.postId
+    const needsTranslation = (!props.postId && !createdDraft)
       || !loadedTranslationCurrent.value
       || translationKey(bodyContent, storedTitle) !== loadedTranslationKey.value
     if (needsTranslation && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
@@ -1474,15 +1477,19 @@ async function handleSubmit() {
       ...(translations ? { translations } : {}),
     }
 
-    if (props.postId) {
-      await updatePost(props.postId, payload)
-      if (canPin.value && pinned.value !== loadedPinned.value) {
+    const existingId = props.postId || createdDraft?.id
+    if (existingId) {
+      await updatePost(existingId, payload)
+      if (props.postId && canPin.value && pinned.value !== loadedPinned.value) {
         await setPostPinned(props.postId, pinned.value)
         loadedPinned.value = pinned.value
       }
+      // 같은 화면에서 다시 저장해도 번역을 또 하지 않게, 방금 저장한 원문과 번역 여부를 기억한다.
+      loadedTranslationKey.value = translationKey(bodyContent, storedTitle)
+      loadedTranslationCurrent.value = !!translations || loadedTranslationCurrent.value
       saving.value = false
       markSaved()
-      finishSave(props.postId)
+      finishSave(props.postId || createdDraft!.slug)
     }
     else {
       const id = await createPost({
@@ -1492,6 +1499,9 @@ async function handleSubmit() {
         authorName: user.value.displayName,
         authorPhoto: user.value.photoURL,
       })
+      createdDraft = { id: attachmentNamespace.value, slug: id }
+      loadedTranslationKey.value = translationKey(bodyContent, storedTitle)
+      loadedTranslationCurrent.value = !!translations
       saving.value = false
       markSaved()
       finishSave(id)

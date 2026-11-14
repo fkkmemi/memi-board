@@ -38,7 +38,7 @@ watch(() => props.open, (open) => {
   <Teleport to="body">
     <template v-if="open">
       <div
-        v-if="block && !done"
+        v-if="block"
         class="fixed inset-0 z-[99] cursor-progress"
         aria-hidden="true"
       />
