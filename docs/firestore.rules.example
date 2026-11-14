@@ -341,6 +341,18 @@ service cloud.firestore {
         && (!('moderationBlockCount' in request.resource.data)
             || request.resource.data.moderationBlockCount == 0
             || request.resource.data.moderationBlockCount == 1);
+      // Admins can reset a user's AI usage: the six counter fields are removed and nothing else changes.
+      allow update: if profileTextChangeOk() && isBoardAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt', 'aiImageCount', 'aiImagePending', 'aiImageWindowAt', 'updatedAt'])
+        && !request.resource.data.keys()
+          .hasAny(['aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt', 'aiImageCount', 'aiImagePending', 'aiImageWindowAt']);
+      // Admins can clear a user's content warnings: the two moderation fields are removed and nothing else changes.
+      allow update: if profileTextChangeOk() && isBoardAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
+        && !request.resource.data.keys()
+          .hasAny(['moderationBlockCount', 'moderationBlockAt']);
       allow update: if profileTextChangeOk() && ((canChangeRole(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt']))
         || (isSignedIn()
           && request.auth.uid == uid

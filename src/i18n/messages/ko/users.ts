@@ -30,5 +30,20 @@ export default {
   noName: '이름 없음',
   noEmail: '이메일 없음',
   emailLoadFailed: '이메일을 불러오지 못했습니다.',
+  aiUsage: {
+    writing: '글쓰기 {used}/{limit}',
+    image: '그림 {used}/{limit}',
+  },
+  roleGroup: '역할 선택',
+  warningReset: {
+    button: '경고 초기화',
+    done: '경고를 초기화했어요',
+    failed: '콘텐츠 경고를 초기화하지 못했습니다.',
+  },
+  aiReset: {
+    button: 'AI 횟수 초기화',
+    done: '초기화했어요',
+    failed: 'AI 사용 횟수를 초기화하지 못했습니다.',
+  },
   moderationWarnings: '콘텐츠 경고 {count}회',
 }

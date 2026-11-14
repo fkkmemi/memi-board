@@ -9,6 +9,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 - AI images have their own daily limit of 3 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.
 
 ### Added
+- User management: each account shows its AI usage (writing and images), and admins can reset it. Admins can also clear an account's content warnings (which lifts the posting block). Roles are chosen with buttons instead of a dropdown. Both resets delete counter fields; the example rules add two admin-only `allow update` branches that permit exactly those fields to be removed.
 - Profile photo from AI: "Make with AI" next to "Change photo" in the profile editor. A square avatar is drawn from the prompt, or from the name and bio when it is empty, previewed (regenerate as needed), then passed through the usual crop step. It uses the same daily image limit as post images and shows the waiting card while generating.
 - Post list restore: after loading more posts, opening one and pressing Back brings back every loaded post at the same scroll position instead of resetting to the first page. The list is kept in memory for 5 minutes, only for Back/Forward navigation (a fresh list click starts over), and is dropped when a post is created, edited, published, pinned or deleted. `clearPostListCache()` is exported for hosts.
 
@@ -21,7 +22,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 - `tests/ai-usage.test.mjs` and `tests/ai-usage-rules.test.mjs` (emulator, run in the publish workflow).
 
 ### Host app steps
-- Merge the `aiImage*` branches of `memiBoardUsers/{uid}` from `docs/firestore.rules.example` and deploy the Firestore rules **before** the site. Without them, image generation is rejected at the reservation step.
+- Merge the `aiImage*` branches and the two admin reset branches of `memiBoardUsers/{uid}` from `docs/firestore.rules.example` and deploy the Firestore rules **before** the site. Without them, image generation is rejected at the reservation step.
 
 ## [0.67.0] - 2026-11-14
 

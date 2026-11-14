@@ -30,5 +30,20 @@ export default {
   noName: 'No name',
   noEmail: 'No email',
   emailLoadFailed: 'Couldn’t load the email.',
+  aiUsage: {
+    writing: 'Writing {used}/{limit}',
+    image: 'Images {used}/{limit}',
+  },
+  roleGroup: 'Choose a role',
+  warningReset: {
+    button: 'Clear warnings',
+    done: 'Warnings cleared',
+    failed: 'Couldn’t clear the content warnings.',
+  },
+  aiReset: {
+    button: 'Reset AI usage',
+    done: 'Reset',
+    failed: 'Couldn’t reset AI usage.',
+  },
   moderationWarnings: '{count} content warnings',
 }

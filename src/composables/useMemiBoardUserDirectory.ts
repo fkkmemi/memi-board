@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref, shallowRef, toValue, watch } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
-import { documentId, getDocs, limit, orderBy, query, serverTimestamp, startAfter, updateDoc, where } from 'firebase/firestore'
+import { deleteField, documentId, getDocs, limit, orderBy, query, serverTimestamp, startAfter, updateDoc, where } from 'firebase/firestore'
 import type { DocumentData, QueryConstraint, QueryDocumentSnapshot } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
 import { useBoardPathConfig } from '../config'
@@ -9,6 +9,7 @@ import { readUserDirectoryPage } from '../utils/userDirectoryPage'
 import type { UserDirectoryCursor, UserDirectoryDirection, UserDirectorySort } from '../utils/userDirectoryPage'
 import type { BoardUserModel, BoardUserRole } from '../types'
 import { BOARD_USER_ROLES } from './useMemiBoardUsers'
+import { AI_USAGE_FIELDS } from '../utils/aiUsage'
 import { useMemiBoardI18n } from '../i18n/useMemiBoardI18n'
 
 type Cursor = UserDirectoryCursor<QueryDocumentSnapshot<DocumentData>>
@@ -95,7 +96,26 @@ export function useMemiBoardUserDirectory(options: { enabled?: MaybeRefOrGetter<
     await refresh()
   }
 
+  /** 관리자: 사용자의 AI 글쓰기·그림 사용 횟수를 모두 지운다(카운터 필드 6개 삭제). */
+  async function resetUserAiUsage(uid: string) {
+    const cleared = Object.fromEntries(
+      Object.values(AI_USAGE_FIELDS).flatMap(fields => Object.values(fields)).map(name => [name, deleteField()]),
+    )
+    await updateDoc(boardUserDoc(db, useBoardPathConfig(), uid), { ...cleared, updatedAt: serverTimestamp() })
+    await refresh()
+  }
+
+  /** 관리자: 사용자의 콘텐츠 경고 횟수와 마지막 경고 시각을 지운다. 글·댓글 작성 차단도 함께 풀린다. */
+  async function resetUserWarnings(uid: string) {
+    await updateDoc(boardUserDoc(db, useBoardPathConfig(), uid), {
+      moderationBlockCount: deleteField(),
+      moderationBlockAt: deleteField(),
+      updatedAt: serverTimestamp(),
+    })
+    await refresh()
+  }
+
   watch([enabled, sort, direction, size, collectionName], reset, { immediate: true, flush: 'sync' })
   onScopeDispose(() => { disposed = true; generation++ })
-  return { users, usersPending: pending, loadError: error, sort, direction, pageSize, page, hasNext, nextPage, previousPage, refresh, updateUserRole }
+  return { users, usersPending: pending, loadError: error, sort, direction, pageSize, page, hasNext, nextPage, previousPage, refresh, updateUserRole, resetUserAiUsage, resetUserWarnings }
 }
