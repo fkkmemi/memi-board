@@ -4,6 +4,7 @@ export default {
   demoLink: 'Try the waiting screen',
   doneTitle: 'All done!',
   thinking: 'An AI robot thinking hard',
+  thinkingDone: 'A happy AI robot',
   collapse: 'Collapse',
   expand: 'Expand',
   close: 'Close',

@@ -5,6 +5,7 @@ export default {
   doneTitle: '작업이 끝났어요!',
   close: '닫기',
   thinking: '고민하는 AI 로봇',
+  thinkingDone: '기뻐하는 AI 로봇',
   collapse: '접기',
   expand: '펼치기',
   restart: '다시 하기',

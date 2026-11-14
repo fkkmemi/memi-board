@@ -42,7 +42,7 @@ watch(() => props.open, (open) => {
         aria-hidden="true"
       />
       <div
-        class="pointer-events-auto fixed end-3 top-16 z-[100] flex w-[min(21rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-5rem)] flex-col overflow-y-auto rounded-2xl border border-default bg-default/95 shadow-xl backdrop-blur-sm"
+        class="memi-waiting-card pointer-events-auto fixed end-3 top-16 z-[100] flex w-[min(21rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-5rem)] flex-col overflow-y-auto rounded-2xl border border-default bg-default/95 shadow-xl backdrop-blur-sm"
         :dir="dir"
         role="status"
         aria-live="polite"
@@ -79,8 +79,9 @@ watch(() => props.open, (open) => {
           />
         </div>
         <div v-show="!collapsed" class="flex flex-col gap-3 border-t border-default px-3 pb-3 pt-3">
-          <MemiBoardAiThinking v-if="!done" :label="t('waiting.thinking')" />
-          <p v-if="!done" class="text-xs text-muted">{{ subtitle ?? t('waiting.subtitle') }}</p>
+          <MemiBoardAiThinking :done="done" :label="t(done ? 'waiting.thinkingDone' : 'waiting.thinking')" />
+          <!-- 끝나도 자리는 그대로 둔다. 없애면 아래 게임이 위로 튀어 오른다. -->
+          <p class="text-xs text-muted" :class="{ invisible: done }" :aria-hidden="done">{{ subtitle ?? t('waiting.subtitle') }}</p>
           <slot>
             <MemiBoardWaitingGames />
           </slot>
@@ -91,6 +92,19 @@ watch(() => props.open, (open) => {
 </template>
 
 <style>
+/* 좁은 화면(폰)에서는 오른쪽에 붙이지 않고 가운데에 두고 폭을 화면에 맞춘다. */
+@media (max-width: 639px) {
+  .memi-waiting-card {
+    inset-inline-start: 50%;
+    inset-inline-end: auto;
+    width: calc(100vw - 1.5rem);
+    transform: translateX(-50%);
+  }
+  [dir='rtl'] .memi-waiting-card {
+    transform: translateX(50%);
+  }
+}
+
 @keyframes waiting-slide {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
