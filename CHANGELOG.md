@@ -4,6 +4,18 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.68.0] - 2026-11-14
+
+### Security
+- Example Firestore rules (`docs/firestore.rules.example`) close four gaps a direct API write could use. Copy the updated rules into your project and deploy them; the app code is unchanged.
+  - `likeCount` on posts and comments changes by one only in the same commit that creates or deletes the caller's own like document. Raising or lowering the number alone is rejected.
+  - New posts and comments must start with zero counters, and `createdAt`, when present, must be the server time, so a future date cannot hold the top of a list.
+  - Authors and managers can no longer change `createdAt`, `likeCount`, `viewCount`, `commentCount` or `replyCount` in a regular edit.
+  - The 1,000-character comment limit is now also checked when a comment is edited, not only when it is created.
+
+### Fixed
+- Spec tab: section 6 had duplicate row numbers (6.3 and 6.4 twice) and a note saying AI images share the writing limit. Rows are renumbered 6.1 to 6.8 and the note is removed.
+
 ### Changed
 - The waiting mini game is now a small corner card (top right) instead of a full-screen overlay, so you can follow the page while waiting. It can be collapsed. Saving with auto-translation keeps an invisible click-blocker; AI tasks that take over 1.5 s show the same card.
 - AI images have their own daily limit of 3 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.

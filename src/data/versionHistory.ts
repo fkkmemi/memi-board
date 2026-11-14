@@ -16,6 +16,26 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.68.0',
+    date: '2026-11-14',
+    highlights: [
+      'AI가 일하는 동안 구석의 작은 카드에서 로봇과 미니 게임(라이트 아웃, 슬라이드 퍼즐)을 볼 수 있어요',
+      'AI로 프로필 사진을 만들 수 있고, 프로필 사진과 소개는 AI가 검토해요',
+      'AI 그림은 하루 3장으로 글쓰기 횟수와 따로 세고, AI 버튼에 남은 횟수가 보여요',
+      '글을 보고 뒤로 가면 더 불러온 목록과 스크롤 위치가 그대로 돌아와요',
+      '관리자가 회원의 AI 사용량·경고를 초기화하고 부적절한 사진·소개를 지울 수 있어요',
+      '보안: 좋아요 수·조회수·작성 시각을 직접 조작할 수 없고, 댓글 수정에도 1,000자 제한이 적용돼요 (예제 규칙을 다시 배포해 주세요)',
+    ],
+    highlightsEn: [
+      'While AI works, a small corner card shows a robot and mini games (Lights Out, Slide puzzle)',
+      'Make a profile photo with AI; profile photos and bios are reviewed by AI',
+      'AI images have their own limit of 3 per day, and the AI button shows what is left',
+      'Going Back from a post restores the loaded list and scroll position',
+      'Admins can reset a member\'s AI usage and warnings, and remove an inappropriate photo or bio',
+      'Security: like counts, view counts and creation time can no longer be set by hand, and the 1,000-character limit also applies to comment edits (redeploy the example rules)',
+    ],
+  },
+  {
     version: '0.67.0',
     date: '2026-11-14',
     highlights: [
