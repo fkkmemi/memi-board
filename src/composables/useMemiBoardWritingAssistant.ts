@@ -18,7 +18,7 @@ import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTra
 
 export const WRITING_ASSISTANT_DAILY_LIMIT = 20
 /** 그림은 호출당 비용이 글쓰기보다 훨씬 커서 따로, 더 적게 센다. */
-export const IMAGE_GENERATION_DAILY_LIMIT = 5
+export const IMAGE_GENERATION_DAILY_LIMIT = 3
 /** 사진으로 제목을 만들 때 보낼 수 있는 사진 최대 크기. */
 const IMAGE_TITLE_MAX_BYTES = 4 * 1024 * 1024
 const DAILY_LIMITS = { writing: WRITING_ASSISTANT_DAILY_LIMIT, image: IMAGE_GENERATION_DAILY_LIMIT } as const

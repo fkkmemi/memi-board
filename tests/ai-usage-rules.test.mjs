@@ -48,13 +48,13 @@ rulesTest('image quota: the count cannot be lowered or reset inside the window',
   await assert.rejects(update({ aiImageCount: 0, aiImagePending: 0, aiImageWindowAt: serverTimestamp() }), denied)
 })
 
-rulesTest('image quota: reservations stop at five in total', async () => {
-  for (let used = 1; used < 5; used++) {
+rulesTest('image quota: reservations stop at three in total', async () => {
+  for (let used = 1; used < 3; used++) {
     await update({ aiImagePending: 1 })
     await update({ aiImageCount: used + 1, aiImagePending: 0 })
   }
   await assert.rejects(update({ aiImagePending: 1 }), denied)
-  await assert.rejects(update({ aiImageCount: 6, aiImagePending: 0 }), denied)
+  await assert.rejects(update({ aiImageCount: 4, aiImagePending: 0 }), denied)
 })
 
 rulesTest('image quota does not touch the writing quota', async () => {

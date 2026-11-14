@@ -413,7 +413,7 @@ service cloud.firestore {
               && request.resource.data.aiWritingCount == 0
               && request.resource.data.aiWritingPending == 1
             )
-            // AI images are counted apart from writing (limit 5 per 24 h). Same reserve, confirm, release steps.
+            // AI images are counted apart from writing (limit 3 per 24 h). Same reserve, confirm, release steps.
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['aiImagePending', 'updatedAt'])
@@ -422,7 +422,7 @@ service cloud.firestore {
               && (
                 (
                   request.resource.data.aiImagePending == resource.data.get('aiImagePending', 0) + 1
-                  && resource.data.get('aiImageCount', 0) + request.resource.data.aiImagePending <= 5
+                  && resource.data.get('aiImageCount', 0) + request.resource.data.aiImagePending <= 3
                 )
                 || (
                   resource.data.get('aiImagePending', 0) >= 1
@@ -438,7 +438,7 @@ service cloud.firestore {
               && resource.data.get('aiImagePending', 0) >= 1
               && request.resource.data.aiImagePending == resource.data.get('aiImagePending', 0) - 1
               && request.resource.data.aiImageCount == resource.data.get('aiImageCount', 0) + 1
-              && request.resource.data.aiImageCount <= 5
+              && request.resource.data.aiImageCount <= 3
             )
             || (
               request.resource.data.diff(resource.data).affectedKeys()

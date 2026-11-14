@@ -6,7 +6,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ### Changed
 - The waiting mini game is now a small corner card (top right) instead of a full-screen overlay, so you can follow the page while waiting. It can be collapsed. Saving with auto-translation keeps an invisible click-blocker; AI tasks that take over 1.5 s show the same card.
-- AI images have their own daily limit of 5 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.
+- AI images have their own daily limit of 3 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.
 
 ### Added
 - Post list restore: after loading more posts, opening one and pressing Back brings back every loaded post at the same scroll position instead of resetting to the first page. The list is kept in memory for 5 minutes, only for Back/Forward navigation (a fresh list click starts over), and is dropped when a post is created, edited, published, pinned or deleted. `clearPostListCache()` is exported for hosts.
