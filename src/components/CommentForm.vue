@@ -6,11 +6,12 @@ import { canWriteCommentByRole, useMemiBoardAuth, useMemiBoardConfig } from 'mem
 import { COMMENT_BODY_MAX_LENGTH, useMemiBoardComments } from 'memi-board/runtime'
 import { useMemiBoardModeration } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
-import { useMemiBoardI18n } from 'memi-board/runtime'
+import { useAiWaiting, useMemiBoardI18n } from 'memi-board/runtime'
 import type { Attachment, CommentModel, CommentTranslationSet } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardCommentAi from './CommentAi.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 const props = defineProps<{ boardId: string, postId: string, parent?: CommentModel | null }>()
@@ -51,6 +52,9 @@ const image = ref<Attachment | null>(null)
 const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
 const imageBusy = ref(false)
 const submitting = ref(false)
+// 등록(AI 검열·번역)이나 이미지 검사·업로드가 오래 걸리면 대기 카드를 띄운다. AI 도우미는 CommentAi 가 따로 띄운다.
+const waitBusy = computed(() => submitting.value || imageBusy.value)
+const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(waitBusy)
 const error = ref('')
 const notice = ref('')
 const { markSaved, confirmLeave } = useUnsavedChangesGuard(
@@ -137,6 +141,7 @@ onUnmounted(() => {
     class="overflow-hidden rounded-xl border border-default bg-default"
     @submit.prevent="handleSubmit"
   >
+    <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
     <div class="flex flex-col gap-3 p-3 sm:p-4">
       <UTextarea
         v-model="body"

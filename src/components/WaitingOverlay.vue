@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 import MemiBoardWaitingGames from './WaitingGames.vue'
+import MemiBoardAiThinking from './AiThinking.vue'
 
 /**
  * 오래 걸리는 작업(글 번역, AI 작업 등) 동안 화면 모서리에 작은 카드로 진행 상황과 미니게임을 보여준다.
@@ -16,8 +17,6 @@ const props = defineProps<{
   closable?: boolean
   /** 작업이 끝난 상태. 자동으로 닫지 않고 사용자가 "계속하기"를 누를 때까지 게임을 그대로 둔다. */
   done?: boolean
-  /** 저장된 글이 아직 미게시(초안)다. 끝난 안내를 "올라갔다" 대신 "미리보기에서 게시하라"로 바꾼다. */
-  draft?: boolean
   /** 작업 중에는 뒤 화면 클릭을 막는다(투명). 기본은 막지 않는다. */
   block?: boolean
   /** 진행 중 아이콘. 기본은 번역 아이콘 */
@@ -53,7 +52,7 @@ watch(() => props.open, (open) => {
             <UIcon :name="done ? 'i-lucide-check' : (icon ?? 'i-lucide-languages')" class="size-4" :class="done ? '' : 'animate-pulse'" />
           </span>
           <div class="min-w-0 flex-1">
-            <h2 class="truncate text-sm font-semibold text-highlighted">{{ done ? t(draft ? 'waiting.draftDoneTitle' : 'waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
+            <h2 class="truncate text-sm font-semibold text-highlighted">{{ done ? t('waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
             <div v-if="!done" class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-elevated">
               <div class="h-full w-1/3 animate-[waiting-slide_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
             </div>
@@ -69,19 +68,19 @@ watch(() => props.open, (open) => {
             @click="collapsed = !collapsed"
           />
           <UButton
-            v-if="closable"
+            v-if="closable || done"
             icon="i-lucide-x"
             color="neutral"
             variant="ghost"
             size="xs"
             class="rounded-full"
             :aria-label="t('waiting.close')"
-            @click="emit('close')"
+            @click="done ? emit('continue') : emit('close')"
           />
         </div>
         <div v-show="!collapsed" class="flex flex-col gap-3 border-t border-default px-3 pb-3 pt-3">
-          <p class="text-xs text-muted">{{ done ? t(draft ? 'waiting.draftDoneSubtitle' : 'waiting.doneSubtitle') : (subtitle ?? t('waiting.subtitle')) }}</p>
-          <UButton v-if="done" :label="t(draft ? 'waiting.draftContinue' : 'waiting.continue')" trailing-icon="i-lucide-arrow-right" block @click="emit('continue')" />
+          <MemiBoardAiThinking v-if="!done" :label="t('waiting.thinking')" />
+          <p v-if="!done" class="text-xs text-muted">{{ subtitle ?? t('waiting.subtitle') }}</p>
           <slot>
             <MemiBoardWaitingGames />
           </slot>

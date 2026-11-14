@@ -3,11 +3,12 @@ import MemiBoardSurface from './BoardSurface.vue'
 import MemiBoardSettingsVersion from './SettingsVersion.vue'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import { computed, onMounted, ref, watch } from 'vue'
-import { boardCopyIsTranslated, boardTranslationLocales, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, useMemiBoardAuth, useMemiBoardPostTranslations, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
+import { boardCopyIsTranslated, boardTranslationLocales, useAiWaiting, MEMI_BOARD_LOCALES, memiBoardEnabledLocales, useMemiBoardAuth, useMemiBoardPostTranslations, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardUsers } from 'memi-board/runtime'
 import type { BoardBannerFiles, BoardCategory, BoardEditorType, BoardListView, BoardVisibility, BoardWriteRole } from 'memi-board/runtime'
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 
 const props = withDefaults(defineProps<{
   categoryId: string
@@ -108,6 +109,9 @@ const translatedDraft = ref(false)
 const saved = ref(false)
 const error = ref('')
 const bannerBusy = ref(false)
+// 배너 AI 생성, 보드 소개 번역, 저장 시 번역, 기존 글 일괄 번역은 오래 걸려서 대기 카드를 띄운다.
+const waitBusy = computed(() => translating.value || saving.value || bannerBusy.value || postTranslations.scanning.value || postTranslations.running.value)
+const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(waitBusy)
 const bannerFiles = ref<BoardBannerFiles>({})
 const { applyBoardBannerFiles, deleteAttachment } = useMemiBoardStorage()
 
@@ -261,6 +265,7 @@ async function save() {
 
 <template>
   <MemiBoardSurface>
+  <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
   <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
   <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" :title="t('settings.noAccess')" />
   <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" :title="t('settings.notFound.title')" :description="t('settings.notFound.checkBoardAddress')" />

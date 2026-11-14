@@ -91,8 +91,6 @@ function apply() {
   </div>
   <MemiBoardWaitingOverlay
     :open="waitingVisible"
-    :title="t('waiting.aiTitle')"
-    :subtitle="t('waiting.aiSubtitle')"
     icon="i-lucide-sparkles"
     closable
     @close="dismissWaiting"

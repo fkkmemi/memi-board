@@ -186,7 +186,8 @@ const aiImagePreviewUrl = ref('')
 const aiImageRunning = ref(false)
 const aiImageError = ref('')
 // AI 작업은 오래 걸릴 수 있어 일정 시간이 지나면 모서리에 대기 카드(미니게임)를 띄운다.
-const aiBusy = computed(() => aiRunning.value || aiImageRunning.value)
+// 저장(AI 검열·제목 제안·번역·쓰기)도 AI를 기다리는 시간이 길 수 있어 포함한다. 번역 대기 카드가 뜨는 동안은 겹치지 않게 숨긴다.
+const aiBusy = computed(() => aiRunning.value || aiImageRunning.value || saving.value)
 const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(aiBusy)
 
 interface AiPreviewPending {
@@ -1520,11 +1521,9 @@ async function handleSubmit() {
 
 <template>
   <MemiBoardSurface>
-  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" :draft="!loadedPublished" block @continue="continueAfterWaiting" />
+  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" block icon="i-lucide-sparkles" @continue="continueAfterWaiting" />
   <MemiBoardWaitingOverlay
-    :open="aiWaitingVisible"
-    :title="t('waiting.aiTitle')"
-    :subtitle="t('waiting.aiSubtitle')"
+    :open="aiWaitingVisible && waiting === 'off'"
     icon="i-lucide-sparkles"
     closable
     @close="dismissAiWaiting"

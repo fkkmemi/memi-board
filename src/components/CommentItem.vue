@@ -9,6 +9,7 @@ import {
   COMMENT_EDIT_LIMIT,
   displayCommentBody,
   memiBoardCommentLikesKey,
+  useAiWaiting,
   useMemiBoardAuth,
   useMemiBoardComments,
   useMemiBoardI18n,
@@ -16,6 +17,7 @@ import {
 } from 'memi-board/runtime'
 import MemiBoardAuthorMenu from './AuthorMenu.vue'
 import MemiBoardCommentAi from './CommentAi.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 import MemiBoardCommentImageField from './CommentImageField.vue'
 import MemiBoardCommentReportButton from './CommentReportButton.vue'
 import MemiBoardImageLightbox from './ImageLightbox.vue'
@@ -68,6 +70,7 @@ const localEditedAt = ref(props.comment.editedAt)
 const revisionsOpen = ref(false)
 const editLimitOpen = ref(false)
 const saving = ref(false)
+const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(saving)
 const blindSaving = ref(false)
 const likeError = ref('')
 const editError = ref('')
@@ -209,6 +212,7 @@ async function toggleLike() {
 
 <template>
   <div :id="comment.id ? `memi-comment-${comment.id}` : undefined" class="flex flex-col gap-2 scroll-mt-20">
+    <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
     <div class="flex items-center gap-2">
       <UAvatar
         :src="comment.authorPhoto ?? undefined"

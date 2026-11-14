@@ -106,7 +106,9 @@ const aiPhotoBlob = ref<Blob | null>(null)
 const aiPhotoUrl = ref('')
 const aiPhotoRunning = ref(false)
 const aiPhotoError = ref('')
-const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(aiPhotoRunning)
+// 사진 만들기, 이름·소개·사진 AI 검사, 저장이 오래 걸릴 때 같은 카드를 쓴다.
+const waitBusy = computed(() => aiPhotoRunning.value || saving.value || checkingPhoto.value)
+const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(waitBusy)
 const aiPhotoUsageLabel = computed(() => t('profileEditModal.aiPhotoDialog.left', { remaining: imageUsage.value.remaining, limit: imageUsage.value.limit }))
 
 function clearAiPhoto() {
@@ -266,8 +268,8 @@ async function onSave() {
   <UModal
     v-model:open="open"
     :title="t('profileEditModal.title')"
-    :dismissible="!saving && !aiPhotoRunning"
-    :close="!saving && !aiPhotoRunning"
+    :dismissible="!saving && !aiPhotoRunning && !checkingPhoto"
+    :close="!saving && !aiPhotoRunning && !checkingPhoto"
     :ui="{ content: 'sm:max-w-md' }"
   >
     <template #body>
@@ -380,8 +382,6 @@ async function onSave() {
 
   <MemiBoardWaitingOverlay
     :open="aiWaitingVisible"
-    :title="t('waiting.aiTitle')"
-    :subtitle="t('waiting.aiSubtitle')"
     icon="i-lucide-sparkles"
     closable
     @close="dismissAiWaiting"
