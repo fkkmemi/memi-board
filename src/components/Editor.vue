@@ -933,6 +933,18 @@ const bodyUsageText = computed(() => {
     : usage
 })
 
+// Enter 가 폼을 제출하지 않게 막으면 reka 의 TagsInput 도 (defaultPrevented 를 보고) 태그를 넣지 않는다.
+// 그래서 태그 추가를 여기서 직접 하고 기본 동작을 막는다. 한글 조합 중 Enter 는 조합 확정만 한다.
+function onTagEnter(event: KeyboardEvent) {
+  event.preventDefault()
+  if (event.isComposing) return
+  const input = event.target as HTMLInputElement
+  const value = input.value.trim()
+  if (!value) return
+  tags.value = normalizePostTags([...tags.value, value])
+  input.value = ''
+}
+
 function currentStoredTitle(body: string): string {
   return isImageEditor.value ? (title.value.trim() || titleFromBody(body)) : title.value.trim()
 }
@@ -1384,7 +1396,7 @@ async function handleSubmit() {
 
 <template>
   <MemiBoardSurface>
-  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" @continue="continueAfterWaiting" />
+  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" :draft="!loadedPublished" @continue="continueAfterWaiting" />
   <div
     v-if="loading"
     :dir="dir"
@@ -1731,7 +1743,7 @@ async function handleSubmit() {
       :max="POST_TAG_MAX"
       :max-length="POST_TAG_LENGTH_MAX"
       add-on-paste
-      @keydown.enter.prevent
+      @keydown.enter="onTagEnter"
     >
       <template v-if="tags.length" #trailing>
         <span class="text-xs tabular-nums" :class="tags.length >= POST_TAG_MAX ? 'text-warning' : 'text-dimmed'">{{ tags.length }} / {{ POST_TAG_MAX }}</span>

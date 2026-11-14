@@ -14,6 +14,8 @@ const props = defineProps<{
   closable?: boolean
   /** 작업이 끝난 상태. 자동으로 닫지 않고 사용자가 "계속하기"를 누를 때까지 게임을 그대로 둔다. */
   done?: boolean
+  /** 저장된 글이 아직 미게시(초안)다. 끝난 안내를 "올라갔다" 대신 "미리보기에서 게시하라"로 바꾼다. */
+  draft?: boolean
 }>()
 const emit = defineEmits<{ close: [], continue: [] }>()
 
@@ -53,9 +55,9 @@ onBeforeUnmount(() => {
           <span class="flex size-12 items-center justify-center rounded-2xl" :class="done ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'">
             <UIcon :name="done ? 'i-lucide-check' : 'i-lucide-languages'" class="size-6" :class="done ? '' : 'animate-pulse'" />
           </span>
-          <h2 class="text-xl font-semibold tracking-tight text-highlighted">{{ done ? t('waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
-          <p class="text-sm text-muted">{{ done ? t('waiting.doneSubtitle') : (subtitle ?? t('waiting.subtitle')) }}</p>
-          <UButton v-if="done" :label="t('waiting.continue')" trailing-icon="i-lucide-arrow-right" size="lg" @click="emit('continue')" />
+          <h2 class="text-xl font-semibold tracking-tight text-highlighted">{{ done ? t(draft ? 'waiting.draftDoneTitle' : 'waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
+          <p class="text-sm text-muted">{{ done ? t(draft ? 'waiting.draftDoneSubtitle' : 'waiting.doneSubtitle') : (subtitle ?? t('waiting.subtitle')) }}</p>
+          <UButton v-if="done" :label="t(draft ? 'waiting.draftContinue' : 'waiting.continue')" trailing-icon="i-lucide-arrow-right" size="lg" @click="emit('continue')" />
           <div v-else class="h-1 w-40 overflow-hidden rounded-full bg-elevated">
             <div class="h-full w-1/3 animate-[waiting-slide_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
           </div>
