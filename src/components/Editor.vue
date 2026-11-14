@@ -31,6 +31,8 @@ import {
   buildPostPreview,
   hashText,
   useMemiBoardWritingAssistant,
+  useMemiBoardAiUsage,
+  useAiWaiting,
   CUSTOM_FIELD_VALUE_MAX,
   extendForFields,
   readExtend,
@@ -38,6 +40,7 @@ import {
 import { useMemiBoardStorage, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
 import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
+import MemiBoardAiUsageRing from './AiUsageRing.vue'
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 const props = defineProps<{
@@ -149,6 +152,15 @@ const externalImageCandidate = computed(() => {
   }
 })
 const aiRunning = ref(false)
+const { writing: aiWritingUsage, image: aiImageUsage } = useMemiBoardAiUsage()
+const aiUsageLabel = computed(() => {
+  const w = aiWritingUsage.value
+  const i = aiImageUsage.value
+  const text = t('editor.aiUsage.summary', { writing: w.remaining, writingLimit: w.limit, image: i.remaining, imageLimit: i.limit })
+  const hours = Math.max(w.hours, i.hours)
+  return hours ? `${text} · ${t('editor.aiUsage.resets', { hours })}` : text
+})
+const aiImageUsageLabel = computed(() => t('editor.aiUsage.imageLeft', { remaining: aiImageUsage.value.remaining, limit: aiImageUsage.value.limit }))
 const aiError = ref('')
 const aiNotice = ref('')
 // 이미지 보드에서 AI 제목을 이미 한 번 제안했는지. 한 번만 제안하고 다음 저장은 그대로 진행한다.
@@ -170,6 +182,9 @@ const aiImageBlob = ref<Blob | null>(null)
 const aiImagePreviewUrl = ref('')
 const aiImageRunning = ref(false)
 const aiImageError = ref('')
+// AI 작업은 오래 걸릴 수 있어 일정 시간이 지나면 모서리에 대기 카드(미니게임)를 띄운다.
+const aiBusy = computed(() => aiRunning.value || aiImageRunning.value)
+const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(aiBusy)
 
 interface AiPreviewPending {
   action: WritingAssistantAction
@@ -863,7 +878,13 @@ const aiMenuItems = computed(() => [
   ]] : []),
   [
     { label: t('editor.ai.draft'), icon: 'i-lucide-file-pen-line', onSelect: () => openDraftDialog() },
-    { label: t('editor.ai.image'), icon: 'i-lucide-image-plus', onSelect: () => openImageDialog_ai() },
+    {
+      label: t('editor.ai.image'),
+      icon: 'i-lucide-image-plus',
+      description: aiImageUsageLabel.value,
+      disabled: aiImageUsage.value.remaining < 1,
+      onSelect: () => openImageDialog_ai(),
+    },
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
   ],
   [
@@ -918,8 +939,10 @@ function openImageDialog_ai() {
 }
 
 async function generateAiImage() {
-  if (aiImageRunning.value) return
+  if (aiImageRunning.value || aiImageUsage.value.remaining < 1) return
   aiImageError.value = ''
+  // 모달이 열려 있으면 대기 카드의 게임을 누를 때 모달이 닫히므로, 만드는 동안은 닫아 두었다가 결과와 함께 다시 연다.
+  aiImageDialogOpen.value = false
   aiImageRunning.value = true
   try {
     const blob = await generatePostImage({
@@ -937,6 +960,7 @@ async function generateAiImage() {
   }
   finally {
     aiImageRunning.value = false
+    aiImageDialogOpen.value = true
   }
 }
 
@@ -1486,7 +1510,15 @@ async function handleSubmit() {
 
 <template>
   <MemiBoardSurface>
-  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" :draft="!loadedPublished" @continue="continueAfterWaiting" />
+  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" :draft="!loadedPublished" block @continue="continueAfterWaiting" />
+  <MemiBoardWaitingOverlay
+    :open="aiWaitingVisible"
+    :title="t('waiting.aiTitle')"
+    :subtitle="t('waiting.aiSubtitle')"
+    icon="i-lucide-sparkles"
+    closable
+    @close="dismissAiWaiting"
+  />
   <div
     v-if="loading"
     :dir="dir"
@@ -1703,19 +1735,30 @@ async function handleSubmit() {
               :items="toolbarItems"
               class="min-w-0 flex-1 p-2 flex-wrap"
             />
-            <UDropdownMenu v-if="aiEnabled" :items="aiMenuItems">
-              <UButton
-                icon="i-lucide-sparkles"
-                label="AI"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                class="m-2 shrink-0"
-                :loading="aiRunning"
-                :disabled="aiRunning"
-                :aria-label="t('editor.aiAssistant')"
-              />
-            </UDropdownMenu>
+            <UTooltip v-if="aiEnabled" :text="aiUsageLabel" :delay-duration="200" :content="{ side: 'top' }">
+              <span class="m-2 inline-flex shrink-0">
+                <UDropdownMenu :items="aiMenuItems">
+                  <UButton
+                    icon="i-lucide-sparkles"
+                    label="AI"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    :loading="aiRunning"
+                    :disabled="aiRunning"
+                    :aria-label="`${t('editor.aiAssistant')} — ${aiUsageLabel}`"
+                  >
+                    <template v-if="isSignedIn" #trailing>
+                      <MemiBoardAiUsageRing
+                        :used="aiWritingUsage.used"
+                        :limit="aiWritingUsage.limit"
+                        :label="aiUsageLabel"
+                      />
+                    </template>
+                  </UButton>
+                </UDropdownMenu>
+              </span>
+            </UTooltip>
           </div>
           <UEditorSuggestionMenu :editor="editor" :items="suggestionItems" />
 
@@ -2121,6 +2164,14 @@ async function handleSubmit() {
             @keydown.enter.exact.prevent="generateAiImage"
           />
         </UFormField>
+        <p class="flex items-center gap-2 text-xs text-muted">
+          <MemiBoardAiUsageRing
+            :used="aiImageUsage.used"
+            :limit="aiImageUsage.limit"
+            :label="aiImageUsageLabel"
+          />
+          {{ aiImageUsageLabel }}<template v-if="aiImageUsage.hours"> · {{ t('editor.aiUsage.resets', { hours: aiImageUsage.hours }) }}</template>
+        </p>
         <p v-if="aiImageRunning" class="text-sm text-muted">
           {{ t('editor.aiImageDialog.generating') }}
         </p>
@@ -2155,6 +2206,7 @@ async function handleSubmit() {
           :variant="aiImagePreviewUrl ? 'outline' : 'solid'"
           icon="i-lucide-sparkles"
           :loading="aiImageRunning"
+          :disabled="aiImageUsage.remaining < 1"
           @click="generateAiImage"
         >
           {{ aiImagePreviewUrl ? t('editor.aiImageDialog.regenerate') : t('editor.aiImageDialog.generate') }}

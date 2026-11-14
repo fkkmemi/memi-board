@@ -28,6 +28,7 @@ import {
   REPORT_DETAIL_MAX_LENGTH,
   REPORT_REVIEW_NOTE_MAX_LENGTH,
   WRITING_ASSISTANT_DAILY_LIMIT,
+  IMAGE_GENERATION_DAILY_LIMIT,
   versionHistory
 } from 'memi-board/runtime'
 import { EDITOR_IMAGE_MAX_BYTES, EDITOR_IMAGE_SOURCE_MAX_BYTES } from 'memi-board/storage'
@@ -131,6 +132,7 @@ const sections: Section[] = [
     rows: [
       { id: '6.1', parameter: 'Writing assistant calls', value: WRITING_ASSISTANT_DAILY_LIMIT, unit: 'per 24 h', symbol: 'WRITING_ASSISTANT_DAILY_LIMIT', enforced: 'partial', note: 'Rules guard the usage counter only. The model is called from the browser through firebase/ai and is not tied to the counter.' },
       { id: '6.2', parameter: 'Writing assistant custom instruction', value: 200, unit: 'chars', enforced: 'client', note: 'CUSTOM_INSTRUCTION_MAX_LENGTH, not exported.' },
+      { id: '6.4', parameter: 'AI image generation calls', value: IMAGE_GENERATION_DAILY_LIMIT, unit: 'per 24 h', symbol: 'IMAGE_GENERATION_DAILY_LIMIT', enforced: 'partial', note: 'Counted separately from 6.1 in aiImageCount / aiImagePending / aiImageWindowAt. Rules guard the counter only; the model is called from the browser.' },
       { id: '6.3', parameter: 'Writing assistant request for body drafts', value: 500, unit: 'chars', enforced: 'client', note: 'DRAFT_BRIEF_MAX_LENGTH, not exported. AI image generation shares the same daily count (6.1).' },
       { id: '6.3', parameter: 'Body translation per language call', value: HTML_MAX_CHARS, unit: 'HTML chars', symbol: 'HTML_MAX_CHARS', enforced: 'client', note: 'Output capped at 16,384 tokens; a cut-off translation is discarded and that language shows the original. Longer bodies keep title and summary translations.' },
       { id: '6.4', parameter: 'Body translation budget per save', value: POST_TRANSLATION_BUDGET, unit: 'HTML chars', symbol: 'POST_TRANSLATION_BUDGET', enforced: 'client', note: 'Divided by the number of target languages to set 2.4.' },

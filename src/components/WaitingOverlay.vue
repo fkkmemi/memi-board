@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 import MemiBoardWaitingGames from './WaitingGames.vue'
 
 /**
- * 오래 걸리는 작업(글 번역 등) 동안 화면 전체를 덮고 미니게임을 보여준다.
- * 작업이 끝나면 호스트가 `open`을 false로 바꾸면 되고, 시험용 등으로 사용자가 직접 닫게 하려면 `closable`.
+ * 오래 걸리는 작업(글 번역, AI 작업 등) 동안 화면 모서리에 작은 카드로 진행 상황과 미니게임을 보여준다.
+ * 화면 전체를 덮지 않아 뒤의 흐름을 보면서 기다릴 수 있고, 접어서 상태 줄만 남길 수도 있다.
+ * 작업이 끝나면 호스트가 `open`을 false로 바꾸면 되고, 사용자가 직접 닫게 하려면 `closable`.
+ * 작업 중에 뒤 화면을 건드리면 안 되는 경우(글 저장)는 `block`으로 보이지 않는 막을 친다.
  */
 const props = defineProps<{
   open: boolean
@@ -16,57 +18,76 @@ const props = defineProps<{
   done?: boolean
   /** 저장된 글이 아직 미게시(초안)다. 끝난 안내를 "올라갔다" 대신 "미리보기에서 게시하라"로 바꾼다. */
   draft?: boolean
+  /** 작업 중에는 뒤 화면 클릭을 막는다(투명). 기본은 막지 않는다. */
+  block?: boolean
+  /** 진행 중 아이콘. 기본은 번역 아이콘 */
+  icon?: string
 }>()
 const emit = defineEmits<{ close: [], continue: [] }>()
 
 const { t, dir } = useMemiBoardI18n()
 
-// 오버레이가 떠 있는 동안 뒤 페이지 스크롤을 잠근다.
+// 새 작업이 시작될 때마다 펼친 상태로 시작한다.
+const collapsed = ref(false)
 watch(() => props.open, (open) => {
-  if (typeof document === 'undefined') return
-  document.body.style.overflow = open ? 'hidden' : ''
-})
-onBeforeUnmount(() => {
-  if (typeof document !== 'undefined') document.body.style.overflow = ''
+  if (open) collapsed.value = false
 })
 </script>
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-default/95 backdrop-blur-sm"
-      :dir="dir"
-      role="alertdialog"
-      aria-modal="true"
-      aria-live="polite"
-    >
-      <div class="relative mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-5 py-10">
-        <UButton
-          v-if="closable"
-          icon="i-lucide-x"
-          color="neutral"
-          variant="ghost"
-          class="absolute end-3 top-3 rounded-full"
-          :aria-label="t('waiting.close')"
-          @click="emit('close')"
-        />
-        <header class="flex flex-col items-center gap-3 pt-6 text-center">
-          <span class="flex size-12 items-center justify-center rounded-2xl" :class="done ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'">
-            <UIcon :name="done ? 'i-lucide-check' : 'i-lucide-languages'" class="size-6" :class="done ? '' : 'animate-pulse'" />
+    <template v-if="open">
+      <div
+        v-if="block && !done"
+        class="fixed inset-0 z-[99] cursor-progress"
+        aria-hidden="true"
+      />
+      <div
+        class="pointer-events-auto fixed end-3 top-16 z-[100] flex w-[min(21rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-5rem)] flex-col overflow-y-auto rounded-2xl border border-default bg-default/95 shadow-xl backdrop-blur-sm"
+        :dir="dir"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-xl" :class="done ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'">
+            <UIcon :name="done ? 'i-lucide-check' : (icon ?? 'i-lucide-languages')" class="size-4" :class="done ? '' : 'animate-pulse'" />
           </span>
-          <h2 class="text-xl font-semibold tracking-tight text-highlighted">{{ done ? t(draft ? 'waiting.draftDoneTitle' : 'waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
-          <p class="text-sm text-muted">{{ done ? t(draft ? 'waiting.draftDoneSubtitle' : 'waiting.doneSubtitle') : (subtitle ?? t('waiting.subtitle')) }}</p>
-          <UButton v-if="done" :label="t(draft ? 'waiting.draftContinue' : 'waiting.continue')" trailing-icon="i-lucide-arrow-right" size="lg" @click="emit('continue')" />
-          <div v-else class="h-1 w-40 overflow-hidden rounded-full bg-elevated">
-            <div class="h-full w-1/3 animate-[waiting-slide_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
+          <div class="min-w-0 flex-1">
+            <h2 class="truncate text-sm font-semibold text-highlighted">{{ done ? t(draft ? 'waiting.draftDoneTitle' : 'waiting.doneTitle') : (title ?? t('waiting.title')) }}</h2>
+            <div v-if="!done" class="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-elevated">
+              <div class="h-full w-1/3 animate-[waiting-slide_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
+            </div>
           </div>
-        </header>
-        <slot>
-          <MemiBoardWaitingGames />
-        </slot>
+          <UButton
+            :icon="collapsed ? 'i-lucide-chevron-down' : 'i-lucide-chevron-up'"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="rounded-full"
+            :aria-label="t(collapsed ? 'waiting.expand' : 'waiting.collapse')"
+            :aria-expanded="!collapsed"
+            @click="collapsed = !collapsed"
+          />
+          <UButton
+            v-if="closable"
+            icon="i-lucide-x"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="rounded-full"
+            :aria-label="t('waiting.close')"
+            @click="emit('close')"
+          />
+        </div>
+        <div v-show="!collapsed" class="flex flex-col gap-3 border-t border-default px-3 pb-3 pt-3">
+          <p class="text-xs text-muted">{{ done ? t(draft ? 'waiting.draftDoneSubtitle' : 'waiting.doneSubtitle') : (subtitle ?? t('waiting.subtitle')) }}</p>
+          <UButton v-if="done" :label="t(draft ? 'waiting.draftContinue' : 'waiting.continue')" trailing-icon="i-lucide-arrow-right" block @click="emit('continue')" />
+          <slot>
+            <MemiBoardWaitingGames />
+          </slot>
+        </div>
       </div>
-    </div>
+    </template>
   </Teleport>
 </template>
 

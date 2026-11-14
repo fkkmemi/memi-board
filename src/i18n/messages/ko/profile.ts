@@ -8,6 +8,7 @@ export default {
     posts: '글 {count}',
     comments: '댓글 {count}',
     aiUsage: 'AI 사용 {used} / {limit}',
+    aiImageUsage: 'AI 그림 {used} / {limit}',
     aiUsageResets: 'AI 사용 {used} / {limit} · {hours}시간 후 초기화',
     warnings: '경고 {count}회',
   },

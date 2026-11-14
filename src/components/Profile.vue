@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
 import { computed, ref } from 'vue'
-import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile, useMemiBoardUserStats, WRITING_ASSISTANT_DAILY_LIMIT } from 'memi-board/runtime'
+import { useMemiBoardAuth, useMemiBoardI18n, useMemiBoardUserProfile, useMemiBoardUserStats, WRITING_ASSISTANT_DAILY_LIMIT, IMAGE_GENERATION_DAILY_LIMIT, aiUsageSummary } from 'memi-board/runtime'
 import MemiBoardProfileEditModal from './ProfileEditModal.vue'
 import MemiBoardAuthorMemoList from './AuthorMemoList.vue'
 
@@ -30,16 +30,9 @@ const isOwnProfile = computed(() => !!user.value?.uid && user.value.uid === prop
 const editOpen = ref(false)
 
 const { postCount, commentCount } = useMemiBoardUserStats(() => props.uid)
-// Own account only: the AI writing quota in the current 24-hour window.
-const aiUsage = computed(() => {
-  const data = profile.value
-  const windowAt = data?.aiWritingWindowAt?.toMillis?.()
-  const active = windowAt != null && now.value - windowAt < 24 * 60 * 60 * 1000
-  const used = active ? Math.max(0, Number(data?.aiWritingCount) || 0) : 0
-  const pending = active ? Math.max(0, Number(data?.aiWritingPending) || 0) : 0
-  const hours = active && windowAt != null ? Math.max(1, Math.ceil((windowAt + 24 * 60 * 60 * 1000 - now.value) / (60 * 60 * 1000))) : 0
-  return { used: used + pending, hours }
-})
+// Own account only: the AI writing and image quotas in the current 24-hour window.
+const aiUsage = computed(() => aiUsageSummary(profile.value as Record<string, unknown> | null, 'writing', WRITING_ASSISTANT_DAILY_LIMIT, now.value))
+const aiImageUsage = computed(() => aiUsageSummary(profile.value as Record<string, unknown> | null, 'image', IMAGE_GENERATION_DAILY_LIMIT, now.value))
 </script>
 
 <template>
@@ -123,6 +116,13 @@ const aiUsage = computed(() => {
         :label="aiUsage.hours
           ? t('profile.stats.aiUsageResets', { used: aiUsage.used, limit: WRITING_ASSISTANT_DAILY_LIMIT, hours: aiUsage.hours })
           : t('profile.stats.aiUsage', { used: aiUsage.used, limit: WRITING_ASSISTANT_DAILY_LIMIT })"
+      />
+      <UBadge
+        v-if="isOwnProfile"
+        icon="i-lucide-image"
+        color="neutral"
+        variant="subtle"
+        :label="t('profile.stats.aiImageUsage', { used: aiImageUsage.used, limit: IMAGE_GENERATION_DAILY_LIMIT })"
       />
       <UBadge
         v-if="isOwnProfile && profile.moderationBlockCount"

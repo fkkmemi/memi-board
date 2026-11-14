@@ -329,8 +329,8 @@ watch(() => props.postId, () => {
       </UTooltip>
     </div>
 
-    <div class="flex flex-col items-end gap-2">
-      <div class="flex items-center justify-end gap-3 text-sm text-muted">
+    <div class="flex min-w-0 max-w-full flex-col items-end gap-2">
+      <div class="flex min-w-0 max-w-full items-center justify-end gap-3 text-sm text-muted">
         <MemiBoardAuthorMenu
           :author-uid="post.authorUid"
           :author-name="post.authorName"
@@ -338,15 +338,16 @@ watch(() => props.postId, () => {
           :author-posts-to="authorPostsTo"
           :author-profile-to="authorProfileTo"
           :author-comments-to="authorCommentsTo"
+          ellipsis
         />
         <UTooltip :text="t('common.label.viewCount', { count: post.viewCount ?? 0 })" :delay-duration="200" :content="{ side: 'top' }">
-          <span class="inline-flex items-center gap-1 tabular-nums">
+          <span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap tabular-nums">
             <UIcon name="i-lucide-eye" class="size-3.5" />
             {{ post.viewCount ?? 0 }}
           </span>
         </UTooltip>
         <UTooltip :delay-duration="200" :content="{ side: 'top' }" :ui="{ content: 'h-auto px-3 py-2' }">
-          <time :datetime="post.createdAt?.toDate?.().toISOString()">
+          <time class="shrink-0 whitespace-nowrap" :datetime="post.createdAt?.toDate?.().toISOString()">
             {{ formatRelativeDate(post.createdAt, now) }}
           </time>
           <template #content>
@@ -359,7 +360,7 @@ watch(() => props.postId, () => {
           :delay-duration="200"
           :content="{ side: 'top' }"
         >
-          <UBadge variant="subtle" color="neutral" size="sm">
+          <UBadge variant="subtle" color="neutral" size="sm" class="shrink-0 whitespace-nowrap">
             {{ t('detail.edited') }}
           </UBadge>
         </UTooltip>

@@ -347,7 +347,8 @@ service cloud.firestore {
           && request.resource.data.role == resource.data.role
           && (
             !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['moderationBlockCount', 'moderationBlockAt', 'aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt'])
+              .hasAny(['moderationBlockCount', 'moderationBlockAt', 'aiWritingCount', 'aiWritingPending', 'aiWritingWindowAt',
+                'aiImageCount', 'aiImagePending', 'aiImageWindowAt'])
             || (
               request.resource.data.diff(resource.data).affectedKeys()
                 .hasOnly(['moderationBlockCount', 'moderationBlockAt', 'updatedAt'])
@@ -411,6 +412,42 @@ service cloud.firestore {
               && request.resource.data.aiWritingWindowAt == request.time
               && request.resource.data.aiWritingCount == 0
               && request.resource.data.aiWritingPending == 1
+            )
+            // AI images are counted apart from writing (limit 5 per 24 h). Same reserve, confirm, release steps.
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiImagePending', 'updatedAt'])
+              && 'aiImageWindowAt' in resource.data
+              && request.time < resource.data.aiImageWindowAt + duration.value(24, 'h')
+              && (
+                (
+                  request.resource.data.aiImagePending == resource.data.get('aiImagePending', 0) + 1
+                  && resource.data.get('aiImageCount', 0) + request.resource.data.aiImagePending <= 5
+                )
+                || (
+                  resource.data.get('aiImagePending', 0) >= 1
+                  && request.resource.data.aiImagePending == resource.data.get('aiImagePending', 0) - 1
+                )
+              )
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiImageCount', 'aiImagePending', 'updatedAt'])
+              && 'aiImageWindowAt' in resource.data
+              && request.time < resource.data.aiImageWindowAt + duration.value(24, 'h')
+              && resource.data.get('aiImagePending', 0) >= 1
+              && request.resource.data.aiImagePending == resource.data.get('aiImagePending', 0) - 1
+              && request.resource.data.aiImageCount == resource.data.get('aiImageCount', 0) + 1
+              && request.resource.data.aiImageCount <= 5
+            )
+            || (
+              request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['aiImageCount', 'aiImagePending', 'aiImageWindowAt', 'updatedAt'])
+              && (!('aiImageWindowAt' in resource.data)
+                || request.time >= resource.data.aiImageWindowAt + duration.value(24, 'h'))
+              && request.resource.data.aiImageWindowAt == request.time
+              && request.resource.data.aiImageCount == 0
+              && request.resource.data.aiImagePending == 1
             )
           )));
 

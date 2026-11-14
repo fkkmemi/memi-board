@@ -6,6 +6,7 @@ import { assertMemiBoardAiEnabled, assertMemiBoardTranslationEnabled, useBoardPa
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
 import { plainTextFromHtml } from '../utils/postBody'
+import { AI_USAGE_FIELDS, AI_USAGE_WINDOW_MS, aiUsageOf, type AiUsageKind } from '../utils/aiUsage'
 import { generatedBannerBlob } from '../utils/bannerGeneration'
 import { postImagePrompt } from '../utils/postImageGeneration'
 import { boardTranslationLocales, coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
@@ -16,9 +17,11 @@ import type { CommentTranslationSet, MemiBoardI18nMap, PostTranslationSet } from
 import { HTML_MAX_CHARS, useMemiBoardAutoTranslate } from './useMemiBoardAutoTranslate'
 
 export const WRITING_ASSISTANT_DAILY_LIMIT = 20
+/** 그림은 호출당 비용이 글쓰기보다 훨씬 커서 따로, 더 적게 센다. */
+export const IMAGE_GENERATION_DAILY_LIMIT = 5
 /** 사진으로 제목을 만들 때 보낼 수 있는 사진 최대 크기. */
 const IMAGE_TITLE_MAX_BYTES = 4 * 1024 * 1024
-const WRITING_ASSISTANT_WINDOW_MS = 24 * 60 * 60 * 1000
+const DAILY_LIMITS = { writing: WRITING_ASSISTANT_DAILY_LIMIT, image: IMAGE_GENERATION_DAILY_LIMIT } as const
 
 export type WritingAssistantAction =
   | 'proofread'
@@ -101,14 +104,6 @@ function cleanModelOutput(value: string): string {
     .trim()
 }
 
-function timestampMs(value: unknown): number | null {
-  if (!value || typeof value !== 'object') return null
-  if ('toMillis' in value && typeof (value as { toMillis: () => number }).toMillis === 'function') {
-    return (value as { toMillis: () => number }).toMillis()
-  }
-  return null
-}
-
 export interface UseMemiBoardWritingAssistantOptions {
   /**
    * 보드 언어. 같은 컴포넌트에서 useMemiBoardI18n({ boardLocale }) 로 provide 한 값은
@@ -128,27 +123,17 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
   const config = useMemiBoardConfig()
   const { translateEntries, translateHtml, detectSourceLocale } = useMemiBoardAutoTranslate()
 
-  function usageOf(data: Record<string, unknown>, now: number) {
-    const windowAt = timestampMs(data.aiWritingWindowAt)
-    const active = windowAt != null && now - windowAt < WRITING_ASSISTANT_WINDOW_MS
-    const count = Math.max(0, Math.floor(Number(data.aiWritingCount) || 0))
-    const pending = Math.max(0, Math.floor(Number(data.aiWritingPending) || 0))
-    return {
-      active,
-      windowAt,
-      count: active ? count : 0,
-      pending: active ? pending : 0,
-    }
-  }
+  type Usage = ReturnType<typeof aiUsageOf>
 
-  function dailyLimitError(windowAt: number, now: number): Error {
-    const resetAt = windowAt + WRITING_ASSISTANT_WINDOW_MS
+  function dailyLimitError(kind: AiUsageKind, windowAt: number, now: number): Error {
+    const resetAt = windowAt + AI_USAGE_WINDOW_MS
     const hours = Math.max(1, Math.ceil((resetAt - now) / (60 * 60 * 1000)))
-    return new Error(t('writingAssistant.dailyLimit', { limit: WRITING_ASSISTANT_DAILY_LIMIT, hours }))
+    return new Error(t(kind === 'image' ? 'writingAssistant.imageDailyLimit' : 'writingAssistant.dailyLimit', { limit: DAILY_LIMITS[kind], hours }))
   }
 
   async function mutateDailyUse(
-    apply: (usage: ReturnType<typeof usageOf>, data: Record<string, unknown>) => Record<string, unknown> | null,
+    kind: AiUsageKind,
+    apply: (usage: Usage) => Record<string, unknown> | null,
   ): Promise<void> {
     const uid = user.value?.uid
     if (!uid) throw new Error(t('writingAssistant.loginRequired'))
@@ -158,54 +143,57 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       const snapshot = await transaction.get(ref)
       if (!snapshot.exists()) throw new Error(t('writingAssistant.userMissing'))
       const data = snapshot.data() as Record<string, unknown>
-      const patch = apply(usageOf(data, Date.now()), data)
+      const patch = apply(aiUsageOf(data, kind, Date.now()))
       if (!patch) return
       transaction.update(ref, { ...patch, updatedAt: serverTimestamp() })
     })
   }
 
   /** 모델 호출 전에 자리를 잡는다. 확정 횟수는 아직 올리지 않는다. */
-  async function reserveDailyUse(): Promise<void> {
-    await mutateDailyUse((usage) => {
-      if (usage.active && usage.windowAt != null && usage.count + usage.pending >= WRITING_ASSISTANT_DAILY_LIMIT) {
-        throw dailyLimitError(usage.windowAt, Date.now())
+  async function reserveDailyUse(kind: AiUsageKind): Promise<void> {
+    const f = AI_USAGE_FIELDS[kind]
+    await mutateDailyUse(kind, (usage) => {
+      if (usage.active && usage.windowAt != null && usage.count + usage.pending >= DAILY_LIMITS[kind]) {
+        throw dailyLimitError(kind, usage.windowAt, Date.now())
       }
-      if (usage.active) return { aiWritingPending: usage.pending + 1 }
+      if (usage.active) return { [f.pending]: usage.pending + 1 }
       return {
-        aiWritingCount: 0,
-        aiWritingPending: 1,
-        aiWritingWindowAt: serverTimestamp(),
+        [f.count]: 0,
+        [f.pending]: 1,
+        [f.windowAt]: serverTimestamp(),
       }
     })
   }
 
   /** 호출이 성공하면 예약을 확정 횟수로 옮긴다. */
-  async function commitDailyUse(): Promise<void> {
-    await mutateDailyUse((usage) => {
-      if (!usage.active || usage.pending < 1 || usage.count >= WRITING_ASSISTANT_DAILY_LIMIT) return null
+  async function commitDailyUse(kind: AiUsageKind): Promise<void> {
+    const f = AI_USAGE_FIELDS[kind]
+    await mutateDailyUse(kind, (usage) => {
+      if (!usage.active || usage.pending < 1 || usage.count >= DAILY_LIMITS[kind]) return null
       return {
-        aiWritingCount: usage.count + 1,
-        aiWritingPending: usage.pending - 1,
+        [f.count]: usage.count + 1,
+        [f.pending]: usage.pending - 1,
       }
     })
   }
 
   /** 호출이 실패하면 예약만 되돌린다. 확정 횟수는 그대로다. */
-  async function releaseDailyUse(): Promise<void> {
-    await mutateDailyUse((usage) => {
+  async function releaseDailyUse(kind: AiUsageKind): Promise<void> {
+    const f = AI_USAGE_FIELDS[kind]
+    await mutateDailyUse(kind, (usage) => {
       if (!usage.active || usage.pending < 1) return null
-      return { aiWritingPending: usage.pending - 1 }
+      return { [f.pending]: usage.pending - 1 }
     })
   }
 
   /** `automatic` 번역(게시판의 자동 번역 설정)은 하루 사용 횟수를 쓰지 않는다. */
-  async function withDailyUse<T>(task: () => Promise<T>, automatic = false): Promise<T> {
+  async function withDailyUse<T>(task: () => Promise<T>, automatic = false, kind: AiUsageKind = 'writing'): Promise<T> {
     if (automatic) return task()
-    await reserveDailyUse()
+    await reserveDailyUse(kind)
     try {
       const result = await task()
       try {
-        await commitDailyUse()
+        await commitDailyUse(kind)
       }
       catch {
         // 결과는 이미 나왔다. 예약은 남겨 그 자리를 횟수로 유지한다.
@@ -213,7 +201,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       return result
     }
     catch (error) {
-      await releaseDailyUse().catch(() => {})
+      await releaseDailyUse(kind).catch(() => {})
       throw error
     }
   }
@@ -418,7 +406,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
 
   /**
    * 글에 넣을 그림을 만든다. 작성자의 프롬프트가 있으면 그것을, 없으면 제목·본문에서 주제를 골라 그린다.
-   * 하루 사용 횟수를 글쓰기 도우미와 함께 쓴다. 결과는 로컬 Blob이고 업로드는 호출한 쪽이 한다.
+   * 그림은 글쓰기와 따로 하루 IMAGE_GENERATION_DAILY_LIMIT 회까지 센다. 결과는 로컬 Blob이고 업로드는 호출한 쪽이 한다.
    */
   async function generatePostImage(input: { title?: string, body?: string, request?: string }): Promise<Blob> {
     assertMemiBoardAiEnabled()
@@ -441,7 +429,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
       const blob = generatedBannerBlob(result.response.inlineDataParts())
       if (!blob) throw new Error(t('writingAssistant.noImage'))
       return blob
-    })
+    }, false, 'image')
   }
 
   return { assist, generatePostImage, translatePost, translateComment, suggestTitleFromImage }

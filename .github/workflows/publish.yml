@@ -68,6 +68,9 @@ jobs:
       - name: Test member management, account confirmation, and post lookup
         run: node --experimental-strip-types --test tests/account-deletion-confirm.test.mjs tests/profile-name-moderation.test.mjs tests/user-directory-page.test.mjs tests/post-slug-auth.test.mjs
 
+      - name: Test AI usage counters
+        run: node --experimental-strip-types --test tests/ai-usage.test.mjs
+
       - name: Test post image prompt
         run: node --experimental-strip-types --test tests/post-image-generation.test.mjs
 
@@ -103,6 +106,9 @@ jobs:
 
       - name: Test content limit security rules
         run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-limits --only auth,firestore,storage 'node --test tests/limits-rules.test.mjs'
+
+      - name: Test AI usage security rules
+        run: npx --yes firebase-tools@15.25.1 emulators:exec --project demo-memi-ai-usage --only auth,firestore 'node --test tests/ai-usage-rules.test.mjs'
 
       - name: Inspect package
         run: npm pack --dry-run --ignore-scripts

@@ -8,6 +8,7 @@ export default {
     posts: '{count} posts',
     comments: '{count} comments',
     aiUsage: 'AI used {used} / {limit}',
+    aiImageUsage: 'AI images {used} / {limit}',
     aiUsageResets: 'AI used {used} / {limit} · resets in {hours}h',
     warnings: '{count} warnings',
   },

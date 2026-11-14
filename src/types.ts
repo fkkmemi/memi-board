@@ -251,6 +251,12 @@ export interface BoardUserModel {
   aiWritingPending?: number
   /** AI 글쓰기 도우미 현재 24시간 구간 시작 시각. */
   aiWritingWindowAt?: Timestamp
+  /** AI 그림 만들기 24시간 확정 사용 횟수. 글쓰기와 따로 센다. 성공한 호출만 올라가고 줄지 않는다. */
+  aiImageCount?: number
+  /** 아직 결과가 나지 않은 AI 그림 예약. */
+  aiImagePending?: number
+  /** AI 그림 만들기 현재 24시간 구간 시작 시각. */
+  aiImageWindowAt?: Timestamp
   updatedAt?: Timestamp
   /** 최초 가입일. 기존 사용자는 비어 있고, 백필 스크립트나 다음 로그인 시 채운다. */
   joinedAt?: Timestamp

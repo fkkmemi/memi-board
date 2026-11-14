@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { boardTranslationLocales, COMMENT_BODY_MAX_LENGTH, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardWritingAssistant } from 'memi-board/runtime'
+import { boardTranslationLocales, COMMENT_BODY_MAX_LENGTH, useAiWaiting, useMemiBoardAiUsage, useMemiBoardAuth, useMemiBoardI18n, useMemiBoardSettings, useMemiBoardWritingAssistant } from 'memi-board/runtime'
+import MemiBoardAiUsageRing from './AiUsageRing.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 import type { CommentTranslationSet, WritingAssistantAction } from 'memi-board/runtime'
 
 const props = defineProps<{ boardId: string, disabled?: boolean }>()
@@ -12,6 +14,13 @@ const { getBoard } = useMemiBoardSettings()
 const { assist, translateComment } = useMemiBoardWritingAssistant({ locale })
 const targets = computed(() => boardTranslationLocales(getBoard(props.boardId)))
 const running = ref(false)
+const { isSignedIn } = useMemiBoardAuth()
+const { writing: usage } = useMemiBoardAiUsage()
+const usageLabel = computed(() => {
+  const text = t('editor.aiUsage.writingLeft', { remaining: usage.value.remaining, limit: usage.value.limit })
+  return usage.value.hours ? `${text} · ${t('editor.aiUsage.resets', { hours: usage.value.hours })}` : text
+})
+const { visible: waitingVisible, dismiss: dismissWaiting } = useAiWaiting(running)
 const error = ref('')
 const notice = ref('')
 const previewOpen = ref(false)
@@ -65,13 +74,29 @@ function apply() {
 
 <template>
   <div v-if="aiEnabled" class="flex flex-wrap items-center gap-2">
-    <UDropdownMenu :items="items">
-      <UButton type="button" icon="i-lucide-sparkles" label="AI" size="sm" color="neutral" variant="ghost"
-        :aria-label="t('editor.aiAssistant')" :loading="running" :disabled="disabled || running || !body.trim()" />
-    </UDropdownMenu>
+    <UTooltip :text="usageLabel" :delay-duration="200" :content="{ side: 'top' }">
+      <span class="inline-flex">
+        <UDropdownMenu :items="items">
+          <UButton type="button" icon="i-lucide-sparkles" label="AI" size="sm" color="neutral" variant="ghost"
+            :aria-label="`${t('editor.aiAssistant')} — ${usageLabel}`" :loading="running" :disabled="disabled || running || !body.trim()">
+            <template v-if="isSignedIn" #trailing>
+              <MemiBoardAiUsageRing :used="usage.used" :limit="usage.limit" :label="usageLabel" />
+            </template>
+          </UButton>
+        </UDropdownMenu>
+      </span>
+    </UTooltip>
     <span v-if="error" class="text-xs text-error" role="alert">{{ error }}</span>
     <span v-else-if="notice" class="text-xs text-primary" role="status">{{ notice }}</span>
   </div>
+  <MemiBoardWaitingOverlay
+    :open="waitingVisible"
+    :title="t('waiting.aiTitle')"
+    :subtitle="t('waiting.aiSubtitle')"
+    icon="i-lucide-sparkles"
+    closable
+    @close="dismissWaiting"
+  />
   <UModal v-model:open="customOpen" :title="t('editor.ai.custom')">
     <template #body><UTextarea v-model="instruction" :maxlength="200" /></template>
     <template #footer>

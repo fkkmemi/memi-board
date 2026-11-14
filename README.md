@@ -536,6 +536,8 @@ The editor's AI writing assistant can be used up to **10 times** per signed-in u
 
 The host must merge and deploy the `memiBoardUsers/{uid}` rules from the latest `docs/firestore.rules.example` into its actual Firestore Rules. Reservation fields were added in 0.47.1. Without deploying the rules, the new package's AI writing count updates are rejected, or, while only the old rules are in place, clients can modify the counter arbitrarily and bypass the limit.
 
+AI image generation is counted separately: up to **5 images** per user in each 24-hour window (`aiImageCount` / `aiImagePending` / `aiImageWindowAt`, same reserve, confirm, release steps, added in 0.68.0). Merge the `aiImage*` branches of the same `memiBoardUsers/{uid}` rules.
+
 Enable **AI Logic (Gemini Developer API)** in the console. New projects may get 404 for the old `gemini-2.5-flash` → use 3.x Flash / Flash-Lite.
 
 ### App Check (effectively required with AI Enforce)

@@ -68,6 +68,12 @@ export default {
     alt: 'AI가 만든 그림 미리보기',
     generating: '그림을 만드는 중입니다… 최대 1분쯤 걸릴 수 있어요.',
   },
+  aiUsage: {
+    summary: '오늘 남은 AI: 글쓰기 {writing}/{writingLimit}, 그림 {image}/{imageLimit}',
+    writingLeft: '오늘 남은 AI: {remaining}/{limit}회',
+    imageLeft: '오늘 남은 그림: {remaining}/{limit}장',
+    resets: '{hours}시간 후 초기화',
+  },
   aiPreview: {
     draftBefore: '현재 내용',
     draftAfter: 'AI 초안',

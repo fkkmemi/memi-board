@@ -4,6 +4,21 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Changed
+- The waiting mini game is now a small corner card (top right) instead of a full-screen overlay, so you can follow the page while waiting. It can be collapsed. Saving with auto-translation keeps an invisible click-blocker; AI tasks that take over 1.5 s show the same card.
+- AI images have their own daily limit of 5 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.
+
+### Fixed
+- Long author names now shorten with an ellipsis in the post detail header and in comment headers. The width limit was overridden by a leftover `max-w-full`, so `ellipsis` never took effect; names now shorten only when the line runs out of room (full name on wide screens, ellipsis on a narrow phone), and the view count, time and edited badge no longer wrap.
+
+### Added
+- The author menu popup shows the full name on top, wrapped.
+- A usage ring inside the AI button (post editor and comment form), the waiting card for slow comment AI tasks, a ring in the image dialog, the remaining image count in the AI menu, an image badge on the own profile, and `useMemiBoardAiUsage()` / `aiUsageSummary()`.
+- `tests/ai-usage.test.mjs` and `tests/ai-usage-rules.test.mjs` (emulator, run in the publish workflow).
+
+### Host app steps
+- Merge the `aiImage*` branches of `memiBoardUsers/{uid}` from `docs/firestore.rules.example` and deploy the Firestore rules **before** the site. Without them, image generation is rejected at the reservation step.
+
 ## [0.67.0] - 2026-11-14
 
 ### Added

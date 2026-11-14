@@ -68,6 +68,12 @@ export default {
     alt: 'AI-generated image preview',
     generating: 'Generating the image… this can take up to a minute.',
   },
+  aiUsage: {
+    summary: 'Today’s AI left: writing {writing}/{writingLimit}, images {image}/{imageLimit}',
+    writingLeft: 'AI left today: {remaining}/{limit}',
+    imageLeft: 'Images left today: {remaining}/{limit}',
+    resets: 'resets in {hours}h',
+  },
   aiPreview: {
     draftBefore: 'Current content',
     draftAfter: 'AI draft',

@@ -2,6 +2,7 @@ export default {
   loginRequired: 'Sign in to use the AI writing assistant.',
   userMissing: 'Couldn’t verify your user info. Please try again.',
   dailyLimit: 'The AI writing assistant can be used up to {limit} times a day. Please try again in about {hours} hour(s).',
+  imageDailyLimit: 'AI images can be made up to {limit} times a day. Please try again in about {hours} hour(s).',
   contentRequired: 'Enter some content for the AI to work on first.',
   draftRequired: 'Enter a title or a request for the AI to write from.',
   imageRequired: 'Enter a request, a title or some body text for the AI to draw from.',

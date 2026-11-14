@@ -56,7 +56,11 @@ const avatar = computed(() => props.showAvatar
   : undefined)
 const tooltipText = computed(() => hasMemo.value && memoText.value ? memoText.value : t('authorMenu.menu'))
 
+const fullName = computed(() => props.authorName?.trim() || t('common.label.anonymous'))
+
 const items = computed(() => [
+  // 이름이 줄어 보이는 자리가 많아서 메뉴 맨 위에 풀네임을 줄바꿈해 보여 준다.
+  [{ type: 'label' as const, label: fullName.value, class: 'whitespace-normal break-words font-semibold text-highlighted' }],
   [
     { label: t('authorMenu.viewProfile'), icon: 'i-lucide-user-round', to: authorProfileLink.value, disabled: !authorProfileLink.value },
     { label: t('authorMenu.viewPosts'), icon: 'i-lucide-notebook-text', to: authorPostsLink.value, disabled: !authorPostsLink.value },
@@ -103,8 +107,8 @@ async function onDeleteMemo() {
 
 <template>
   <div
-    class="flex max-w-full items-center"
-    :class="truncate ? 'w-full min-w-0 justify-end' : ellipsis ? 'inline-flex min-w-0 max-w-[12rem]' : 'inline-flex'"
+    class="flex items-center"
+    :class="truncate ? 'w-full min-w-0 max-w-full justify-end' : ellipsis ? 'inline-flex min-w-0 max-w-full shrink' : 'inline-flex max-w-full'"
   >
     <UTooltip
       :text="tooltipText"
@@ -119,7 +123,7 @@ async function onDeleteMemo() {
           class="max-w-full"
           :class="ellipsis && 'min-w-0 shrink'"
         >
-          <UDropdownMenu :items="items" :content="{ align: 'start' }">
+          <UDropdownMenu :items="items" :content="{ align: 'start' }" :ui="{ content: 'max-w-xs' }">
             <UButton
               :avatar="avatar"
               :label="authorName ?? t('common.label.anonymous')"
