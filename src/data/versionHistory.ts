@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.66.1',
+    date: '2026-11-14',
+    highlights: [
+      '태그 입력칸에서 Enter 로 태그를 추가할 수 있어요',
+      '새 글 번역이 끝나면 "미리보기에서 게시해 주세요"라고 정확히 안내해요',
+      '태그·커스텀 필드 값의 길이 제한을 줄바꿈으로 우회할 수 없게 했어요',
+    ],
+    highlightsEn: [
+      'Press Enter to add a tag',
+      'After translating a new post, the waiting screen points you to the preview to publish it',
+      'Line breaks can no longer bypass the tag and custom field length limits',
+    ],
+  },
+  {
     version: '0.66.0',
     date: '2026-11-14',
     highlights: [

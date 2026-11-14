@@ -4,6 +4,19 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.66.1] - 2026-11-14
+
+### Fixed
+- Tags and custom field values could bypass their 30/200-char limits through a direct API write by putting a line break inside one value. The example rules now reject it: the joined values must split back into the same number of items.
+- Pressing Enter in the tag input now adds the tag. Before, only a comma worked, because the editor prevented Enter (to stop the form from submitting) and the tag input ignores prevented key events.
+- After translating a new post, the waiting screen no longer says the post was published. Posts are saved as an unpublished preview first, so it now says so and links to the preview.
+
+### Added
+- `tests/limits-rules.test.mjs`: an emulator test for every content limit at and past its boundary, run in the publish workflow.
+
+### Host app steps
+- Merge the `joinedItemsFit` change for `postTagsValid` and `postExtendValid` from `docs/firestore.rules.example` and deploy the Firestore rules.
+
 ## [0.66.0] - 2026-11-14
 
 ### Added
