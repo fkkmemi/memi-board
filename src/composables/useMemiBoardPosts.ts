@@ -37,6 +37,14 @@ import { buildPostPreview } from '../utils/postPreview'
 import { readExtend } from '../utils/customFields'
 import { POST_EDIT_LIMIT } from '../utils/editLimits'
 import {
+  arrivedByHistory,
+  clearPostListCache,
+  postListCacheKey,
+  savePostListSnapshot,
+  takePostListSnapshot,
+  watchHistoryNavigation,
+} from '../utils/postListCache'
+import {
   postBodyDoc,
   postDoc,
   postRevisionDoc,
@@ -495,12 +503,21 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
     resolvePostIdBySlug,
     resolveUniqueSlug,
     getAdjacentPosts,
-    createPost,
-    updatePost,
-    savePostTranslations,
-    publishPost,
-    setPostPinned,
-    deletePost,
+    // 글이 바뀌면 목록 보관분(뒤로 가기 복원용)이 낡으므로 비운다.
+    createPost: invalidatesPostList(createPost),
+    updatePost: invalidatesPostList(updatePost),
+    savePostTranslations: invalidatesPostList(savePostTranslations),
+    publishPost: invalidatesPostList(publishPost),
+    setPostPinned: invalidatesPostList(setPostPinned),
+    deletePost: invalidatesPostList(deletePost),
+  }
+}
+
+function invalidatesPostList<Args extends unknown[], Result>(fn: (...args: Args) => Promise<Result>) {
+  return async (...args: Args): Promise<Result> => {
+    const result = await fn(...args)
+    clearPostListCache()
+    return result
   }
 }
 
@@ -540,6 +557,11 @@ export function useMemiBoardPostList(
   const loadError = ref('')
   let headTailCursor: QueryDocumentSnapshot<DocumentData> | null = null
   let olderCursor: QueryDocumentSnapshot<DocumentData> | null = null
+  /** 뒤로 가기로 돌아왔을 때 맨 처음 한 번만 복원한다. 복원한 스크롤 위치는 목록 컴포넌트가 가져간다. */
+  const restoredScrollY = ref<number | null>(null)
+  let restoreAllowed = false
+  let lastScrollY = 0
+  let scrollFrame = 0
   let stopHeadSubscription: Unsubscribe | undefined
   let stopOwnDraftSubscription: Unsubscribe | undefined
   let stopNoticeSubscription: Unsubscribe | undefined
@@ -658,13 +680,46 @@ export function useMemiBoardPostList(
     }
   }
 
+  function cacheKey(): string {
+    return postListCacheKey(boardIdValue.value, publicOnlyValue.value, uidValue.value)
+  }
+
+  function trackScroll() {
+    if (scrollFrame) return
+    scrollFrame = requestAnimationFrame(() => {
+      scrollFrame = 0
+      lastScrollY = window.scrollY
+    })
+  }
+  if (typeof window !== 'undefined') {
+    watchHistoryNavigation()
+    // 첫 로드만 복원 대상이다. 같은 컴포넌트에서 보드를 바꾸는 경우는 처음부터 보여 준다.
+    restoreAllowed = arrivedByHistory()
+    window.addEventListener('scroll', trackScroll, { passive: true })
+  }
+
+  let lastScope = ''
   function reset() {
     stopHeadSubscription?.()
     headPosts.value = []
-    olderPosts.value = []
     headTailCursor = null
-    olderCursor = null
-    hasMore.value = true
+    // 로그인 정보만 늦게 도착해 다시 부르는 경우(같은 보드·같은 공개 범위)에는 이어 불러온 글을 그대로 둔다.
+    const scope = `${boardIdValue.value}|${publicOnlyValue.value}`
+    if (scope !== lastScope) {
+      olderPosts.value = []
+      olderCursor = null
+      hasMore.value = true
+      restoredScrollY.value = null
+    }
+    lastScope = scope
+    const cached = restoreAllowed ? takePostListSnapshot<PostModel, QueryDocumentSnapshot<DocumentData>>(cacheKey()) : null
+    restoreAllowed = false
+    if (cached?.olderPosts.length && !olderPosts.value.length) {
+      olderPosts.value = [...cached.olderPosts]
+      olderCursor = cached.olderCursor
+      hasMore.value = cached.hasMore
+      restoredScrollY.value = cached.scrollY
+    }
     loadError.value = ''
     headPending.value = true
     notices.value = []
@@ -679,9 +734,23 @@ export function useMemiBoardPostList(
     stopHeadSubscription?.()
     stopNoticeSubscription?.()
     stopOwnDraftSubscription?.()
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('scroll', trackScroll)
+      cancelAnimationFrame(scrollFrame)
+    }
+    // 더보기로 이어 불러온 글이 있을 때만 보관한다. 첫 페이지만 보던 경우는 처음부터 다시 그려도 같다.
+    if (olderPosts.value.length && boardIdValue.value) {
+      savePostListSnapshot(cacheKey(), {
+        olderPosts: olderPosts.value,
+        olderCursor,
+        hasMore: hasMore.value,
+        scrollY: lastScrollY,
+      })
+    }
   })
 
   return {
+    restoredScrollY,
     posts,
     notices,
     // 공지가 나중에 튀어나오지 않게 둘 다 도착한 뒤 그린다.

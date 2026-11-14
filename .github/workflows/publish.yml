@@ -68,6 +68,9 @@ jobs:
       - name: Test member management, account confirmation, and post lookup
         run: node --experimental-strip-types --test tests/account-deletion-confirm.test.mjs tests/profile-name-moderation.test.mjs tests/user-directory-page.test.mjs tests/post-slug-auth.test.mjs
 
+      - name: Test post list cache
+        run: node --experimental-strip-types --test tests/post-list-cache.test.mjs
+
       - name: Test AI usage counters
         run: node --experimental-strip-types --test tests/ai-usage.test.mjs
 

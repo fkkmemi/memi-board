@@ -212,6 +212,7 @@ export {
 } from './composables/useMemiBoardWritingAssistant'
 export { aiUsageSummary, aiUsageOf, AI_USAGE_WINDOW_MS } from './utils/aiUsage'
 export { useAiWaiting, AI_WAITING_DELAY_MS } from './composables/useAiWaiting'
+export { clearPostListCache } from './utils/postListCache'
 export { useMemiBoardAiUsage } from './composables/useMemiBoardAiUsage'
 export type { WritingAssistantAction } from './composables/useMemiBoardWritingAssistant'
 export { useMemiBoardAutoTranslate, localizedText, HTML_MAX_CHARS } from './composables/useMemiBoardAutoTranslate'

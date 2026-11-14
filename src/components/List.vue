@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MemiBoardSurface from './BoardSurface.vue'
-import { computed, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useMemiBoardPostList } from 'memi-board/runtime'
 import { useMemiBoardI18n, useMemiBoardSettings } from 'memi-board/runtime'
 import type { BoardListView, PostModel } from 'memi-board/runtime'
@@ -74,10 +74,26 @@ const listDescription = computed(() => {
   if (fromBoard) return fromBoard
   return props.description?.trim() || undefined
 })
-const { posts, notices, postsPending, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
+const { posts, notices, postsPending, restoredScrollY, hasMore, loadingMore, loadError, loadMore } = useMemiBoardPostList(
   resolvedBoardId,
   { pageSize: props.pageSize },
 )
+
+// 글을 읽고 뒤로 가기로 돌아오면 이어 불러온 글이 복원된다. 목록이 그려진 뒤 보던 자리로 스크롤한다.
+// 이미지가 늦게 뜨면 높이가 바뀌므로 몇 프레임 동안 같은 자리를 다시 맞춘다.
+let scrollRestored = false
+watch([restoredScrollY, postsPending], ([y, pending]) => {
+  if (y == null || pending || scrollRestored) return
+  scrollRestored = true
+  void nextTick(() => {
+    let frames = 0
+    const apply = () => {
+      window.scrollTo(0, y)
+      if (++frames < 12 && Math.abs(window.scrollY - y) > 2) requestAnimationFrame(apply)
+    }
+    apply()
+  })
+}, { immediate: true })
 
 // 공지는 일반 글과 같은 목록 컴포넌트로, 맨 앞에 붙여 보여준다.
 const shownPosts = computed(() => [...notices.value, ...posts.value])
