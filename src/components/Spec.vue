@@ -81,7 +81,7 @@ const sections: Section[] = [
       { id: '2.1', parameter: 'Title length', value: POST_TITLE_MAX, unit: 'chars', symbol: 'POST_TITLE_MAX', enforced: 'rules', note: 'Existing longer titles are checked only when the title changes.' },
       { id: '2.2', parameter: 'Translated title length', value: POST_TITLE_TRANSLATION_MAX, unit: 'chars', symbol: 'POST_TITLE_TRANSLATION_MAX', enforced: 'rules', note: 'Per locale in post.i18n.' },
       { id: '2.3', parameter: 'Post URL (slug)', value: POST_SLUG_MAX, unit: 'chars', symbol: 'POST_SLUG_MAX', enforced: 'rules', note: 'Rules allow up to 80 to leave room for a numeric suffix. New posts only.' },
-      { id: '2.4', parameter: 'Body length', value: POST_BODY_MAX, unit: 'HTML chars', symbol: 'POST_BODY_MAX', enforced: 'partial', note: 'Rules cap every board at this value. On auto-translated boards the app lowers it to min(6.3, 6.4 ÷ target languages): 9 targets → 5,500, 7 → 7,100, 3 or fewer → 10,000.' },
+      { id: '2.4', parameter: 'Body length', value: POST_BODY_MAX, unit: 'HTML chars', symbol: 'POST_BODY_MAX', enforced: 'partial', note: 'Rules cap every board at this value. On auto-translated boards the app lowers it to min(6.5, 6.6 ÷ target languages): 9 targets → 5,500, 7 → 7,100, 3 or fewer → 10,000.' },
       { id: '2.5', parameter: 'Tags per post', value: POST_TAG_MAX, unit: 'tags', symbol: 'POST_TAG_MAX', enforced: 'rules', note: 'Display only; tags are not translated or searchable. Duplicates (case-insensitive) are dropped. Tags cannot contain line breaks.' },
       { id: '2.6', parameter: 'Tag length', value: POST_TAG_LENGTH_MAX, unit: 'chars', symbol: 'POST_TAG_LENGTH_MAX', enforced: 'rules' },
       { id: '2.7', parameter: 'Attachments per post', value: POST_ATTACHMENT_MAX, unit: 'files', symbol: 'POST_ATTACHMENT_MAX', enforced: 'rules', note: 'Each entry must point into the post\'s own attachments folder.' },
@@ -97,7 +97,7 @@ const sections: Section[] = [
     id: '3',
     title: 'Comments',
     rows: [
-      { id: '3.1', parameter: 'Body length', value: COMMENT_BODY_MAX_LENGTH, unit: 'chars', symbol: 'COMMENT_BODY_MAX_LENGTH', enforced: 'rules' },
+      { id: '3.1', parameter: 'Body length', value: COMMENT_BODY_MAX_LENGTH, unit: 'chars', symbol: 'COMMENT_BODY_MAX_LENGTH', enforced: 'rules', note: 'Checked on create and whenever the body changes.' },
       { id: '3.2', parameter: 'Images per comment', value: COMMENT_IMAGE_LIMIT, unit: 'images', symbol: 'COMMENT_IMAGE_LIMIT', enforced: 'rules' },
       { id: '3.3', parameter: 'Comment image file', value: 5, unit: 'MiB', enforced: 'rules', note: 'Literal in storage.rules.' },
       { id: '3.4', parameter: 'Edits per comment (author)', value: COMMENT_EDIT_LIMIT, unit: 'edits', symbol: 'COMMENT_EDIT_LIMIT', enforced: 'partial', note: REVISION_FLAG_NOTE }
@@ -132,12 +132,12 @@ const sections: Section[] = [
     rows: [
       { id: '6.1', parameter: 'Writing assistant calls', value: WRITING_ASSISTANT_DAILY_LIMIT, unit: 'per 24 h', symbol: 'WRITING_ASSISTANT_DAILY_LIMIT', enforced: 'partial', note: 'Rules guard the usage counter only. The model is called from the browser through firebase/ai and is not tied to the counter.' },
       { id: '6.2', parameter: 'Writing assistant custom instruction', value: 200, unit: 'chars', enforced: 'client', note: 'CUSTOM_INSTRUCTION_MAX_LENGTH, not exported.' },
+      { id: '6.3', parameter: 'Writing assistant request for body drafts', value: 500, unit: 'chars', enforced: 'client', note: 'DRAFT_BRIEF_MAX_LENGTH, not exported.' },
       { id: '6.4', parameter: 'AI image generation calls', value: IMAGE_GENERATION_DAILY_LIMIT, unit: 'per 24 h', symbol: 'IMAGE_GENERATION_DAILY_LIMIT', enforced: 'partial', note: 'Counted separately from 6.1 in aiImageCount / aiImagePending / aiImageWindowAt. Rules guard the counter only; the model is called from the browser.' },
-      { id: '6.3', parameter: 'Writing assistant request for body drafts', value: 500, unit: 'chars', enforced: 'client', note: 'DRAFT_BRIEF_MAX_LENGTH, not exported. AI image generation shares the same daily count (6.1).' },
-      { id: '6.3', parameter: 'Body translation per language call', value: HTML_MAX_CHARS, unit: 'HTML chars', symbol: 'HTML_MAX_CHARS', enforced: 'client', note: 'Output capped at 16,384 tokens; a cut-off translation is discarded and that language shows the original. Longer bodies keep title and summary translations.' },
-      { id: '6.4', parameter: 'Body translation budget per save', value: POST_TRANSLATION_BUDGET, unit: 'HTML chars', symbol: 'POST_TRANSLATION_BUDGET', enforced: 'client', note: 'Divided by the number of target languages to set 2.4.' },
-      { id: '6.5', parameter: 'Moderation block ban threshold', value: DEFAULT_BLOCK_BAN_THRESHOLD, unit: 'blocks', symbol: 'DEFAULT_BLOCK_BAN_THRESHOLD', enforced: 'partial', note: 'Rules refuse new posts and comments at this count, but the block count itself is reported by the browser. Keep in sync with the host config.' },
-      { id: '6.6', parameter: 'Block count decay', value: DEFAULT_BLOCK_BAN_DECAY_MS / 3_600_000, unit: 'h', symbol: 'DEFAULT_BLOCK_BAN_DECAY_MS', enforced: 'partial', note: 'Same decay in rules and app.' }
+      { id: '6.5', parameter: 'Body translation per language call', value: HTML_MAX_CHARS, unit: 'HTML chars', symbol: 'HTML_MAX_CHARS', enforced: 'client', note: 'Output capped at 16,384 tokens; a cut-off translation is discarded and that language shows the original. Longer bodies keep title and summary translations.' },
+      { id: '6.6', parameter: 'Body translation budget per save', value: POST_TRANSLATION_BUDGET, unit: 'HTML chars', symbol: 'POST_TRANSLATION_BUDGET', enforced: 'client', note: 'Divided by the number of target languages to set 2.4.' },
+      { id: '6.7', parameter: 'Moderation block ban threshold', value: DEFAULT_BLOCK_BAN_THRESHOLD, unit: 'blocks', symbol: 'DEFAULT_BLOCK_BAN_THRESHOLD', enforced: 'partial', note: 'Rules refuse new posts and comments at this count, but the block count itself is reported by the browser. Keep in sync with the host config.' },
+      { id: '6.8', parameter: 'Block count decay', value: DEFAULT_BLOCK_BAN_DECAY_MS / 3_600_000, unit: 'h', symbol: 'DEFAULT_BLOCK_BAN_DECAY_MS', enforced: 'partial', note: 'Same decay in rules and app.' }
     ]
   }
 ]
@@ -294,6 +294,7 @@ function formatValue(value: number | null) {
         Known gaps outside this table
       </p>
       <p>AI moderation runs in the browser. Rules accept moderationStatus 'approved' as written by the client, so a direct API write skips moderation.</p>
+      <p>Like counts change only together with the caller's own like document, and authors cannot set counters or createdAt. Comment, reply and view counts are still plain ±1 updates that any signed-in user (views: anyone) can repeat.</p>
       <p>Storage rules cannot count files in a folder, so uploads that are never attached to a post are only removed by the orphan cleanup after 24 hours.</p>
       <p>RULES rows describe the package's recommended rules (docs/*.rules.example). Each site may adjust them, and they apply only once deployed.</p>
     </div>

@@ -153,7 +153,7 @@ rulesTest('once required, edits without a revision are denied', async () => {
     // Translation-only and counter updates do not need a revision.
     await updateDoc(doc(db, 'memiBoardPosts', 'p7'), { i18n: {}, updatedAt: serverTimestamp() })
     await setDoc(doc(db, 'memiBoardPosts', 'p7', 'body', 'main'), { i18n: {} }, { merge: true })
-    await updateDoc(doc(clients.other.db, 'memiBoardPosts', 'p7'), { likeCount: 1 })
+    await updateDoc(doc(clients.other.db, 'memiBoardPosts', 'p7'), { viewCount: 1 })
     // Deleting the post together with its body is allowed, and the history stays.
     const batch = writeBatch(db)
     batch.delete(doc(db, 'memiBoardPosts', 'p7', 'body', 'main'))
@@ -226,11 +226,11 @@ rulesTest('comment edits without a revision depend on the required flag', async 
   try {
     await assert.rejects(updateDoc(ref, { body: 'silent edit', updatedAt: serverTimestamp() }), denied)
     await editCommentWithRevision(clients.user.db, 'c3', 'tracked edit')
-    // Blinding and likes do not need a revision.
+    // Blinding and counter updates do not need a revision.
     await updateDoc(doc(clients.staff.db, 'memiBoardComments', 'c3'), {
       isBlinded: true, moderatedAt: serverTimestamp(), moderatedBy: clients.staff.auth.currentUser.uid,
     })
-    await updateDoc(doc(clients.other.db, 'memiBoardComments', 'c3'), { likeCount: 1 })
+    await updateDoc(doc(clients.other.db, 'memiBoardComments', 'c3'), { replyCount: 1 })
     // Deleting the comment keeps its history.
     await deleteDoc(ref)
     const kept = await getDoc(doc(clients.admin.db, 'memiBoardComments', 'c3', 'revisions', '0'))

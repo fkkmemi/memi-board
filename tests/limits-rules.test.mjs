@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { initializeApp, deleteApp } from 'firebase/app'
 import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth } from 'firebase/auth'
-import { connectFirestoreEmulator, doc, getFirestore, runTransaction, serverTimestamp, setDoc, terminate, updateDoc } from 'firebase/firestore'
+import { connectFirestoreEmulator, doc, getFirestore, increment, runTransaction, serverTimestamp, setDoc, terminate, updateDoc, writeBatch } from 'firebase/firestore'
 import { connectStorageEmulator, getStorage, ref, uploadBytes } from 'firebase/storage'
 
 // Boundary checks for the content limits in docs/firestore.rules.example and docs/storage.rules.example:
@@ -183,6 +183,57 @@ rulesTest('moderation ban blocks new posts and comments until it decays', async 
   await createPost(clients.decayed)
   await comment(clients.decayed, 'c-decayed')
   await createPost(clients.nodoc)
+})
+
+rulesTest('counters and creation time cannot be set by hand', async () => {
+  const author = clients.writer
+  const reader = clients.nodoc
+  const future = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+  for (const fields of [{ likeCount: 5 }, { viewCount: 5 }, { commentCount: 5 }, { createdAt: future }]) {
+    await assert.rejects(createPost(author, fields), denied, JSON.stringify(fields))
+  }
+  const postId = await createPost(author, { likeCount: 0, viewCount: 0, commentCount: 0, createdAt: serverTimestamp() })
+  const post = doc(author.db, 'memiBoardPosts', postId)
+  // The author's own edit cannot touch counters or the creation time.
+  for (const fields of [{ likeCount: 9 }, { viewCount: 9 }, { commentCount: 9 }, { createdAt: future }]) {
+    await assert.rejects(updateDoc(post, { title: 'edited', ...fields }), denied, JSON.stringify(fields))
+  }
+  // A like count moves only together with the caller's own like document.
+  const readerPost = doc(reader.db, 'memiBoardPosts', postId)
+  const like = doc(reader.db, 'memiBoardLikes', `${postId}_${reader.uid}`)
+  await assert.rejects(updateDoc(readerPost, { likeCount: increment(1) }), denied)
+  const likeBatch = writeBatch(reader.db)
+  likeBatch.set(like, { uid: reader.uid, postId, boardId: 'board', createdAt: serverTimestamp() })
+  likeBatch.update(readerPost, { likeCount: increment(1) })
+  await likeBatch.commit()
+  await assert.rejects(updateDoc(readerPost, { likeCount: increment(1) }), denied)
+  await assert.rejects(updateDoc(readerPost, { likeCount: increment(-1) }), denied)
+  const unlikeBatch = writeBatch(reader.db)
+  unlikeBatch.delete(like)
+  unlikeBatch.update(readerPost, { likeCount: increment(-1) })
+  await unlikeBatch.commit()
+
+  const comment = (id, fields = {}) => setDoc(doc(author.db, 'memiBoardComments', id), {
+    postId, boardId: 'board', authorUid: author.uid, body: 'hello', moderationStatus: 'approved', listed: true, ...fields,
+  })
+  await assert.rejects(comment('c-liked', { likeCount: 3 }), denied)
+  await assert.rejects(comment('c-replied', { replyCount: 3 }), denied)
+  await assert.rejects(comment('c-future', { createdAt: future }), denied)
+  await comment('c-fresh', { likeCount: 0, replyCount: 0, createdAt: serverTimestamp() })
+  const fresh = doc(author.db, 'memiBoardComments', 'c-fresh')
+  await assert.rejects(updateDoc(fresh, { likeCount: 9 }), denied)
+  await assert.rejects(updateDoc(fresh, { createdAt: future }), denied)
+  await assert.rejects(updateDoc(doc(reader.db, 'memiBoardComments', 'c-fresh'), { likeCount: 1 }), denied)
+})
+
+rulesTest('comment body length is also checked on edits', async () => {
+  const client = clients.writer
+  const postId = await createPost(client)
+  const ref = doc(client.db, 'memiBoardComments', 'c-edit')
+  await setDoc(ref, { postId, boardId: 'board', authorUid: client.uid, body: 'hello', moderationStatus: 'approved', listed: true })
+  await updateDoc(ref, { body: '가'.repeat(1000) })
+  await assert.rejects(updateDoc(ref, { body: '가'.repeat(1001) }), denied)
+  await assert.rejects(updateDoc(ref, { body: '' }), denied)
 })
 
 rulesTest('attachment files: blocked types and size', async () => {

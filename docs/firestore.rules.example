@@ -192,13 +192,34 @@ service cloud.firestore {
         && (request.resource.data.commentCount == resource.data.get('commentCount', 0) + 1
           || request.resource.data.commentCount == resource.data.get('commentCount', 0) - 1);
     }
-    function isLikeCountUpdate() {
+    // likeCount moves by one only in the same commit that creates or deletes the caller's own like
+    // document (`${targetId}_${uid}`). A write that changes the number alone is rejected.
+    function ownLikePath(targetId) {
+      return /databases/$(database)/documents/memiBoardLikes/$(targetId + '_' + request.auth.uid);
+    }
+    function isLikeCountUpdate(targetId) {
       return isSignedIn()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
         && request.resource.data.likeCount is int
         && request.resource.data.likeCount >= 0
-        && (request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
-          || request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1);
+        && ((request.resource.data.likeCount == resource.data.get('likeCount', 0) + 1
+            && !exists(ownLikePath(targetId)) && existsAfter(ownLikePath(targetId)))
+          || (request.resource.data.likeCount == resource.data.get('likeCount', 0) - 1
+            && exists(ownLikePath(targetId)) && !existsAfter(ownLikePath(targetId))));
+    }
+    // New posts and comments start with zero counters and the server time, so a future createdAt cannot
+    // hold the top of a list. A document without createdAt never appears in createdAt-ordered lists, so it is allowed.
+    function startsFresh(data, counters) {
+      return data.get('createdAt', request.time) == request.time
+        && data.get(counters[0], 0) == 0
+        && data.get(counters[1], 0) == 0
+        && data.get(counters[2], 0) == 0;
+    }
+    // A regular edit by the author or a manager cannot change counters or createdAt. Counters move only
+    // through the dedicated one-step updates.
+    function countersUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['createdAt', 'likeCount', 'viewCount', 'commentCount', 'replyCount']);
     }
     function isViewCountUpdate() {
       return resource.data.get('listed', true) == true
@@ -626,6 +647,7 @@ service cloud.firestore {
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId)
         && request.resource.data.isPublished == false
+        && startsFresh(request.resource.data, ['likeCount', 'viewCount', 'commentCount'])
         && !('pinned' in request.resource.data)
         && !('pinnedAt' in request.resource.data);
 
@@ -635,6 +657,7 @@ service cloud.firestore {
           && request.resource.data.get('slug', null) == resource.data.get('slug', null)
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
+          && countersUnchanged()
           && postRevisionOk(postId)
           && (
             (request.resource.data.listed == resource.data.listed
@@ -644,7 +667,7 @@ service cloud.firestore {
               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['listed']))
             || (isBoardManager(resource.data.boardId) && isValidPostPinUpdate())
           )
-        ) || isCommentCountUpdate() || isLikeCountUpdate() || isViewCountUpdate());
+        ) || isCommentCountUpdate() || isLikeCountUpdate(postId) || isViewCountUpdate());
       allow delete: if isOwner(resource) || isBoardManager(resource.data.boardId);
 
       match /body/{docId} {
@@ -744,6 +767,7 @@ service cloud.firestore {
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
         && commentImagesValid(request.resource.data.postId, commentId)
+        && startsFresh(request.resource.data, ['likeCount', 'replyCount', 'replyCount'])
         && !request.resource.data.keys().hasAny(['isBlinded', 'moderatedAt', 'moderatedBy'])
         && request.resource.data.moderationStatus == 'approved'
         && request.resource.data.listed is bool
@@ -753,12 +777,19 @@ service cloud.firestore {
         || isOwner(get(postPath(resource.data.postId)))
         || isBoardManager(resource.data.boardId);
       allow update: if profileTextChangeOk() && (isReplyCountUpdate() || isReplyTargetProfileUpdate()
-        || isLikeCountUpdate()
+        || isLikeCountUpdate(commentId)
         || (
           (isOwner(resource) || isBoardManager(resource.data.boardId))
           && request.resource.data.postId == resource.data.postId
           && request.resource.data.boardId == resource.data.boardId
           && request.resource.data.authorUid == resource.data.authorUid
+          && countersUnchanged()
+          // The body length (COMMENT_BODY_MAX_LENGTH) is checked only when the body changes, so older,
+          // longer comments stay editable otherwise.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['body'])
+            || (request.resource.data.body is string
+              && request.resource.data.body.size() > 0
+              && request.resource.data.body.size() <= 1000))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isBlinded', 'moderatedAt', 'moderatedBy'])
             || (isBoardManager(resource.data.boardId)
               && request.resource.data.isBlinded is bool
