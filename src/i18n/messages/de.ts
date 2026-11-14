@@ -359,6 +359,11 @@ const messages: MemiBoardMessages = {
       sites: "Referenzen",
       history: 'Versionsverlauf',
     },
+    tab: {
+      about: 'Info',
+      sites: 'Referenzen',
+      history: 'Verlauf',
+    },
     sites: {
       description: "Diese Dienste nutzen memi-board für Beiträge und Gespräche.",
       memi: "Ein Ort für Entwicklung und Alltagsgeschichten",

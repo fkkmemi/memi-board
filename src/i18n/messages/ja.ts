@@ -359,6 +359,11 @@ const messages: MemiBoardMessages = {
       sites: "導入事例",
       history: 'バージョン履歴',
     },
+    tab: {
+      about: '紹介',
+      sites: '事例',
+      history: '履歴',
+    },
     sites: {
       description: "memi-boardで投稿や会話をつなぐサービスをご紹介します。",
       memi: "開発と日々の出来事を共有する場所",

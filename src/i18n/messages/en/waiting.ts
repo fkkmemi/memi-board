@@ -1,7 +1,9 @@
 export default {
   title: 'AI is working…',
   subtitle: 'AI tasks can take a while. Try a mini game if you get bored!',
-  demoLink: 'Try the waiting screen',
+  demoTitle: 'Waiting for AI shouldn’t be boring',
+  demoText: 'While AI writes or translates, a small card shows a robot and mini games. Try it out first.',
+  demoLink: 'Open the waiting screen',
   doneTitle: 'All done!',
   thinking: 'An AI robot thinking hard',
   thinkingDone: 'A happy AI robot',

@@ -359,6 +359,11 @@ const messages: MemiBoardMessages = {
       sites: "应用案例",
       history: '版本历史',
     },
+    tab: {
+      about: '简介',
+      sites: '案例',
+      history: '历史',
+    },
     sites: {
       description: "这些服务使用 memi-board 连接帖子与交流。",
       memi: "分享开发经验与日常故事的空间",

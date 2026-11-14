@@ -359,6 +359,11 @@ const messages: MemiBoardMessages = {
       sites: "Contoh penerapan",
       history: 'Riwayat versi',
     },
+    tab: {
+      about: 'Tentang',
+      sites: 'Contoh',
+      history: 'Riwayat',
+    },
     sites: {
       description: "Layanan yang menggunakan memi-board untuk berbagi postingan dan percakapan.",
       memi: "Ruang untuk pengembangan dan cerita sehari-hari",

@@ -359,6 +359,11 @@ const messages: MemiBoardMessages = {
       sites: "Casos de uso",
       history: 'Historial de versiones',
     },
+    tab: {
+      about: 'Acerca de',
+      sites: 'Casos',
+      history: 'Historial',
+    },
     sites: {
       description: "Servicios que utilizan memi-board para compartir publicaciones y conversaciones.",
       memi: "Un espacio para el desarrollo y las historias cotidianas",

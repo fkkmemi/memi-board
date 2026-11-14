@@ -17,6 +17,12 @@ export default {
     sites: '적용 사례',
     history: '버전 히스토리',
   },
+  // 팝업 상단 탭용 짧은 이름. 좁은 화면에서 한 줄에 들어가야 한다.
+  tab: {
+    about: '소개',
+    sites: '사례',
+    history: '히스토리',
+  },
   sites: {
     description: 'memi-board로 글과 대화를 이어가는 서비스들입니다.',
     memi: '개발과 일상을 나누는 공간',

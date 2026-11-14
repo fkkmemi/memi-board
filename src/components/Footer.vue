@@ -112,16 +112,17 @@ const stacks = computed(() => [
               <p v-if="version" class="mt-0.5 font-mono text-[10px] tracking-wider text-dimmed">v{{ version }}</p>
             </div>
           </div>
-          <div class="order-last flex w-full min-w-0 gap-1 overflow-x-auto rounded-full bg-elevated/70 p-1" role="group" :aria-label="t('footer.info.title')">
+          <div class="order-last flex w-full min-w-0 gap-1 rounded-full bg-elevated/70 p-1" role="group" :aria-label="t('footer.info.title')">
             <button
               v-for="item in (['about', 'sites', 'spec', 'history'] as const)"
               :key="item"
               type="button"
               :aria-pressed="tab === item"
-              class="flex-1 shrink-0 cursor-pointer whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none sm:px-5"
+              :title="item === 'spec' ? 'Spec' : t(`footer.info.${item}`)"
+              class="min-w-0 flex-auto cursor-pointer truncate rounded-full px-2 py-1.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:flex-none sm:px-5 sm:py-2"
               :class="tab === item ? 'bg-default text-highlighted shadow-sm ring ring-default' : 'text-muted hover:text-highlighted'"
               @click="tab = item"
-            >{{ item === 'spec' ? 'Spec' : t(`footer.info.${item}`) }}</button>
+            >{{ item === 'spec' ? 'Spec' : t(`footer.tab.${item}`) }}</button>
           </div>
           <UButton color="neutral" variant="ghost" icon="i-lucide-x" class="rounded-full" :aria-label="t('common.action.close')" @click="close" />
         </div>
@@ -145,10 +146,6 @@ const stacks = computed(() => [
                       {{ t('footer.detail') }}
                       <UIcon name="i-lucide-arrow-up-right" class="size-3.5" />
                     </a>
-                    <button type="button" class="mt-3 flex cursor-pointer items-center gap-1.5 text-sm font-medium text-muted hover:text-highlighted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary" @click="openWaitingDemo">
-                      <UIcon name="i-lucide-gamepad-2" class="size-4" />
-                      {{ t('waiting.demoLink') }}
-                    </button>
                   </div>
                 </div>
 
@@ -162,6 +159,20 @@ const stacks = computed(() => [
                     <p class="mt-2 text-xs leading-6 text-muted">{{ item.text }}</p>
                   </section>
                 </div>
+
+                <!-- 설명이 끝난 뒤 맨 아래에, AI 작업 대기 화면을 미리 보여 주는 작은 안내 -->
+                <section class="mt-3 flex flex-col gap-3 rounded-2xl border border-dashed border-default p-5 sm:mt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div class="flex min-w-0 items-start gap-3">
+                    <span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <UIcon name="i-lucide-gamepad-2" class="size-5" />
+                    </span>
+                    <div class="min-w-0">
+                      <h3 class="text-sm font-semibold tracking-tight text-highlighted">{{ t('waiting.demoTitle') }}</h3>
+                      <p class="mt-1 text-xs leading-6 text-muted">{{ t('waiting.demoText') }}</p>
+                    </div>
+                  </div>
+                  <UButton color="neutral" variant="outline" size="sm" icon="i-lucide-play" class="shrink-0 self-start sm:self-auto" :label="t('waiting.demoLink')" @click="openWaitingDemo" />
+                </section>
               </template>
               <template v-else-if="tab === 'sites'">
                 <div class="mb-8">

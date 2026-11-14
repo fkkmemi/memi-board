@@ -17,6 +17,12 @@ export default {
     sites: 'Showcase',
     history: 'Version history',
   },
+  // Short tab names for the popup header; they must fit on one line on a phone.
+  tab: {
+    about: 'About',
+    sites: 'Showcase',
+    history: 'History',
+  },
   sites: {
     description: 'Services using memi-board to bring posts and conversations together.',
     memi: 'A space for development and everyday stories',

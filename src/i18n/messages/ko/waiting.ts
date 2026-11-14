@@ -1,7 +1,9 @@
 export default {
   title: 'AI가 작업 중이에요',
   subtitle: 'AI 작업은 조금 걸릴 수 있어요. 지루할 때 미니게임을 즐겨 보세요!',
-  demoLink: '대기 화면 시험해 보기',
+  demoTitle: 'AI를 기다리는 시간도 심심하지 않게',
+  demoText: 'AI가 글을 쓰거나 번역하는 동안 작은 카드에 로봇과 미니게임이 나와요. 미리 해 볼 수 있어요.',
+  demoLink: '대기 화면 열어 보기',
   doneTitle: '작업이 끝났어요!',
   close: '닫기',
   thinking: '고민하는 AI 로봇',
