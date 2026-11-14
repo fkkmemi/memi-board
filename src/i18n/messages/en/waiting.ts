@@ -14,8 +14,8 @@ export default {
   aiSubtitle: 'AI tasks can take a while. Enjoy a mini game in the meantime!',
   close: 'Close',
   restart: 'Play again',
-  games: { memory: 'Memory match', snake: 'Snake', sudoku: 'Sudoku' },
+  games: { memory: 'Memory match', lights: 'Lights out', sudoku: 'Sudoku' },
   memory: { moves: '{count} moves', cleared: 'All matched! ({count} moves)' },
-  snake: { score: 'Score {score}', best: 'Best {best}', gameOver: 'Game over', start: 'Press any direction to start', up: 'Up', down: 'Down', left: 'Left', right: 'Right' },
+  lights: { hint: 'Turn every light off · {count} moves', solved: 'All off! ({count} moves)', shuffle: 'Shuffle' },
   sudoku: { hint: 'Select a cell and fill in a number', solved: 'Solved! 🎉', erase: 'Erase' },
 }

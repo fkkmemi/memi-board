@@ -16,6 +16,9 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 - Profile photo from AI: "Make with AI" next to "Change photo" in the profile editor. A square avatar is drawn from the prompt, or from the name and bio when it is empty, previewed (regenerate as needed), then passed through the usual crop step. It uses the same daily image limit as post images and shows the waiting card while generating.
 - Post list restore: after loading more posts, opening one and pressing Back brings back every loaded post at the same scroll position instead of resetting to the first page. The list is kept in memory for 5 minutes, only for Back/Forward navigation (a fresh list click starts over), and is dropped when a post is created, edited, published, pinned or deleted. `clearPostListCache()` is exported for hosts.
 
+### Changed
+- Waiting mini games: Snake (keyboard or swipe) is replaced by "Lights out", a 5x5 puzzle played with the mouse or a tap. The board is always solvable.
+
 ### Fixed
 - Saving a new post twice from the same editor ("Next: Preview", edit, "Next: Preview" again) failed with "This post has already been saved. Reload it before editing." The first save creates the draft, so later saves from that screen now update that draft instead of creating a second one. The waiting card's click-blocker now also stays up in its "done" state, so the editor can't be changed behind it.
 - Long author names now shorten with an ellipsis in the post detail header and in comment headers. The width limit was overridden by a leftover `max-w-full`, so `ellipsis` never took effect; names now shorten only when the line runs out of room (full name on wide screens, ellipsis on a narrow phone), and the view count, time and edited badge no longer wrap.
