@@ -68,6 +68,8 @@ const items = computed(() => [
         icon: 'i-lucide-notebook-pen',
         slot: 'memo' as const,
         description: memoText.value || undefined,
+        // 메모의 줄바꿈이 그대로 보이게 한다. 기본 설명은 한 줄로 말줄임된다.
+        ui: { itemDescription: 'whitespace-pre-line break-words line-clamp-4 text-clip' },
         color: memoSentiment.value === 'good' ? 'primary' as const : memoSentiment.value === 'bad' ? 'error' as const : undefined,
         onSelect: () => { memoOpen.value = true },
       }]]
@@ -104,7 +106,12 @@ async function onDeleteMemo() {
     class="flex max-w-full items-center"
     :class="truncate ? 'w-full min-w-0 justify-end' : ellipsis ? 'inline-flex min-w-0 max-w-[12rem]' : 'inline-flex'"
   >
-    <UTooltip :text="tooltipText" :delay-duration="200" :content="{ side: 'top' }">
+    <UTooltip
+      :text="tooltipText"
+      :delay-duration="200"
+      :content="{ side: 'top' }"
+      :ui="{ text: 'block max-w-xs whitespace-pre-line break-words' }"
+    >
       <span class="inline-flex max-w-full" :class="ellipsis && 'min-w-0'">
         <UChip
           :show="hasMemo && !showAvatar"

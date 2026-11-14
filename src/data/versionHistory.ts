@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.67.0',
+    date: '2026-11-14',
+    highlights: [
+      'AI가 제목이나 짧은 요청만으로 본문을 써 줘요. 본문이 비어 있어도 돼요',
+      'AI로 그림을 만들어 본문에 넣을 수 있어요. 직접 쓴 프롬프트나 글 내용을 참고해요',
+      '작성자 메모의 줄바꿈이 툴팁과 메뉴에서도 그대로 보여요',
+    ],
+    highlightsEn: [
+      'AI can write the body from just a title or a short request, even when the body is empty',
+      'Generate an image with AI from your own prompt or from the post, and insert it into the body',
+      'Line breaks in author memos now show in the tooltip and the menu',
+    ],
+  },
+  {
     version: '0.66.1',
     date: '2026-11-14',
     highlights: [

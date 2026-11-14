@@ -84,7 +84,7 @@ export interface MemiBoardConfig {
   seo: MemiBoardSeoOptions
   i18n?: MemiBoardI18nOptions
   translation?: MemiBoardTranslationOptions
-  /** 배너 생성 전용 이미지 모델. 일반 글쓰기·검열 모델과 별개. */
+  /** 배너·본문 그림 생성 전용 이미지 모델. 일반 글쓰기·검열 모델과 별개. */
   bannerGeneration?: { model?: string }
   /** 관리자 화면에서 바꾸는 사이트 전체 설정. 런타임에 Firestore 값으로 채운다. */
   site?: MemiBoardSiteSettings

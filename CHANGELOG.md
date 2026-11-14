@@ -4,6 +4,16 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.67.0] - 2026-11-14
+
+### Added
+- AI writing: "Write body from title or request…" in the editor's AI menu. The body can be empty; the title, a short request, or both are enough. The result is previewed, then fills an empty body or is appended to an existing one.
+- AI images: "Generate an image…" in the AI menu. The image is drawn from the author's prompt, or from the title and body when the prompt is empty. It is previewed (regenerate as needed) and inserted through the normal image upload path (image boards add it to the gallery). It uses the `bannerGeneration.model` image model and counts toward the daily AI limit of 20.
+- `generatePostImage()` on `useMemiBoardWritingAssistant` and a `draft` writing action with an optional `brief`.
+
+### Fixed
+- Line breaks in an author memo now show in the avatar tooltip and the author menu description (the memo list already did).
+
 ## [0.66.1] - 2026-11-14
 
 ### Fixed

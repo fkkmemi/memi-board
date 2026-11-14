@@ -68,6 +68,9 @@ jobs:
       - name: Test member management, account confirmation, and post lookup
         run: node --experimental-strip-types --test tests/account-deletion-confirm.test.mjs tests/profile-name-moderation.test.mjs tests/user-directory-page.test.mjs tests/post-slug-auth.test.mjs
 
+      - name: Test post image prompt
+        run: node --experimental-strip-types --test tests/post-image-generation.test.mjs
+
       - name: Test report workflow
         run: node --test tests/report-workflow.test.mjs
 

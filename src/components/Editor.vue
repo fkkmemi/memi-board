@@ -60,7 +60,7 @@ const { t, dir, locale, translationEnabled, aiEnabled } = useMemiBoardI18n({ boa
 const { checkText } = useMemiBoardModeration({ locale })
 const { uploadEditorImage } = useMemiBoardStorage()
 const { aiTitleEnabled } = useMemiBoardAppSettings()
-const { assist, translatePost, suggestTitleFromImage } = useMemiBoardWritingAssistant({ locale })
+const { assist, generatePostImage, translatePost, suggestTitleFromImage } = useMemiBoardWritingAssistant({ locale })
 
 const title = ref('')
 /** 보드 커스텀 필드 값. 키는 설정에 있는 것만 저장한다. */
@@ -161,6 +161,15 @@ const loadedTranslationCurrent = ref(false)
 let loadedTranslationSource: { title?: string, hash?: string, has: boolean } = { has: false }
 const aiCustomDialogOpen = ref(false)
 const aiCustomInstruction = ref('')
+const aiDraftDialogOpen = ref(false)
+const aiDraftBrief = ref('')
+// 본문 그림 만들기: 만든 그림은 로컬 미리보기로만 두었다가 "본문에 넣기"를 누르면 업로드한다.
+const aiImageDialogOpen = ref(false)
+const aiImageRequest = ref('')
+const aiImageBlob = ref<Blob | null>(null)
+const aiImagePreviewUrl = ref('')
+const aiImageRunning = ref(false)
+const aiImageError = ref('')
 
 interface AiPreviewPending {
   action: WritingAssistantAction
@@ -178,6 +187,7 @@ const aiPreviewLabels = computed(() => {
   switch (aiPreviewPending.value?.action) {
     case 'title': return { before: t('editor.aiPreview.currentTitle'), after: t('editor.aiPreview.newTitle') }
     case 'continue': return { before: t('editor.aiPreview.currentContent'), after: t('editor.aiPreview.appendedContent') }
+    case 'draft': return { before: t('editor.aiPreview.draftBefore'), after: t('editor.aiPreview.draftAfter') }
     default: return { before: t('editor.aiPreview.before'), after: t('editor.aiPreview.after') }
   }
 })
@@ -852,6 +862,8 @@ const aiMenuItems = computed(() => [
     },
   ]] : []),
   [
+    { label: t('editor.ai.draft'), icon: 'i-lucide-file-pen-line', onSelect: () => openDraftDialog() },
+    { label: t('editor.ai.image'), icon: 'i-lucide-image-plus', onSelect: () => openImageDialog_ai() },
     { label: t('editor.ai.title'), icon: 'i-lucide-heading-1', onSelect: () => runWritingAssistant('title') },
   ],
   [
@@ -876,13 +888,83 @@ async function submitCustomAssistant() {
   await runWritingAssistant('custom', instruction)
 }
 
-async function runWritingAssistant(action: WritingAssistantAction, customInstruction?: string) {
+function openDraftDialog() {
+  aiDraftBrief.value = ''
+  aiDraftDialogOpen.value = true
+}
+
+async function submitDraftAssistant() {
+  const brief = aiDraftBrief.value.trim()
+  // 제목도 요청도 없으면 쓸 거리가 없다. 눌러 보고 알게 하지 않고 대화상자를 열어 둔 채 안내한다.
+  if (!brief && !title.value.trim()) {
+    aiError.value = t('writingAssistant.draftRequired')
+    return
+  }
+  aiDraftDialogOpen.value = false
+  await runWritingAssistant('draft', undefined, brief)
+}
+
+function clearAiImage() {
+  if (aiImagePreviewUrl.value) URL.revokeObjectURL(aiImagePreviewUrl.value)
+  aiImagePreviewUrl.value = ''
+  aiImageBlob.value = null
+}
+
+function openImageDialog_ai() {
+  clearAiImage()
+  aiImageError.value = ''
+  aiImageRequest.value = ''
+  aiImageDialogOpen.value = true
+}
+
+async function generateAiImage() {
+  if (aiImageRunning.value) return
+  aiImageError.value = ''
+  aiImageRunning.value = true
+  try {
+    const blob = await generatePostImage({
+      title: title.value,
+      body: content.value,
+      request: aiImageRequest.value,
+    })
+    clearAiImage()
+    aiImageBlob.value = blob
+    aiImagePreviewUrl.value = URL.createObjectURL(blob)
+  }
+  catch (cause) {
+    console.warn('[memi-board] image generation failed', cause)
+    aiImageError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
+  }
+  finally {
+    aiImageRunning.value = false
+  }
+}
+
+async function insertAiImage() {
+  const blob = aiImageBlob.value
+  const editor = resolveEditor()
+  if (!blob || !editor) return
+  const extension = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'image/webp' ? 'webp' : 'png'
+  const file = new File([blob], `ai-image.${extension}`, { type: blob.type })
+  aiImageDialogOpen.value = false
+  clearAiImage()
+  // 일반 업로드와 같은 경로라 미리보기·업로드 표시·실패 처리·이미지 보드 갤러리 추가를 그대로 쓴다.
+  await uploadAndSetImage(editor, file)
+}
+
+watch(aiImageDialogOpen, (open) => {
+  if (!open) clearAiImage()
+})
+onBeforeUnmount(clearAiImage)
+
+async function runWritingAssistant(action: WritingAssistantAction, customInstruction?: string, brief?: string) {
   const editor = resolveEditor()
   if (!editor || aiRunning.value) return
   aiError.value = ''
   aiNotice.value = ''
 
-  const { from, to } = editor.state.selection
+  // 본문 쓰기는 선택 영역과 상관없이 글 전체를 대상으로 한다.
+  const { from, to } = action === 'draft' ? { from: 0, to: 0 } : editor.state.selection
   const hasSelection = from !== to
   const selectedText = hasSelection ? editor.state.doc.textBetween(from, to, '\n') : ''
   const source = action === 'title'
@@ -899,6 +981,7 @@ async function runWritingAssistant(action: WritingAssistantAction, customInstruc
       title: title.value,
       selection: isPlainText,
       customInstruction,
+      brief,
     })
 
     aiPreviewBefore.value = action === 'title' ? title.value : source
@@ -1007,6 +1090,13 @@ function applyAiPreview() {
 
   if (action === 'title') {
     title.value = result.replace(/^['"“”]|['"“”]$/g, '').trim().slice(0, POST_TITLE_MAX)
+  }
+  else if (action === 'draft' && editor.isEmpty) {
+    editor.commands.setContent(result, { emitUpdate: true })
+    editor.chain().focus('end').run()
+  }
+  else if (action === 'draft') {
+    editor.chain().focus().insertContentAt(editor.state.doc.content.size, result).run()
   }
   else if (action === 'continue') {
     const position = hasSelection ? to : editor.state.doc.content.size
@@ -1958,6 +2048,125 @@ async function handleSubmit() {
           @click="submitCustomAssistant"
         >
           {{ t('editor.apply') }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="aiDraftDialogOpen"
+    :title="t('editor.draftDialog.title')"
+    :ui="{ content: 'sm:max-w-lg' }"
+  >
+    <template #body>
+      <UFormField
+        :label="t('editor.draftDialog.label')"
+        :help="t('editor.draftDialog.help')"
+      >
+        <UTextarea
+          v-model="aiDraftBrief"
+          :placeholder="t('editor.draftDialog.placeholder')"
+          autocomplete="off"
+          class="w-full"
+          :rows="3"
+          :maxlength="500"
+          autofocus
+          @keydown.enter.exact.prevent="submitDraftAssistant"
+        />
+      </UFormField>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          @click="aiDraftDialogOpen = false"
+        >
+          {{ t('common.action.cancel') }}
+        </UButton>
+        <UButton
+          type="button"
+          icon="i-lucide-sparkles"
+          :disabled="!aiDraftBrief.trim() && !title.trim()"
+          @click="submitDraftAssistant"
+        >
+          {{ t('editor.draftDialog.submit') }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    v-model:open="aiImageDialogOpen"
+    :title="t('editor.aiImageDialog.title')"
+    :ui="{ content: 'sm:max-w-lg' }"
+  >
+    <template #body>
+      <div class="flex flex-col gap-3">
+        <UFormField
+          :label="t('editor.aiImageDialog.label')"
+          :help="t('editor.aiImageDialog.help')"
+        >
+          <UTextarea
+            v-model="aiImageRequest"
+            :placeholder="t('editor.aiImageDialog.placeholder')"
+            autocomplete="off"
+            class="w-full"
+            :rows="2"
+            :maxlength="1000"
+            autofocus
+            :disabled="aiImageRunning"
+            @keydown.enter.exact.prevent="generateAiImage"
+          />
+        </UFormField>
+        <p v-if="aiImageRunning" class="text-sm text-muted">
+          {{ t('editor.aiImageDialog.generating') }}
+        </p>
+        <img
+          v-if="aiImagePreviewUrl && !aiImageRunning"
+          :src="aiImagePreviewUrl"
+          :alt="t('editor.aiImageDialog.alt')"
+          class="max-h-80 w-full rounded-lg border border-default object-contain"
+        >
+        <UAlert
+          v-if="aiImageError"
+          color="error"
+          variant="subtle"
+          :description="aiImageError"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          @click="aiImageDialogOpen = false"
+        >
+          {{ t('common.action.cancel') }}
+        </UButton>
+        <UButton
+          type="button"
+          :color="aiImagePreviewUrl ? 'neutral' : 'primary'"
+          :variant="aiImagePreviewUrl ? 'outline' : 'solid'"
+          icon="i-lucide-sparkles"
+          :loading="aiImageRunning"
+          @click="generateAiImage"
+        >
+          {{ aiImagePreviewUrl ? t('editor.aiImageDialog.regenerate') : t('editor.aiImageDialog.generate') }}
+        </UButton>
+        <UButton
+          v-if="aiImagePreviewUrl"
+          type="button"
+          icon="i-lucide-check"
+          :disabled="aiImageRunning"
+          @click="insertAiImage"
+        >
+          {{ t('editor.aiImageDialog.insert') }}
         </UButton>
       </div>
     </template>

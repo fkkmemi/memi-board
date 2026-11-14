@@ -1,4 +1,4 @@
-import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai'
+import { getAI, getGenerativeModel, GoogleAIBackend, ImageConfigAspectRatio, ImageConfigImageSize, ResponseModality } from 'firebase/ai'
 import { runTransaction, serverTimestamp } from 'firebase/firestore'
 import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useCurrentUser, useFirebaseApp, useFirestore } from 'vuefire'
@@ -6,6 +6,8 @@ import { assertMemiBoardAiEnabled, assertMemiBoardTranslationEnabled, useBoardPa
 import { boardUserDoc } from '../utils/boardPaths'
 import { memiBoardLanguageLabel } from '../utils/moderation-prompt'
 import { plainTextFromHtml } from '../utils/postBody'
+import { generatedBannerBlob } from '../utils/bannerGeneration'
+import { postImagePrompt } from '../utils/postImageGeneration'
 import { boardTranslationLocales, coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { translate, type MemiBoardMessageParams } from '../i18n/translate'
@@ -26,9 +28,11 @@ export type WritingAssistantAction =
   | 'translate-en'
   | 'translate-ko'
   | 'title'
+  | 'draft'
   | 'custom'
 
 const CUSTOM_INSTRUCTION_MAX_LENGTH = 200
+const DRAFT_BRIEF_MAX_LENGTH = 500
 
 interface WritingAssistantInput {
   action: WritingAssistantAction
@@ -37,6 +41,8 @@ interface WritingAssistantInput {
   selection?: boolean
   /** action이 'custom'일 때 사용자가 직접 입력한 지시문 (예: "경상도 사투리 스타일로") */
   customInstruction?: string
+  /** action이 'draft'일 때 작성자가 적은 요청(예: "제주 2박 3일 여행 후기, 친근한 말투"). 제목만 있어도 된다. */
+  brief?: string
   /** 저장 과정에서 자동으로 부르는 호출이면 true. 하루 사용 횟수를 차감하지 않는다. */
   automatic?: boolean
 }
@@ -52,6 +58,7 @@ const INSTRUCTIONS: Record<BuiltInAction, string> = {
   'translate-en': '자연스러운 영어로 번역하라. 고유명사와 기술 용어는 정확히 유지하라.',
   'translate-ko': '자연스러운 한국어로 번역하라. 고유명사와 기술 용어는 정확히 유지하라.',
   title: '본문을 대표하는 간결한 한국어 제목 하나를 만들어라. 따옴표나 설명 없이 제목만 출력하라.',
+  draft: '제목과 작성자의 요청을 바탕으로 게시글 본문을 새로 작성하라. 제목과 요청에 없는 사실, 수치, 경험은 지어내지 말고, 짧은 문단 몇 개로 간결하게 쓰라. 본문이 이미 있으면 그 내용과 말투를 따르라. 제목 줄은 반복하지 마라.',
 }
 
 /** ko 외 언어용 영어 지시문. 결과는 보드 언어로 쓰도록 language 를 넣는다. */
@@ -64,6 +71,7 @@ function englishInstructions(language: string): Record<BuiltInAction, string> {
     'translate-en': 'Translate into natural English. Keep proper nouns and technical terms accurate.',
     'translate-ko': 'Translate into natural Korean. Keep proper nouns and technical terms accurate.',
     title: `Create one concise title in ${language} that represents the body. Output only the title, without quotes or explanation.`,
+    draft: `Write the body of a message board post from the title and the author's request. Do not invent facts, figures or experiences that the title and request do not give; write a few short paragraphs, concisely. If a body already exists, follow its content and tone. Do not repeat the title as a heading. Write in ${language} unless the title or request is clearly in another language.`,
   }
 }
 
@@ -76,7 +84,7 @@ function resolveInstruction(input: WritingAssistantInput, locale: MemiBoardLocal
     if (ko) return INSTRUCTIONS[input.action]
     const base = englishInstructions(language)[input.action]
     // 번역 작업은 대상 언어가 정해져 있으므로 보드 언어 지시를 덧붙이지 않는다.
-    if (input.action === 'translate-en' || input.action === 'translate-ko' || input.action === 'title') return base
+    if (input.action === 'translate-en' || input.action === 'translate-ko' || input.action === 'title' || input.action === 'draft') return base
     return `${base} Write the result in the same language as the original text; if unclear, write in ${language}.`
   }
   const custom = input.customInstruction?.trim().slice(0, CUSTOM_INSTRUCTION_MAX_LENGTH)
@@ -216,7 +224,12 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     const lang = locale.value
     const ko = lang === 'ko'
     const instruction = resolveInstruction(input, lang, t)
-    if (!input.content.trim()) throw new Error(t('writingAssistant.contentRequired'))
+    const brief = input.brief?.trim().slice(0, DRAFT_BRIEF_MAX_LENGTH) ?? ''
+    // 본문 쓰기는 본문이 비어 있어도 제목이나 요청 중 하나만 있으면 된다.
+    if (input.action === 'draft') {
+      if (!input.title?.trim() && !brief) throw new Error(t('writingAssistant.draftRequired'))
+    }
+    else if (!input.content.trim()) throw new Error(t('writingAssistant.contentRequired'))
     return withDailyUse(async () => {
       const moderation = config.moderation ?? {}
       const ai = getAI(app, {
@@ -241,7 +254,7 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
                 : 'Preserve the HTML structure, links, and image tags of the input, and output the result as an HTML fragment as well.',
             ]).join('\n'),
         generationConfig: {
-          temperature: input.action === 'continue' || input.action === 'title' || input.action === 'custom' ? 0.6 : 0.2,
+          temperature: input.action === 'continue' || input.action === 'title' || input.action === 'custom' || input.action === 'draft' ? 0.6 : 0.2,
           maxOutputTokens: 2048,
         },
       })
@@ -250,12 +263,14 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
         ? [
             `작업: ${instruction}`,
             input.title ? `현재 제목: ${input.title}` : '',
-            `본문:\n${source.slice(0, 12000)}`,
+            brief ? `작성자의 요청: ${brief}` : '',
+            source ? `본문:\n${source.slice(0, 12000)}` : '',
           ]
         : [
             `Task: ${instruction}`,
             input.title ? `Current title: ${input.title}` : '',
-            `Body:\n${source.slice(0, 12000)}`,
+            brief ? `Author's request: ${brief}` : '',
+            source ? `Body:\n${source.slice(0, 12000)}` : '',
           ]).filter(Boolean).join('\n\n')
       const result = await model.generateContent(prompt)
       const output = cleanModelOutput(result.response.text())
@@ -401,5 +416,33 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
     return title
   }
 
-  return { assist, translatePost, translateComment, suggestTitleFromImage }
+  /**
+   * 글에 넣을 그림을 만든다. 작성자의 프롬프트가 있으면 그것을, 없으면 제목·본문에서 주제를 골라 그린다.
+   * 하루 사용 횟수를 글쓰기 도우미와 함께 쓴다. 결과는 로컬 Blob이고 업로드는 호출한 쪽이 한다.
+   */
+  async function generatePostImage(input: { title?: string, body?: string, request?: string }): Promise<Blob> {
+    assertMemiBoardAiEnabled()
+    const request = input.request?.trim() ?? ''
+    const body = plainTextFromHtml(input.body ?? '')
+    if (!request && !input.title?.trim() && !body) throw new Error(t('writingAssistant.imageRequired'))
+    return withDailyUse(async () => {
+      const ai = getAI(app, {
+        backend: new GoogleAIBackend(),
+        useLimitedUseAppCheckTokens: config.moderation?.useLimitedUseAppCheckTokens !== false,
+      })
+      const model = getGenerativeModel(ai, {
+        model: config.bannerGeneration?.model?.trim() || 'gemini-nano-banana-2.1',
+        generationConfig: {
+          responseModalities: [ResponseModality.IMAGE],
+          imageConfig: { aspectRatio: ImageConfigAspectRatio.LANDSCAPE_16x9, imageSize: ImageConfigImageSize.SIZE_1K },
+        },
+      }, { timeout: 180_000 })
+      const result = await model.generateContent(postImagePrompt({ title: input.title, body, request }))
+      const blob = generatedBannerBlob(result.response.inlineDataParts())
+      if (!blob) throw new Error(t('writingAssistant.noImage'))
+      return blob
+    })
+  }
+
+  return { assist, generatePostImage, translatePost, translateComment, suggestTitleFromImage }
 }
