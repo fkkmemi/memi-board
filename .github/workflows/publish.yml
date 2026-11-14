@@ -74,6 +74,9 @@ jobs:
       - name: Test AI usage counters
         run: node --experimental-strip-types --test tests/ai-usage.test.mjs
 
+      - name: Test avatar image prompt
+        run: node --experimental-strip-types --test tests/avatar-image-generation.test.mjs
+
       - name: Test post image prompt
         run: node --experimental-strip-types --test tests/post-image-generation.test.mjs
 

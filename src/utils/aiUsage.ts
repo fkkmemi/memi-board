@@ -35,7 +35,8 @@ export function aiUsageSummary(data: Record<string, unknown> | null | undefined,
   const usage = aiUsageOf(data, kind, now)
   const used = Math.min(limit, usage.count + usage.pending)
   const hours = usage.active && usage.windowAt != null
-    ? Math.max(1, Math.ceil((usage.windowAt + AI_USAGE_WINDOW_MS - now) / (60 * 60 * 1000)))
+    // 이 기기 시계가 서버보다 늦으면 25시간처럼 나올 수 있어 24시간으로 막는다.
+    ? Math.min(24, Math.max(1, Math.ceil((usage.windowAt + AI_USAGE_WINDOW_MS - now) / (60 * 60 * 1000))))
     : 0
   return { used, limit, remaining: Math.max(0, limit - used), hours }
 }

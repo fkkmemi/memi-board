@@ -23,6 +23,10 @@ test('used never exceeds the limit and missing data is zero', () => {
   assert.deepEqual(aiUsageSummary(null, 'writing', 20, NOW), { used: 0, limit: 20, remaining: 20, hours: 0 })
 })
 
+test('a device clock behind the server never shows more than 24 hours', () => {
+  assert.equal(aiUsageSummary({ aiImageWindowAt: at(NOW + 30 * 60_000) }, 'image', 5, NOW).hours, 24)
+})
+
 test('hours until reset rounds up and is at least one', () => {
   assert.equal(aiUsageSummary({ aiImageWindowAt: at(NOW - AI_USAGE_WINDOW_MS + 60_000) }, 'image', 5, NOW).hours, 1)
   assert.equal(aiUsageSummary({ aiImageWindowAt: at(NOW) }, 'image', 5, NOW).hours, 24)

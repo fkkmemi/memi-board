@@ -2,11 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import { query, serverTimestamp, where, writeBatch, getDocs } from 'firebase/firestore'
 import { useFirestore } from 'vuefire'
-import { PROFILE_BIO_MAX, PROFILE_NAME_MAX, boardUserDoc, commentsCol, postsCol, useBoardPathConfig, useMemiBoardI18n, useMemiBoardModeration } from 'memi-board/runtime'
+import { PROFILE_BIO_MAX, PROFILE_NAME_MAX, boardUserDoc, commentsCol, postsCol, useAiWaiting, useBoardPathConfig, useMemiBoardAiUsage, useMemiBoardI18n, useMemiBoardModeration, useMemiBoardWritingAssistant } from 'memi-board/runtime'
 import type { FormError } from '@nuxt/ui'
 import type { BoardUserModel } from 'memi-board/runtime'
 import { useMemiBoardStorage } from 'memi-board/storage'
 import MemiBoardAvatarCropModal from './AvatarCropModal.vue'
+import MemiBoardAiUsageRing from './AiUsageRing.vue'
+import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 
 const open = defineModel<boolean>('open', { default: false })
 
@@ -18,7 +20,7 @@ const props = defineProps<{
 const emit = defineEmits<{ saved: [] }>()
 
 const db = useFirestore()
-const { t } = useMemiBoardI18n()
+const { t, locale, aiEnabled } = useMemiBoardI18n()
 const { checkText: checkName } = useMemiBoardModeration({ context: 'profile-name' })
 
 const displayName = ref('')
@@ -73,6 +75,67 @@ function onCropConfirm(file: File) {
 }
 
 const avatarPreview = computed(() => photoURL.value ?? undefined)
+
+// AI로 프로필 사진 만들기: 만든 그림은 미리보기로만 두었다가 "이 사진 사용"을 누르면 기존 크롭 창으로 넘긴다.
+// 하루 그림 횟수는 글에 넣는 AI 그림과 같이 쓴다.
+const { generateAvatarImage } = useMemiBoardWritingAssistant({ locale })
+const { image: imageUsage } = useMemiBoardAiUsage()
+const aiPhotoOpen = ref(false)
+const aiPhotoRequest = ref('')
+const aiPhotoBlob = ref<Blob | null>(null)
+const aiPhotoUrl = ref('')
+const aiPhotoRunning = ref(false)
+const aiPhotoError = ref('')
+const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(aiPhotoRunning)
+const aiPhotoUsageLabel = computed(() => t('profileEditModal.aiPhotoDialog.left', { remaining: imageUsage.value.remaining, limit: imageUsage.value.limit }))
+
+function clearAiPhoto() {
+  if (aiPhotoUrl.value) URL.revokeObjectURL(aiPhotoUrl.value)
+  aiPhotoUrl.value = ''
+  aiPhotoBlob.value = null
+}
+
+function openAiPhoto() {
+  clearAiPhoto()
+  aiPhotoError.value = ''
+  aiPhotoRequest.value = ''
+  aiPhotoOpen.value = true
+}
+
+async function generateAiPhoto() {
+  if (aiPhotoRunning.value || imageUsage.value.remaining < 1) return
+  aiPhotoError.value = ''
+  // 모달이 열려 있으면 대기 카드의 게임을 누를 때 모달이 닫히므로, 만드는 동안은 닫아 두었다가 결과와 함께 다시 연다.
+  aiPhotoOpen.value = false
+  aiPhotoRunning.value = true
+  try {
+    const blob = await generateAvatarImage({ name: displayName.value, bio: bio.value, request: aiPhotoRequest.value })
+    clearAiPhoto()
+    aiPhotoBlob.value = blob
+    aiPhotoUrl.value = URL.createObjectURL(blob)
+  }
+  catch (cause) {
+    aiPhotoError.value = cause instanceof Error ? cause.message : t('editor.ai.failed')
+  }
+  finally {
+    aiPhotoRunning.value = false
+    aiPhotoOpen.value = true
+  }
+}
+
+function useAiPhoto() {
+  const blob = aiPhotoBlob.value
+  if (!blob) return
+  if (cropSrc.value.startsWith('blob:')) URL.revokeObjectURL(cropSrc.value)
+  cropSrc.value = URL.createObjectURL(blob)
+  aiPhotoOpen.value = false
+  clearAiPhoto()
+  cropOpen.value = true
+}
+
+watch(aiPhotoOpen, (isOpen) => {
+  if (!isOpen && !aiPhotoRunning.value) clearAiPhoto()
+})
 
 async function updateProfileReferences(nextName: string, nextPhotoURL: string | null) {
   const config = useBoardPathConfig()
@@ -172,8 +235,8 @@ async function onSave() {
   <UModal
     v-model:open="open"
     :title="t('profileEditModal.title')"
-    :dismissible="!saving"
-    :close="!saving"
+    :dismissible="!saving && !aiPhotoRunning"
+    :close="!saving && !aiPhotoRunning"
     :ui="{ content: 'sm:max-w-md' }"
   >
     <template #body>
@@ -199,6 +262,20 @@ async function onSave() {
             @click="avatarInput?.click()"
             :disabled="saving"
           />
+          <UButton
+            v-if="aiEnabled"
+            :label="t('profileEditModal.aiPhoto')"
+            icon="i-lucide-sparkles"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            :disabled="saving || imageUsage.remaining < 1"
+            @click="openAiPhoto"
+          >
+            <template #trailing>
+              <MemiBoardAiUsageRing :used="imageUsage.used" :limit="imageUsage.limit" :label="aiPhotoUsageLabel" />
+            </template>
+          </UButton>
           <input
             ref="avatarInput"
             type="file"
@@ -265,6 +342,84 @@ async function onSave() {
           :loading="saving"
         >
           {{ checkingName ? t('profileEditModal.checkingName') : t('common.action.save') }}
+        </UButton>
+      </div>
+    </template>
+  </UModal>
+
+  <MemiBoardWaitingOverlay
+    :open="aiWaitingVisible"
+    :title="t('waiting.aiTitle')"
+    :subtitle="t('waiting.aiSubtitle')"
+    icon="i-lucide-sparkles"
+    closable
+    @close="dismissAiWaiting"
+  />
+
+  <UModal
+    v-model:open="aiPhotoOpen"
+    :title="t('profileEditModal.aiPhotoDialog.title')"
+    :ui="{ content: 'sm:max-w-md' }"
+  >
+    <template #body>
+      <div class="flex flex-col gap-3">
+        <UFormField
+          :label="t('profileEditModal.aiPhotoDialog.label')"
+          :help="t('profileEditModal.aiPhotoDialog.help')"
+        >
+          <UTextarea
+            v-model="aiPhotoRequest"
+            :placeholder="t('profileEditModal.aiPhotoDialog.placeholder')"
+            autocomplete="off"
+            class="w-full"
+            :rows="2"
+            :maxlength="500"
+            autofocus
+            @keydown.enter.exact.prevent="generateAiPhoto"
+          />
+        </UFormField>
+        <p class="flex items-center gap-2 text-xs text-muted">
+          <MemiBoardAiUsageRing :used="imageUsage.used" :limit="imageUsage.limit" :label="aiPhotoUsageLabel" />
+          {{ aiPhotoUsageLabel }}<template v-if="imageUsage.hours"> · {{ t('profileEditModal.aiPhotoDialog.resets', { hours: imageUsage.hours }) }}</template>
+        </p>
+        <div v-if="aiPhotoUrl" class="flex justify-center">
+          <img
+            :src="aiPhotoUrl"
+            :alt="t('profileEditModal.aiPhotoDialog.alt')"
+            class="size-48 rounded-full border border-default object-cover"
+          >
+        </div>
+        <UAlert
+          v-if="aiPhotoError"
+          color="error"
+          variant="subtle"
+          :description="aiPhotoError"
+        />
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="flex w-full justify-end gap-2">
+        <UButton color="neutral" variant="ghost" @click="aiPhotoOpen = false">
+          {{ t('common.action.cancel') }}
+        </UButton>
+        <UButton
+          :color="aiPhotoUrl ? 'neutral' : 'primary'"
+          :variant="aiPhotoUrl ? 'outline' : 'solid'"
+          icon="i-lucide-sparkles"
+          :loading="aiPhotoRunning"
+          :disabled="imageUsage.remaining < 1"
+          @click="generateAiPhoto"
+        >
+          {{ aiPhotoUrl ? t('profileEditModal.aiPhotoDialog.regenerate') : t('profileEditModal.aiPhotoDialog.generate') }}
+        </UButton>
+        <UButton
+          v-if="aiPhotoUrl"
+          icon="i-lucide-check"
+          :disabled="aiPhotoRunning"
+          @click="useAiPhoto"
+        >
+          {{ t('profileEditModal.aiPhotoDialog.use') }}
         </UButton>
       </div>
     </template>

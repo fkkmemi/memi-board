@@ -9,6 +9,7 @@ import { plainTextFromHtml } from '../utils/postBody'
 import { AI_USAGE_FIELDS, AI_USAGE_WINDOW_MS, aiUsageOf, type AiUsageKind } from '../utils/aiUsage'
 import { generatedBannerBlob } from '../utils/bannerGeneration'
 import { postImagePrompt } from '../utils/postImageGeneration'
+import { avatarImagePrompt } from '../utils/avatarImageGeneration'
 import { boardTranslationLocales, coversLocales, hashText, mergeSourceFields } from '../utils/localizedFields'
 import { normalizeMemiBoardLocale, type MemiBoardLocale } from '../i18n/locales'
 import { translate, type MemiBoardMessageParams } from '../i18n/translate'
@@ -408,11 +409,8 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
    * 글에 넣을 그림을 만든다. 작성자의 프롬프트가 있으면 그것을, 없으면 제목·본문에서 주제를 골라 그린다.
    * 그림은 글쓰기와 따로 하루 IMAGE_GENERATION_DAILY_LIMIT 회까지 센다. 결과는 로컬 Blob이고 업로드는 호출한 쪽이 한다.
    */
-  async function generatePostImage(input: { title?: string, body?: string, request?: string }): Promise<Blob> {
-    assertMemiBoardAiEnabled()
-    const request = input.request?.trim() ?? ''
-    const body = plainTextFromHtml(input.body ?? '')
-    if (!request && !input.title?.trim() && !body) throw new Error(t('writingAssistant.imageRequired'))
+  /** 이미지 모델을 한 번 부른다. 호출 전에 그림 횟수 한 번을 예약하고, 성공해야 확정한다. */
+  function runImageModel(prompt: string, aspectRatio: typeof ImageConfigAspectRatio[keyof typeof ImageConfigAspectRatio]): Promise<Blob> {
     return withDailyUse(async () => {
       const ai = getAI(app, {
         backend: new GoogleAIBackend(),
@@ -422,15 +420,32 @@ export function useMemiBoardWritingAssistant(options: UseMemiBoardWritingAssista
         model: config.bannerGeneration?.model?.trim() || 'gemini-nano-banana-2.1',
         generationConfig: {
           responseModalities: [ResponseModality.IMAGE],
-          imageConfig: { aspectRatio: ImageConfigAspectRatio.LANDSCAPE_16x9, imageSize: ImageConfigImageSize.SIZE_1K },
+          imageConfig: { aspectRatio, imageSize: ImageConfigImageSize.SIZE_1K },
         },
       }, { timeout: 180_000 })
-      const result = await model.generateContent(postImagePrompt({ title: input.title, body, request }))
+      const result = await model.generateContent(prompt)
       const blob = generatedBannerBlob(result.response.inlineDataParts())
       if (!blob) throw new Error(t('writingAssistant.noImage'))
       return blob
     }, false, 'image')
   }
 
-  return { assist, generatePostImage, translatePost, translateComment, suggestTitleFromImage }
+  async function generatePostImage(input: { title?: string, body?: string, request?: string }): Promise<Blob> {
+    assertMemiBoardAiEnabled()
+    const request = input.request?.trim() ?? ''
+    const body = plainTextFromHtml(input.body ?? '')
+    if (!request && !input.title?.trim() && !body) throw new Error(t('writingAssistant.imageRequired'))
+    return runImageModel(postImagePrompt({ title: input.title, body, request }), ImageConfigAspectRatio.LANDSCAPE_16x9)
+  }
+
+  /**
+   * 프로필 사진(정사각형)을 만든다. 글에 넣는 그림과 같은 하루 그림 횟수를 쓴다.
+   * 요청이 없어도 이름·소개에서 분위기를 잡아 만든다. 결과는 로컬 Blob이고 크롭·업로드는 호출한 쪽이 한다.
+   */
+  async function generateAvatarImage(input: { name?: string, bio?: string, request?: string }): Promise<Blob> {
+    assertMemiBoardAiEnabled()
+    return runImageModel(avatarImagePrompt(input), ImageConfigAspectRatio.SQUARE_1x1)
+  }
+
+  return { assist, generatePostImage, generateAvatarImage, translatePost, translateComment, suggestTitleFromImage }
 }

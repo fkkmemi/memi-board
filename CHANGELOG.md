@@ -9,6 +9,7 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 - AI images have their own daily limit of 3 (`IMAGE_GENERATION_DAILY_LIMIT`), separate from the 20 writing calls. They are counted in `aiImageCount` / `aiImagePending` / `aiImageWindowAt` on the user document.
 
 ### Added
+- Profile photo from AI: "Make with AI" next to "Change photo" in the profile editor. A square avatar is drawn from the prompt, or from the name and bio when it is empty, previewed (regenerate as needed), then passed through the usual crop step. It uses the same daily image limit as post images and shows the waiting card while generating.
 - Post list restore: after loading more posts, opening one and pressing Back brings back every loaded post at the same scroll position instead of resetting to the first page. The list is kept in memory for 5 minutes, only for Back/Forward navigation (a fresh list click starts over), and is dropped when a post is created, edited, published, pinned or deleted. `clearPostListCache()` is exported for hosts.
 
 ### Fixed
