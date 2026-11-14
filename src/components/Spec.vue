@@ -208,7 +208,29 @@ function formatValue(value: number | null) {
       >
         <span class="text-muted">{{ section.id }}</span>{{ section.title }}
       </h3>
-      <div class="overflow-x-auto rounded-md border border-default" role="region" :aria-label="section.title" tabindex="0">
+      <!-- 폰: 표 대신 항목마다 카드 한 장. 가로로 밀어 보지 않아도 값과 설명이 한눈에 보인다. -->
+      <ul class="divide-y divide-default rounded-md border border-default sm:hidden" :aria-label="section.title">
+        <li v-for="row in section.rows" :key="row.id" class="space-y-1.5 p-3">
+          <div class="flex items-start justify-between gap-3">
+            <p class="min-w-0 text-sm text-highlighted">
+              <span class="me-1.5 font-mono text-xs text-muted">{{ row.id }}</span>{{ row.parameter }}
+            </p>
+            <UBadge
+              :label="BADGES[statusOf(row)].label"
+              :color="BADGES[statusOf(row)].color"
+              variant="subtle"
+              size="sm"
+              class="shrink-0 font-mono"
+            />
+          </div>
+          <p class="font-mono text-base tabular-nums" :class="row.value === null ? 'text-error' : 'text-highlighted'">
+            {{ formatValue(row.value) }}<span v-if="row.unit" class="ms-1.5 text-xs text-muted">{{ row.unit }}</span>
+          </p>
+          <p v-if="row.symbol" class="break-all font-mono text-[11px] text-dimmed">{{ row.symbol }}</p>
+          <p v-if="row.note" class="break-words text-xs leading-5 text-muted">{{ row.note }}</p>
+        </li>
+      </ul>
+      <div class="hidden overflow-x-auto rounded-md border border-default sm:block" role="region" :aria-label="section.title" tabindex="0">
         <table class="w-full border-collapse text-left text-sm">
           <thead class="bg-elevated font-mono text-[11px] uppercase tracking-wider text-muted">
             <tr>
