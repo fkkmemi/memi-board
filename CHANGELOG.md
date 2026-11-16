@@ -4,6 +4,17 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.68.2] - 2026-11-16
+
+### Fixed
+- View counts went up on every page load. The post detail recorded a view from an immediate watcher, which also ran during server rendering; the server has no `sessionStorage`, so the once-per-session check never applied and each refresh (or crawler visit) added a view. Views are now recorded only in the browser, once per post per session.
+
+### Added
+- `tests/view-count.test.mjs` (server rendering never counts; the browser counts once per session across reloads), run in the publish workflow.
+
+### Host app steps
+- None. Update to `memi-board@^0.68.2`; no rule, index or config changes. View counts already inflated by the bug are not corrected.
+
 ## [0.68.1] - 2026-11-16
 
 ### Fixed

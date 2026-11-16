@@ -16,6 +16,18 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.68.2',
+    date: '2026-11-16',
+    highlights: [
+      '새로고침할 때마다 조회수가 올라가던 문제를 고쳤어요. 이제 같은 글은 세션당 한 번만 세요',
+    ],
+    highlightsEn: [
+      'Fixed view counts rising on every refresh; a post now counts once per session',
+    ],
+    note: '호스트는 코드를 바꾸지 않아도 돼요. Firestore 규칙·인덱스 변경은 없어요. 이미 늘어난 조회수는 되돌리지 않아요.',
+    noteEn: 'Hosts need no code changes. No Firestore rule or index changes are needed. Counts already inflated are not corrected.',
+  },
+  {
     version: '0.68.1',
     date: '2026-11-16',
     highlights: [
