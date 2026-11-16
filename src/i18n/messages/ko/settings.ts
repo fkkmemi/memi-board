@@ -12,7 +12,7 @@ export default {
     label: '보드 상단 배너', help: '데스크톱과 휴대폰 배너를 따로 올릴 수 있습니다. 이미지를 이동하거나 확대해 표시할 영역을 선택하세요. 설정을 저장하면 적용됩니다.',
     desktop: '데스크톱 배너', desktopHelp: '권장 2400 × 300px (8:1). 비워 두면 휴대폰 배너를 사용합니다.',
     mobile: '휴대폰 배너', mobileHelp: '권장 1200 × 400px (3:1). 비워 두면 데스크톱 배너를 사용합니다.',
-    select: '이미지 선택', remove: '배너 제거', crop: '배너 이미지 자르기', preview: '배너 미리보기', confirm: '이 영역 사용',
+    select: '이미지 선택', remove: '배너 제거', crop: '배너 이미지 자르기', resumeCrop: '이미지 다시 열기', preview: '배너 미리보기', confirm: '이 영역 사용',
     invalid: 'JPG, PNG, WebP 이미지(25MB 이하)를 선택해 주세요.', failed: '이미지를 처리하지 못했습니다. 다른 이미지로 다시 시도해 주세요.',
     zoomIn: '확대', zoomOut: '축소',
   },

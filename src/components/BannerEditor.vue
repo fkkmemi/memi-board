@@ -32,7 +32,9 @@ const input = ref<HTMLInputElement | null>(null)
 const cropper = ref<InstanceType<typeof Cropper> | null>(null)
 const open = ref(false)
 const activeKind = ref<BoardBannerKind>('desktop')
-const source = ref('')
+// Keep each original until it is replaced or the editor unmounts, even if the crop modal closes.
+const originals = reactive<Record<BoardBannerKind, string>>({ desktop: '', mobile: '' })
+const source = computed(() => originals[activeKind.value])
 /** undefined = saved image, '' = removed, blob URL = staged image. */
 const localPreview = reactive<Record<BoardBannerKind, string | undefined>>({ desktop: undefined, mobile: undefined })
 const cropPreview = ref('')
@@ -47,10 +49,9 @@ function previewOf(kind: BoardBannerKind) {
   return localPreview[kind] ?? savedUrl(kind)
 }
 
-function releaseSource() {
-  if (source.value) URL.revokeObjectURL(source.value)
-  source.value = ''
-  cropPreview.value = ''
+function releaseSource(kind: BoardBannerKind) {
+  if (originals[kind]) URL.revokeObjectURL(originals[kind])
+  originals[kind] = ''
 }
 function releasePreview(kind: BoardBannerKind) {
   const url = localPreview[kind]
@@ -59,18 +60,23 @@ function releasePreview(kind: BoardBannerKind) {
 }
 watch(() => props.banner, () => releasePreview('desktop'))
 watch(() => props.mobileBanner, () => releasePreview('mobile'))
-watch(open, value => { if (!value) releaseSource() })
+watch(open, () => { cropPreview.value = '' })
 onBeforeUnmount(() => {
   disposed = true
   if (generating.value) emit('busy', false)
-  releaseSource()
+  KINDS.forEach(releaseSource)
   KINDS.forEach(releasePreview)
 })
 
 function openCrop(kind: BoardBannerKind, blob: Blob) {
-  releaseSource()
+  releaseSource(kind)
+  originals[kind] = URL.createObjectURL(blob)
+  resumeCrop(kind)
+}
+
+function resumeCrop(kind: BoardBannerKind) {
+  cropPreview.value = ''
   activeKind.value = kind
-  source.value = URL.createObjectURL(blob)
   open.value = true
 }
 
@@ -165,6 +171,7 @@ async function confirm() {
 }
 
 function remove(kind: BoardBannerKind) {
+  releaseSource(kind)
   releasePreview(kind)
   localPreview[kind] = ''
   emit('change', kind, null)
@@ -212,12 +219,13 @@ function remove(kind: BoardBannerKind) {
       <div class="flex flex-wrap gap-2">
         <UButton icon="i-lucide-image-plus" color="neutral" variant="outline" size="sm" :disabled="busy" :label="t('settings.banner.select')" @click="pick(kind)" />
         <UButton v-if="aiEnabled" icon="i-lucide-sparkles" color="primary" variant="soft" size="sm" :loading="generating === kind" :disabled="busy || !title.trim()" :label="t('settings.banner.generate')" @click="generate(kind)" />
+        <UButton v-if="originals[kind]" icon="i-lucide-crop" color="neutral" variant="outline" size="sm" :disabled="busy" :label="t('settings.banner.resumeCrop')" @click="resumeCrop(kind)" />
         <UButton v-if="previewOf(kind)" icon="i-lucide-trash-2" color="neutral" variant="ghost" size="sm" :disabled="busy" :label="t('settings.banner.remove')" @click="remove(kind)" />
       </div>
     </div>
     <p v-if="aiEnabled" class="text-xs text-muted">{{ generating ? t('settings.banner.generating') : t('settings.banner.generateHelp') }}</p>
     <p v-if="error" role="alert" class="text-sm text-error">{{ error }}</p>
-    <UModal v-model:open="open" :title="`${t('settings.banner.crop')} · ${t(`settings.banner.${activeKind}`)}`" :description="t(`settings.banner.${activeKind}Help`)" :dismissible="!processing" :ui="{ content: 'sm:max-w-3xl' }">
+    <UModal v-model:open="open" :title="`${t('settings.banner.crop')} · ${t(`settings.banner.${activeKind}`)}`" :description="t(`settings.banner.${activeKind}Help`)" :dismissible="false" :ui="{ content: 'sm:max-w-3xl' }">
       <template #body>
         <ClientOnly>
           <Cropper

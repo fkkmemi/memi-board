@@ -12,7 +12,7 @@ export default {
     label: 'Board banner', help: 'Upload separate desktop and phone banners. Move or zoom the image to choose the visible area. Save the settings to apply.',
     desktop: 'Desktop banner', desktopHelp: 'Recommended 2400 × 300px (8:1). If empty, the phone banner is used.',
     mobile: 'Phone banner', mobileHelp: 'Recommended 1200 × 400px (3:1). If empty, the desktop banner is used.',
-    select: 'Choose image', remove: 'Remove banner', crop: 'Crop banner image', preview: 'Banner preview', confirm: 'Use this crop',
+    select: 'Choose image', remove: 'Remove banner', crop: 'Crop banner image', resumeCrop: 'Reopen image', preview: 'Banner preview', confirm: 'Use this crop',
     invalid: 'Choose a JPG, PNG, or WebP image up to 25MB.', failed: 'Could not process this image. Try another image.',
     zoomIn: 'Zoom in', zoomOut: 'Zoom out',
   },
