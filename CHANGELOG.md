@@ -4,6 +4,17 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.68.1] - 2026-11-16
+
+### Fixed
+- Board banner editor: closing the crop dialog dropped the original image, so it had to be picked or generated again. Each banner (phone and desktop) now keeps its original until it is replaced, removed or the editor closes, and a "Reopen image" button brings the crop dialog back. The crop dialog no longer closes on an outside click or Escape, so a crop in progress isn't lost by accident.
+
+### Added
+- `tests/banner-editor.test.mjs` covers keeping, reopening and releasing the banner originals.
+
+### Host app steps
+- None. Update to `memi-board@^0.68.1`; no rule, index or config changes.
+
 ## [0.68.0] - 2026-11-14
 
 ### Security

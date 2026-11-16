@@ -16,6 +16,20 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.68.1',
+    date: '2026-11-16',
+    highlights: [
+      '배너 자르기 창을 닫아도 원본 이미지가 남아서, "이미지 다시 열기"로 다시 자를 수 있어요',
+      '자르기 창은 바깥을 눌러도 닫히지 않아요',
+    ],
+    highlightsEn: [
+      'Closing the banner crop dialog keeps the original image, so "Reopen image" lets you crop it again',
+      'The crop dialog no longer closes when you click outside it',
+    ],
+    note: '호스트는 코드를 바꾸지 않아도 돼요. Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'Hosts need no code changes. No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.68.0',
     date: '2026-11-14',
     highlights: [
