@@ -71,6 +71,9 @@ jobs:
       - name: Test post list cache
         run: node --experimental-strip-types --test tests/post-list-cache.test.mjs
 
+      - name: Test view counting (browser only, once per session)
+        run: node --experimental-strip-types --test tests/view-count.test.mjs
+
       - name: Test AI usage counters
         run: node --experimental-strip-types --test tests/ai-usage.test.mjs
 

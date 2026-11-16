@@ -36,6 +36,9 @@ export function useMemiBoardViews() {
   }
 
   async function recordView(boardId: string, postId: string): Promise<void> {
+    // Count only in the browser. During server rendering there is no sessionStorage, so the
+    // once-per-session check can't work and every page load (refresh, crawler) would add a view.
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return
     const b = boardId?.trim()
     const id = postId?.trim()
     if (!b || !id) return
