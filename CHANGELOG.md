@@ -4,6 +4,14 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+### Added
+- Waiting mini games share a Low / Medium / High control under the board. Medium is the default. It changes the memory grid, the lights-out size, the slide size and scramble, how many sudoku clues are hidden, and how sharply the Gomoku opponent plays.
+- Waiting mini games: Gomoku on a 15×15 board. Stones sit on the line intersections, not inside the squares. The player takes black and a simple opponent takes white. Five or more stones in a row wins. Renju restrictions are not applied. The game is pointer-only, so it does not take keyboard input away from the page behind the waiting card.
+
+### Fixed
+- Waiting game tabs wrap inside the card, so five labels stay within the card width.
+- Gomoku draws the board from the card width, with stones on the intersections. The previous grid collapsed, so the board looked empty.
+
 ## [0.68.2] - 2026-11-16
 
 ### Fixed

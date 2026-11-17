@@ -11,9 +11,17 @@ export default {
   expand: 'Expand',
   close: 'Close',
   restart: 'Play again',
-  games: { memory: 'Memory match', lights: 'Lights out', slide: 'Slide puzzle', sudoku: 'Sudoku' },
+  level: { label: 'Difficulty', low: 'Low', mid: 'Medium', high: 'High' },
+  games: { memory: 'Memory match', lights: 'Lights out', slide: 'Slide puzzle', sudoku: 'Sudoku', gomoku: 'Gomoku' },
   memory: { moves: '{count} moves', cleared: 'All matched! ({count} moves)' },
   slide: { hint: 'Put the numbers in order · {count} moves', solved: 'Solved! ({count} moves)', shuffle: 'Shuffle' },
   lights: { hint: 'Turn every light off · {count} moves', solved: 'All off! ({count} moves)', shuffle: 'Shuffle' },
   sudoku: { hint: 'Select a cell and fill in a number', solved: 'Solved! 🎉', erase: 'Erase' },
+  gomoku: {
+    hint: 'Get five in a row',
+    thinking: 'Opponent is playing',
+    youWin: 'You win!',
+    aiWin: 'You lose',
+    draw: 'Draw',
+  },
 }

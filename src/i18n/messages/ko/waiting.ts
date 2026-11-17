@@ -11,9 +11,17 @@ export default {
   collapse: '접기',
   expand: '펼치기',
   restart: '다시 하기',
-  games: { memory: '짝 맞추기', lights: '불 끄기', slide: '숫자 퍼즐', sudoku: '스도쿠' },
+  level: { label: '난이도', low: '하', mid: '중', high: '상' },
+  games: { memory: '짝 맞추기', lights: '불 끄기', slide: '숫자 퍼즐', sudoku: '스도쿠', gomoku: '오목' },
   memory: { moves: '시도 {count}회', cleared: '모두 맞췄어요! ({count}회)' },
   slide: { hint: '숫자를 순서대로 맞춰 보세요 · {count}번', solved: '완성! ({count}번)', shuffle: '섞기' },
   lights: { hint: '불을 모두 꺼 보세요 · {count}번', solved: '모두 껐어요! ({count}번)', shuffle: '섞기' },
   sudoku: { hint: '칸을 눌러 숫자를 채워 보세요', solved: '완성! 🎉', erase: '지우기' },
+  gomoku: {
+    hint: '다섯 칸을 이으세요',
+    thinking: '상대가 두고 있어요',
+    youWin: '이겼어요!',
+    aiWin: '졌어요',
+    draw: '비겼어요',
+  },
 }

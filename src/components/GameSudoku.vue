@@ -3,8 +3,9 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const { t } = useMemiBoardI18n()
+const props = defineProps<{ level: 'low' | 'mid' | 'high' }>()
 
-const REMOVED = 40
+const REMOVED = props.level === 'low' ? 28 : props.level === 'high' ? 52 : 40
 
 function shuffled<T>(items: T[]): T[] {
   const list = [...items]

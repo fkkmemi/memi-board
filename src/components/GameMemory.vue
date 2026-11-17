@@ -3,16 +3,21 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const { t } = useMemiBoardI18n()
+const props = defineProps<{ level: 'low' | 'mid' | 'high' }>()
 
 const ICONS = [
   'i-lucide-cat', 'i-lucide-dog', 'i-lucide-fish', 'i-lucide-bird',
   'i-lucide-apple', 'i-lucide-cherry', 'i-lucide-pizza', 'i-lucide-coffee',
+  'i-lucide-sun', 'i-lucide-moon',
 ]
+const pairs = props.level === 'low' ? 6 : props.level === 'high' ? 10 : 8
+const columns = props.level === 'low' ? 3 : 4
 
 interface Card { id: number, icon: string, flipped: boolean, matched: boolean }
 
 function deal(): Card[] {
-  const deck = [...ICONS, ...ICONS].map((icon, id) => ({ id, icon, flipped: false, matched: false }))
+  const icons = ICONS.slice(0, pairs)
+  const deck = [...icons, ...icons].map((icon, id) => ({ id, icon, flipped: false, matched: false }))
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[deck[i], deck[j]] = [deck[j]!, deck[i]!]
@@ -61,7 +66,7 @@ onBeforeUnmount(() => clearTimeout(timer))
       <span class="text-muted">{{ cleared ? t('waiting.memory.cleared', { count: moves }) : t('waiting.memory.moves', { count: moves }) }}</span>
       <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
     </div>
-    <div class="grid grid-cols-4 gap-2">
+    <div class="grid gap-2" :class="columns === 3 ? 'grid-cols-3' : 'grid-cols-4'">
       <button
         v-for="(card, index) in cards"
         :key="card.id"

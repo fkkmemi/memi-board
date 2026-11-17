@@ -3,8 +3,9 @@ import { computed, ref } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const { t } = useMemiBoardI18n()
+const props = defineProps<{ level: 'low' | 'mid' | 'high' }>()
 
-const SIZE = 5
+const SIZE = props.level === 'low' ? 3 : props.level === 'high' ? 6 : 5
 const CELLS = SIZE * SIZE
 
 /** 칸 하나를 누르면 그 칸과 위·아래·좌·우 칸이 뒤집힌다. */

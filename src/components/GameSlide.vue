@@ -3,9 +3,11 @@ import { computed, ref } from 'vue'
 import { useMemiBoardI18n } from 'memi-board/runtime'
 
 const { t } = useMemiBoardI18n()
+const props = defineProps<{ level: 'low' | 'mid' | 'high' }>()
 
-const SIZE = 3
+const SIZE = props.level === 'high' ? 4 : 3
 const CELLS = SIZE * SIZE
+const SHUFFLE_STEPS = props.level === 'low' ? 8 : props.level === 'high' ? 140 : 80
 /** 0 은 빈칸. */
 const SOLVED = Array.from({ length: CELLS }, (_, i) => (i + 1) % CELLS)
 
@@ -26,7 +28,7 @@ function shuffled(): number[] {
     const board = [...SOLVED]
     let blank = board.indexOf(0)
     let previous = -1
-    for (let step = 0; step < 80; step++) {
+    for (let step = 0; step < SHUFFLE_STEPS; step++) {
       const options = neighbours(blank).filter(index => index !== previous)
       const next = options[Math.floor(Math.random() * options.length)]!
       board[blank] = board[next]!
