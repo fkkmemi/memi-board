@@ -275,10 +275,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="mx-auto flex w-full flex-col gap-3">
-    <div class="flex items-center justify-between gap-2 text-sm">
-      <span class="min-w-0 text-muted">{{ status }}</span>
-      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" class="shrink-0" @click="restart" />
-    </div>
     <div
       class="relative w-full select-none overflow-hidden rounded-md"
       style="aspect-ratio: 1 / 1"
@@ -316,6 +312,10 @@ onBeforeUnmount(() => {
           style="width: 22%; height: 22%"
         />
       </button>
+    </div>
+    <div class="flex items-center justify-between gap-2 text-sm">
+      <span class="min-w-0 text-muted">{{ status }}</span>
+      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" class="shrink-0" @click="restart" />
     </div>
   </div>
 </template>

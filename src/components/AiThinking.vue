@@ -9,7 +9,7 @@ defineProps<{ label?: string, done?: boolean }>()
 <template>
   <svg
     viewBox="0 0 160 100"
-    class="ai-thinking mx-auto block h-24 w-auto"
+    class="ai-thinking mx-auto block h-12 w-auto"
     role="img"
     :aria-label="label"
   >

@@ -12,7 +12,7 @@ export default {
   expand: '펼치기',
   restart: '다시 하기',
   level: { label: '난이도', low: '하', mid: '중', high: '상' },
-  games: { memory: '짝 맞추기', lights: '불 끄기', slide: '숫자 퍼즐', sudoku: '스도쿠', gomoku: '오목' },
+  games: { memory: '짝 맞추기', lights: '불 끄기', slide: '숫자 퍼즐', sudoku: '스도쿠', gomoku: '오목', twenty48: '2048' },
   memory: { moves: '시도 {count}회', cleared: '모두 맞췄어요! ({count}회)' },
   slide: { hint: '숫자를 순서대로 맞춰 보세요 · {count}번', solved: '완성! ({count}번)', shuffle: '섞기' },
   lights: { hint: '불을 모두 꺼 보세요 · {count}번', solved: '모두 껐어요! ({count}번)', shuffle: '섞기' },
@@ -23,5 +23,14 @@ export default {
     youWin: '이겼어요!',
     aiWin: '졌어요',
     draw: '비겼어요',
+  },
+  twenty48: {
+    hint: '{goal}까지 · {score}점',
+    won: '{goal} 달성! ({score}점)',
+    lost: '더 못 움직여요 · {score}점',
+    up: '위',
+    down: '아래',
+    left: '왼쪽',
+    right: '오른쪽',
   },
 }

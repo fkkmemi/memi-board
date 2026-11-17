@@ -12,7 +12,7 @@ export default {
   close: 'Close',
   restart: 'Play again',
   level: { label: 'Difficulty', low: 'Low', mid: 'Medium', high: 'High' },
-  games: { memory: 'Memory match', lights: 'Lights out', slide: 'Slide puzzle', sudoku: 'Sudoku', gomoku: 'Gomoku' },
+  games: { memory: 'Memory match', lights: 'Lights out', slide: 'Slide puzzle', sudoku: 'Sudoku', gomoku: 'Gomoku', twenty48: '2048' },
   memory: { moves: '{count} moves', cleared: 'All matched! ({count} moves)' },
   slide: { hint: 'Put the numbers in order · {count} moves', solved: 'Solved! ({count} moves)', shuffle: 'Shuffle' },
   lights: { hint: 'Turn every light off · {count} moves', solved: 'All off! ({count} moves)', shuffle: 'Shuffle' },
@@ -23,5 +23,14 @@ export default {
     youWin: 'You win!',
     aiWin: 'You lose',
     draw: 'Draw',
+  },
+  twenty48: {
+    hint: 'Reach {goal} · {score}',
+    won: '{goal} reached! ({score})',
+    lost: 'No more moves · {score}',
+    up: 'Up',
+    down: 'Down',
+    left: 'Left',
+    right: 'Right',
   },
 }

@@ -63,10 +63,6 @@ function restart() {
 
 <template>
   <div class="mx-auto flex w-full max-w-xs flex-col gap-3">
-    <div class="flex items-center justify-between text-sm">
-      <span class="text-muted">{{ solved ? t('waiting.slide.solved', { count: moves }) : t('waiting.slide.hint', { count: moves }) }}</span>
-      <UButton :label="t(solved ? 'waiting.restart' : 'waiting.slide.shuffle')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
-    </div>
     <div class="grid" :style="{ gridTemplateColumns: `repeat(${SIZE}, minmax(0, 1fr))`, gap: '0.375rem' }" role="grid" :aria-label="t('waiting.games.slide')">
       <template v-for="(value, index) in board" :key="index">
         <button
@@ -82,6 +78,10 @@ function restart() {
         </button>
         <div v-else class="aspect-square rounded-lg border border-dashed border-default" role="gridcell" aria-hidden="true" />
       </template>
+    </div>
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-muted">{{ solved ? t('waiting.slide.solved', { count: moves }) : t('waiting.slide.hint', { count: moves }) }}</span>
+      <UButton :label="t(solved ? 'waiting.restart' : 'waiting.slide.shuffle')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
     </div>
   </div>
 </template>

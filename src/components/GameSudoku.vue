@@ -97,10 +97,6 @@ function cellClass(index: number) {
 
 <template>
   <div class="mx-auto flex w-full flex-col gap-2" style="max-width: 16rem">
-    <div class="flex items-center justify-between text-sm">
-      <span class="text-muted">{{ solved ? t('waiting.sudoku.solved') : t('waiting.sudoku.hint') }}</span>
-      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
-    </div>
     <div class="grid overflow-hidden rounded-lg border-2 border-accented" style="grid-template-columns: repeat(9, minmax(0, 1fr))">
       <button
         v-for="(value, index) in cells"
@@ -114,6 +110,10 @@ function cellClass(index: number) {
     <div class="grid gap-1" style="grid-template-columns: repeat(10, minmax(0, 1fr))">
       <UButton v-for="n in 9" :key="n" :label="String(n)" size="xs" color="neutral" variant="outline" class="justify-center px-0" @click="fill(n)" />
       <UButton icon="i-lucide-delete" size="xs" color="neutral" variant="outline" class="justify-center px-0" :aria-label="t('waiting.sudoku.erase')" @click="fill(0)" />
+    </div>
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-muted">{{ solved ? t('waiting.sudoku.solved') : t('waiting.sudoku.hint') }}</span>
+      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
     </div>
   </div>
 </template>

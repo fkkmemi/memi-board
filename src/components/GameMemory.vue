@@ -62,10 +62,6 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <div class="mx-auto flex w-full max-w-xs flex-col gap-3">
-    <div class="flex items-center justify-between text-sm">
-      <span class="text-muted">{{ cleared ? t('waiting.memory.cleared', { count: moves }) : t('waiting.memory.moves', { count: moves }) }}</span>
-      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
-    </div>
     <div class="grid gap-2" :class="columns === 3 ? 'grid-cols-3' : 'grid-cols-4'">
       <button
         v-for="(card, index) in cards"
@@ -78,6 +74,10 @@ onBeforeUnmount(() => clearTimeout(timer))
       >
         <UIcon v-if="card.flipped || card.matched" :name="card.icon" class="size-6" />
       </button>
+    </div>
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-muted">{{ cleared ? t('waiting.memory.cleared', { count: moves }) : t('waiting.memory.moves', { count: moves }) }}</span>
+      <UButton :label="t('waiting.restart')" icon="i-lucide-rotate-ccw" size="xs" color="neutral" variant="ghost" @click="restart" />
     </div>
   </div>
 </template>

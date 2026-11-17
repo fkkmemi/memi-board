@@ -4,13 +4,19 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
-### Added
-- Waiting mini games share a Low / Medium / High control under the board. Medium is the default. It changes the memory grid, the lights-out size, the slide size and scramble, how many sudoku clues are hidden, and how sharply the Gomoku opponent plays.
-- Waiting mini games: Gomoku on a 15×15 board. Stones sit on the line intersections, not inside the squares. The player takes black and a simple opponent takes white. Five or more stones in a row wins. Renju restrictions are not applied. The game is pointer-only, so it does not take keyboard input away from the page behind the waiting card.
+## [0.69.0] - 2026-11-17
 
-### Fixed
-- Waiting game tabs wrap inside the card, so five labels stay within the card width.
-- Gomoku draws the board from the card width, with stones on the intersections. The previous grid collapsed, so the board looked empty.
+### Added
+- Waiting mini games: Gomoku on a 15×15 board. Stones sit on the line intersections. The player takes black and a simple opponent takes white. Five or more in a row wins. Renju restrictions are not applied. Play is pointer-only, so the game does not take keyboard input from the page behind the card.
+- Waiting mini games: 2048, played with direction buttons or a swipe on the board. The keyboard stays with the page behind the card. Low ends at 128, Medium at 512, and High at 2048.
+- Waiting mini games share a Low / Medium / High control under the board. Medium is the default. It changes the memory grid, the lights-out size, the slide size and scramble, how many sudoku clues are hidden, how sharply the Gomoku opponent plays, and the 2048 goal.
+
+### Changed
+- The waiting-game hint and the shuffle or restart button sit under the board. Game tabs stay above the board and wrap inside the card.
+- The waiting robot illustration is half as tall.
+
+### Host app steps
+- None. Update to `memi-board@^0.69.0`; no rule, index or config changes.
 
 ## [0.68.2] - 2026-11-16
 

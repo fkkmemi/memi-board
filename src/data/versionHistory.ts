@@ -16,6 +16,22 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.69.0',
+    date: '2026-11-17',
+    highlights: [
+      '대기 중에 오목과 2048을 할 수 있어요. 오목은 선이 만나는 곳에 두고, 2048은 화살표나 밀기로 움직여요',
+      '미니 게임은 난이도 하·중·상을 고를 수 있어요. 기본은 중이에요',
+      '게임 안내와 다시 하기는 판 아래에 있고, 기다리는 로봇은 더 작아졌어요',
+    ],
+    highlightsEn: [
+      'While you wait you can play Gomoku and 2048. Gomoku stones sit on the intersections, and 2048 moves with buttons or a swipe',
+      'Mini games have Low, Medium, and High difficulty. Medium is the default',
+      'The game hint and play-again button sit under the board, and the waiting robot is smaller',
+    ],
+    note: '호스트는 코드를 바꾸지 않아도 돼요. Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: 'Hosts need no code changes. No Firestore rule or index changes are needed.',
+  },
+  {
     version: '0.68.2',
     date: '2026-11-16',
     highlights: [
