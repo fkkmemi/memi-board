@@ -6,6 +6,7 @@ export default {
   imageContentPlaceholder: '내용을 입력하세요…',
   tagsPlaceholder: '태그 입력 후 Enter',
   pinNotice: '공지로 등록',
+  aiAssistedHelp: 'AI 도우미·AI 그림을 쓰면 자동으로 켜집니다. 다른 AI를 썼다면 직접 켜 주세요.',
   submitEdit: '수정 완료',
   submitNext: '다음: 미리보기',
   apply: '적용',

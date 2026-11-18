@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: 'Ke atas',
     },
     label: {
+      aiAssisted: 'Dibantu AI',
+      aiAssistedHelp: 'Ditulis dengan bantuan AI.',
       imageControls: "Kontrol zoom gambar",
       anonymous: 'Anonim',
       user: 'Pengguna',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Tulis sesuatu…',
     tagsPlaceholder: 'Ketik tag lalu tekan Enter',
     pinNotice: 'Jadikan pengumuman',
+    aiAssistedHelp: 'Aktif otomatis saat Anda memakai asisten AI atau gambar AI. Aktifkan sendiri jika memakai AI lain.',
     submitEdit: 'Simpan perubahan',
     submitNext: 'Berikutnya: Pratinjau',
     apply: 'Terapkan',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Papan — pengumuman dan cerita.',
   },
   settings: {
+    aiLabel: {
+      label: 'Tampilkan label AI',
+      help: 'Menambahkan label pada postingan dan komentar yang ditandai penulisnya dibantu AI. Postingan lama tidak berlabel.',
+    },
     aiTitle: {
       label: 'Tulis judul dengan AI',
       help: 'Jika judul postingan baru dikosongkan, AI menulis judul dari teks (atau dari foto pertama jika tidak ada teks). Foto hanya dikirim ke Google AI untuk itu. Matikan agar judul wajib diketik dan foto tidak dikirim.',

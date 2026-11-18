@@ -47,6 +47,8 @@ const deniedMessage = computed(() => {
 const body = ref('')
 const translations = ref<CommentTranslationSet>()
 const aiBusy = ref(false)
+/** AI 활용 체크. AI 도우미로 고친 글을 넣으면 자동으로 켜지고, 밖에서 쓴 AI는 직접 켠다. */
+const aiAssisted = ref(false)
 const draftId = ref(newCommentId())
 const image = ref<Attachment | null>(null)
 const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(null)
@@ -109,6 +111,7 @@ async function handleSubmit() {
       authorUid: user.value.uid,
       authorName: user.value.displayName,
       authorPhoto: user.value.photoURL,
+      aiAssisted: aiAssisted.value,
     }
     if (props.parent) await addReply({ ...input, parent: props.parent })
     else await addComment(input)
@@ -116,6 +119,7 @@ async function handleSubmit() {
     image.value = null
     body.value = ''
     translations.value = undefined
+    aiAssisted.value = false
     draftId.value = newCommentId()
     submitting.value = false
     markSaved()
@@ -182,6 +186,13 @@ onUnmounted(() => {
           :board-id="boardId"
           :disabled="submitting || imageBusy || isWriteRestricted"
           @busy="aiBusy = $event"
+          @applied="aiAssisted = true"
+        />
+        <UCheckbox
+          v-model="aiAssisted"
+          size="sm"
+          :label="t('common.label.aiAssisted')"
+          :disabled="submitting || isWriteRestricted"
         />
         <span class="text-xs text-dimmed tabular-nums">{{ formatNumber(body.length) }} / {{ formatNumber(COMMENT_BODY_MAX_LENGTH) }}</span>
         <UButton

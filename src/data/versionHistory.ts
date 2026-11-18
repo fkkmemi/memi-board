@@ -16,6 +16,24 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.71.0',
+    date: '2026-11-18',
+    highlights: [
+      '글과 댓글에 AI 도움을 받아 썼는지 표시할 수 있어요',
+      'AI 도우미 결과·AI 그림·AI 제목을 넣으면 자동으로 체크되고, 다른 AI를 썼다면 직접 체크할 수 있어요',
+      '전체 설정에서 "AI 활용 표시"를 켜면 체크한 글과 댓글에 ✨ 아이콘이 붙어요',
+      '이 기능 전에 쓴 글은 알 수 없음으로 두고 표시하지 않아요',
+    ],
+    highlightsEn: [
+      'Posts and comments can now record whether they were written with AI help',
+      'Using an AI assistant result, AI image, or AI title checks it automatically, and you can check it yourself for other AI tools',
+      'Turn on "Show AI-assisted label" in site-wide settings to add a ✨ icon to marked posts and comments',
+      'Posts written before this feature are treated as unknown and show no mark',
+    ],
+    note: 'Firestore 규칙 예제에 `aiAssisted` 타입 검사가 추가됐어요. 호스트 `firestore.rules`에 병합해 배포해 주세요. 예전 규칙에서도 저장은 막히지 않아요.',
+    noteEn: 'The Firestore rules example adds an `aiAssisted` type check. Merge it into your `firestore.rules` and deploy. Older rules still accept the field.',
+  },
+  {
     version: '0.70.0',
     date: '2026-11-18',
     highlights: [

@@ -324,7 +324,8 @@ service cloud.firestore {
         && (!changed.hasAny(['title', 'i18n']) || postTitleValid(data))
         && (!changed.hasAny(['tags']) || postTagsValid(data))
         && (!changed.hasAny(['attachments']) || postAttachmentsValid(data, postId))
-        && (!changed.hasAny(['extend']) || postExtendValid(data));
+        && (!changed.hasAny(['extend']) || postExtendValid(data))
+        && (!changed.hasAny(['aiAssisted']) || data.aiAssisted is bool);
     }
     function canReadPost(data) {
       return (data.get('listed', true) == true && data.isPublished == true)
@@ -647,6 +648,7 @@ service cloud.firestore {
         && request.resource.data.listed is bool
         && request.resource.data.listed == expectedListed(request.resource.data.boardId)
         && request.resource.data.isPublished == false
+        && request.resource.data.get('aiAssisted', false) is bool
         && startsFresh(request.resource.data, ['likeCount', 'viewCount', 'commentCount'])
         && !('pinned' in request.resource.data)
         && !('pinnedAt' in request.resource.data);
@@ -767,6 +769,7 @@ service cloud.firestore {
         && request.resource.data.body.size() > 0
         && request.resource.data.body.size() <= 1000
         && commentImagesValid(request.resource.data.postId, commentId)
+        && request.resource.data.get('aiAssisted', false) is bool
         && startsFresh(request.resource.data, ['likeCount', 'replyCount', 'replyCount'])
         && !request.resource.data.keys().hasAny(['isBlinded', 'moderatedAt', 'moderatedBy'])
         && request.resource.data.moderationStatus == 'approved'
@@ -796,6 +799,8 @@ service cloud.firestore {
               && request.resource.data.moderatedBy == request.auth.uid
               && request.resource.data.moderatedAt == request.time))
           && commentImagesValid(request.resource.data.postId, commentId)
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['aiAssisted'])
+            || request.resource.data.aiAssisted is bool)
           && commentRevisionOk(commentId)
           && (
             request.resource.data.get('listed', true) == resource.data.get('listed', true)

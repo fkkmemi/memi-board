@@ -28,6 +28,8 @@ export default {
     toTop: '위로',
   },
   label: {
+    aiAssisted: 'AI 활용',
+    aiAssistedHelp: 'AI 도움을 받아 쓴 내용입니다.',
     imageControls: "이미지 확대 도구",
     anonymous: '익명',
     user: '사용자',

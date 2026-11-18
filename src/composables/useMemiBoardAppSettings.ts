@@ -17,7 +17,7 @@ export function useMemiBoardAppSettings() {
   const db = useFirestore()
   const cfg = useBoardPathConfig()
   const ref_ = doc(db, cfg.settingsCollection, APP_SETTINGS_DOC_ID)
-  const { data, pending } = useDocument<{ hideAbout?: boolean, disableAiTitle?: boolean, disableAi?: boolean, disableI18n?: boolean, locale?: string, locales?: string[] }>(ref_, {
+  const { data, pending } = useDocument<{ hideAbout?: boolean, disableAiTitle?: boolean, disableAi?: boolean, disableI18n?: boolean, locale?: string, locales?: string[], showAiLabel?: boolean }>(ref_, {
     ssrKey: boardSsrKey(cfg, 'app'),
   })
   const saving = ref(false)
@@ -52,6 +52,9 @@ export function useMemiBoardAppSettings() {
     }
   }
 
+  /** "AI 활용" 표시. 꺼져 있다가 `showAiLabel: true` 를 저장하면 켜진다. AI 기능 스위치와는 따로 동작한다. */
+  const aiLabelShown = computed(() => data.value?.showAiLabel === true)
+
   /** AI master switch. Off turns off moderation, translation, the writing assistant, and AI titles. */
   const siteAiEnabled = computed(() => data.value?.disableAi !== true)
   /** Internationalization master switch. Off fixes the board to one language and turns off translation. */
@@ -73,7 +76,7 @@ export function useMemiBoardAppSettings() {
   }
 
   return {
-    showAbout, aiTitleEnabled, aiTitleSwitch, siteAiEnabled, siteI18nEnabled, siteLocale, siteLocales,
+    showAbout, aiTitleEnabled, aiTitleSwitch, aiLabelShown, siteAiEnabled, siteI18nEnabled, siteLocale, siteLocales,
     pending, saving, error, saveSite,
   }
 }

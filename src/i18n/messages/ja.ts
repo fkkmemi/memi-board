@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: 'トップへ',
     },
     label: {
+      aiAssisted: 'AI活用',
+      aiAssistedHelp: 'AIの助けを借りて書いた内容です。',
       imageControls: "画像の拡大・縮小",
       anonymous: '匿名',
       user: 'ユーザー',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: '内容を入力…',
     tagsPlaceholder: 'タグを入力してEnter',
     pinNotice: 'お知らせとして固定',
+    aiAssistedHelp: 'AIアシスタントやAI画像を使うと自動でオンになります。他のAIを使った場合は手動でオンにしてください。',
     submitEdit: '編集を完了',
     submitNext: '次へ: プレビュー',
     apply: '適用',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: '掲示板 — お知らせや話題をチェックしましょう。',
   },
   settings: {
+    aiLabel: {
+      label: 'AI活用の表示',
+      help: '作成者がAI活用にチェックした投稿とコメントに表示を付けます。この機能より前の投稿には表示されません。',
+    },
     aiTitle: {
       label: 'AIでタイトルを自動作成',
       help: '新しい投稿のタイトルを空欄にすると、AIが本文（本文がなければ最初の写真）からタイトルを作ります。写真はタイトル作成時のみGoogle AIに送信されます。オフにするとタイトルの入力が必須になり、写真も送信されません。',

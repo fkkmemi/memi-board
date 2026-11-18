@@ -40,26 +40,26 @@ const emit = defineEmits<{
 
 const { t, i18nEnabled, translationEnabled } = useMemiBoardI18n()
 const {
-  showAbout, aiTitleSwitch, siteAiEnabled, siteI18nEnabled, siteLocale, siteLocales, saving: siteSaving, error: siteError, saveSite,
+  showAbout, aiTitleSwitch, aiLabelShown, siteAiEnabled, siteI18nEnabled, siteLocale, siteLocales, saving: siteSaving, error: siteError, saveSite,
 } = useMemiBoardAppSettings()
 const allLocaleItems = MEMI_BOARD_LOCALES.map((item: { code: string, name: string }) => ({ label: item.name, value: item.code }))
 
 // 전체 설정은 초안을 고친 뒤 하단 "적용"으로 한 번에 저장한다.
-const siteDraft = reactive({ ai: true, aiTitle: true, i18n: true, locale: 'ko', locales: [] as string[], about: true })
+const siteDraft = reactive({ ai: true, aiTitle: true, aiLabel: false, i18n: true, locale: 'ko', locales: [] as string[], about: true })
 const siteApplied = ref(false)
 const siteTouched = ref(false)
 function stored() {
-  return { ai: siteAiEnabled.value, aiTitle: aiTitleSwitch.value, i18n: siteI18nEnabled.value, locale: siteLocale.value, locales: [...siteLocales.value], about: showAbout.value }
+  return { ai: siteAiEnabled.value, aiTitle: aiTitleSwitch.value, aiLabel: aiLabelShown.value, i18n: siteI18nEnabled.value, locale: siteLocale.value, locales: [...siteLocales.value], about: showAbout.value }
 }
 function loadSiteDraft() { Object.assign(siteDraft, stored()) }
 const siteDirty = computed(() => {
   const s = stored()
-  return siteDraft.ai !== s.ai || siteDraft.aiTitle !== s.aiTitle || siteDraft.i18n !== s.i18n
+  return siteDraft.ai !== s.ai || siteDraft.aiTitle !== s.aiTitle || siteDraft.aiLabel !== s.aiLabel || siteDraft.i18n !== s.i18n
     || siteDraft.locale !== s.locale || siteDraft.about !== s.about
     || siteDraft.locales.join() !== s.locales.join()
 })
 // 저장된 값이 바뀌면(처음 불러올 때 포함) 아직 손대지 않았을 때만 초안에 반영한다.
-watch([siteAiEnabled, aiTitleSwitch, siteI18nEnabled, siteLocale, siteLocales, showAbout], () => {
+watch([siteAiEnabled, aiTitleSwitch, aiLabelShown, siteI18nEnabled, siteLocale, siteLocales, showAbout], () => {
   if (!siteTouched.value) loadSiteDraft()
 }, { immediate: true })
 // 기본·고정 언어는 사용하기로 한 언어 안에서만 고른다.
@@ -77,6 +77,7 @@ async function applySite() {
   const ok = await saveSite({
     disableAi: !siteDraft.ai,
     disableAiTitle: !siteDraft.aiTitle,
+    showAiLabel: siteDraft.aiLabel,
     disableI18n: !siteDraft.i18n,
     locale: siteDraft.locale,
     locales: siteDraft.locales.length === all ? [] : siteDraft.locales,
@@ -568,6 +569,13 @@ async function runDeleteAll() {
           <p class="text-xs text-muted">{{ t('settings.aiTitle.help') }}</p>
         </div>
         <USwitch :model-value="siteDraft.aiTitle && siteDraft.ai" :disabled="!siteDraft.ai" :aria-label="t('settings.aiTitle.label')" @update:model-value="siteDraft.aiTitle = $event; siteApplied = false; siteTouched = true" />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">{{ t('settings.aiLabel.label') }}</p>
+          <p class="text-xs text-muted">{{ t('settings.aiLabel.help') }}</p>
+        </div>
+        <USwitch :model-value="siteDraft.aiLabel" :aria-label="t('settings.aiLabel.label')" @update:model-value="siteDraft.aiLabel = $event; siteApplied = false; siteTouched = true" />
       </div>
       <div class="flex items-center justify-between gap-4">
         <div>

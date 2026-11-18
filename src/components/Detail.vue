@@ -3,7 +3,7 @@ import MemiBoardSurface from './BoardSurface.vue'
 import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import Youtube from '@tiptap/extension-youtube'
 import type { PostModel } from 'memi-board/runtime'
-import { displayPostContent, displayPostTitle, POST_EDIT_LIMIT, extendEntries, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
+import { displayPostContent, displayPostTitle, isMemiBoardAiLabelShown, POST_EDIT_LIMIT, extendEntries, renderMarkdownToHtml, useMemiBoardI18n } from 'memi-board/runtime'
 import { useMemiBoardPost, useMemiBoardPosts } from 'memi-board/runtime'
 import { useMemiBoardAuth } from 'memi-board/runtime'
 import { useMemiBoardSettings } from 'memi-board/runtime'
@@ -363,6 +363,14 @@ watch(() => props.postId, () => {
           <UBadge variant="subtle" color="neutral" size="sm" class="shrink-0 whitespace-nowrap">
             {{ t('detail.edited') }}
           </UBadge>
+        </UTooltip>
+        <UTooltip
+          v-if="post.aiAssisted === true && isMemiBoardAiLabelShown()"
+          :text="t('common.label.aiAssistedHelp')"
+          :delay-duration="200"
+          :content="{ side: 'top' }"
+        >
+          <UIcon name="i-lucide-sparkles" class="size-4 shrink-0 text-primary" role="img" :aria-label="t('common.label.aiAssistedHelp')" />
         </UTooltip>
       </div>
       <div v-if="canPin || canViewRevisions || canEdit(post) || canDelete(post)" class="flex gap-2">

@@ -64,6 +64,8 @@ export interface MemiBoardSiteSettings {
   locale?: string
   /** 쓸 수 있는 언어(MEMI_BOARD_LOCALES 코드). 비어 있으면 지원 언어 전체. */
   locales?: string[]
+  /** true 이면 `aiAssisted` 가 true 인 글·댓글에 "AI 활용" 표시를 붙인다. */
+  showAiLabel?: boolean
 }
 
 export interface MemiBoardConfig {
@@ -219,7 +221,13 @@ export function applyMemiBoardSiteSettings(data: Record<string, unknown> | undef
     disableI18n: data?.disableI18n === true,
     locale: typeof data?.locale === 'string' && data.locale ? data.locale : undefined,
     locales: Array.isArray(data?.locales) ? data.locales.filter((code): code is string => typeof code === 'string') : undefined,
+    showAiLabel: data?.showAiLabel === true,
   }
+}
+
+/** 관리자가 "AI 활용" 표시를 켰는지. AI 기능 사용 여부와 상관없이 따로 켠다(밖에서 쓴 AI도 직접 체크할 수 있다). */
+export function isMemiBoardAiLabelShown(): boolean {
+  return useMemiBoardConfig().site?.showAiLabel === true
 }
 
 /** UI를 거치지 않는 호출도 AI 요청·이용 횟수 갱신 전에 차단한다. */

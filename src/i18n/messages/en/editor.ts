@@ -6,6 +6,7 @@ export default {
   imageContentPlaceholder: 'Write something…',
   tagsPlaceholder: 'Type a tag and press Enter',
   pinNotice: 'Pin as notice',
+  aiAssistedHelp: 'Turns on automatically when you use the AI assistant or AI images. Turn it on yourself if you used another AI.',
   submitEdit: 'Save changes',
   submitNext: 'Next: Preview',
   apply: 'Apply',

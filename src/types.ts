@@ -102,6 +102,11 @@ export interface PostModel {
   publishedAt?: Timestamp
   /** 공지 여부. 보드 매니저만 지정하고, 목록 맨 위에 따로 보여 준다. 미지정은 일반 글. */
   pinned?: boolean
+  /**
+   * AI 도움을 받아 썼는지. 새 글은 true/false 를 항상 저장하고, 필드가 없는 예전 글은 "알 수 없음"으로 본다.
+   * 사이트 설정 `showAiLabel` 이 켜져 있으면 true 인 글에 표시를 붙인다.
+   */
+  aiAssisted?: boolean
   /** 공지로 지정한 시각. 공지끼리는 최근 지정 순으로 정렬한다. */
   pinnedAt?: Timestamp
   authorUid: string
@@ -212,6 +217,8 @@ export interface CommentModel {
   editedAt?: Timestamp
   /** 관리자·스태프의 블라인드 상태. 본문 데이터는 보존한다. */
   isBlinded?: boolean
+  /** AI 도움을 받아 썼는지. 필드가 없는 예전 댓글은 "알 수 없음"으로 본다. */
+  aiAssisted?: boolean
   moderatedAt?: Timestamp
   moderatedBy?: string
   /** 최상위 댓글은 null, 답글은 직접 답변 대상 댓글 ID. */

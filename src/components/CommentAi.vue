@@ -8,7 +8,8 @@ import type { CommentTranslationSet, WritingAssistantAction } from 'memi-board/r
 const props = defineProps<{ boardId: string, disabled?: boolean }>()
 const body = defineModel<string>({ required: true })
 const translations = defineModel<CommentTranslationSet | undefined>('translations')
-const emit = defineEmits<{ busy: [value: boolean] }>()
+// applied: AI가 고친 글을 본문에 넣었을 때. 번역만 한 경우는 AI 활용으로 보지 않는다.
+const emit = defineEmits<{ busy: [value: boolean], applied: [] }>()
 const { t, locale, translationEnabled, aiEnabled } = useMemiBoardI18n()
 const { getBoard } = useMemiBoardSettings()
 const { assist, translateComment } = useMemiBoardWritingAssistant({ locale })
@@ -67,7 +68,10 @@ async function translate() {
   finally { busy(false) }
 }
 function apply() {
-  if (body.value === before.value) body.value = result.value
+  if (body.value === before.value) {
+    body.value = result.value
+    emit('applied')
+  }
   previewOpen.value = false
 }
 </script>

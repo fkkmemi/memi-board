@@ -4,6 +4,17 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.71.0] - 2026-11-18
+
+### Added
+- Posts and comments record whether they were written with AI help in a new `aiAssisted` field. Applying an AI assistant result, inserting an AI image, or accepting an AI title turns it on automatically. Authors can also turn it on themselves (for AI used outside the board) or turn it off. New posts and comments always store `true` or `false`. Older ones have no field and are treated as unknown.
+- Site-wide setting "Show AI-assisted label" (`showAiLabel` in the app settings document, off by default). When on, posts and comments with `aiAssisted: true` show a sparkles icon with an "AI-assisted" tooltip. It works independently of the AI master switch.
+
+### Host app steps
+- Merge the `aiAssisted` checks from `docs/firestore.rules.example` into your `firestore.rules` (post create, `postFieldsChangeOk`, comment create and comment update), then deploy them. They check that `aiAssisted` is a boolean. Older rules accept the field without the type check, so the app keeps working before you deploy.
+- If your app pre-bundles icons for SSR pages (memi-board components are not scanned), include `lucide:sparkles`.
+- Update to `memi-board@^0.71.0`. No index or config changes.
+
 ## [0.70.0] - 2026-11-18
 
 ### Changed

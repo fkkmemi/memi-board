@@ -51,6 +51,8 @@ export interface AddCommentInput {
   /** 이미지를 먼저 올린 경우 그 경로에 쓴 댓글 ID */
   id?: string
   images?: Attachment[]
+  /** AI 도움을 받아 썼는지. 새 댓글은 항상 true/false 로 저장한다. */
+  aiAssisted?: boolean
 }
 
 export interface AddReplyInput extends AddCommentInput {
@@ -297,6 +299,7 @@ export function useMemiBoardComments(
       authorName: clampProfileName(input.authorName),
       authorPhoto: input.authorPhoto,
       moderationStatus: 'approved' as const,
+      aiAssisted: input.aiAssisted === true,
       replyCount: 0,
       likeCount: 0,
       createdAt: serverTimestamp(),
@@ -373,7 +376,7 @@ export function useMemiBoardComments(
     legacyComments.value = legacyComments.value.filter(item => item.id !== comment.id)
   }
 
-  async function updateComment(commentId: string, body: string, images?: Attachment[] | null, translations?: CommentTranslationSet): Promise<void> {
+  async function updateComment(commentId: string, body: string, images?: Attachment[] | null, translations?: CommentTranslationSet, aiAssisted?: boolean): Promise<void> {
     const trimmed = normalizedCommentBody(body, i18n)
     const nextImages = images === undefined ? undefined : imagesFor(commentId, images)
     const translation = await translationFor(trimmed, translations)
@@ -412,6 +415,7 @@ export function useMemiBoardComments(
         body: trimmed,
         updatedAt: serverTimestamp(),
         ...(nextImages !== undefined ? { images: nextImages.length ? nextImages : deleteField() } : {}),
+        ...(typeof aiAssisted === 'boolean' ? { aiAssisted } : {}),
         ...(changed ? { revision: revision + 1, editedAt: serverTimestamp() } : {}),
         ...translation,
       })

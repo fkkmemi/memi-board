@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: 'Arriba',
     },
     label: {
+      aiAssisted: 'Con ayuda de IA',
+      aiAssistedHelp: 'Escrito con ayuda de IA.',
       imageControls: "Controles de zoom de imagen",
       anonymous: 'Anónimo',
       user: 'Usuario',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Escribe algo…',
     tagsPlaceholder: 'Escribe una etiqueta y presiona Enter',
     pinNotice: 'Fijar como aviso',
+    aiAssistedHelp: 'Se activa automáticamente al usar el asistente de IA o imágenes de IA. Actívalo tú si usaste otra IA.',
     submitEdit: 'Guardar cambios',
     submitNext: 'Siguiente: vista previa',
     apply: 'Aplicar',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Tablero: anuncios e historias.',
   },
   settings: {
+    aiLabel: {
+      label: 'Mostrar etiqueta de IA',
+      help: 'Añade una etiqueta a las publicaciones y comentarios que sus autores marcaron como hechos con IA. Las publicaciones anteriores no la tienen.',
+    },
     aiTitle: {
       label: 'Escribir títulos con IA',
       help: 'Si dejas vacío el título de una publicación nueva, la IA escribe uno a partir del texto (o de la primera foto si no hay texto). Las fotos solo se envían a Google AI para eso. Desactívalo para exigir un título escrito y dejar de enviar fotos.',

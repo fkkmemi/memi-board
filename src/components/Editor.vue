@@ -216,6 +216,12 @@ const aiPreviewLabels = computed(() => {
 })
 /** 공지 지정 — 게시된 글을 수정할 때 보드 매니저에게만 보인다. 새 글은 게시 후 상세에서 지정한다. */
 const pinned = ref(false)
+/**
+ * AI 활용 체크. AI 도우미·AI 그림·AI 제목을 글에 넣으면 자동으로 켜지고, 밖에서 쓴 AI는 직접 켠다.
+ * 수정 화면에서 예전 글(필드 없음)은 null 로 두고, 체크를 바꾸지 않으면 저장하지 않는다.
+ */
+const aiAssisted = ref(false)
+let loadedAiAssisted: boolean | null = null
 const loadedPinned = ref(false)
 const loadedPublished = ref(false)
 const canPin = computed(() => isEdit.value && loadedPublished.value && canManageBoard(resolvedBoardId.value))
@@ -244,6 +250,7 @@ const { markSaved } = useUnsavedChangesGuard(
     covers: coverSlots.value.map(slot => slot.url),
     extend: Object.entries(extendValues.value).filter(([, value]) => value !== '').sort(([a], [b]) => a.localeCompare(b)),
     pinned: pinned.value,
+    aiAssisted: aiAssisted.value,
     translations: pendingTranslations.value,
   }),
   () => saving.value || imageUploading.value || aiRunning.value || aiImageRunning.value,
@@ -980,6 +987,7 @@ async function insertAiImage() {
   const file = new File([blob], `ai-image.${extension}`, { type: blob.type })
   aiImageDialogOpen.value = false
   clearAiImage()
+  aiAssisted.value = true
   // 일반 업로드와 같은 경로라 미리보기·업로드 표시·실패 처리·이미지 보드 갤러리 추가를 그대로 쓴다.
   await uploadAndSetImage(editor, file)
 }
@@ -1141,6 +1149,7 @@ function applyAiPreview() {
     editor.commands.setContent(result, { emitUpdate: true })
     editor.chain().focus('end').run()
   }
+  aiAssisted.value = true
   closeAiPreview()
 }
 
@@ -1287,6 +1296,8 @@ async function loadPost(id: string) {
     loadedExtend.value = readExtend(post.extend)
     extendValues.value = storedExtend(post.extend)
     pinned.value = loadedPinned.value = post.pinned === true
+    loadedAiAssisted = typeof post.aiAssisted === 'boolean' ? post.aiAssisted : null
+    aiAssisted.value = post.aiAssisted === true
     // 수정 횟수를 다 쓴 글은 열 수는 있어도 저장되지 않는다. 주소로 바로 들어온 경우를 위해 미리 알린다.
     if ((post.revision ?? 0) >= POST_EDIT_LIMIT && !canManageBoard(post.boardId)) {
       error.value = t('posts.editLimitReached', { max: POST_EDIT_LIMIT })
@@ -1341,6 +1352,8 @@ watch(
       loading.value = false
       loadedExtend.value = {}
       extendValues.value = blankExtend()
+      aiAssisted.value = false
+      loadedAiAssisted = null
       attachmentNamespace.value = createPostId()
       coverSlots.value = []
       void ensureSettings().catch(() => {})
@@ -1411,6 +1424,7 @@ async function handleSubmit() {
       const cleaned = suggested.replace(/^['"“”]|['"“”]$/g, '').trim()
       if (cleaned) {
         title.value = cleaned
+        aiAssisted.value = true
         aiNotice.value = t('editor.titleAiNotice')
         return
       }
@@ -1479,6 +1493,8 @@ async function handleSubmit() {
       attachments: imageBoard ? [] : attachments.value,
       extend: extendForFields(extendValues.value, customFields.value),
       ...(translations ? { translations } : {}),
+      // 새 글은 항상 저장한다. 예전 글은 체크를 바꿨을 때만 저장해 "알 수 없음"을 지킨다.
+      ...(!props.postId || loadedAiAssisted !== null || aiAssisted.value ? { aiAssisted: aiAssisted.value } : {}),
     }
 
     const existingId = props.postId || createdDraft?.id
@@ -1922,14 +1938,18 @@ async function handleSubmit() {
       {{ submitHint }}
     </p>
 
-    <div
-      v-if="canPin"
-      class="flex flex-wrap items-center gap-x-6 gap-y-2"
-    >
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
       <USwitch
+        v-if="canPin"
         v-model="pinned"
         size="sm"
         :label="t('editor.pinNotice')"
+      />
+      <USwitch
+        v-model="aiAssisted"
+        size="sm"
+        :label="t('common.label.aiAssisted')"
+        :description="t('editor.aiAssistedHelp')"
       />
     </div>
 

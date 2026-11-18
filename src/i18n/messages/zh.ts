@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: '顶部',
     },
     label: {
+      aiAssisted: 'AI 辅助',
+      aiAssistedHelp: '借助 AI 撰写的内容。',
       imageControls: "图片缩放控件",
       anonymous: '匿名',
       user: '用户',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: '输入内容…',
     tagsPlaceholder: '输入标签后按 Enter',
     pinNotice: '设为公告',
+    aiAssistedHelp: '使用 AI 助手或 AI 图片时会自动开启。如使用了其他 AI，请手动开启。',
     submitEdit: '完成修改',
     submitNext: '下一步：预览',
     apply: '应用',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: '版块 — 查看公告和话题。',
   },
   settings: {
+    aiLabel: {
+      label: '显示 AI 辅助标记',
+      help: '为作者标记为 AI 辅助的帖子和评论添加标记。此功能之前的帖子没有标记。',
+    },
     aiTitle: {
       label: '用 AI 自动生成标题',
       help: '新帖子的标题留空时，AI 会根据正文（没有正文则根据第一张照片）生成标题。照片仅在生成标题时发送给 Google AI。关闭后必须自己填写标题，也不会发送照片。',

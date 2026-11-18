@@ -509,6 +509,8 @@ Permission summary:
 
 When editing a post, `boardId` and `authorUid` cannot change, and `listed` follows the visibility transition rules. A visibility change records `visibilityTransition`, which locks new post/comment creation and regular post edits, and then completes. On failure, save again with the same target visibility. So that the post and its body can be created in one batch, body writes verify the parent post with `getAfter()`. Report records are kept even after a post is deleted.
 
+Posts and comments may carry `aiAssisted` (whether the author used AI help). The rules check only that it is a boolean when it is created or changed; authors can set it on their own posts and comments, including older ones without the field. Older rules accept the field without the type check, so clients keep working before you merge this check.
+
 File reads and listing in the Storage example are public. The Firestore read restrictions for hidden boards and private drafts do not extend to attachments. Storage admin/owner permissions are global, regardless of board assignment. Managing other users' files as assigned staff/manager requires a separate server API. For the detailed reasoning and how to migrate, see the [rule change notes](docs/firebase-setup.md#0451-rule-changes-and-migrating-existing-hosts).
 
 **Known limitation:** AI moderation is client-only. Writing directly via the SDK bypasses it. For critical services, the host should add Cloud Functions validation (outside the package's scope).
@@ -780,6 +782,12 @@ Notice (pinned) permission regression tests:
 
 ```bash
 firebase emulators:exec --project demo-memi-notice-rules --only auth,firestore 'node --test tests/notice-rules.test.mjs'
+```
+
+AI-assisted field permission regression tests:
+
+```bash
+firebase emulators:exec --project demo-memi-ai-assisted-rules --only auth,firestore 'node --test tests/ai-assisted-rules.test.mjs'
 ```
 
 Profile edit permission regression tests:

@@ -8,6 +8,7 @@ import {
   COMMENT_BODY_MAX_LENGTH,
   COMMENT_EDIT_LIMIT,
   displayCommentBody,
+  isMemiBoardAiLabelShown,
   memiBoardCommentLikesKey,
   useAiWaiting,
   useMemiBoardAuth,
@@ -64,6 +65,9 @@ const imageField = ref<InstanceType<typeof MemiBoardCommentImageField> | null>(n
 const imageBusy = ref(false)
 const localUpdatedAt = ref(props.comment.updatedAt)
 const localBlinded = ref(props.comment.isBlinded ?? false)
+const localAiAssisted = ref(props.comment.aiAssisted === true)
+const editAiAssisted = ref(localAiAssisted.value)
+const aiLabelShown = computed(() => isMemiBoardAiLabelShown() && localAiAssisted.value)
 // 본문·이미지 수정 횟수. 기존 댓글은 필드가 없어 0이다.
 const localRevision = ref(props.comment.revision ?? 0)
 const localEditedAt = ref(props.comment.editedAt)
@@ -79,6 +83,7 @@ const isLiked = computed(() => commentLikes?.isLiked(props.comment.id) ?? false)
 const likePending = computed(() => commentLikes?.isPending(props.comment.id) ?? false)
 
 const imageChanged = computed(() => (editImage.value?.path ?? '') !== (localImage.value?.path ?? ''))
+const aiAssistedChanged = computed(() => editAiAssisted.value !== localAiAssisted.value)
 
 watch(() => props.comment.body, (body) => {
   localTranslations.value = undefined
@@ -92,6 +97,7 @@ watch(() => props.comment.images, (images) => {
 })
 watch(() => props.comment.updatedAt, (updatedAt) => { localUpdatedAt.value = updatedAt })
 watch(() => props.comment.isBlinded, (isBlinded) => { localBlinded.value = isBlinded ?? false })
+watch(() => props.comment.aiAssisted, (aiAssisted) => { localAiAssisted.value = aiAssisted === true })
 watch(() => props.comment.revision, (revision) => { localRevision.value = revision ?? 0 })
 watch(() => props.comment.editedAt, (editedAt) => { localEditedAt.value = editedAt })
 watch(() => props.comment.likeCount, (likeCount) => {
@@ -111,6 +117,7 @@ function startEdit() {
   }
   editBody.value = localBody.value
   editImage.value = localImage.value
+  editAiAssisted.value = localAiAssisted.value
   editError.value = ''
   translations.value = undefined
   editing.value = true
@@ -130,7 +137,7 @@ async function saveEdit() {
   if (saving.value || imageBusy.value || aiBusy.value) return
   const body = editBody.value.trim()
   if (!props.comment.id || !body) return
-  if (body === localBody.value && !imageChanged.value && !translations.value) {
+  if (body === localBody.value && !imageChanged.value && !translations.value && !aiAssistedChanged.value) {
     editing.value = false
     return
   }
@@ -149,7 +156,10 @@ async function saveEdit() {
     }
     const previous = localImage.value
     const next = editImage.value
-    await updateComment(props.comment.id, body, next ? [next] : [], translations.value)
+    // 예전 댓글(필드 없음)은 체크를 바꾸지 않으면 그대로 "알 수 없음"으로 둔다.
+    const aiAssisted = aiAssistedChanged.value || props.comment.aiAssisted !== undefined ? editAiAssisted.value : undefined
+    await updateComment(props.comment.id, body, next ? [next] : [], translations.value, aiAssisted)
+    if (aiAssisted !== undefined) localAiAssisted.value = aiAssisted
     if (body !== localBody.value || (previous?.path ?? '') !== (next?.path ?? '')) {
       localRevision.value += 1
       localEditedAt.value = Timestamp.now()
@@ -252,6 +262,9 @@ async function toggleLike() {
           <UBadge variant="subtle" color="neutral" size="sm">
             {{ t('commentItem.edited') }}
           </UBadge>
+        </UTooltip>
+        <UTooltip v-if="aiLabelShown" :text="t('common.label.aiAssistedHelp')" :delay-duration="200" :content="{ side: 'top' }">
+          <UIcon name="i-lucide-sparkles" class="size-4 shrink-0 text-primary" role="img" :aria-label="t('common.label.aiAssistedHelp')" />
         </UTooltip>
       </div>
       <div class="flex shrink-0 items-center gap-1">
@@ -357,7 +370,8 @@ async function toggleLike() {
             autofocus
           />
           <MemiBoardCommentAi v-model="editBody" v-model:translations="translations" :board-id="boardId"
-            :disabled="saving || imageBusy || isWriteRestricted" @busy="aiBusy = $event" />
+            :disabled="saving || imageBusy || isWriteRestricted" @busy="aiBusy = $event" @applied="editAiAssisted = true" />
+          <UCheckbox v-model="editAiAssisted" size="sm" :label="t('common.label.aiAssisted')" :disabled="saving" />
           <MemiBoardCommentImageField
             ref="imageField"
             v-if="comment.id"
@@ -390,7 +404,7 @@ async function toggleLike() {
               :label="t('common.action.save')"
               size="xs"
               :loading="saving"
-              :disabled="!editBody.trim() || imageBusy || aiBusy || (editBody.trim() === localBody && !imageChanged && !translations)"
+              :disabled="!editBody.trim() || imageBusy || aiBusy || (editBody.trim() === localBody && !imageChanged && !translations && !aiAssistedChanged)"
             />
           </div>
         </form>

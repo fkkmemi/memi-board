@@ -179,6 +179,10 @@ export default {
     saveFailed: 'Couldn’t save the board settings.',
     deleteAllFailed: 'Couldn’t delete the board data.',
   },
+  aiLabel: {
+    label: 'Show AI-assisted label',
+    help: 'Adds a label to posts and comments whose authors marked them as AI-assisted. Posts written before this feature have no label.',
+  },
   aiTitle: {
     label: 'Write titles with AI',
     help: 'When a new post\'s title is left empty, AI writes one from the text (or from the first photo if there is no text). Photos are sent to Google AI only to write a title. Turn it off to require a typed title and stop sending photos.',

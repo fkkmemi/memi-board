@@ -75,6 +75,8 @@ export interface CreatePostInput {
   translations?: PostTranslationSet
   /** 보드 커스텀 필드 값. 빈 객체면 저장하지 않는다. */
   extend?: Record<string, string>
+  /** AI 도움을 받아 썼는지. 새 글은 항상 true/false 로 저장한다. */
+  aiAssisted?: boolean
 }
 
 export interface UpdatePostInput {
@@ -86,6 +88,8 @@ export interface UpdatePostInput {
   translations?: PostTranslationSet
   /** 있으면 extend 를 이 값으로 바꾼다. 빈 객체면 지운다. 없으면 기존 값을 둔다. */
   extend?: Record<string, string>
+  /** 있으면 AI 활용 여부를 이 값으로 바꾼다. 없으면 기존 값을 둔다. */
+  aiAssisted?: boolean
 }
 
 export type GetPostBySlugResult =
@@ -355,6 +359,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         viewCount: 0,
         listed,
         isPublished: false,
+        aiAssisted: input.aiAssisted === true,
         authorUid: input.authorUid,
         authorName: clampProfileName(input.authorName),
         authorPhoto: input.authorPhoto,
@@ -438,6 +443,7 @@ export function useMemiBoardPosts(boardId: MaybeRefOrGetter<string>) {
         listed,
         attachments,
         updatedAt: serverTimestamp(),
+        ...(typeof input.aiAssisted === 'boolean' ? { aiAssisted: input.aiAssisted } : {}),
         ...(changed ? { revision: revision + 1, editedAt: serverTimestamp() } : {}),
         ...(input.translations ? {
           i18n: clampI18nTitles(input.translations.i18n),

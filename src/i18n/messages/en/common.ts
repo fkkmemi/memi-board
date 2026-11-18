@@ -27,6 +27,8 @@ export default {
     toTop: 'Top',
   },
   label: {
+    aiAssisted: 'AI-assisted',
+    aiAssistedHelp: 'Written with help from AI.',
     imageControls: "Image zoom controls",
     anonymous: 'Anonymous',
     user: 'User',

@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: 'للأعلى',
     },
     label: {
+      aiAssisted: 'بمساعدة الذكاء الاصطناعي',
+      aiAssistedHelp: 'كُتب بمساعدة الذكاء الاصطناعي.',
       imageControls: "أدوات تكبير الصورة",
       anonymous: 'مجهول',
       user: 'مستخدم',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'اكتب شيئًا…',
     tagsPlaceholder: 'اكتب وسمًا واضغط Enter',
     pinNotice: 'تثبيت كإعلان',
+    aiAssistedHelp: 'يُفعَّل تلقائيًا عند استخدام مساعد الذكاء الاصطناعي أو صوره. فعّله بنفسك إذا استخدمت ذكاءً اصطناعيًا آخر.',
     submitEdit: 'حفظ التغييرات',
     submitNext: 'التالي: معاينة',
     apply: 'تطبيق',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'اللوحة — إعلانات وقصص.',
   },
   settings: {
+    aiLabel: {
+      label: 'إظهار علامة الذكاء الاصطناعي',
+      help: 'يضيف علامة إلى المنشورات والتعليقات التي حددها كتّابها بأنها بمساعدة الذكاء الاصطناعي. المنشورات الأقدم بلا علامة.',
+    },
     aiTitle: {
       label: 'كتابة العناوين بالذكاء الاصطناعي',
       help: 'عند ترك عنوان المنشور الجديد فارغًا، يكتب الذكاء الاصطناعي عنوانًا من النص (أو من أول صورة إن لم يوجد نص). تُرسل الصور إلى Google AI لهذا الغرض فقط. أوقفه لإلزام كتابة العنوان ولإيقاف إرسال الصور.',

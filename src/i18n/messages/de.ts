@@ -139,6 +139,8 @@ const messages: MemiBoardMessages = {
       toTop: 'Nach oben',
     },
     label: {
+      aiAssisted: 'KI-unterstützt',
+      aiAssistedHelp: 'Mit Hilfe von KI geschrieben.',
       imageControls: "Bildzoom-Steuerung",
       anonymous: 'Anonym',
       user: 'Benutzer',
@@ -203,6 +205,7 @@ const messages: MemiBoardMessages = {
     imageContentPlaceholder: 'Text eingeben…',
     tagsPlaceholder: 'Tag eingeben, dann Enter',
     pinNotice: 'Als Hinweis anheften',
+    aiAssistedHelp: 'Wird automatisch aktiviert, wenn du den KI-Assistenten oder KI-Bilder nutzt. Bei anderer KI selbst aktivieren.',
     submitEdit: 'Änderungen speichern',
     submitNext: 'Weiter: Vorschau',
     apply: 'Übernehmen',
@@ -615,6 +618,10 @@ const messages: MemiBoardMessages = {
     listDescriptionAll: 'Board – Ankündigungen und Geschichten.',
   },
   settings: {
+    aiLabel: {
+      label: 'KI-Hinweis anzeigen',
+      help: 'Markiert Beiträge und Kommentare, die ihre Autoren als KI-unterstützt gekennzeichnet haben. Ältere Beiträge haben keine Markierung.',
+    },
     aiTitle: {
       label: 'Titel mit KI erstellen',
       help: 'Bleibt der Titel eines neuen Beitrags leer, schreibt die KI einen aus dem Text (oder aus dem ersten Foto, wenn kein Text vorhanden ist). Fotos werden nur dafür an Google AI gesendet. Ausschalten verlangt einen eigenen Titel und sendet keine Fotos.',
