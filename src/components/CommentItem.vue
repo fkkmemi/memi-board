@@ -70,7 +70,7 @@ const localEditedAt = ref(props.comment.editedAt)
 const revisionsOpen = ref(false)
 const editLimitOpen = ref(false)
 const saving = ref(false)
-const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(saving)
+const { visible: waitVisible, done: waitDone, dismiss: dismissWait } = useAiWaiting(saving)
 const blindSaving = ref(false)
 const likeError = ref('')
 const editError = ref('')
@@ -212,7 +212,7 @@ async function toggleLike() {
 
 <template>
   <div :id="comment.id ? `memi-comment-${comment.id}` : undefined" class="flex flex-col gap-2 scroll-mt-20">
-    <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
+    <MemiBoardWaitingOverlay :open="waitVisible" :done="waitDone" icon="i-lucide-sparkles" closable @close="dismissWait" />
     <div class="flex items-center gap-2">
       <UAvatar
         :src="comment.authorPhoto ?? undefined"

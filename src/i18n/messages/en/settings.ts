@@ -8,6 +8,7 @@ export default {
     titleRequired: 'Enter a board title before generating a banner.',
     noImage: 'AI returned no image. Adjust the title and description and try again.',
     contextChanged: 'The title or description changed during generation. Generate again using the current copy.',
+    confirmLeave: 'A banner is still being generated or has not been saved. Leave this page?',
     generateFailed: 'Could not generate a banner. Check AI Logic image-model access and App Check, then try again.',
     label: 'Board banner', help: 'Upload separate desktop and phone banners. Move or zoom the image to choose the visible area. Save the settings to apply.',
     desktop: 'Desktop banner', desktopHelp: 'Recommended 2400 × 300px (8:1). If empty, the phone banner is used.',

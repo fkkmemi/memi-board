@@ -8,6 +8,7 @@ import type { BoardBannerFiles, BoardCategory, BoardEditorType, BoardListView, B
 import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 import MemiBoardOrphanCleanup from './OrphanCleanup.vue'
 import MemiBoardDiagnostics from './Diagnostics.vue'
 
@@ -164,6 +165,12 @@ const ordering = ref(false)
 const error = ref('')
 const bannerBusy = ref(false)
 const bannerFiles = reactive<Record<string, BoardBannerFiles>>({})
+// 배너를 만드는 중이거나, 만든 배너를 아직 저장하지 않았으면 페이지를 나가기 전에 묻는다.
+useUnsavedChangesGuard(
+  () => '',
+  () => bannerBusy.value || draft.value.some(category => Object.keys(bannerFiles[category.id] ?? {}).length > 0),
+  () => t('settings.banner.confirmLeave'),
+)
 const { applyBoardBannerFiles, deleteAttachment } = useMemiBoardStorage()
 const deleteConfirm = ref('')
 const deletingAll = ref(false)
@@ -260,6 +267,7 @@ async function removeCategory(index: number) {
   deletingId.value = category.id
   try {
     await deleteCategory(category.id)
+    delete bannerFiles[category.id]
     draft.value.splice(index, 1)
   }
   catch (cause) {
@@ -848,7 +856,7 @@ async function runDeleteAll() {
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
           <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
           <div class="flex flex-wrap items-center gap-2">
-            <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id" @update:model-value="savedId = null" />
+            <UInput v-model="category.label" class="min-w-0 flex-1" :disabled="translatingId === category.id || bannerBusy" @update:model-value="savedId = null" />
           </div>
         </div>
         <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
@@ -856,7 +864,7 @@ async function runDeleteAll() {
           <div class="flex flex-col gap-2">
             <UTextarea
               v-model="category.description"
-              :disabled="translatingId === category.id"
+              :disabled="translatingId === category.id || bannerBusy"
               :rows="3"
               autoresize
               :maxrows="6"

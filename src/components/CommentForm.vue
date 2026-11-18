@@ -54,7 +54,7 @@ const imageBusy = ref(false)
 const submitting = ref(false)
 // 등록(AI 검열·번역)이나 이미지 검사·업로드가 오래 걸리면 대기 카드를 띄운다. AI 도우미는 CommentAi 가 따로 띄운다.
 const waitBusy = computed(() => submitting.value || imageBusy.value)
-const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(waitBusy)
+const { visible: waitVisible, done: waitDone, dismiss: dismissWait } = useAiWaiting(waitBusy)
 const error = ref('')
 const notice = ref('')
 const { markSaved, confirmLeave } = useUnsavedChangesGuard(
@@ -141,7 +141,7 @@ onUnmounted(() => {
     class="overflow-hidden rounded-xl border border-default bg-default"
     @submit.prevent="handleSubmit"
   >
-    <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
+    <MemiBoardWaitingOverlay :open="waitVisible" :done="waitDone" icon="i-lucide-sparkles" closable @close="dismissWait" />
     <div class="flex flex-col gap-3 p-3 sm:p-4">
       <UTextarea
         v-model="body"

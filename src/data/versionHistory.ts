@@ -16,6 +16,26 @@ export interface VersionHistoryEntry {
  */
 export const versionHistory: VersionHistoryEntry[] = [
   {
+    version: '0.70.0',
+    date: '2026-11-18',
+    highlights: [
+      '글을 저장하면 바로 글 화면으로 넘어가고, 대기 게임은 직접 닫을 때까지 그대로 남아요',
+      'AI 작업이 끝나도 게임 카드가 남고, 아래쪽에도 닫기 버튼이 생겼어요',
+      '모달이 열리면 게임 카드가 왼쪽 아래 작은 알약으로 접혀 버튼을 가리지 않아요',
+      'AI 결과 창은 바깥을 눌러도 닫히지 않아서 실수로 결과를 잃지 않아요',
+      '배너를 만드는 동안 이름·설명이 잠기고, 저장 전에 나가면 한 번 더 물어봐요',
+    ],
+    highlightsEn: [
+      'Saving a post goes straight to the post, and the waiting game stays until you close it',
+      'The game card stays after an AI task finishes, with a Close button at the bottom too',
+      'When a modal opens, the game card folds into a small pill at the bottom so it does not cover buttons',
+      'AI result dialogs no longer close on an outside click, so results are not lost by accident',
+      'While a banner is generating the board name and description are locked, and leaving before saving asks first',
+    ],
+    note: '`MemiBoardWaitingOverlay`의 `continue` 이벤트가 없어졌어요. 쓰고 있다면 `close`로 바꿔 주세요. 그 밖에 코드·Firestore 규칙·인덱스 변경은 없어요.',
+    noteEn: '`MemiBoardWaitingOverlay` no longer emits `continue`; switch to `close` if you used it. No other code, Firestore rule, or index changes are needed.',
+  },
+  {
     version: '0.69.0',
     date: '2026-11-17',
     highlights: [

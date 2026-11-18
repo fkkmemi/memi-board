@@ -9,6 +9,7 @@ import MemiBoardCustomFieldEditor from './CustomFieldEditor.vue'
 import MemiBoardOptionCards from './OptionCards.vue'
 import MemiBoardBannerEditor from './BannerEditor.vue'
 import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
+import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 const props = withDefaults(defineProps<{
   categoryId: string
@@ -111,8 +112,14 @@ const error = ref('')
 const bannerBusy = ref(false)
 // 배너 AI 생성, 보드 소개 번역, 저장 시 번역, 기존 글 일괄 번역은 오래 걸려서 대기 카드를 띄운다.
 const waitBusy = computed(() => translating.value || saving.value || bannerBusy.value || postTranslations.scanning.value || postTranslations.running.value)
-const { visible: waitVisible, dismiss: dismissWait } = useAiWaiting(waitBusy)
+const { visible: waitVisible, done: waitDone, dismiss: dismissWait } = useAiWaiting(waitBusy)
 const bannerFiles = ref<BoardBannerFiles>({})
+// 배너를 만드는 중이거나, 만든 배너를 아직 저장하지 않았으면 페이지를 나가기 전에 묻는다.
+useUnsavedChangesGuard(
+  () => '',
+  () => bannerBusy.value || Object.keys(bannerFiles.value).length > 0,
+  () => t('settings.banner.confirmLeave'),
+)
 const { applyBoardBannerFiles, deleteAttachment } = useMemiBoardStorage()
 
 function emptyDraft(id: string): BoardCategory {
@@ -265,7 +272,7 @@ async function save() {
 
 <template>
   <MemiBoardSurface>
-  <MemiBoardWaitingOverlay :open="waitVisible" icon="i-lucide-sparkles" closable @close="dismissWait" />
+  <MemiBoardWaitingOverlay :open="waitVisible" :done="waitDone" icon="i-lucide-sparkles" closable @close="dismissWait" />
   <div v-if="pending" class="py-16 text-center text-sm text-muted">{{ t('settings.loading') }}</div>
   <UAlert v-else-if="!canManage" color="neutral" variant="subtle" icon="i-lucide-lock" :title="t('settings.noAccess')" />
   <UAlert v-else-if="!draft" color="neutral" variant="subtle" icon="i-lucide-circle-help" :title="t('settings.notFound.title')" :description="t('settings.notFound.checkBoardAddress')" />
@@ -338,7 +345,7 @@ async function save() {
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div><p class="text-sm font-medium">{{ t('settings.label.label') }}</p><p class="text-xs text-muted">{{ t('settings.label.help') }}</p></div>
       <div class="flex flex-wrap items-center gap-2">
-        <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating" @update:model-value="saved = false" />
+        <UInput v-model="draft.label" class="min-w-0 flex-1" :disabled="translating || bannerBusy" @update:model-value="saved = false" />
       </div>
     </div>
     <div class="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-start">
@@ -346,7 +353,7 @@ async function save() {
       <div class="flex flex-col gap-2">
         <UTextarea
           v-model="draft.description"
-          :disabled="translating"
+          :disabled="translating || bannerBusy"
           :rows="3"
           autoresize
           :maxrows="6"

@@ -42,6 +42,7 @@ import MemiBoardAttachments from './Attachments.vue'
 import MemiBoardWaitingOverlay from './WaitingOverlay.vue'
 import MemiBoardAiUsageRing from './AiUsageRing.vue'
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
+import { useDetachedWaiting } from './useDetachedWaiting'
 
 const props = defineProps<{
   /** 글이 속할 보드 id (필수) */
@@ -106,33 +107,36 @@ watch(customFields, (fields) => {
 const loading = ref(false)
 const saving = ref(false)
 const submitHint = ref('')
-// 자동 번역이 도는 동안 전체 화면 대기 오버레이(미니게임)를 띄운다. 저장까지 끝나면 'done'이 되고,
-// 사용자가 "계속하기"를 눌러야 saved 를 내보낸다(자동으로 닫지 않는다).
-const waiting = ref<'off' | 'translating' | 'done'>('off')
-let waitingSavedId = ''
+// 자동 번역이 도는 동안 대기 카드(미니게임)를 띄운다. 카드는 에디터 밖에 따로 떠 있어서, 저장이 끝나
+// 글 화면으로 넘어가도 그대로 남는다. 닫기는 그냥 닫을 뿐이고 이동과는 상관없다.
+const saveWaiting = useDetachedWaiting({ locale: () => locale.value, icon: 'i-lucide-sparkles' })
+const saveWaitingShown = ref(false)
 // 새 글을 처음 저장하면(미리보기용 초안) 글이 이미 만들어져 있다. 이 화면에 남아 다시 저장하면
 // 새로 만들지 않고 이 초안을 고쳐 쓴다. 다시 만들면 같은 글 id 라 "이미 저장된 글입니다"로 막힌다.
 let createdDraft: { id: string, slug: string } | null = null
-// 번역·저장이 이 시간 안에 끝나면 오버레이 없이 바로 이동한다(잠깐 번쩍이는 것을 막는다).
+// 번역·저장이 이 시간 안에 끝나면 카드 없이 바로 이동한다(잠깐 번쩍이는 것을 막는다).
 const WAITING_DELAY_MS = 2000
 let waitingTimer: ReturnType<typeof setTimeout> | undefined
+function startWaiting() {
+  clearTimeout(waitingTimer)
+  waitingTimer = setTimeout(() => {
+    saveWaitingShown.value = true
+    // 저장 대기 카드로 넘어간다. 에디터 안의 AI 카드는 이 작업이 끝날 때까지 다시 뜨지 않게 닫는다.
+    dismissAiWaiting()
+    saveWaiting.open()
+  }, WAITING_DELAY_MS)
+}
 function cancelWaiting() {
   clearTimeout(waitingTimer)
-  waiting.value = 'off'
+  saveWaitingShown.value = false
+  saveWaiting.close()
 }
 onBeforeUnmount(() => clearTimeout(waitingTimer))
 function finishSave(id: string) {
   clearTimeout(waitingTimer)
-  if (waiting.value === 'translating') {
-    waiting.value = 'done'
-    waitingSavedId = id
-    return
-  }
+  if (saveWaitingShown.value) saveWaiting.finish()
+  saveWaitingShown.value = false
   emit('saved', id)
-}
-function continueAfterWaiting() {
-  waiting.value = 'off'
-  emit('saved', waitingSavedId)
 }
 const error = ref('')
 const imageUploading = ref(false)
@@ -188,7 +192,7 @@ const aiImageError = ref('')
 // AI 작업은 오래 걸릴 수 있어 일정 시간이 지나면 모서리에 대기 카드(미니게임)를 띄운다.
 // 저장(AI 검열·제목 제안·번역·쓰기)도 AI를 기다리는 시간이 길 수 있어 포함한다. 번역 대기 카드가 뜨는 동안은 겹치지 않게 숨긴다.
 const aiBusy = computed(() => aiRunning.value || aiImageRunning.value || saving.value)
-const { visible: aiWaitingVisible, dismiss: dismissAiWaiting } = useAiWaiting(aiBusy)
+const { visible: aiWaitingVisible, done: aiWaitingDone, dismiss: dismissAiWaiting } = useAiWaiting(aiBusy)
 
 interface AiPreviewPending {
   action: WritingAssistantAction
@@ -242,7 +246,7 @@ const { markSaved } = useUnsavedChangesGuard(
     pinned: pinned.value,
     translations: pendingTranslations.value,
   }),
-  () => saving.value || imageUploading.value || aiRunning.value,
+  () => saving.value || imageUploading.value || aiRunning.value || aiImageRunning.value,
   () => t('editor.confirmLeave'),
 )
 
@@ -1448,8 +1452,7 @@ async function handleSubmit() {
       || translationKey(bodyContent, storedTitle) !== loadedTranslationKey.value
     if (needsTranslation && translationEnabled.value && getBoard(resolvedBoardId.value)?.autoTranslatePosts === true && !translations) {
       submitHint.value = t('editor.hint.translating', { count: translationTargets.value.length })
-      clearTimeout(waitingTimer)
-      waitingTimer = setTimeout(() => { waiting.value = 'translating' }, WAITING_DELAY_MS)
+      startWaiting()
       // 번역 한도 초과·실패가 글 저장을 막지 않게 원문만 저장한다. 번역은 나중에 도우미로 다시 할 수 있다.
       try {
         translations = await translatePost({
@@ -1521,9 +1524,9 @@ async function handleSubmit() {
 
 <template>
   <MemiBoardSurface>
-  <MemiBoardWaitingOverlay :open="waiting !== 'off'" :done="waiting === 'done'" block icon="i-lucide-sparkles" @continue="continueAfterWaiting" />
   <MemiBoardWaitingOverlay
-    :open="aiWaitingVisible && waiting === 'off'"
+    :open="aiWaitingVisible && !saveWaitingShown"
+    :done="aiWaitingDone"
     icon="i-lucide-sparkles"
     closable
     @close="dismissAiWaiting"
@@ -2153,6 +2156,7 @@ async function handleSubmit() {
   <UModal
     v-model:open="aiImageDialogOpen"
     :title="t('editor.aiImageDialog.title')"
+    :dismissible="!aiImageBlob"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <template #body>
@@ -2236,6 +2240,7 @@ async function handleSubmit() {
   <UModal
     v-model:open="aiPreviewOpen"
     :title="t('editor.aiPreview.title')"
+    :dismissible="false"
     :ui="{ content: 'sm:max-w-4xl lg:max-w-6xl' }"
   >
     <template #body>

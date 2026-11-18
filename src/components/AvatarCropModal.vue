@@ -60,6 +60,7 @@ async function confirm() {
   <UModal
     v-model:open="open"
     :title="t('avatarCropModal.title')"
+    :dismissible="false"
     :description="t('avatarCropModal.description')"
     :ui="{ content: 'sm:max-w-lg' }"
   >

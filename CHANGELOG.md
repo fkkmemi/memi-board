@@ -4,6 +4,24 @@ This project follows the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/
 
 ## [Unreleased]
 
+## [0.70.0] - 2026-11-18
+
+### Changed
+- The waiting card no longer controls navigation. After a save with auto-translation, the editor goes straight to the saved post, and the card (with the game in progress) stays open on top of it until the user closes it. Closing only closes; the "continue" step is gone.
+- AI waiting cards stay open when the task finishes and switch to the "done" state, so a game in progress is not cut off. They close only when the user closes them. A card closed after a task finished no longer blocks the card for the next task.
+- The waiting card has a Close button at the bottom as well as the X at the top.
+- The waiting card works next to an open modal: clicking it does not close the modal. When a modal opens, the card folds into a small pill in the bottom-start corner so it does not cover the modal's buttons, and it can be expanded again. It returns to the top-end corner when the modal closes.
+- AI results can no longer be lost by a stray click. The before/after preview (posts and comments), the AI image result, the AI profile photo result, and the profile photo crop dialog close only with their buttons, not on an outside click or Escape.
+- Board banners: the board name and description are locked while a banner is being generated (changing them used to discard the result), and leaving the settings page while a banner is generating or not yet saved asks for confirmation. The post editor also asks before leaving while an AI image is being generated.
+
+### Removed
+- `MemiBoardWaitingOverlay` no longer emits `continue`. The X and the bottom Close button emit `close`.
+
+### Host app steps
+- If your app listens to `@continue` on `MemiBoardWaitingOverlay`, listen to `@close` instead.
+- If you use `useAiWaiting` with your own `MemiBoardWaitingOverlay`, pass the new `done` ref as `:done` so the card shows the finished state instead of a running progress bar.
+- Otherwise none. Update to `memi-board@^0.70.0`; no rule, index or config changes.
+
 ## [0.69.0] - 2026-11-17
 
 ### Added

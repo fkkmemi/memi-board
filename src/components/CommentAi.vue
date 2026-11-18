@@ -20,7 +20,7 @@ const usageLabel = computed(() => {
   const text = t('editor.aiUsage.writingLeft', { remaining: usage.value.remaining, limit: usage.value.limit })
   return usage.value.hours ? `${text} · ${t('editor.aiUsage.resets', { hours: usage.value.hours })}` : text
 })
-const { visible: waitingVisible, dismiss: dismissWaiting } = useAiWaiting(running)
+const { visible: waitingVisible, done: waitingDone, dismiss: dismissWaiting } = useAiWaiting(running)
 const error = ref('')
 const notice = ref('')
 const previewOpen = ref(false)
@@ -91,6 +91,7 @@ function apply() {
   </div>
   <MemiBoardWaitingOverlay
     :open="waitingVisible"
+    :done="waitingDone"
     icon="i-lucide-sparkles"
     closable
     @close="dismissWaiting"
@@ -101,7 +102,7 @@ function apply() {
       <UButton type="button" :disabled="!instruction.trim()" :label="t('editor.apply')" @click="customOpen = false; run('custom')" />
     </template>
   </UModal>
-  <UModal v-model:open="previewOpen" :title="t('editor.aiPreview.title')">
+  <UModal v-model:open="previewOpen" :title="t('editor.aiPreview.title')" :dismissible="false">
     <template #body>
       <div class="grid gap-4 sm:grid-cols-2">
         <div><p class="text-xs text-muted">{{ t('editor.aiPreview.before') }}</p><p class="whitespace-pre-wrap break-words text-sm">{{ before }}</p></div>

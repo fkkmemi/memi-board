@@ -263,6 +263,6 @@ const stacks = computed(() => [
         </div>
       </template>
     </UModal>
-    <MemiBoardWaitingOverlay :open="waitingDemo" :done="waitingDemoDone" closable @close="closeWaitingDemo" @continue="closeWaitingDemo" />
+    <MemiBoardWaitingOverlay :open="waitingDemo" :done="waitingDemoDone" closable @close="closeWaitingDemo" />
   </div>
 </template>
